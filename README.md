@@ -17,6 +17,6 @@ Android/Termux에 하나의 trusted controller를 두고 안정된 Cloudflare MC
 - 기존 production/dev-2, provider, public endpoint는 이 설계 publication으로 변경하지 않는다.
 
 ## 필요한 내용만 읽기
-전체 근거와 33개 보고 항목은 [ARCHITECTURE.md](ARCHITECTURE.md)에 있다. 구현 대상 component와 관련된 section만 읽는다. core wire field/type/required/limit와 capability gateway/descriptor shape는 [contracts/tools.schema.json](contracts/tools.schema.json)의 해당 `$defs`/`x-tools`가 소유한다. 이 JSON은 실행 프로그램이나 배포된 MCP가 아니다.
+전체 근거와 33개 보고 항목은 [ARCHITECTURE.md](ARCHITECTURE.md)에 있다. 구현 대상 component와 관련된 section만 읽는다. core wire field/type/required/limit와 capability gateway/descriptor shape는 [contracts/tools.schema.json](contracts/tools.schema.json)의 해당 `$defs`/`x-tools`가 소유한다. 단계별 구현·acceptance 순서는 [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)를 사용한다. 설계 배경, 사용자 우선순위, 비교 레퍼런스나 미래 확장 의도가 필요할 때만 [IMPLEMENTER_REFERENCE.md](IMPLEMENTER_REFERENCE.md)를 참고한다. 두 보조 문서는 ARCHITECTURE/contract의 authority를 대체하지 않는다. 이 JSON은 실행 프로그램이나 배포된 MCP가 아니다.
 
 새로운 source/test가 생기면 이 현재 작업을 실제 상태로 갱신한다. 완료하지 않은 검사·성능·배포를 완료로 기록하지 않는다. 과거 진행 내역은 Git history에 남기며 별도 WORKBOARD/campaign/route-map에 중복 기록하지 않는다.
