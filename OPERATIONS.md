@@ -6,9 +6,10 @@ Operator actions, not production authorization. Current status lives in README.
 
 Use Termux Python, Git and the development CLIs required by the enrolled repositories
 (for example Node/npm, Python/pip, rg). GitHub publication also needs owner-configured gh
-authentication. The qualified official static Linux tunnel-client needs Termux PRoot only
-to project resolver/CA files into conventional /etc paths; this is compatibility plumbing,
-not isolation. No remote executor enrollment, root, Docker or systemd is needed.
+authentication. Prefer the native Android/arm64 CGO tunnel-client. The fallback official
+static Linux binary needs Termux PRoot to project resolver/CA files into conventional /etc
+paths; that is compatibility plumbing, not isolation. No remote executor enrollment, root,
+Docker or systemd is needed.
 Install dependencies and rehearse before touching any existing service:
 
 ```sh
@@ -91,6 +92,12 @@ tooling location outside source. Do not place credentials in this environment; p
 HOME/TMP/Git/SSH lookup variables are reserved. The tooling environment is part of validation
 policy identity, so changing it invalidates prior validation for publication. Large installs
 inside a per-operation copy can still hit the documented native disk/source limits.
+Only configured strings are bound, not the mutable contents of external directories. Use
+versioned operator-owned dependencies, not a second source checkout, and change the configured
+path for tooling upgrades. Candidate modules must precede external dependencies (the tdev
+check script puts candidate src first). NODE_PATH does not add npm executable directories to
+PATH: adopt the correct validation command/tool paths for the actual repository. Never put
+tokens in PATH/PYTHONPATH or other tooling values; same-UID access is still not isolated.
 
 ## Local HTTP and Tunnel
 
@@ -169,6 +176,13 @@ substitute unverified subject/session headers. Shared credentials share API auth
 
 ## Processes and restart
 
+Workspace inspect returns a bounded current source/remote/operation/cleanup view, even for
+closed workspaces (discover with list includeClosed). Follow nextBefore/nextAfter for older
+rows. Process status with since (empty initially) and inspect expose a cursor, changed,
+observation time and pollAfterMs. Reuse the returned cursor with the same query: unchanged
+means checked now, not stalled. Respect the polling hint/task deadline or do independent
+work. Exact admission checks still apply; mutationReady is only the open/no-busy prerequisite.
+
 The native supervisor outlives controller HTTP/restart. Observe the original operation or
 lookupRequestId after lost responses; never create a new request just because no response
 arrived. Stdin delivery is sequenced and durable; queued/committed means pipe delivery,
@@ -181,6 +195,49 @@ creator finished. Unknown/live operations cannot be retired. Runit/Android may k
 app UID; there is no always-on promise. Supervisor death without a sealed result remains
 uncertain and fences only that workspace; preserve the spool for operator investigation.
 No stale job becomes a global lock or a reason to provision another machine.
+
+## Local Codex and optional CLI extensions
+
+The installed Codex client may still speak legacy initialize; a direct connection to the
+2026-07-28 endpoint then fails. Do not change the core version or mislabel tool annotations.
+An explicit localhost-only stdio adapter is available:
+
+```sh
+PYTHONPATH=/absolute/tdev/src:/absolute/tdev/.tdev-deps python -m tdev.codex_bridge \
+  --url http://127.0.0.1:8765/mcp --token-file /absolute/private/connector.secret
+```
+
+Register that command and PYTHONPATH in the chosen Codex MCP configuration if persistent
+access is wanted; do not put the token value in command arguments or source. The file must
+be private and contain a bearer already admitted by that installation. Adapter initialization
+reports 2025-11-25, while every upstream request uses 2026-07-28. It forwards tool semantics
+unchanged and never automatically retries effects. Native trust limitations still apply.
+
+Use the prepared native `tunnel-client codex plugin install` when the optional Tunnel plugin
+is missing. This changes Codex plugin configuration, not production services. The plugin
+manages Tunnel runtimes; it does not by itself expose tdev's seven tools to Local Codex.
+Test installed-client discovery/calls without a model run or permanent MCP config rewrite:
+
+```sh
+PYTHONPATH=src:.tdev-deps python scripts/check_codex.py
+```
+
+This runs a disposable local bare-ref/native coding path through actual Codex app-server MCP,
+with client restart/replay and retirement. It does not test Codex through Secure MCP Tunnel.
+External CLIs already use exec/stdin/output/capture and the normal process lifecycle; no
+public capability gateway is required. Other MCP services remain independent clients.
+
+Annotations now honestly mark mixed/mutating tools as such. A host may prompt or refuse an
+action; use its supported approval settings, not false read-only/destructive hints. After
+deploying changed annotations to the chosen development installation, Refresh the ChatGPT
+connector and recheck only affected discovery/approval behaviour. Prior full-path acceptance
+does not prove a new annotation profile is accepted.
+
+New DOWN Tunnel service templates write their randomly assigned health address to
+`<installation-root>/tunnel-health.url`. After authorized startup, inspect it with
+`tunnel-client health --url-file <installation-root>/tunnel-health.url --require-control-plane-poll --json`.
+An old foreground runtime without that file needs separate observation; do not infer its
+health from a guessed fixed port or restart it just to create the file.
 
 ## Optional SSH/OCI backend
 

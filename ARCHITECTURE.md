@@ -29,6 +29,12 @@ public tools or permission registration. No planner, Task, permission projection
 registry/gateway or per-command allowlist. CLI extensions gain no MCP admin operation;
 native programs nevertheless have the real app UID's authority (§3).
 
+Tool annotations conservatively describe all actions in each mixed tool. Only read is
+read-only; exec/validate can run arbitrary owner-trusted commands, and publish changes a
+remote ref. Request identity makes identical mutations effect-idempotent, not their replies
+immutable. Host prompts/approval policy must be handled honestly, never bypassed by claiming
+all tools are read-only/closed-world. An annotation is not admission authority.
+
 Known repo/ref/head: open → batched read → edit → validate → publish is five semantic calls
 plus observations. Exec can batch shell commands. Tool count is not a goal.
 Omitted executor config means native; explicit SSH never falls back to native on failure.
@@ -48,6 +54,10 @@ SSH agent, provider/tunnel tokens, proxy variables or Git global credential help
 repository config may add a bounded `toolingEnvironment` for non-secret toolchain/dependency
 locations needed by clean copies; private HOME/TMP/Git/SSH lookup variables remain reserved.
 The exact tooling environment is recorded in execution input and validation policy identity.
+This binds environment **strings**, not the changing contents of referenced directories.
+Owner-adopted tooling must be non-secret dependencies, not another copy of repository source;
+put candidate source first in module lookup. Prefer immutable versioned dependency paths and
+change the configured path when updating them. This is not dependency-content attestation.
 Source contains credential-free shallow Git metadata, never a copied provider configuration.
 Controller/provider/Tunnel configuration stays outside the execution copy. Candidate stdout
 is never parsed as a receipt. These prevent accidental credential propagation and confused
@@ -138,67 +148,41 @@ independently. No global stale lock, timeout lease, automatic coordination or pl
 
 ### Progress continuity within a turn and across resumes
 
-The controller-facing state must remain **live and monotonic within the same model turn**.
-After the model starts or joins an operation, every bounded wait/status/readback must be able
-to observe a same-or-newer operation/frontier revision. If work advances or reaches terminal
-state while the model is still in the turn, the next observation must surface that progress;
-the model must not remain pinned to an earlier "running", stale snapshot, cached task view or
-pre-completion frontier.
+The controller must surface underlying completion within the same turn and after reconnect,
+including when the caller missed the completion response. Replaying a mutation reconciles
+the original operation before returning; it never starts the effect again. Process status
+reads the supervisor's current result/log evidence, not a cached admission response.
 
-The current work frontier is the smallest bounded view that answers: exact current
-source/checkpoint and remote head, which accepted effects are terminal, which remain
-running/unknown, what resource ownership still requires cleanup, and which next action is
-actually admissible. It may be derived from workspace/operation/source state; this requirement
-does not introduce a planner or second workflow authority. Frontier observations need an
-explicit revision/cursor or equivalent freshness evidence so a caller can distinguish
-"nothing changed" from "I accidentally reread an old snapshot".
+Use workspace list (bounded workspace pages, includeClosed for cleanup) then workspace
+inspect for a known workspace. Inspect reconciles its busy operation and returns current
+checkpoint/base, live remote head or a provider error, a bounded newest-first operation page
+(including related controls), original request IDs, cleanup state and mutationReady.
+Older predecessors are available by before cursor; the response does not claim the entire
+unbounded history fits in one page. mutationReady means only open/no busy, not advance
+permission for every action: expected source, validation and old head are checked on admission.
+The model chooses the next useful action; no planner or new durable workflow owner.
 
-Completed predecessors are facts, not work to rediscover. **Within the same turn**, once a
-predecessor completes, the model must be able to notice that completion cheaply and continue
-to the next admissible action. It is a product failure if the underlying work completed but
-the model keeps waiting on stale state, starts re-investigating already completed work, or
-remains trapped in a live turn without useful forward progress solely because completion was
-not surfaced.
+Inspect, and process status with since, return a content-hash cursor, changed, observation
+time/provenance and pollAfterMs. The cursor is equality evidence, NOT an ordered revision.
+Inspect also bounds its observation interval with startedAtNs; SQLite, executor and remote
+reads are not an atomic distributed snapshot. Concurrent changes may require another read;
+an active summary is omitted if the busy identity changed during observation. Admission CAS
+remains authoritative. Local logs expose availableBytes so growth beyond the returned page
+changes the cursor; older optional remote runners may omit that field until explicitly upgraded.
+Retained output remains capped; unchanged output alone is not proof a process is stalled.
 
-Same-turn observation must also be **bounded against stale loops**. Repeated no-change reads
-must either expose a newer revision when progress exists or return an explicit current
-no-progress/stalled observation with enough provenance to tell the caller what was actually
-checked. The caller must not need to keep polling, reinterpret an old snapshot, or invent a
-new diagnosis merely because freshness is unclear. A stale progress loop must not be treated
-as generic evidence that unrelated authorization, safety or policy state changed. Any guard
-or safety gate transition must be tied to a concrete current fact/policy decision, not used as
-a fallback escape from ambiguous progress state.
+Equal since returns a freshly checked no-change result, not an ambiguous cached response.
+Wait at least the polling hint or do independent work, and bound polling by the task deadline;
+the server does not impose a new scheduler, infer a guard/permission transition, or guarantee
+model behaviour. Provider failure is an explicit current error, not evidence of completion.
+Transport reconnect is unrelated to operation lifetime.
 
-The observed failure mode motivating this invariant is stronger than a slow resume: the model
-can stay inside one turn after the underlying work already advanced, lose its sense of what is
-complete/current, repeatedly inspect or question the same work, and eventually drift into
-defensive/guard-oriented checks instead of continuing the development path. Whether a specific
-external safety system caused that drift is not assumed here; tdev must remove the stale,
-ambiguous control state that permits the loop in the first place.
-
-The same invariant applies after a fresh model turn, reconnect or controller restart. Resume
-must recover the current frontier from durable product state without replaying chat history,
-scanning an unbounded event log, or re-running completed stages merely to discover that they
-already finished. If external state advanced, the resumed view reconciles that fresh evidence
-with durable state and moves forward from the newer proved state.
-
-A successful progress observation or resume is therefore not just "correctly rebound".
-Unless there is a genuine external blocker or unresolved unknown effect, the model must be
-able to continue useful work in the same turn after observing progress. Progress reporting
-must be cheap enough to call routinely and specific enough to distinguish completed,
-in-flight/unknown, blocked and next-admissible work.
-
-Resource lifecycle is part of the same invariant. Finishing one controller/session must not
-make its clean owned resources impossible to inspect or retire from a later authorized
-maintenance/resume path. Terminalization may seal mutation authority, but it must not create
-an orphan state that requires bypassing the product API for cleanup.
-
-Acceptance must exercise both **same-turn live progress** and fresh-session/reconnect/restart
-at multiple cut points, including after a predecessor completed but before its caller observed
-completion. A same-turn waiter must observe the terminal transition and continue; a resumed
-client must recover the same or newer frontier, skip proved-complete predecessors, preserve
-unknown effects without replay, expose any required cleanup, and continue useful work without
-an unbounded historical reconstruction step.
+Closed workspaces remain inspectable and discoverable with includeClosed. Terminal execution
+copies can be retired via the original operation after creator/session completion; unknown
+effects retain evidence and cannot be retired automatically. Tests exercise live output growth,
+no-change freshness, missed completion/replay, fresh controller/client resume, useful next work,
+bounded pages and post-close cleanup. No-change/current observation must not force a model to
+re-investigate completed predecessors or invent unrelated security diagnoses.
 
 Every mutation uses principal/request identity. Auth precedes replay; dedup precedes stale
 checks. Same identity with changed input conflicts. Local pointer and result commit together.
@@ -272,7 +256,7 @@ server/discover is optional for clients, not a required handshake. Results are c
 JSON envelopes; discovery/tool lists carry explicit private zero-TTL cache metadata.
 The exact envelope/error profile is in contracts/tools.schema.json x-mcp.
 
-No initialize/initialized, transport session, GET/DELETE stream, SSE resume or automatic
+Core HTTP has no initialize/initialized, transport session, GET/DELETE stream, SSE resume or automatic
 protocol downgrade. Unimplemented client notifications are rejected. The server does not
 advertise subscriptions, sampling, elicitation, tasks or MRTR input requests. GET healthz
 is liveness, not MCP. HTTP request IDs and clientInfo are not durable mutation identity or
@@ -285,6 +269,16 @@ Local official-SDK interoperability and actual host acceptance are separate evid
 If a host only speaks an older protocol, report that mismatch; do not silently downgrade
 the user-selected version or claim a host-supported revision without observation.
 
+For an explicitly selected Local Codex client that requires legacy MCP, the optional
+`tdev.codex_bridge` stdio adapter implements the 2025-11-25 initialize/list/call/ping subset
+and forwards once to fixed localhost HTTP with 2026-07-28 metadata. It preserves public tool
+schemas, truthful annotations, arguments and durable request IDs; it translates only the
+transport lifecycle/envelope. Its bearer comes from a private operator file or environment,
+never candidate source/argv. It cannot select remote targets, grant authority, execute code,
+produce receipts, retry an uncertain call or cancel work on transport disconnect. No new
+durable owner, public tool or implicit downgrade. The Tunnel Codex plugin manages Tunnel
+runtimes; installing it alone does not register tdev tools with Codex.
+
 Runit services and bounded logging are separate from coding calls. Inactive installation
 stages a verified bundle and DOWN templates; rollback checks schema and outstanding effects.
 Production activation needs explicit authority. Bundle verification is not protection from
@@ -295,8 +289,14 @@ hostile same-UID code. Native runner is included without extra executor enrollme
 Termux-native subprocess tests, HTTP full coding path, restart, cancellation, environment
 hygiene, exact publication and inactive packaged rehearsal are primary local evidence.
 Measured results belong in LOCAL_VALIDATION; completion belongs in README. No fixture result
-is hostile-code sandbox proof. Remaining host acceptance is actual ChatGPT/Tunnel discovery,
-bearer forwarding and reconnect, not Linux machine provisioning.
+is hostile-code sandbox proof. Live host claims must identify the tested code/config and
+annotation profile. Previously completed ChatGPT/Tunnel acceptance need not be repeated
+without a relevant change; changed host-facing annotations require targeted requalification.
+Local Codex qualification covers the installed client's discovery/calls and disposable
+native coding/reconnect/cleanup, separately from an interactive model turn or Tunnel route.
+CLI extension qualification uses ordinary exec with real exit/capture and cannot replace
+mandatory validation/publication. Other MCP services are independent integrations, not
+unimplemented core gateways. Optional remote adapters require acceptance only if selected.
 
 References: [Git CAS](https://git-scm.com/docs/git-update-ref),
 [Linux subreaper](https://man7.org/linux/man-pages/man2/PR_SET_CHILD_SUBREAPER.2const.html),

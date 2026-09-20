@@ -59,6 +59,24 @@ class NativeTest(Base):
         self.assertEqual(p["effect"], "none")
         self.assertEqual(p["error"]["code"], "POLICY_CHANGED")
 
+    def test_warm_tooling_does_not_replace_candidate_or_private_environment(self):
+        tooling = self.root / "tooling"
+        tooling.mkdir()
+        (tooling / "dependency.py").write_text("VALUE = 'dependency'\n")
+        (tooling / "candidate.py").write_text("VALUE = 'wrong-source'\n")
+        repo = self.repo.config["repositories"]["test"]
+        repo["toolingEnvironment"] = {"PYTHONPATH": str(tooling)}
+        repo["validation"] = "python -c \"import candidate,dependency,os; assert candidate.VALUE == 'exact'; assert dependency.VALUE == 'dependency'; assert not os.getenv('GH_TOKEN')\""
+        w = self.open()
+        edited = self.call("edit", {"requestId": "candidate", "workspaceId": w["workspaceId"], "expected": w["checkpoint"], "edits": [{"action": "put", "path": "candidate.py", "before": None, "content": "VALUE = 'exact'\n"}]})
+        with patch.dict(os.environ, {"GH_TOKEN": "sentinel-not-a-secret"}):
+            v = self.call("validate", {"requestId": "source-first", "workspaceId": w["workspaceId"], "expected": edited["result"]["checkpoint"], "message": "source-first"})
+        self.assertEqual(self.wait(v["id"])["status"], "succeeded")
+        # The same warm environment never exempts candidate source from integrity checks.
+        repo["validation"] = "printf changed > candidate.py"
+        bad = self.call("validate", {"requestId": "source-change", "workspaceId": w["workspaceId"], "expected": edited["result"]["checkpoint"], "message": "reject"})
+        self.assertEqual(self.wait(bad["id"])["result"]["captureError"], "VALIDATION_SOURCE_CHANGED")
+
     def test_stdin_replay_and_controller_restart(self):
         w = self.open()
         op = self.execute(w, "read value; printf '%s' \"$value\" > a.txt; printf '%s' \"$value\"")

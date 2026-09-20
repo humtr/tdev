@@ -183,7 +183,8 @@ def stage(root, source):
             runtime = tunnel_runtime
             tunnel_argv = [
                 runtime["binary"], "run", "--profile", "tdev",
-                "--health.listen-addr", "127.0.0.1:0"
+                "--health.listen-addr", "127.0.0.1:0",
+                "--health.url-file", str(root / "tunnel-health.url")
             ]
             if runtime["mode"] == "termux-chroot":
                 setup += "CA_BUNDLE=" + shlex.quote(runtime["caBundle"]) + "\nexport CA_BUNDLE\n"

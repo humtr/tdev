@@ -123,6 +123,7 @@ print(s.server_port,flush=True); s.serve_forever()
         assert "envdir" not in tunnel_run
         assert "CONTROL_PLANE_API_KEY" in tunnel_run
         assert "--health.listen-addr 127.0.0.1:0" in tunnel_run
+        assert "--health.url-file " + str(root / "tunnel-health.url") in tunnel_run
         assert str(native_tunnel) in tunnel_run
         assert "termux-chroot" not in tunnel_run
         assert "proot -b" not in tunnel_run

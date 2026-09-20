@@ -10,7 +10,7 @@ Synthetic Git repositories and inactive bundles were disposable authored test fi
 Existing unrelated .artifacts, node_modules and tools were preserved. The MCP SDK probe
 was installed separately in ignored .tdev-mcp-client, not existing node_modules.
 
-## Executed checks
+## Historical executed checks (before independent review below)
 
 | Command | Observed result |
 |---|---|
@@ -97,7 +97,7 @@ The development Tunnel used the prepared native-CGO tunnel-client 0.0.14 and the
 installation bearer. After ChatGPT connector creation/Refresh, the host exposed all seven
 tdev tools. The first read-only `workspace list` call was blocked by the host before reaching
 tdev because the mixed-action tools were advertised with destructive/open-world annotations.
-All seven public tools were then aligned to the current tmcp convention
+All seven public tools were then aligned to the then-used tmcp convention
 (`readOnlyHint=true`, `destructiveHint=false`, `idempotentHint=false`,
 `openWorldHint=false`). Focused contract/HTTP checks passed and the then-current full suite
 passed 57/57. After server restart and connector Refresh, live `workspace list` succeeded.
@@ -148,10 +148,10 @@ claim that every future timing race is impossible.
 
 The requested version is **MCP 2026-07-28**. Implemented per-request metadata/header
 validation, server/discover, complete results, explicit cache metadata, and structured
-unsupported-version errors. There is no legacy initialize/session protocol or silent
-downgrade. The official SDK pinned-version probe tests interoperability, while the live
-ChatGPT acceptance above confirms the user's host can currently drive this advertised
-profile through Secure MCP Tunnel.
+unsupported-version errors. Core HTTP has no legacy initialize/session protocol or silent
+downgrade. The official SDK pinned-version probe tests interoperability, while the historical
+ChatGPT acceptance above confirms the tested host drove that then-advertised annotation
+profile through Secure MCP Tunnel. It does not qualify subsequently corrected annotations.
 
 Primary references:
 [MCP versioning](https://modelcontextprotocol.io/specification/2026-07-28/basic/versioning),
@@ -166,3 +166,82 @@ account/session isolation (not claimed for shared credentials), optional remote 
 isolation/egress, or production cutover. Local wrong-bearer denial remains covered by the
 HTTP/rehearsal evidence above. No separate Linux executor is needed for the default native
 path. Production activation requires separate authorization.
+
+## Independent canonical review and Local Codex qualification
+
+Fresh starting local HEAD and remote `refs/heads/tdev` both resolved to
+`989f580434c5ed865b84e84f84a835aa923b64c5`; the review range begins at
+`99372b5b7988f0640e12c70943cdcac3a7abf40f`. Both heads were rechecked after resume.
+Only `/data/data/com.termux/files/home/prj/tdev` was used for product development.
+Existing `.artifacts/` and `node_modules/` were preserved. Authored bare repositories and
+inactive bundles were disposable tests, not alternative product checkouts.
+
+| Review area | Finding and disposition |
+|---|---|
+| Exactness/authority | Termux-native default, exact source/candidate, current authorization, durable replay and non-force publication survived the reviewed commits. No mandatory remote executor was reintroduced. |
+| Tool annotations | `41f6018` marked arbitrary command/write/publish operations read-only and closed-world to pass host gating. Corrected conservative hints: only read is read-only; tests assert real semantics. Older successful host calls do not qualify these changed hints. |
+| Warm tooling | `18303db` binds exact environment values to execution and validation policy, not external directory contents. Current warm path contained Python dependencies, not tdev source. Added candidate-module precedence, credential sentinel and source-change rejection tests; documented immutable/versioned dependency paths and owner trust. Old pre-policy-format validations fail closed at publication, rather than gaining authority. |
+| Progress/reconnect | `0025f62`/`66006a8` added requirements but no bounded frontier; replay could return an old running result. Added reconciliation on same-request replay, bounded inspect/pages/closed-resource discovery and freshness cursors. Logs expose retained available bytes even beyond the returned page. No new table/planner. |
+| Historical live evidence | Read-only inspection of retained validation `14e5549a0aa541a7ab1fc2f3240afed0` confirmed success, exit 0, stopped proof and candidate `2841dc7d8d83a9d7027e8d717c92d820c45d2c25`; publication `f4f021990f754bc698742f115e5dc4ba` matched it. Retained output includes 58 tests/98.198s/OK. No retirement records were present and execution copies remained; prior cleanup wording did not prove full resource retirement. No historical runtime data was deleted. |
+| Tunnel operations | Existing native Tunnel and controller processes remained alive; localhost health returned up. Managed runtime alias listing was empty, consistent with the foreground runtime not being an alias. Ephemeral health port had no URL file, so guessed-port results were not used as health evidence. New inactive service templates persist the health URL; existing services were not restarted. |
+
+The earlier acceptance date headings are retained as reported evidence labels, not a claim
+of a new ChatGPT run during this review. No previously completed ChatGPT coding acceptance
+was repeated. Source-integrity/credential claims remain the owner-trusted same-UID model,
+not hostile-code isolation or immutable dependency attestation.
+
+### Installed Local Codex and extension evidence
+
+Installed `codex-cli 0.155.1` sent legacy initialize against the HTTP endpoint; the direct
+probe failed with missing required request headers (`-32020`). The correction is an explicitly
+selected `tdev.codex_bridge` stdio compatibility edge, not a core downgrade. Core requests
+remain 2026-07-28. Adapter initialization reports 2025-11-25 and forwards the same schemas,
+annotations, arguments and durable identity, once; current auth remains at the controller.
+
+The prepared native tunnel-client 0.0.14 installed its bundled Tunnel MCP plugin (0.1.4) into
+the initially active `jgnh` Codex profile. On resume the active profile was `janmori101`;
+installation was repeated specifically there, preserving unrelated configuration. Fresh
+Codex app-server discovery then found the plugin and its read-only `list_runtime_aliases`
+call succeeded. No Tunnel runtime was created, stopped or replaced by the plugin.
+
+`scripts/check_codex.py` launches the installed Codex app-server with an ephemeral test MCP
+configuration and thread, without model inference or permanent tdev MCP registration.
+Actual MCP discovery/list/call exercised all seven tools on a synthetic bare Git ref:
+open/read/edit → native exec → client exit/restart → same-request replay → sequenced stdin
+and replay → validate → exact local publication → execution retirement → closed-workspace
+inspection. The synthetic ref/state disappear with the test directory. These are installed
+client facts, not a ChatGPT model turn, GitHub acceptance, or Local Codex through Tunnel.
+
+The authored external CLI fixture consumed JSON stdin, produced a captured artifact, exited
+7 despite forged PASS/admin/validation stdout, and could not be used as a validation receipt.
+Owner-mandated validation remained mandatory and retirement remained available. This closes
+the selected command-first extension path without a gateway. Remote/device/API adapters are
+not selected or qualified; they are not prerequisites for native use.
+
+### Checks for this review
+
+| Command | Observed result |
+|---|---|
+| Baseline `sh scripts/check.sh` at `989f580` | 58 tests, OK, 54.998s |
+| Review `sh scripts/check.sh` | 64 tests, OK, 109.940s; final post-documentation rerun 64 tests, OK, 121.885s; diff whitespace checks passed |
+| `PYTHONPATH=src:.tdev-deps:tests python -m unittest test_adapter test_admin test_bridge test_progress test_contract test_native -v` | 21 tests, OK, 45.967s |
+| `PYTHONPATH=src:.tdev-deps python scripts/check_mcp.py` | Official SDK 2.0.0, protocol 2026-07-28, seven tools and structured call passed |
+| `PYTHONPATH=src:.tdev-deps python scripts/check_codex.py` | Installed client seven-tool native path, client restart/replay, exact local publication, retirement passed; installed Tunnel plugin discovered/read-only call passed |
+| `PYTHONPATH=src:.tdev-deps python scripts/rehearse.py` | Inactive bundle `29a01f536a86fe06b9827d81b9a3edbf1540c11a404ff41c8bf4a68bb57a2736`; real native SIGKILL/recovery/publication; two HTTP starts each denied wrong bearer (401) and exposed seven authenticated tools; no production services touched |
+
+Schema-edit failures during development were genuine failures (misplaced JSON fields),
+localized and repaired before successful fixture/schema reruns; no invariant/test was removed.
+Canonical UTF-8 `x-tools` advertisement (expanded schemas, descriptions and annotations) grew
+from 25,271 bytes at `989f580` to 37,069 bytes. This is a real context cost for the inspect
+frontier/freshness contract; tool count remains seven and no handshake was added to core HTTP.
+The explicit legacy adapter adds one upstream discover during its own initialize and one
+upstream request per tool request. No comparative latency/throughput speedup is claimed.
+
+Remaining acceptance is targeted, not a new design/governance gate: deploy the reviewed
+changes only to an authorized development runtime, Refresh the ChatGPT connector and check
+truthful mixed/write annotations with the host's supported approvals. If blocked, record the
+actual host behaviour instead of restoring false hints. Persistent Local Codex registration
+requires selecting the intended instance/private bearer; the disposable client path already
+passes. Interactive model behaviour, Codex-through-Tunnel, wrong-secret host UI, optional
+remote isolation and production cutover were not executed. Shared credentials still do not
+promise account/session isolation.

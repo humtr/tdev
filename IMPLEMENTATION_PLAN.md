@@ -10,6 +10,7 @@ does not block any native deliverable.
 | 2. Command + validation/publication on Termux | native default without executor registration; clean env and disposable source; real exit; exact commit; durable replay; non-force CAS | native commands, stdin, output/deadline, source-change/forged-stdout rejection, exact publication | complete on-device coding path | none |
 | 3. Process recovery and HTTP/auth | detached supervisors survive controller restart; no lost-response relaunch; per-workspace uncertainty; MCP 2026-07-28 per-request metadata, no legacy handshake | real crash/reconnect, subreaper cancellation, input replay, full HTTP edit/exec/validate/publish; pinned official SDK and negative wire tests | recoverable MCP | ChatGPT connection/Refresh, exact-version forwarding and credential entry only |
 | 4. Inactive install/rollback and config | omitted/native config works; explicit SSH stays optional; no false sandbox/egress claim; no production effect | defaults/legacy SSH schema, installed CLIs, packaged native path, rollback/tamper | ready for on-device host acceptance | Tunnel credentials and explicit production cutover only |
+| 5. Local client and CLI extension qualification | no core protocol downgrade or new authority; truthful annotations; completion visible in same turn/reconnect; closed resources manageable | bounded frontier/no-change/missed completion; installed Codex discovery + disposable read/edit/exec/process/validate/publish/replay/retire; external CLI real exit/capture/forged authority rejection | qualified selected clients/extensions, not every hypothetical adapter | targeted ChatGPT Refresh/approval acceptance after annotation changes; persistent Local Codex registration uses operator-supplied private bearer |
 
 Each deliverable: source, invariant tests, focused/affected checks, first-order failure
 repair, scripts/check.sh, coherent diff/state review; then continue. Authored-program tests
@@ -32,7 +33,7 @@ authorization/safety state changed merely because operation progress is stale or
 
 Fresh-session/reconnect continuity is the second half of the same invariant. At representative
 cut points, terminate the client/controller view and resume from a fresh session. One bounded
-current-frontier read must identify proved-complete predecessors, running/unknown effects,
+current-frontier read must identify recent proved-complete predecessors, running/unknown effects,
 exact current source/remote state, cleanup ownership and the next admissible action. The fresh
 session must skip completed predecessors and, absent a genuine external blocker/unknown
 effect, perform useful forward work in that same turn. Tests must cover "completion happened
@@ -62,3 +63,12 @@ First complete path: open → read/edit → exec/process → validate → publis
 Never weaken exact publication/replay to hide missing native support. Keep native authority
 limitations explicit instead of promising unavailable kernel boundaries. No permission
 choreography or new release/provider framework.
+
+Deliverable 5 is derived from the selected local client and command-first extension path,
+not an inherited stage name or a requirement to implement a capability gateway. Its adapter
+is an explicitly selected legacy stdio edge; core HTTP remains 2026-07-28. Run
+`scripts/check_codex.py` separately from deterministic tests because it depends on installed
+Codex. CLI fixtures prove extension behaviour, not hostile same-UID isolation. Qualify a
+remote/API/device adapter only when one is actually selected. After local deliverables,
+only affected host acceptance and separately authorized activation remain; do not build or
+activate a release framework to substitute for those human actions.

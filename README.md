@@ -5,8 +5,9 @@ mutation replay/recovery and controlled validation/publication. **Android + Term
 default development and operating environment**, not just a controller for another machine.
 
 Seven MCP tools, Git checkpoint OIDs and two SQLite row families (workspace/operation).
-MCP is pinned to **2026-07-28** with per-request metadata and server/discover, not legacy
-initialize. Normal exec/tests run natively on Termux in per-operation copies with detached
+Core HTTP MCP is pinned to **2026-07-28** with per-request metadata and server/discover, not
+legacy initialize. Local Codex can explicitly select a separate legacy stdio adapter; it
+does not downgrade core HTTP. Normal exec/tests run natively in per-operation copies with detached
 supervisors. No SSH host, VPS, OCI, root, systemd or Docker prerequisite. Explicit remote
 execution remains optional; it never silently falls back to native.
 
@@ -21,9 +22,10 @@ The remote-only architecture regression is corrected in config, default command/
 validation dispatch, source handling and operations. The real native runner and full HTTP
 workspace/edit → exec/process → validate → publish path pass local qualification, including
 restart, stdin replay, cancellation, output/deadline limits and validation-source integrity.
-All four implementation deliverables have locally executable source/tests: **58 deterministic
-tests pass**, along with the official SDK 2.0.0 pinned-protocol probe and inactive packaged
-native SIGKILL/recovery/publication rehearsal.
+The original four deliverables and the added local-client/CLI-extension deliverable have
+locally executable source/tests. Current results and exact scope are in LOCAL_VALIDATION,
+including the official SDK 2.0.0 pinned-protocol probe and inactive packaged native
+SIGKILL/recovery/publication rehearsal. **64 deterministic tests pass** after independent review.
 
 OpenAI tunnel-client 0.0.14 is qualified on Termux in two forms: the primary path builds the
 official source as an Android/arm64 CGO-enabled binary and uses Android DNS/system trust
@@ -31,12 +33,13 @@ directly; the fallback runs the official Linux binary through termux-chroot with
 CA bundle. termux-chroot is a convenience wrapper supplied by the Termux proot package, not
 a sandbox claim.
 
-**Live ChatGPT/Tunnel acceptance passed on 2026-09-21** on the development installation.
+**Prior live ChatGPT/Tunnel acceptance was recorded as 2026-09-21** on the development installation.
 Connector Refresh exposed all seven tools. Authenticated workspace discovery, disposable-ref
 read/edit, native exec/process, validation, exact GitHub publication/readback, same-request
 replay and controller-restart replay all succeeded. Because the server rejects mismatched
 protocol/method/name metadata before tool effects, the successful host calls also exercised
-the required MCP **2026-07-28** request metadata/header path and bearer delivery.
+the required MCP **2026-07-28** request metadata/header path and bearer delivery. That run
+used the now-corrected all-read-only annotation profile; it is not acceptance of today's hints.
 
 The first live validation exposed a real native defect: rebuilding ignored dependencies
 inside each clean validation copy hit `DISK_LIMIT`. The repair adds a bounded non-secret
@@ -45,6 +48,9 @@ into validation policy identity. A second live disposable-ref validation then ra
 58-test suite directly from an operator-owned warm tooling path, with no `pip install` in
 the operation copy, and published/replayed successfully. Temporary acceptance refs and
 authorizations were removed afterward. No production cutover occurred.
+Retained native execution copies were not all retired; the historical run is not evidence
+of complete resource cleanup. Tooling policy binds configured strings, not external-directory
+contents; use operator-owned dependencies and candidate-source-first lookup.
 
 The previously observed development-harness requirement remains a permanent regression
 invariant: **within the same model turn**, progress/wait/readback must expose underlying
@@ -55,11 +61,26 @@ bounded/current, and fresh sessions must resume from durable state without redis
 proved-complete predecessors. These requirements remain normative in ARCHITECTURE §6 and
 IMPLEMENTATION_PLAN.
 
-Remaining unexecuted evidence is deliberately narrower: alternate-account/session isolation
-for shared credentials, an intentionally wrong credential entered through the ChatGPT host
-UI, optional remote OS isolation/egress, and production cutover. A separate Linux executor
-is not a next step or gate for normal use. See [local evidence](LOCAL_VALIDATION.md) and
-[operator steps](OPERATIONS.md).
+Independent review of `99372b5..989f580` corrected misleading tool annotations, stale mutation
+replay and missing bounded progress/resume inspection. Workspace inspect and process status
+now expose current facts, change/no-change evidence and cleanup ownership; no workflow table
+or planner was added. Only read is read-only. Host approval policy must not be bypassed with
+incorrect annotations.
+
+Installed **Local Codex 0.155.1** discovery and disposable native read/edit/exec/process/
+validate/publish, client reconnect/replay and retirement pass through the explicit stdio
+adapter → localhost HTTP path. Direct legacy initialize against core HTTP is incompatible.
+This is actual Codex app-server MCP, not an autonomous model turn or Codex-through-Tunnel
+test. The official Tunnel plugin is installed in the tested Codex profiles; plugin runtime
+management and tdev tool registration are separate. CLI extension capture/real-exit and
+forged-authority rejection are tested without adding a public gateway.
+
+Remaining: targeted ChatGPT discovery/approval requalification after the corrected hints
+are deployed to an authorized development runtime, optional interactive Local Codex/Tunnel
+route, intentionally wrong bearer through ChatGPT UI, selected remote backend isolation and
+separately authorized production cutover. Shared credentials do not promise account/session
+isolation. Existing running services were not replaced/restarted during this review. A separate
+Linux executor is not a next step or gate. See [evidence](LOCAL_VALIDATION.md) and [operations](OPERATIONS.md).
 
 Run deterministic checks with `sh scripts/check.sh` after
 `python -m pip install --target .tdev-deps -r requirements.txt`.

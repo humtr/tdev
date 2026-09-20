@@ -5,6 +5,7 @@ import json
 import re
 import sqlite3
 import threading
+import time
 import uuid
 import weakref
 from pathlib import Path
@@ -89,7 +90,9 @@ class Controller:
             if kind == "read":
                 return {"ok": True, "result": self.read(principal, args)}
             if kind == "workspace" and args["action"] == "list":
-                return {"ok": True, "result": self.discover(principal)}
+                return {"ok": True, "result": self.discover(principal, args)}
+            if kind == "workspace" and args["action"] == "inspect":
+                return {"ok": True, "result": self.inspect(principal, args)}
             if kind == "process" and args["action"] == "status":
                 return {"ok": True, "result": self.status(principal, args)}
             return {"ok": True, "result": self.mutate(principal, kind, args)}
@@ -98,7 +101,8 @@ class Controller:
         except (UnicodeError, ValueError, KeyError):
             return {"ok": False, "error": Fault("INVALID_DATA").value}
 
-    def discover(self, principal):
+    def discover(self, principal, args=None):
+        args = args or {}
         repos = []
         for name, refs in self.config["principals"][principal].get("repos", {}).items():
             for ref in refs:
@@ -107,11 +111,52 @@ class Controller:
                     repos.append({"repo": name, "ref": ref, "head": self.git(name).head(ref)})
                 except Fault as e:
                     repos.append({"repo": name, "ref": ref, "error": e.value})
-        workspaces = [self.workspace(principal, r["id"]) for r in self.store.all(
-            "SELECT * FROM workspace WHERE owner=? AND closed=0", (principal,))
+        rows = self.store.all("SELECT rowid AS cursor,* FROM workspace WHERE owner=? AND rowid>? AND (closed=0 OR ?) ORDER BY rowid LIMIT ?",
+                              (principal, args.get("after", 0), int(args.get("includeClosed", False)), args.get("limit", 20) + 1))
+        page = rows[:args.get("limit", 20)]
+        workspaces = [self.workspace(principal, r["id"]) for r in page
             if r["ref"] in self.config["principals"][principal].get("repos", {}).get(r["repo"], [])]
         return {"repositories": repos, "workspaces": workspaces,
+                "nextAfter": page[-1]["cursor"] if len(rows) > len(page) else None,
                 "execution": "Termux-native by default: same-UID developer authority, host network, not a sandbox. Explicit SSH/OCI is optional."}
+
+    @staticmethod
+    def observation(value, since, sources):
+        cursor = digest(value)
+        return {"cursor": cursor, "changed": since != cursor, "observedAtNs": str(time.time_ns()),
+                "sources": sources, "pollAfterMs": 1000}
+
+    def inspect(self, principal, args):
+        """Bounded derived frontier, not a planner or a new durable owner."""
+        started = str(time.time_ns())
+        w = self.workspace(principal, args["workspaceId"])
+        busy = self.status(principal, {"operationId": w["busy"], "limit": 1}) if w["busy"] else None
+        # Descending rowid pagination includes closed workspaces and old cleanup owners.
+        before, limit = args.get("before", 9007199254740991), args.get("limit", 20)
+        rows = self.store.all("SELECT rowid AS cursor,* FROM operation WHERE owner=? AND (workspace=? OR json_extract(intent,'$.targetOperation') IN (SELECT id FROM operation WHERE workspace=?)) AND rowid<? ORDER BY rowid DESC LIMIT ?",
+                              (principal, w["id"], w["id"], before, limit + 1))
+        operations = []
+        for row in rows[:limit]:
+            item = Store.public(row)
+            item["requestId"] = row["request"]
+            item["cleanup"] = "none"
+            if row["kind"] in ("exec", "validate"):
+                retired = self.store.one("SELECT id FROM operation WHERE owner=? AND kind='process' AND status='succeeded' AND json_extract(intent,'$.targetOperation')=? AND json_extract(intent,'$.input.action')='retire' LIMIT 1", (principal, row["id"]))
+                item["cleanup"] = "retired" if retired else "retire" if (item["result"] or {}).get("stopped") else "observe"
+            operations.append(item)
+        w = self.workspace(principal, w["id"])
+        try:
+            remote = {"head": self.git(w["repo"]).head(w["ref"])}
+        except Fault as error:
+            remote = {"error": error.value}
+        result = {"workspace": w, "remote": remote, "operations": operations,
+                  "active": busy if busy and w["busy"] == busy["id"] else None,
+                  "nextBefore": rows[limit - 1]["cursor"] if len(rows) > limit else None,
+                  "mutationReady": not w["closed"] and not w["busy"],
+                  "baseMatchesRemote": remote.get("head") == w["base"]}
+        result["observation"] = self.observation(result, args.get("since"), ["SQLite", "busy executor if present", "Git remote head"])
+        result["observation"]["startedAtNs"] = started
+        return result
 
     def read(self, principal, args):
         w = self.workspace(principal, args["workspaceId"])
@@ -182,7 +227,8 @@ class Controller:
             alias = json.loads(old["intent"]).get("aliasOf")
             if alias:
                 old = self.operation(principal, alias)
-            return Store.public(old)
+            self.reconcile(old)
+            return Store.public(self.operation(principal, old["id"]))
         w, validation, target = None, None, None
         if kind == "workspace" and args["action"] in ("open", "compose"):
             repo, ref = args["repo"], args["ref"]
@@ -459,6 +505,8 @@ class Controller:
                 result["output"] = self.backend(json.loads(row["intent"])).logs(row["id"], args.get("offset", 0), args.get("limit", 24000))
             except Fault as e:
                 result["outputError"] = e.value
+        if "since" in args:
+            result["observation"] = self.observation(result, args["since"], ["SQLite", "executor result/logs if applicable"])
         return result
 
     def close(self):

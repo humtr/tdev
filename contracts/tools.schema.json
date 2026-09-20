@@ -49,6 +49,9 @@
                 },
                 {
                   "$ref": "#/$defs/ReadResult"
+                },
+                {
+                  "$ref": "#/$defs/Frontier"
                 }
               ]
             }
@@ -85,6 +88,19 @@
           "properties": {
             "action": {
               "const": "list"
+            },
+            "after": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            },
+            "includeClosed": {
+              "type": "boolean"
             }
           },
           "required": [
@@ -205,6 +221,36 @@
             "requestId",
             "workspaceId",
             "expected"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "inspect"
+            },
+            "workspaceId": {
+              "type": "string"
+            },
+            "since": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "before": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          },
+          "required": [
+            "action",
+            "workspaceId"
           ],
           "additionalProperties": false
         }
@@ -605,6 +651,10 @@
               "type": "integer",
               "minimum": 1,
               "maximum": 65536
+            },
+            "since": {
+              "type": "string",
+              "maxLength": 64
             }
           },
           "required": [
@@ -853,6 +903,10 @@
               "type": "integer",
               "minimum": 0
             },
+            "availableBytes": {
+              "type": "integer",
+              "minimum": 0
+            },
             "encoding": {
               "const": "base64"
             },
@@ -903,6 +957,9 @@
         },
         "outputError": {
           "$ref": "#/$defs/Error"
+        },
+        "observation": {
+          "$ref": "#/$defs/Observation"
         }
       },
       "additionalProperties": false
@@ -995,6 +1052,13 @@
         },
         "execution": {
           "type": "string"
+        },
+        "nextAfter": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
         }
       },
       "additionalProperties": false
@@ -1268,6 +1332,310 @@
           }
         }
       ]
+    },
+    "Observation": {
+      "type": "object",
+      "properties": {
+        "cursor": {
+          "type": "string"
+        },
+        "changed": {
+          "type": "boolean"
+        },
+        "observedAtNs": {
+          "type": "string",
+          "pattern": "^[0-9]+$",
+          "description": "UTC Unix nanoseconds as decimal string; avoids JavaScript integer precision loss."
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "pollAfterMs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "startedAtNs": {
+          "type": "string",
+          "pattern": "^[0-9]+$",
+          "description": "UTC Unix nanoseconds as decimal string; avoids JavaScript integer precision loss."
+        }
+      },
+      "required": [
+        "cursor",
+        "changed",
+        "observedAtNs",
+        "sources",
+        "pollAfterMs"
+      ],
+      "additionalProperties": false
+    },
+    "Frontier": {
+      "type": "object",
+      "properties": {
+        "workspace": {
+          "type": "object",
+          "required": [
+            "id",
+            "owner",
+            "repo",
+            "ref",
+            "identity",
+            "base",
+            "checkpoint",
+            "busy",
+            "closed"
+          ],
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "owner": {
+              "type": "string"
+            },
+            "repo": {
+              "type": "string"
+            },
+            "ref": {
+              "type": "string"
+            },
+            "identity": {
+              "type": "string"
+            },
+            "base": {
+              "type": "string"
+            },
+            "checkpoint": {
+              "type": "string"
+            },
+            "busy": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "closed": {
+              "enum": [
+                0,
+                1
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        "remote": {
+          "type": "object",
+          "properties": {
+            "head": {
+              "type": "string"
+            },
+            "error": {
+              "$ref": "#/$defs/Error"
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        },
+        "operations": {
+          "type": "array",
+          "maxItems": 50,
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "kind",
+              "workspace",
+              "status",
+              "effect",
+              "result",
+              "error"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "kind": {
+                "enum": [
+                  "workspace",
+                  "edit",
+                  "exec",
+                  "process",
+                  "validate",
+                  "publish"
+                ]
+              },
+              "workspace": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "status": {
+                "enum": [
+                  "running",
+                  "unknown",
+                  "succeeded",
+                  "failed",
+                  "cancelled"
+                ]
+              },
+              "effect": {
+                "enum": [
+                  "none",
+                  "committed",
+                  "unknown"
+                ]
+              },
+              "result": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/MutationResult"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "error": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/Error"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "output": {
+                "type": "object",
+                "required": [
+                  "offset",
+                  "nextOffset",
+                  "encoding",
+                  "data"
+                ],
+                "properties": {
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "nextOffset": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "availableBytes": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "encoding": {
+                    "const": "base64"
+                  },
+                  "data": {
+                    "type": "string"
+                  },
+                  "stdin": {
+                    "type": "object",
+                    "properties": {
+                      "nextSequence": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "deliveries": {
+                        "type": "array",
+                        "maxItems": 16,
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "sequence": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "delivery": {
+                              "enum": [
+                                "queued",
+                                "unknown",
+                                "committed"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "sequence",
+                            "delivery"
+                          ],
+                          "additionalProperties": false
+                        }
+                      }
+                    },
+                    "required": [
+                      "nextSequence",
+                      "deliveries"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "additionalProperties": false
+              },
+              "outputError": {
+                "$ref": "#/$defs/Error"
+              },
+              "observation": {
+                "$ref": "#/$defs/Observation"
+              },
+              "requestId": {
+                "type": "string"
+              },
+              "cleanup": {
+                "enum": [
+                  "none",
+                  "observe",
+                  "retire",
+                  "retired"
+                ]
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "active": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Operation"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "nextBefore": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "mutationReady": {
+          "type": "boolean"
+        },
+        "baseMatchesRemote": {
+          "type": "boolean"
+        },
+        "observation": {
+          "$ref": "#/$defs/Observation"
+        }
+      },
+      "required": [
+        "workspace",
+        "remote",
+        "operations",
+        "active",
+        "nextBefore",
+        "mutationReady",
+        "baseMatchesRemote",
+        "observation"
+      ],
+      "additionalProperties": false
     }
   },
   "oneOf": [
@@ -1387,7 +1755,7 @@
   "x-tools": [
     {
       "name": "tdev_workspace",
-      "description": "List authorized repositories and exact heads; open, compose or close a checkpoint workspace. Mutations require requestId.",
+      "description": "Discover paginated workspaces; inspect a live bounded frontier (including closed resources), open/compose/close exact source. Mixed read/write tool; inspect reports facts, not an automatic plan.",
       "inputSchema": {
         "$ref": "#/$defs/workspaceInput"
       },
@@ -1510,6 +1878,9 @@
                       }
                     },
                     "additionalProperties": false
+                  },
+                  {
+                    "$ref": "#/$defs/Frontier"
                   }
                 ]
               }
@@ -1539,10 +1910,10 @@
         ]
       },
       "annotations": {
-        "readOnlyHint": true,
-        "destructiveHint": false,
-        "idempotentHint": false,
-        "openWorldHint": false
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": true
       }
     },
     {
@@ -1591,7 +1962,7 @@
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
-        "idempotentHint": false,
+        "idempotentHint": true,
         "openWorldHint": false
       }
     },
@@ -1713,9 +2084,9 @@
         ]
       },
       "annotations": {
-        "readOnlyHint": true,
-        "destructiveHint": false,
-        "idempotentHint": false,
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
         "openWorldHint": false
       }
     },
@@ -1877,15 +2248,15 @@
         ]
       },
       "annotations": {
-        "readOnlyHint": true,
-        "destructiveHint": false,
-        "idempotentHint": false,
-        "openWorldHint": false
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": true
       }
     },
     {
       "name": "tdev_process",
-      "description": "Observe retained status/output, send sequenced stdin, cancel, or retire a proved-stopped execution. Status never launches work; retire preserves replay tombstones.",
+      "description": "Observe a retained operation; optional since cursor reports current change/no-change. Control stdin/cancel/retire. Admission ok is not command success: inspect status, effect, result.exitCode and captureError.",
       "inputSchema": {
         "$ref": "#/$defs/processInput"
       },
@@ -1982,6 +2353,10 @@
                         "type": "integer",
                         "minimum": 0
                       },
+                      "availableBytes": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
                       "encoding": {
                         "const": "base64"
                       },
@@ -2032,6 +2407,9 @@
                   },
                   "outputError": {
                     "$ref": "#/$defs/Error"
+                  },
+                  "observation": {
+                    "$ref": "#/$defs/Observation"
                   }
                 },
                 "additionalProperties": false
@@ -2062,10 +2440,10 @@
         ]
       },
       "annotations": {
-        "readOnlyHint": true,
-        "destructiveHint": false,
-        "idempotentHint": false,
-        "openWorldHint": false
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": true
       }
     },
     {
@@ -2226,10 +2604,10 @@
         ]
       },
       "annotations": {
-        "readOnlyHint": true,
-        "destructiveHint": false,
-        "idempotentHint": false,
-        "openWorldHint": false
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": true
       }
     },
     {
@@ -2350,10 +2728,10 @@
         ]
       },
       "annotations": {
-        "readOnlyHint": true,
-        "destructiveHint": false,
-        "idempotentHint": false,
-        "openWorldHint": false
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": true
       }
     }
   ],
@@ -2389,7 +2767,9 @@
       "nativeBoundary": "Same app UID, host network. Clean env and separate HOME/cwd are hygiene, not hostile-code isolation. Native code can access other same-UID files; use only code trusted with ordinary Termux user authority.",
       "nativeLimits": "1 MiB retained output; timeout; per-process CPU, 128 MiB file-size, 256 file-descriptor limits; sampled 128 MiB workspace/home/tmp budget. No hard aggregate memory/PID/disk quota.",
       "nativeRecovery": "Detached subreaper supervisor survives controller restart. Lost supervisor after dispatch without a sealed result remains uncertain, never automatically relaunched."
-    }
+    },
+    "progress": "workspace inspect reconciles its busy operation then reads bounded operation page and live remote head. Observation cursor hashes the returned facts, timestamps delimit observation (not atomic cross-provider snapshot). since equal means checked now/no change, not stalled proof; wait at least pollAfterMs or do independent work. Mutation prerequisites are rechecked at admission. Closed workspaces discoverable with includeClosed. Process status since opts into freshness. Replaying a mutation reconciles original identity, never repeats the effect.",
+    "annotations": "Hints conservatively describe every action, not host approval bypass. Only read is read-only; all mutations deduplicate exact requestId. Core enforces authorization."
   },
   "x-examples": [
     {
@@ -2455,6 +2835,7 @@
       "-32602": "HTTP 400 missing required metadata or invalid protocol params",
       "-32601": "HTTP 404 unknown method"
     },
-    "legacy": "No initialize/initialized, session IDs, GET/DELETE streams, SSE replay or automatic downgrade. No advertised subscriptions, MRTR input requests or task extension."
+    "legacy": "Core HTTP: No initialize/initialized, session IDs, GET/DELETE streams, SSE replay or automatic downgrade. No advertised subscriptions, MRTR input requests or task extension.",
+    "localCodexAdapter": "Explicit optional tdev.codex_bridge stdio endpoint: initialize 2025-11-25, tools/list, tools/call, ping. Fixed localhost HTTP upstream uses 2026-07-28. No retries, execution authority, cancellation effects or durable state. Identical tool schemas, annotations and requestId semantics; not core HTTP version negotiation."
   }
 }

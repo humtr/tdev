@@ -467,17 +467,19 @@ def rpc(spool, image, request):
                 raise ValueError("CURSOR")
             if not (job / "output").exists():
                 data = b""
+                available = 0
             else:
                 with open(job / "output", "rb") as stream:
+                    available = os.fstat(stream.fileno()).st_size
                     stream.seek(offset)
-                    data = stream.read(limit)
+                    data = stream.read(min(limit, max(0, available - offset)))
             controls = sorted(int(p.stem.split("-")[1]) for p in job.glob("stdin-*.json"))
             deliveries = []
             for sequence in controls[-16:]:
                 receipt = job / ("delivery-" + str(sequence) + ".json")
                 state = json.loads(receipt.read_bytes())["delivery"] if receipt.exists() else "queued"
                 deliveries.append({"sequence": sequence, "delivery": state})
-            return {"offset": offset, "nextOffset": offset + len(data), "encoding": "base64", "data": base64.b64encode(data).decode(),
+            return {"offset": offset, "nextOffset": offset + len(data), "availableBytes": available, "encoding": "base64", "data": base64.b64encode(data).decode(),
                     "stdin": {"nextSequence": len(controls), "deliveries": deliveries}}
         control_id = request["controlId"]
         container_name(control_id)

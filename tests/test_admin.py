@@ -29,6 +29,7 @@ class AdminTest(unittest.TestCase):
             self.assertNotIn("envdir", tunnel_run)
             self.assertIn("CONTROL_PLANE_API_KEY", tunnel_run)
             self.assertIn("--health.listen-addr 127.0.0.1:0", tunnel_run)
+            self.assertIn("--health.url-file " + str(root / "tunnel-health.url"), tunnel_run)
             self.assertEqual(one["tunnelMode"], "native-cgo")
             self.assertIn(str(native), tunnel_run)
             self.assertNotIn("termux-chroot", tunnel_run)
