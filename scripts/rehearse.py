@@ -118,6 +118,11 @@ print(s.server_port,flush=True); s.serve_forever()
         assert "envdir" not in tunnel_run
         assert "CONTROL_PLANE_API_KEY" in tunnel_run
         assert "--health.listen-addr 127.0.0.1:0" in tunnel_run
+        prefix = os.environ.get("PREFIX")
+        if prefix and not Path("/etc/resolv.conf").is_file():
+            assert "proot" in tunnel_run
+            assert f"{prefix}/etc/resolv.conf:/etc/resolv.conf" in tunnel_run
+            assert f"{prefix}/etc/tls/cert.pem:/etc/ssl/cert.pem" in tunnel_run
         assert (root / "tunnel-env").stat().st_mode & 0o777 == 0o700
         print(json.dumps({"bundle": checked["bundle"], "source": str(source),
                           "inactiveInstall": True, "productionServicesTouched": False,

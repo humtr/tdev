@@ -81,10 +81,25 @@ def stage(root, source):
                 "[ -n \"$CONTROL_PLANE_API_KEY\" ] || { printf '%s\\n' 'empty tunnel runtime key' >&2; exit 78; }\n"
                 "export CONTROL_PLANE_API_KEY\n"
             )
-            command = "exec " + shlex.join([
+            tunnel_argv = [
                 shutil.which("tunnel-client") or "tunnel-client", "run", "--profile", "tdev",
                 "--health.listen-addr", "127.0.0.1:0"
-            ])
+            ]
+            prefix = os.environ.get("PREFIX")
+            if prefix and not Path("/etc/resolv.conf").is_file():
+                # Official Linux tunnel-client builds use Go's /etc resolver/CA paths.
+                # Project Termux host files into those paths without claiming PRoot isolation.
+                resolv = Path(prefix) / "etc" / "resolv.conf"
+                cert = Path(prefix) / "etc" / "tls" / "cert.pem"
+                proot = shutil.which("proot")
+                require(proot is not None and resolv.is_file() and cert.is_file(), "TERMUX_TUNNEL_COMPAT")
+                tunnel_argv = [
+                    proot,
+                    "-b", f"{resolv}:/etc/resolv.conf",
+                    "-b", f"{cert}:/etc/ssl/cert.pem",
+                    *tunnel_argv,
+                ]
+            command = "exec " + shlex.join(tunnel_argv)
         atomic_write(directory / "run", ("#!" + shell + "\nset -eu\nexec 2>&1\n" + setup + command + "\n").encode(), 0o700)
         log = directory / "log"
         log.mkdir(exist_ok=True)

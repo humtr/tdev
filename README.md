@@ -22,10 +22,14 @@ The remote-only architecture regression is corrected in config, default command/
 validation dispatch, source handling and operations. The real native runner and full HTTP
 workspace/edit → exec/process → validate → publish path pass local qualification, including
 restart, stdin replay, cancellation, output/deadline limits and validation-source integrity.
-All four implementation deliverables have locally executable source/tests: 55 deterministic
+All four implementation deliverables have locally executable source/tests: 56 deterministic
 tests pass, along with the official SDK 2.0.0 pinned-protocol probe and inactive packaged
-native SIGKILL/recovery/publication rehearsal. No production service/runtime was changed.
-Existing unrelated untracked files are preserved.
+native SIGKILL/recovery/publication rehearsal. OpenAI tunnel-client 0.0.14 also passed local
+doctor and a bounded Termux control-plane startup after projecting the Termux resolver and
+CA bundle into the static Linux binary's expected paths through PRoot; metadata fetch and
+client startup were observed. This is host compatibility evidence, not a PRoot sandbox or
+ChatGPT request-delivery acceptance. No production service/runtime was changed. Existing
+unrelated untracked files are preserved.
 
 The remaining host-dependent acceptance is ChatGPT/Tunnel 2026-07-28 discovery, bearer forwarding and
 reconnect. A separate Linux executor is not a next step or gate for normal use.

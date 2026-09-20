@@ -1,4 +1,5 @@
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -23,6 +24,11 @@ class AdminTest(unittest.TestCase):
             self.assertNotIn("envdir", tunnel_run)
             self.assertIn("CONTROL_PLANE_API_KEY", tunnel_run)
             self.assertIn("--health.listen-addr 127.0.0.1:0", tunnel_run)
+            prefix = os.environ.get("PREFIX")
+            if prefix and not Path("/etc/resolv.conf").is_file():
+                self.assertIn("proot", tunnel_run)
+                self.assertIn(f"{prefix}/etc/resolv.conf:/etc/resolv.conf", tunnel_run)
+                self.assertIn(f"{prefix}/etc/tls/cert.pem:/etc/ssl/cert.pem", tunnel_run)
             self.assertFalse((root / "active").exists())
             point(root, one["bundle"])
             init_config(root)

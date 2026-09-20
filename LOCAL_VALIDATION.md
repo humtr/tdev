@@ -15,7 +15,7 @@ was installed separately in ignored .tdev-mcp-client, not existing node_modules.
 | Command | Observed result |
 |---|---|
 | `PYTHONPATH=src:.tdev-deps:tests python -m unittest test_native test_http test_process_crash test_contract -v` | 21 tests, OK, 20.189s |
-| `sh scripts/check.sh` | 55 tests, OK, 43.335s; diff whitespace check passed |
+| `sh scripts/check.sh` | 56 tests, OK on the current Tunnel-compatibility line; diff whitespace check passed |
 | `PYTHONPATH=src:.tdev-deps python scripts/check_mcp.py` | Official @modelcontextprotocol/client@2.0.0, pin 2026-07-28, modern era; connection, seven-tool listing and structured tool call passed |
 | `PYTHONPATH=src:.tdev-deps python scripts/rehearse.py` | Real staged native edit/exec → controller SIGKILL → restart/stdin replay → validate → exact local publication/readback; wrong bearer 401 and seven tools on both starts; runit shell syntax and DOWN templates passed |
 | `PYTHONPATH=src:.tdev-deps python scripts/measure.py` | Three default-native exact-publication trials, below |
@@ -60,6 +60,26 @@ large-repository throughput or comparative architectural speedup was measured. F
 per-operation copies and HOME do not retain ignored dependencies between runs. File
 payload plus shallow Git pack still duplicate source. No broad performance claim follows.
 
+## Tunnel host-compatibility follow-up — 2026-09-21
+
+The installed tunnel-client 0.0.10 treated absent OAuth metadata (HTTP 404 candidates) as a
+doctor failure. The official stable 0.0.14 was checksum-verified before replacement; its
+doctor accepts that bearer-only configuration and reports the OAuth discovery candidates as
+optional. The original binary was retained as a local backup.
+
+The official 0.0.14 linux-arm64 binary is statically linked and was built without cgo DNS
+support. On Android there is no /etc/resolv.conf, so its pure-Go resolver fell back to
+[::1]:53 even though Termux curl resolved normally through $PREFIX/etc/resolv.conf.
+GODEBUG=netdns=cgo was observed to be unsupported. A rootless PRoot path projection of
+$PREFIX/etc/resolv.conf to /etc/resolv.conf fixed DNS; adding
+$PREFIX/etc/tls/cert.pem → /etc/ssl/cert.pem fixed the static binary's CA lookup.
+
+With both projections, a read-only Tunnel metadata lookup succeeded and a bounded
+`tunnel-client run` fetched the configured development Tunnel metadata and emitted
+`🟢 tunnel-client started`. The probe was then stopped intentionally. This validates the
+Termux control-plane startup path only; it is not a PRoot security claim and does not yet
+prove ChatGPT request delivery, bearer forwarding or reconnect.
+
 ## Protocol and host acceptance boundary
 
 The requested version is **MCP 2026-07-28**. Implemented per-request metadata/header
@@ -77,7 +97,7 @@ Primary references:
 establish the HTTP/private-tunnel product route, not observed acceptance of this protocol
 date by the user's ChatGPT host.
 
-Not executed: live ChatGPT/Tunnel version/header/bearer forwarding, Refresh/reconnect,
+Not executed: live ChatGPT request delivery/version/header/bearer forwarding, Refresh/reconnect,
 real account/session isolation (not claimed for shared credentials), optional remote OS
 isolation/egress, or production cutover. No separate Linux executor is needed for the
 default native path. Next human action: configure a distinct development Tunnel profile

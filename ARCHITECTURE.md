@@ -50,8 +50,11 @@ Controller/provider/Tunnel configuration stays outside the execution copy. Candi
 is never parsed as a receipt. These prevent accidental credential propagation and confused
 API authority; they do NOT prevent a malicious same-UID program from reading absolute paths,
 inspecting processes, changing controller state, using host credentials or forging spool data.
-No env-filtering, chmod, cwd or PRoot sandbox claim. Do not use native mode for code that
-must be treated as hostile to the device owner; stronger isolation is an optional backend.
+No env-filtering, chmod, cwd or PRoot sandbox claim. PRoot may be used only as a host-
+compatibility wrapper for a third-party static Linux Tunnel binary so it can see Termux
+resolver/CA files; that is not the native runner's containment boundary. Do not use native
+mode for code that must be treated as hostile to the device owner; stronger isolation is
+an optional backend.
 
 Native network is explicitly host: the app UID's network access, including localhost and
 private networks. Requests for none/internet isolation are rejected, not silently weakened.

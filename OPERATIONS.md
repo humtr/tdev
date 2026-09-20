@@ -6,7 +6,9 @@ Operator actions, not production authorization. Current status lives in README.
 
 Use Termux Python, Git and the development CLIs required by the enrolled repositories
 (for example Node/npm, Python/pip, rg). GitHub publication also needs owner-configured gh
-authentication. No remote executor enrollment, root, Docker or systemd is needed.
+authentication. The qualified official static Linux tunnel-client needs Termux PRoot only
+to project resolver/CA files into conventional /etc paths; this is compatibility plumbing,
+not isolation. No remote executor enrollment, root, Docker or systemd is needed.
 Install dependencies and rehearse before touching any existing service:
 
 ```sh
@@ -128,11 +130,16 @@ CONTROL_PLANE_API_KEY="$(cat /absolute/private/staging-root/tunnel-env/CONTROL_P
   tunnel-client doctor --profile tdev --health.listen-addr 127.0.0.1:0 --explain
 
 CONTROL_PLANE_API_KEY="$(cat /absolute/private/staging-root/tunnel-env/CONTROL_PLANE_API_KEY)" \
+  proot \
+  -b "$PREFIX/etc/resolv.conf:/etc/resolv.conf" \
+  -b "$PREFIX/etc/tls/cert.pem:/etc/ssl/cert.pem" \
   tunnel-client run --profile tdev --health.listen-addr 127.0.0.1:0
 ```
 
 The staged tdev-oai-tunnel runit template uses the same owner-only key-file loading and
-ephemeral health-listener policy.
+ephemeral health-listener policy. On Termux hosts without /etc/resolv.conf it also applies
+the same two PRoot bind projections. A missing PRoot/resolver/CA prerequisite fails staging
+instead of generating a known-broken Tunnel service.
 
 Connect/Refresh the ChatGPT connector and enter its bearer through the credential UI.
 Verify 2026-07-28 request metadata/header forwarding, seven tools, wrong-secret discovery denial, full native
