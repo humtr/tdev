@@ -1,3286 +1,37 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://tdev.humtr.workers.dev/contracts/tools.v1.schema.json",
-  "title": "tdev.tools.v1 design contract (declarative; runtime not implemented)",
-  "description": "Field syntax is owned here. Architecture section 20 defines transaction, authorization, byte limits and failure semantics. This root validates tool-call fixtures, not raw JSON-RPC.",
+  "$id": "https://tdev.local/contracts/tools.schema.json",
+  "title": "tdev command-first MCP v1",
   "$defs": {
-    "Id": {
-      "type": "string",
-      "minLength": 1,
-      "maxLength": 128,
-      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
-    },
-    "Revision": {
-      "type": "string",
-      "minLength": 1,
-      "maxLength": 20,
-      "pattern": "^(0|[1-9][0-9]{0,19})$",
-      "description": "Unsigned uint64 decimal; reject numeric overflow in the semantic validator."
-    },
-    "Oid": {
-      "type": "string",
-      "minLength": 1,
-      "maxLength": 71,
-      "pattern": "^(sha1:[0-9a-f]{40}|sha256:[0-9a-f]{64})$"
-    },
-    "Digest": {
-      "type": "string",
-      "minLength": 1,
-      "maxLength": 71,
-      "pattern": "^sha256:[0-9a-f]{64}$"
-    },
-    "Path": {
-      "type": "string",
-      "minLength": 1,
-      "maxLength": 4096,
-      "description": "UTF-8 repository-relative path; semantic validator rejects absolute paths, traversal, NUL and control paths. '.' is allowed only for directory/cwd operations."
-    },
-    "Ref": {
-      "type": "string",
-      "minLength": 1,
-      "maxLength": 1024,
-      "pattern": "^refs/heads/[^\\s]+$",
-      "description": "Additionally validate with git check-ref-format; binding grant required."
-    },
-    "Token": {
-      "type": "string",
-      "minLength": 1,
-      "maxLength": 2048
-    },
-    "Timestamp": {
-      "type": "string",
-      "minLength": 1,
-      "maxLength": 40,
-      "format": "date-time"
-    },
     "Error": {
       "type": "object",
       "properties": {
-        "category": {
-          "type": "string",
-          "enum": [
-            "CAPABILITY_GAP",
-            "TOOL_UNAVAILABLE",
-            "SCHEMA_OR_CONTRACT_MISMATCH",
-            "AUTHENTICATION_REQUIRED",
-            "PERMISSION_DENIED",
-            "USER_CONFIRMATION_REQUIRED",
-            "SERVER_POLICY_BLOCK",
-            "PLATFORM_SAFETY_BLOCK",
-            "TRANSPORT_ERROR",
-            "RESOURCE_OR_QUOTA_LIMIT",
-            "IMPLEMENTATION_ERROR",
-            "UNKNOWN"
-          ]
-        },
         "code": {
-          "$ref": "#/$defs/Id"
+          "type": "string"
         },
         "message": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 2048
+          "type": "string"
         },
         "effect": {
-          "type": "string",
           "enum": [
             "none",
-            "pending",
             "committed",
             "unknown"
           ]
         },
-        "retry": {
-          "type": "string",
-          "enum": [
-            "same_request",
-            "observe",
-            "new_request",
-            "none"
-          ]
-        },
         "operationId": {
-          "$ref": "#/$defs/Id"
-        },
-        "currentRevision": {
-          "$ref": "#/$defs/Revision"
-        },
-        "currentHead": {
-          "$ref": "#/$defs/Oid"
-        },
-        "conflicts": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/Path"
-          },
-          "minItems": 0,
-          "maxItems": 128
-        },
-        "diagnostics": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 512
-          },
-          "minItems": 0,
-          "maxItems": 8
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
         }
       },
       "required": [
-        "category",
         "code",
         "message",
-        "effect",
-        "retry"
+        "effect"
       ],
       "additionalProperties": false
     },
-    "WorkspaceSelection": {
-      "type": "object",
-      "properties": {
-        "workspaceId": {
-          "$ref": "#/$defs/Id"
-        },
-        "revision": {
-          "$ref": "#/$defs/Revision"
-        }
-      },
-      "required": [
-        "workspaceId",
-        "revision"
-      ],
-      "additionalProperties": false
-    },
-    "ReadTarget": {
-      "oneOf": [
-        {
-          "type": "object",
-          "properties": {
-            "snapshot": {
-              "$ref": "#/$defs/Token"
-            }
-          },
-          "required": [
-            "snapshot"
-          ],
-          "additionalProperties": false
-        },
-        {
-          "$ref": "#/$defs/WorkspaceSelection"
-        },
-        {
-          "type": "object",
-          "properties": {
-            "operationId": {
-              "$ref": "#/$defs/Id"
-            }
-          },
-          "required": [
-            "operationId"
-          ],
-          "additionalProperties": false
-        }
-      ]
-    },
-    "Source": {
-      "type": "object",
-      "properties": {
-        "bindingId": {
-          "$ref": "#/$defs/Id"
-        },
-        "ref": {
-          "$ref": "#/$defs/Ref"
-        },
-        "commit": {
-          "$ref": "#/$defs/Oid"
-        },
-        "tree": {
-          "$ref": "#/$defs/Oid"
-        }
-      },
-      "required": [
-        "bindingId",
-        "ref",
-        "commit",
-        "tree"
-      ],
-      "additionalProperties": false
-    },
-    "Workspace": {
-      "type": "object",
-      "properties": {
-        "workspaceId": {
-          "$ref": "#/$defs/Id"
-        },
-        "bindingId": {
-          "$ref": "#/$defs/Id"
-        },
-        "ref": {
-          "$ref": "#/$defs/Ref"
-        },
-        "baseCommit": {
-          "$ref": "#/$defs/Oid"
-        },
-        "tree": {
-          "$ref": "#/$defs/Oid"
-        },
-        "revision": {
-          "$ref": "#/$defs/Revision"
-        },
-        "state": {
-          "type": "string",
-          "enum": [
-            "open",
-            "integrated",
-            "closed"
-          ]
-        },
-        "busyOperationId": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/Id"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "provenance": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/WorkspaceSelection"
-          },
-          "minItems": 0,
-          "maxItems": 16
-        },
-        "integratedCommit": {
-          "$ref": "#/$defs/Oid"
-        }
-      },
-      "required": [
-        "workspaceId",
-        "bindingId",
-        "ref",
-        "baseCommit",
-        "tree",
-        "revision",
-        "state",
-        "busyOperationId",
-        "provenance"
-      ],
-      "additionalProperties": false
-    },
-    "Chunk": {
-      "type": "object",
-      "properties": {
-        "offset": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 9007199254740991
-        },
-        "bytes": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 65536
-        },
-        "encoding": {
-          "type": "string",
-          "enum": [
-            "utf8",
-            "base64"
-          ]
-        },
-        "data": {
-          "type": "string",
-          "minLength": 0,
-          "maxLength": 131072
-        },
-        "sha256": {
-          "$ref": "#/$defs/Digest"
-        },
-        "firstLine": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 9007199254740991
-        },
-        "lastLine": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 9007199254740991
-        }
-      },
-      "required": [
-        "offset",
-        "bytes",
-        "encoding",
-        "data",
-        "sha256"
-      ],
-      "additionalProperties": false
-    },
-    "Log": {
-      "type": "object",
-      "properties": {
-        "stream": {
-          "type": "string",
-          "enum": [
-            "stdout",
-            "stderr",
-            "combined"
-          ]
-        },
-        "offset": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 9007199254740991
-        },
-        "nextOffset": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 9007199254740991
-        },
-        "text": {
-          "type": "string",
-          "minLength": 0,
-          "maxLength": 131072
-        },
-        "truncated": {
-          "type": "boolean"
-        },
-        "expiredBefore": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 9007199254740991
-        }
-      },
-      "required": [
-        "stream",
-        "offset",
-        "nextOffset",
-        "text",
-        "truncated"
-      ],
-      "additionalProperties": false
-    },
-    "ProfileOutcome": {
-      "type": "object",
-      "properties": {
-        "profileId": {
-          "$ref": "#/$defs/Id"
-        },
-        "status": {
-          "type": "string",
-          "enum": [
-            "passed",
-            "failed",
-            "cancelled",
-            "not_run"
-          ]
-        },
-        "exitCode": {
-          "anyOf": [
-            {
-              "type": "integer",
-              "minimum": -255,
-              "maximum": 255
-            },
-            {
-              "type": "null"
-            }
-          ]
-        }
-      },
-      "required": [
-        "profileId",
-        "status",
-        "exitCode"
-      ],
-      "additionalProperties": false
-    },
-    "ValidationReceipt": {
-      "type": "object",
-      "properties": {
-        "validationId": {
-          "$ref": "#/$defs/Id"
-        },
-        "workspaceId": {
-          "$ref": "#/$defs/Id"
-        },
-        "revision": {
-          "$ref": "#/$defs/Revision"
-        },
-        "bindingId": {
-          "$ref": "#/$defs/Id"
-        },
-        "bindingRevision": {
-          "$ref": "#/$defs/Revision"
-        },
-        "ref": {
-          "$ref": "#/$defs/Ref"
-        },
-        "expectedHead": {
-          "$ref": "#/$defs/Oid"
-        },
-        "commit": {
-          "$ref": "#/$defs/Oid"
-        },
-        "tree": {
-          "$ref": "#/$defs/Oid"
-        },
-        "sourceDigest": {
-          "$ref": "#/$defs/Digest"
-        },
-        "policyDigest": {
-          "$ref": "#/$defs/Digest"
-        },
-        "controllerDigest": {
-          "$ref": "#/$defs/Digest"
-        },
-        "imageDigest": {
-          "$ref": "#/$defs/Digest"
-        },
-        "dependencyDigest": {
-          "$ref": "#/$defs/Digest"
-        },
-        "runIdentity": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 512
-        },
-        "profiles": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/ProfileOutcome"
-          },
-          "minItems": 1,
-          "maxItems": 32
-        },
-        "eligibleAtObservation": {
-          "type": "boolean"
-        },
-        "artifactId": {
-          "$ref": "#/$defs/Id"
-        },
-        "receiptVersion": {
-          "const": 1
-        },
-        "sessionId": {
-          "$ref": "#/$defs/Id"
-        },
-        "runAttempt": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 9007199254740991
-        },
-        "nonce": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 128
-        },
-        "signature": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 128,
-          "description": "HMAC-SHA256 of versioned canonical receipt bytes; session secret never enters the sandbox."
-        }
-      },
-      "required": [
-        "validationId",
-        "workspaceId",
-        "revision",
-        "bindingId",
-        "bindingRevision",
-        "ref",
-        "expectedHead",
-        "commit",
-        "tree",
-        "sourceDigest",
-        "policyDigest",
-        "controllerDigest",
-        "imageDigest",
-        "dependencyDigest",
-        "runIdentity",
-        "profiles",
-        "eligibleAtObservation",
-        "artifactId",
-        "receiptVersion",
-        "sessionId",
-        "runAttempt",
-        "nonce",
-        "signature"
-      ],
-      "additionalProperties": false
-    },
-    "Publication": {
-      "type": "object",
-      "properties": {
-        "validationId": {
-          "$ref": "#/$defs/Id"
-        },
-        "ref": {
-          "$ref": "#/$defs/Ref"
-        },
-        "expectedHead": {
-          "$ref": "#/$defs/Oid"
-        },
-        "integratedCommit": {
-          "$ref": "#/$defs/Oid"
-        },
-        "observedHead": {
-          "$ref": "#/$defs/Oid"
-        },
-        "proof": {
-          "type": "string",
-          "enum": [
-            "head_equals_commit",
-            "managed_descendant"
-          ]
-        },
-        "observedAt": {
-          "$ref": "#/$defs/Timestamp"
-        },
-        "cancellationTooLate": {
-          "type": "boolean"
-        }
-      },
-      "required": [
-        "validationId",
-        "ref",
-        "expectedHead",
-        "integratedCommit",
-        "observedHead",
-        "proof",
-        "observedAt",
-        "cancellationTooLate"
-      ],
-      "additionalProperties": false
-    },
-    "Operation": {
-      "type": "object",
-      "properties": {
-        "operationId": {
-          "$ref": "#/$defs/Id"
-        },
-        "requestId": {
-          "$ref": "#/$defs/Id"
-        },
-        "kind": {
-          "type": "string",
-          "enum": [
-            "workspace",
-            "patch",
-            "exec",
-            "process",
-            "validate",
-            "integrate",
-            "capability"
-          ]
-        },
-        "status": {
-          "type": "string",
-          "enum": [
-            "queued",
-            "running",
-            "succeeded",
-            "failed",
-            "cancelled",
-            "uncertain"
-          ]
-        },
-        "workspaceId": {
-          "$ref": "#/$defs/Id"
-        },
-        "step": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 64
-        },
-        "createdAt": {
-          "$ref": "#/$defs/Timestamp"
-        },
-        "updatedAt": {
-          "$ref": "#/$defs/Timestamp"
-        },
-        "exitCode": {
-          "anyOf": [
-            {
-              "type": "integer",
-              "minimum": -255,
-              "maximum": 255
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "signal": {
-          "anyOf": [
-            {
-              "type": "string",
-              "enum": [
-                "SIGINT",
-                "SIGTERM",
-                "SIGKILL"
-              ]
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "checkpoint": {
-          "$ref": "#/$defs/Workspace"
-        },
-        "validation": {
-          "$ref": "#/$defs/ValidationSummary"
-        },
-        "publication": {
-          "$ref": "#/$defs/Publication"
-        },
-        "nextInputSequence": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 9007199254740991
-        },
-        "uncheckpointedChangesPossible": {
-          "type": "boolean"
-        },
-        "error": {
-          "$ref": "#/$defs/Error"
-        },
-        "logs": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/Log"
-          },
-          "minItems": 0,
-          "maxItems": 3
-        },
-        "artifactIds": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/Id"
-          },
-          "minItems": 0,
-          "maxItems": 32
-        },
-        "pollAfterMs": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 30000
-        },
-        "targetOperationId": {
-          "$ref": "#/$defs/Id"
-        },
-        "inputDelivery": {
-          "type": "string",
-          "enum": [
-            "accepted",
-            "written",
-            "already_recorded",
-            "unknown",
-            "not_applicable"
-          ]
-        },
-        "capabilityId": {
-          "$ref": "#/$defs/Id"
-        },
-        "capabilityAction": {
-          "$ref": "#/$defs/Id"
-        },
-        "capabilityOutput": {
-          "type": "object",
-          "maxProperties": 128,
-          "additionalProperties": true,
-          "description": "Bounded action-specific JSON validated against the adopted capability descriptor output schema before publication. Large output is returned as artifacts."
-        }
-      },
-      "required": [
-        "operationId",
-        "requestId",
-        "kind",
-        "status",
-        "step",
-        "createdAt",
-        "updatedAt",
-        "pollAfterMs"
-      ],
-      "additionalProperties": false
-    },
-    "OperationResult": {
-      "type": "object",
-      "properties": {
-        "operation": {
-          "$ref": "#/$defs/Operation"
-        },
-        "workspace": {
-          "$ref": "#/$defs/Workspace"
-        }
-      },
-      "required": [
-        "operation"
-      ],
-      "additionalProperties": false
-    },
-    "ProcessResult": {
-      "type": "object",
-      "properties": {
-        "operation": {
-          "$ref": "#/$defs/Operation"
-        },
-        "delivery": {
-          "type": "string",
-          "enum": [
-            "accepted",
-            "written",
-            "already_recorded",
-            "unknown",
-            "not_applicable"
-          ]
-        },
-        "nextInputSequence": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 9007199254740991
-        }
-      },
-      "required": [
-        "operation",
-        "delivery"
-      ],
-      "additionalProperties": false
-    },
-    "Binding": {
-      "type": "object",
-      "properties": {
-        "bindingId": {
-          "$ref": "#/$defs/Id"
-        },
-        "provider": {
-          "const": "github"
-        },
-        "providerRepositoryId": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 32,
-          "pattern": "^[0-9]+$"
-        },
-        "displayName": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 256
-        },
-        "allowedRefs": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/Ref"
-          },
-          "minItems": 1,
-          "maxItems": 32
-        },
-        "revision": {
-          "$ref": "#/$defs/Revision"
-        },
-        "policyDigest": {
-          "$ref": "#/$defs/Digest"
-        },
-        "capabilities": {
-          "type": "object",
-          "properties": {
-            "read": {
-              "type": "boolean"
-            },
-            "write": {
-              "type": "boolean"
-            },
-            "exec": {
-              "type": "boolean"
-            },
-            "integrate": {
-              "type": "boolean"
-            },
-            "networks": {
-              "type": "array",
-              "items": {
-                "type": "string",
-                "enum": [
-                  "none",
-                  "dependencies",
-                  "internet"
-                ]
-              },
-              "minItems": 0,
-              "maxItems": 3
-            }
-          },
-          "required": [
-            "read",
-            "write",
-            "exec",
-            "integrate",
-            "networks"
-          ],
-          "additionalProperties": false
-        },
-        "unavailableReasons": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/Error"
-          },
-          "minItems": 0,
-          "maxItems": 16
-        },
-        "refsComplete": {
-          "type": "boolean"
-        },
-        "refsCursor": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/Token"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        }
-      },
-      "required": [
-        "bindingId",
-        "provider",
-        "providerRepositoryId",
-        "displayName",
-        "allowedRefs",
-        "revision",
-        "policyDigest",
-        "capabilities",
-        "unavailableReasons",
-        "refsComplete",
-        "refsCursor"
-      ],
-      "additionalProperties": false
-    },
-    "Snapshot": {
-      "type": "object",
-      "properties": {
-        "handle": {
-          "$ref": "#/$defs/Token"
-        },
-        "source": {
-          "$ref": "#/$defs/Source"
-        },
-        "observedAt": {
-          "$ref": "#/$defs/Timestamp"
-        },
-        "expiresAt": {
-          "$ref": "#/$defs/Timestamp"
-        },
-        "freshness": {
-          "type": "string",
-          "enum": [
-            "current",
-            "cached"
-          ]
-        }
-      },
-      "required": [
-        "handle",
-        "source",
-        "observedAt",
-        "expiresAt",
-        "freshness"
-      ],
-      "additionalProperties": false
-    },
-    "Limits": {
-      "type": "object",
-      "properties": {
-        "readBytesDefault": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 2147483647
-        },
-        "readBytesMax": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 2147483647
-        },
-        "queriesMax": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 2147483647
-        },
-        "patchBytesMax": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 2147483647
-        },
-        "executionCapacity": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 9007199254740991
-        },
-        "captureBytesDefault": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 2147483647
-        },
-        "captureBytesMax": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 2147483647
-        },
-        "searchScanBytes": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 2147483647
-        },
-        "searchDeadlineMs": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 2147483647
-        }
-      },
-      "required": [
-        "readBytesDefault",
-        "readBytesMax",
-        "queriesMax",
-        "patchBytesMax",
-        "executionCapacity",
-        "captureBytesDefault",
-        "captureBytesMax",
-        "searchScanBytes",
-        "searchDeadlineMs"
-      ],
-      "additionalProperties": false
-    },
-    "ContextResult": {
-      "type": "object",
-      "properties": {
-        "bindings": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/Binding"
-          },
-          "minItems": 0,
-          "maxItems": 100
-        },
-        "snapshot": {
-          "$ref": "#/$defs/Snapshot"
-        },
-        "workspaces": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/Workspace"
-          },
-          "minItems": 0,
-          "maxItems": 32
-        },
-        "limits": {
-          "$ref": "#/$defs/Limits"
-        },
-        "nextCursor": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/Token"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "runtimeState": {
-          "type": "string",
-          "enum": [
-            "online",
-            "device_offline",
-            "degraded"
-          ]
-        },
-        "contractVersion": {
-          "const": "tdev.tools.v1"
-        },
-        "capabilities": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/CapabilitySummary"
-          },
-          "minItems": 0,
-          "maxItems": 32
-        },
-        "capabilitiesComplete": {
-          "type": "boolean"
-        },
-        "capabilitiesCursor": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/Token"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        }
-      },
-      "required": [
-        "bindings",
-        "workspaces",
-        "limits",
-        "nextCursor",
-        "runtimeState",
-        "contractVersion",
-        "capabilities",
-        "capabilitiesComplete",
-        "capabilitiesCursor"
-      ],
-      "additionalProperties": false
-    },
-    "Range": {
-      "oneOf": [
-        {
-          "type": "object",
-          "properties": {
-            "startLine": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 9007199254740991
-            },
-            "endLine": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 9007199254740991
-            }
-          },
-          "required": [
-            "startLine",
-            "endLine"
-          ],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": {
-            "offset": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 9007199254740991
-            },
-            "bytes": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 65536
-            }
-          },
-          "required": [
-            "offset",
-            "bytes"
-          ],
-          "additionalProperties": false
-        }
-      ]
-    },
-    "ReadQuery": {
-      "oneOf": [
-        {
-          "type": "object",
-          "properties": {
-            "id": {
-              "$ref": "#/$defs/Id"
-            },
-            "kind": {
-              "const": "file"
-            },
-            "path": {
-              "$ref": "#/$defs/Path"
-            },
-            "ranges": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/Range"
-              },
-              "minItems": 1,
-              "maxItems": 8
-            }
-          },
-          "required": [
-            "id",
-            "kind",
-            "path"
-          ],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": {
-            "id": {
-              "$ref": "#/$defs/Id"
-            },
-            "kind": {
-              "const": "list"
-            },
-            "path": {
-              "$ref": "#/$defs/Path"
-            },
-            "depth": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 4,
-              "default": 1
-            },
-            "glob": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 1024
-            },
-            "maxEntries": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 512,
-              "default": 128
-            }
-          },
-          "required": [
-            "id",
-            "kind",
-            "path"
-          ],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": {
-            "id": {
-              "$ref": "#/$defs/Id"
-            },
-            "kind": {
-              "const": "search"
-            },
-            "path": {
-              "$ref": "#/$defs/Path"
-            },
-            "query": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 2048
-            },
-            "regex": {
-              "type": "boolean",
-              "default": false
-            },
-            "caseSensitive": {
-              "type": "boolean",
-              "default": true
-            },
-            "includeHidden": {
-              "type": "boolean",
-              "default": false
-            },
-            "includeIgnored": {
-              "type": "boolean",
-              "default": false
-            },
-            "maxHits": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 256,
-              "default": 128
-            }
-          },
-          "required": [
-            "id",
-            "kind",
-            "path",
-            "query"
-          ],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": {
-            "id": {
-              "$ref": "#/$defs/Id"
-            },
-            "kind": {
-              "const": "diff"
-            },
-            "paths": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/Path"
-              },
-              "minItems": 0,
-              "maxItems": 128
-            },
-            "compareTo": {
-              "$ref": "#/$defs/Oid"
-            },
-            "contextLines": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 20,
-              "default": 3
-            }
-          },
-          "required": [
-            "id",
-            "kind"
-          ],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": {
-            "id": {
-              "$ref": "#/$defs/Id"
-            },
-            "kind": {
-              "const": "status"
-            }
-          },
-          "required": [
-            "id",
-            "kind"
-          ],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": {
-            "id": {
-              "$ref": "#/$defs/Id"
-            },
-            "kind": {
-              "const": "history"
-            },
-            "limit": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 50,
-              "default": 20
-            }
-          },
-          "required": [
-            "id",
-            "kind"
-          ],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": {
-            "id": {
-              "$ref": "#/$defs/Id"
-            },
-            "kind": {
-              "const": "artifact"
-            },
-            "artifactId": {
-              "$ref": "#/$defs/Id"
-            },
-            "offset": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 9007199254740991,
-              "default": 0
-            },
-            "bytes": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 65536,
-              "default": 24000
-            }
-          },
-          "required": [
-            "id",
-            "kind",
-            "artifactId"
-          ],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": {
-            "id": {
-              "$ref": "#/$defs/Id"
-            },
-            "kind": {
-              "const": "continue"
-            },
-            "cursor": {
-              "$ref": "#/$defs/Token"
-            }
-          },
-          "required": [
-            "id",
-            "kind",
-            "cursor"
-          ],
-          "additionalProperties": false
-        }
-      ]
-    },
-    "Entry": {
-      "type": "object",
-      "properties": {
-        "path": {
-          "$ref": "#/$defs/Path"
-        },
-        "type": {
-          "type": "string",
-          "enum": [
-            "file",
-            "directory",
-            "symlink",
-            "gitlink"
-          ]
-        },
-        "mode": {
-          "type": "string",
-          "enum": [
-            "040000",
-            "100644",
-            "100755",
-            "120000",
-            "160000"
-          ]
-        },
-        "oid": {
-          "$ref": "#/$defs/Oid"
-        },
-        "bytes": {
-          "anyOf": [
-            {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 9007199254740991
-            },
-            {
-              "type": "null"
-            }
-          ]
-        }
-      },
-      "required": [
-        "path",
-        "type",
-        "mode",
-        "oid",
-        "bytes"
-      ],
-      "additionalProperties": false
-    },
-    "Commit": {
-      "type": "object",
-      "properties": {
-        "commit": {
-          "$ref": "#/$defs/Oid"
-        },
-        "parents": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/Oid"
-          },
-          "minItems": 0,
-          "maxItems": 8
-        },
-        "subject": {
-          "type": "string",
-          "minLength": 0,
-          "maxLength": 4096
-        },
-        "author": {
-          "type": "string",
-          "minLength": 0,
-          "maxLength": 256
-        },
-        "time": {
-          "$ref": "#/$defs/Timestamp"
-        }
-      },
-      "required": [
-        "commit",
-        "parents",
-        "subject",
-        "author",
-        "time"
-      ],
-      "additionalProperties": false
-    },
-    "SearchHit": {
-      "type": "object",
-      "properties": {
-        "path": {
-          "$ref": "#/$defs/Path"
-        },
-        "line": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 9007199254740991
-        },
-        "byteOffset": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 9007199254740991
-        },
-        "text": {
-          "type": "string",
-          "minLength": 0,
-          "maxLength": 4096
-        },
-        "lineTruncated": {
-          "type": "boolean"
-        }
-      },
-      "required": [
-        "path",
-        "line",
-        "byteOffset",
-        "text",
-        "lineTruncated"
-      ],
-      "additionalProperties": false
-    },
-    "Diffstat": {
-      "type": "object",
-      "properties": {
-        "files": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 2147483647
-        },
-        "insertions": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 2147483647
-        },
-        "deletions": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 2147483647
-        },
-        "binaryFiles": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 2147483647
-        }
-      },
-      "required": [
-        "files",
-        "insertions",
-        "deletions",
-        "binaryFiles"
-      ],
-      "additionalProperties": false
-    },
-    "Status": {
-      "type": "object",
-      "properties": {
-        "baseCommit": {
-          "$ref": "#/$defs/Oid"
-        },
-        "tree": {
-          "$ref": "#/$defs/Oid"
-        },
-        "revision": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/Revision"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "changedPaths": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/Path"
-          },
-          "minItems": 0,
-          "maxItems": 512
-        },
-        "complete": {
-          "type": "boolean"
-        },
-        "busyOperationId": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/Id"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        }
-      },
-      "required": [
-        "baseCommit",
-        "tree",
-        "revision",
-        "changedPaths",
-        "complete",
-        "busyOperationId"
-      ],
-      "additionalProperties": false
-    },
-    "ReadItem": {
-      "oneOf": [
-        {
-          "type": "object",
-          "properties": {
-            "id": {
-              "$ref": "#/$defs/Id"
-            },
-            "ok": {
-              "const": true
-            },
-            "kind": {
-              "const": "file"
-            },
-            "path": {
-              "$ref": "#/$defs/Path"
-            },
-            "blob": {
-              "$ref": "#/$defs/Oid"
-            },
-            "size": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 9007199254740991
-            },
-            "mode": {
-              "type": "string",
-              "enum": [
-                "100644",
-                "100755",
-                "120000"
-              ]
-            },
-            "totalLines": {
-              "anyOf": [
-                {
-                  "type": "integer",
-                  "minimum": 0,
-                  "maximum": 9007199254740991
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "chunks": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/Chunk"
-              },
-              "minItems": 0,
-              "maxItems": 8
-            },
-            "complete": {
-              "type": "boolean"
-            },
-            "nextCursor": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/Token"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            }
-          },
-          "required": [
-            "id",
-            "ok",
-            "kind",
-            "path",
-            "blob",
-            "size",
-            "mode",
-            "totalLines",
-            "chunks",
-            "complete",
-            "nextCursor"
-          ],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": {
-            "id": {
-              "$ref": "#/$defs/Id"
-            },
-            "ok": {
-              "const": true
-            },
-            "kind": {
-              "const": "list"
-            },
-            "entries": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/Entry"
-              },
-              "minItems": 0,
-              "maxItems": 512
-            },
-            "complete": {
-              "type": "boolean"
-            },
-            "nextCursor": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/Token"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            }
-          },
-          "required": [
-            "id",
-            "ok",
-            "kind",
-            "entries",
-            "complete",
-            "nextCursor"
-          ],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": {
-            "id": {
-              "$ref": "#/$defs/Id"
-            },
-            "ok": {
-              "const": true
-            },
-            "kind": {
-              "const": "search"
-            },
-            "hits": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/SearchHit"
-              },
-              "minItems": 0,
-              "maxItems": 256
-            },
-            "scannedBytes": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 9007199254740991
-            },
-            "scannedFiles": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 2147483647
-            },
-            "complete": {
-              "type": "boolean"
-            },
-            "nextCursor": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/Token"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            }
-          },
-          "required": [
-            "id",
-            "ok",
-            "kind",
-            "hits",
-            "scannedBytes",
-            "scannedFiles",
-            "complete",
-            "nextCursor"
-          ],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": {
-            "id": {
-              "$ref": "#/$defs/Id"
-            },
-            "ok": {
-              "const": true
-            },
-            "kind": {
-              "const": "diff"
-            },
-            "text": {
-              "type": "string",
-              "minLength": 0,
-              "maxLength": 131072
-            },
-            "stat": {
-              "$ref": "#/$defs/Diffstat"
-            },
-            "complete": {
-              "type": "boolean"
-            },
-            "nextCursor": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/Token"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            }
-          },
-          "required": [
-            "id",
-            "ok",
-            "kind",
-            "text",
-            "stat",
-            "complete",
-            "nextCursor"
-          ],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": {
-            "id": {
-              "$ref": "#/$defs/Id"
-            },
-            "ok": {
-              "const": true
-            },
-            "kind": {
-              "const": "status"
-            },
-            "status": {
-              "$ref": "#/$defs/Status"
-            },
-            "complete": {
-              "type": "boolean"
-            },
-            "nextCursor": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/Token"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            }
-          },
-          "required": [
-            "id",
-            "ok",
-            "kind",
-            "status",
-            "complete",
-            "nextCursor"
-          ],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": {
-            "id": {
-              "$ref": "#/$defs/Id"
-            },
-            "ok": {
-              "const": true
-            },
-            "kind": {
-              "const": "history"
-            },
-            "commits": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/Commit"
-              },
-              "minItems": 0,
-              "maxItems": 50
-            },
-            "complete": {
-              "type": "boolean"
-            },
-            "nextCursor": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/Token"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            }
-          },
-          "required": [
-            "id",
-            "ok",
-            "kind",
-            "commits",
-            "complete",
-            "nextCursor"
-          ],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": {
-            "id": {
-              "$ref": "#/$defs/Id"
-            },
-            "ok": {
-              "const": true
-            },
-            "kind": {
-              "const": "artifact"
-            },
-            "artifactId": {
-              "$ref": "#/$defs/Id"
-            },
-            "chunk": {
-              "$ref": "#/$defs/Chunk"
-            },
-            "complete": {
-              "type": "boolean"
-            },
-            "nextCursor": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/Token"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            }
-          },
-          "required": [
-            "id",
-            "ok",
-            "kind",
-            "artifactId",
-            "chunk",
-            "complete",
-            "nextCursor"
-          ],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": {
-            "id": {
-              "$ref": "#/$defs/Id"
-            },
-            "ok": {
-              "const": false
-            },
-            "error": {
-              "$ref": "#/$defs/Error"
-            }
-          },
-          "required": [
-            "id",
-            "ok",
-            "error"
-          ],
-          "additionalProperties": false
-        }
-      ]
-    },
-    "ReadResult": {
-      "type": "object",
-      "properties": {
-        "target": {
-          "$ref": "#/$defs/ReadTarget"
-        },
-        "items": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/ReadItem"
-          },
-          "minItems": 1,
-          "maxItems": 32
-        },
-        "returnedBytes": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 65536
-        },
-        "complete": {
-          "type": "boolean"
-        }
-      },
-      "required": [
-        "target",
-        "items",
-        "returnedBytes",
-        "complete"
-      ],
-      "additionalProperties": false
-    },
-    "ContextInput": {
-      "type": "object",
-      "properties": {
-        "bindingId": {
-          "$ref": "#/$defs/Id"
-        },
-        "ref": {
-          "$ref": "#/$defs/Ref"
-        },
-        "freshness": {
-          "type": "string",
-          "enum": [
-            "current",
-            "cached"
-          ],
-          "default": "current"
-        },
-        "cursor": {
-          "$ref": "#/$defs/Token"
-        },
-        "maxItems": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 100,
-          "default": 32
-        },
-        "maxBytes": {
-          "type": "integer",
-          "minimum": 1024,
-          "maximum": 65536,
-          "default": 24000
-        }
-      },
-      "required": [],
-      "additionalProperties": false
-    },
-    "ReadInput": {
-      "type": "object",
-      "properties": {
-        "target": {
-          "$ref": "#/$defs/ReadTarget"
-        },
-        "queries": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/ReadQuery"
-          },
-          "minItems": 1,
-          "maxItems": 32
-        },
-        "maxBytes": {
-          "type": "integer",
-          "minimum": 1024,
-          "maximum": 65536,
-          "default": 24000
-        }
-      },
-      "required": [
-        "target",
-        "queries"
-      ],
-      "additionalProperties": false
-    },
-    "WorkspaceInput": {
-      "oneOf": [
-        {
-          "type": "object",
-          "properties": {
-            "requestId": {
-              "$ref": "#/$defs/Id"
-            },
-            "op": {
-              "const": "open"
-            },
-            "bindingId": {
-              "$ref": "#/$defs/Id"
-            },
-            "ref": {
-              "$ref": "#/$defs/Ref"
-            },
-            "expectedHead": {
-              "$ref": "#/$defs/Oid"
-            },
-            "label": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 256
-            },
-            "yieldMs": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 10000,
-              "default": 1000
-            }
-          },
-          "required": [
-            "requestId",
-            "op",
-            "bindingId",
-            "ref",
-            "expectedHead"
-          ],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": {
-            "requestId": {
-              "$ref": "#/$defs/Id"
-            },
-            "op": {
-              "const": "compose"
-            },
-            "bindingId": {
-              "$ref": "#/$defs/Id"
-            },
-            "ref": {
-              "$ref": "#/$defs/Ref"
-            },
-            "expectedHead": {
-              "$ref": "#/$defs/Oid"
-            },
-            "sources": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/WorkspaceSelection"
-              },
-              "minItems": 1,
-              "maxItems": 16
-            },
-            "label": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 256
-            },
-            "yieldMs": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 10000,
-              "default": 1000
-            }
-          },
-          "required": [
-            "requestId",
-            "op",
-            "bindingId",
-            "ref",
-            "expectedHead",
-            "sources"
-          ],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": {
-            "requestId": {
-              "$ref": "#/$defs/Id"
-            },
-            "op": {
-              "const": "close"
-            },
-            "workspaceId": {
-              "$ref": "#/$defs/Id"
-            },
-            "expectedRevision": {
-              "$ref": "#/$defs/Revision"
-            }
-          },
-          "required": [
-            "requestId",
-            "op",
-            "workspaceId",
-            "expectedRevision"
-          ],
-          "additionalProperties": false
-        }
-      ]
-    },
-    "Replacement": {
-      "type": "object",
-      "properties": {
-        "oldText": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 1048576
-        },
-        "newText": {
-          "type": "string",
-          "minLength": 0,
-          "maxLength": 1048576
-        },
-        "expectedMatches": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 1024,
-          "default": 1
-        }
-      },
-      "required": [
-        "oldText",
-        "newText"
-      ],
-      "additionalProperties": false
-    },
-    "Edit": {
-      "oneOf": [
-        {
-          "type": "object",
-          "properties": {
-            "op": {
-              "const": "put"
-            },
-            "path": {
-              "$ref": "#/$defs/Path"
-            },
-            "create": {
-              "type": "boolean"
-            },
-            "encoding": {
-              "type": "string",
-              "enum": [
-                "utf8",
-                "base64"
-              ]
-            },
-            "content": {
-              "type": "string",
-              "minLength": 0,
-              "maxLength": 1398104
-            },
-            "mode": {
-              "type": "string",
-              "enum": [
-                "100644",
-                "100755",
-                "120000"
-              ],
-              "default": "100644"
-            }
-          },
-          "required": [
-            "op",
-            "path",
-            "create",
-            "encoding",
-            "content"
-          ],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": {
-            "op": {
-              "const": "replace"
-            },
-            "path": {
-              "$ref": "#/$defs/Path"
-            },
-            "replacements": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/Replacement"
-              },
-              "minItems": 1,
-              "maxItems": 128
-            }
-          },
-          "required": [
-            "op",
-            "path",
-            "replacements"
-          ],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": {
-            "op": {
-              "const": "delete"
-            },
-            "path": {
-              "$ref": "#/$defs/Path"
-            }
-          },
-          "required": [
-            "op",
-            "path"
-          ],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": {
-            "op": {
-              "const": "move"
-            },
-            "path": {
-              "$ref": "#/$defs/Path"
-            },
-            "to": {
-              "$ref": "#/$defs/Path"
-            }
-          },
-          "required": [
-            "op",
-            "path",
-            "to"
-          ],
-          "additionalProperties": false
-        }
-      ]
-    },
-    "PatchInput": {
-      "type": "object",
-      "properties": {
-        "requestId": {
-          "$ref": "#/$defs/Id"
-        },
-        "workspaceId": {
-          "$ref": "#/$defs/Id"
-        },
-        "expectedRevision": {
-          "$ref": "#/$defs/Revision"
-        },
-        "edits": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/Edit"
-          },
-          "minItems": 1,
-          "maxItems": 128
-        }
-      },
-      "required": [
-        "requestId",
-        "workspaceId",
-        "expectedRevision",
-        "edits"
-      ],
-      "additionalProperties": false
-    },
-    "ExecInput": {
-      "type": "object",
-      "properties": {
-        "requestId": {
-          "$ref": "#/$defs/Id"
-        },
-        "workspaceId": {
-          "$ref": "#/$defs/Id"
-        },
-        "expectedRevision": {
-          "$ref": "#/$defs/Revision"
-        },
-        "cmd": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 32768
-        },
-        "cwd": {
-          "$ref": "#/$defs/Path",
-          "default": "."
-        },
-        "env": {
-          "type": "object",
-          "maxProperties": 32,
-          "propertyNames": {
-            "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,63}$"
-          },
-          "additionalProperties": {
-            "type": "string",
-            "minLength": 0,
-            "maxLength": 8192
-          },
-          "description": "Sandbox-only environment values; reserved credential/control keys rejected semantically. Never inherit native controller environment."
-        },
-        "stdin": {
-          "type": "string",
-          "minLength": 0,
-          "maxLength": 65536
-        },
-        "tty": {
-          "type": "boolean",
-          "default": false
-        },
-        "capturePaths": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 1024
-          },
-          "minItems": 0,
-          "maxItems": 64
-        },
-        "network": {
-          "type": "string",
-          "enum": [
-            "none",
-            "dependencies",
-            "internet"
-          ],
-          "default": "none"
-        },
-        "timeoutSeconds": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 3600,
-          "default": 300
-        },
-        "yieldMs": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 10000,
-          "default": 1000
-        },
-        "maxBytes": {
-          "type": "integer",
-          "minimum": 1024,
-          "maximum": 65536,
-          "default": 24000
-        }
-      },
-      "required": [
-        "requestId",
-        "workspaceId",
-        "expectedRevision",
-        "cmd"
-      ],
-      "additionalProperties": false
-    },
-    "ProcessInput": {
-      "oneOf": [
-        {
-          "type": "object",
-          "properties": {
-            "requestId": {
-              "$ref": "#/$defs/Id"
-            },
-            "op": {
-              "const": "input"
-            },
-            "operationId": {
-              "$ref": "#/$defs/Id"
-            },
-            "sequence": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 9007199254740991
-            },
-            "text": {
-              "type": "string",
-              "minLength": 0,
-              "maxLength": 65536
-            },
-            "eof": {
-              "type": "boolean",
-              "default": false
-            }
-          },
-          "required": [
-            "requestId",
-            "op",
-            "operationId",
-            "sequence",
-            "text"
-          ],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": {
-            "requestId": {
-              "$ref": "#/$defs/Id"
-            },
-            "op": {
-              "const": "signal"
-            },
-            "operationId": {
-              "$ref": "#/$defs/Id"
-            },
-            "signal": {
-              "type": "string",
-              "enum": [
-                "SIGINT",
-                "SIGTERM",
-                "SIGKILL"
-              ]
-            }
-          },
-          "required": [
-            "requestId",
-            "op",
-            "operationId",
-            "signal"
-          ],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": {
-            "requestId": {
-              "$ref": "#/$defs/Id"
-            },
-            "op": {
-              "const": "cancel"
-            },
-            "operationId": {
-              "$ref": "#/$defs/Id"
-            }
-          },
-          "required": [
-            "requestId",
-            "op",
-            "operationId"
-          ],
-          "additionalProperties": false
-        }
-      ]
-    },
-    "ValidateInput": {
-      "type": "object",
-      "properties": {
-        "requestId": {
-          "$ref": "#/$defs/Id"
-        },
-        "workspaceId": {
-          "$ref": "#/$defs/Id"
-        },
-        "expectedRevision": {
-          "$ref": "#/$defs/Revision"
-        },
-        "message": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 4096
-        },
-        "additionalProfiles": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/Id"
-          },
-          "minItems": 0,
-          "maxItems": 8
-        },
-        "yieldMs": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 10000,
-          "default": 1000
-        }
-      },
-      "required": [
-        "requestId",
-        "workspaceId",
-        "expectedRevision",
-        "message"
-      ],
-      "additionalProperties": false
-    },
-    "IntegrateInput": {
-      "type": "object",
-      "properties": {
-        "requestId": {
-          "$ref": "#/$defs/Id"
-        },
-        "workspaceId": {
-          "$ref": "#/$defs/Id"
-        },
-        "expectedRevision": {
-          "$ref": "#/$defs/Revision"
-        },
-        "validationId": {
-          "$ref": "#/$defs/Id"
-        },
-        "expectedHead": {
-          "$ref": "#/$defs/Oid"
-        },
-        "yieldMs": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 10000,
-          "default": 1000
-        }
-      },
-      "required": [
-        "requestId",
-        "workspaceId",
-        "expectedRevision",
-        "validationId",
-        "expectedHead"
-      ],
-      "additionalProperties": false
-    },
-    "ObserveTarget": {
-      "oneOf": [
-        {
-          "type": "object",
-          "properties": {
-            "operationId": {
-              "$ref": "#/$defs/Id"
-            }
-          },
-          "required": [
-            "operationId"
-          ],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": {
-            "requestId": {
-              "$ref": "#/$defs/Id"
-            }
-          },
-          "required": [
-            "requestId"
-          ],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": {
-            "workspaceId": {
-              "$ref": "#/$defs/Id"
-            }
-          },
-          "required": [
-            "workspaceId"
-          ],
-          "additionalProperties": false
-        }
-      ]
-    },
-    "LogCursor": {
-      "type": "object",
-      "properties": {
-        "operationId": {
-          "$ref": "#/$defs/Id"
-        },
-        "stream": {
-          "type": "string",
-          "enum": [
-            "stdout",
-            "stderr",
-            "combined"
-          ]
-        },
-        "offset": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 9007199254740991
-        }
-      },
-      "required": [
-        "operationId",
-        "stream",
-        "offset"
-      ],
-      "additionalProperties": false
-    },
-    "ObserveInput": {
-      "type": "object",
-      "properties": {
-        "targets": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/ObserveTarget"
-          },
-          "minItems": 1,
-          "maxItems": 32
-        },
-        "logs": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/LogCursor"
-          },
-          "minItems": 0,
-          "maxItems": 8
-        },
-        "waitMs": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 10000,
-          "default": 0
-        },
-        "maxBytes": {
-          "type": "integer",
-          "minimum": 1024,
-          "maximum": 65536,
-          "default": 24000
-        }
-      },
-      "required": [
-        "targets"
-      ],
-      "additionalProperties": false
-    },
-    "ObserveItem": {
-      "oneOf": [
-        {
-          "type": "object",
-          "properties": {
-            "target": {
-              "$ref": "#/$defs/ObserveTarget"
-            },
-            "ok": {
-              "const": true
-            },
-            "operation": {
-              "$ref": "#/$defs/Operation"
-            }
-          },
-          "required": [
-            "target",
-            "ok",
-            "operation"
-          ],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": {
-            "target": {
-              "$ref": "#/$defs/ObserveTarget"
-            },
-            "ok": {
-              "const": true
-            },
-            "workspace": {
-              "$ref": "#/$defs/Workspace"
-            }
-          },
-          "required": [
-            "target",
-            "ok",
-            "workspace"
-          ],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": {
-            "target": {
-              "$ref": "#/$defs/ObserveTarget"
-            },
-            "ok": {
-              "const": false
-            },
-            "error": {
-              "$ref": "#/$defs/Error"
-            }
-          },
-          "required": [
-            "target",
-            "ok",
-            "error"
-          ],
-          "additionalProperties": false
-        }
-      ]
-    },
-    "ObserveResult": {
-      "type": "object",
-      "properties": {
-        "items": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/ObserveItem"
-          },
-          "minItems": 1,
-          "maxItems": 32
-        },
-        "logs": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/Log"
-          },
-          "minItems": 0,
-          "maxItems": 8
-        },
-        "pollAfterMs": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 30000
-        },
-        "returnedBytes": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 65536
-        }
-      },
-      "required": [
-        "items",
-        "logs",
-        "pollAfterMs",
-        "returnedBytes"
-      ],
-      "additionalProperties": false
-    },
-    "ContextOutput": {
-      "oneOf": [
-        {
-          "type": "object",
-          "properties": {
-            "ok": {
-              "const": true
-            },
-            "result": {
-              "$ref": "#/$defs/ContextResult"
-            }
-          },
-          "required": [
-            "ok",
-            "result"
-          ],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": {
-            "ok": {
-              "const": false
-            },
-            "error": {
-              "$ref": "#/$defs/Error"
-            }
-          },
-          "required": [
-            "ok",
-            "error"
-          ],
-          "additionalProperties": false
-        }
-      ]
-    },
-    "ReadOutput": {
-      "oneOf": [
-        {
-          "type": "object",
-          "properties": {
-            "ok": {
-              "const": true
-            },
-            "result": {
-              "$ref": "#/$defs/ReadResult"
-            }
-          },
-          "required": [
-            "ok",
-            "result"
-          ],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": {
-            "ok": {
-              "const": false
-            },
-            "error": {
-              "$ref": "#/$defs/Error"
-            }
-          },
-          "required": [
-            "ok",
-            "error"
-          ],
-          "additionalProperties": false
-        }
-      ]
-    },
-    "OperationOutput": {
-      "oneOf": [
-        {
-          "type": "object",
-          "properties": {
-            "ok": {
-              "const": true
-            },
-            "result": {
-              "$ref": "#/$defs/OperationResult"
-            }
-          },
-          "required": [
-            "ok",
-            "result"
-          ],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": {
-            "ok": {
-              "const": false
-            },
-            "error": {
-              "$ref": "#/$defs/Error"
-            }
-          },
-          "required": [
-            "ok",
-            "error"
-          ],
-          "additionalProperties": false
-        }
-      ]
-    },
-    "ProcessOutput": {
-      "oneOf": [
-        {
-          "type": "object",
-          "properties": {
-            "ok": {
-              "const": true
-            },
-            "result": {
-              "$ref": "#/$defs/ProcessResult"
-            }
-          },
-          "required": [
-            "ok",
-            "result"
-          ],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": {
-            "ok": {
-              "const": false
-            },
-            "error": {
-              "$ref": "#/$defs/Error"
-            }
-          },
-          "required": [
-            "ok",
-            "error"
-          ],
-          "additionalProperties": false
-        }
-      ]
-    },
-    "ObserveOutput": {
-      "oneOf": [
-        {
-          "type": "object",
-          "properties": {
-            "ok": {
-              "const": true
-            },
-            "result": {
-              "$ref": "#/$defs/ObserveResult"
-            }
-          },
-          "required": [
-            "ok",
-            "result"
-          ],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": {
-            "ok": {
-              "const": false
-            },
-            "error": {
-              "$ref": "#/$defs/Error"
-            }
-          },
-          "required": [
-            "ok",
-            "error"
-          ],
-          "additionalProperties": false
-        }
-      ]
-    },
-    "ValidationSummary": {
-      "type": "object",
-      "properties": {
-        "validationId": {
-          "$ref": "#/$defs/Id"
-        },
-        "commit": {
-          "$ref": "#/$defs/Oid"
-        },
-        "tree": {
-          "$ref": "#/$defs/Oid"
-        },
-        "policyDigest": {
-          "$ref": "#/$defs/Digest"
-        },
-        "profiles": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/ProfileOutcome"
-          },
-          "minItems": 1,
-          "maxItems": 32
-        },
-        "eligibleAtObservation": {
-          "type": "boolean"
-        },
-        "artifactId": {
-          "$ref": "#/$defs/Id"
-        }
-      },
-      "required": [
-        "validationId",
-        "commit",
-        "tree",
-        "policyDigest",
-        "profiles",
-        "eligibleAtObservation",
-        "artifactId"
-      ],
-      "additionalProperties": false
-    },
-    "CapabilitySummary": {
-      "type": "object",
-      "properties": {
-        "capabilityId": {
-          "$ref": "#/$defs/Id"
-        },
-        "version": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 128
-        },
-        "descriptorDigest": {
-          "$ref": "#/$defs/Digest"
-        },
-        "label": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 256
-        },
-        "description": {
-          "type": "string",
-          "minLength": 0,
-          "maxLength": 512
-        },
-        "role": {
-          "$ref": "#/$defs/Id",
-          "description": "Descriptive extension role such as executor, observer, presenter, artifact or advisor. Role is not authority and is not a closed semantic enum."
-        },
-        "available": {
-          "type": "boolean"
-        },
-        "unavailableReasons": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/Error"
-          },
-          "minItems": 0,
-          "maxItems": 8
-        }
-      },
-      "required": [
-        "capabilityId",
-        "version",
-        "descriptorDigest",
-        "label",
-        "description",
-        "role",
-        "available",
-        "unavailableReasons"
-      ],
-      "additionalProperties": false
-    },
-    "CapabilityAction": {
-      "type": "object",
-      "properties": {
-        "actionId": {
-          "$ref": "#/$defs/Id"
-        },
-        "description": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 1024
-        },
-        "inputSchema": {
-          "type": "object",
-          "maxProperties": 128,
-          "additionalProperties": true,
-          "description": "Adopted JSON Schema fragment for action arguments. The server validates arguments against this exact descriptor before dispatch."
-        },
-        "outputSchema": {
-          "type": "object",
-          "maxProperties": 128,
-          "additionalProperties": true,
-          "description": "Adopted JSON Schema fragment for bounded inline action output. Large output is represented by artifacts."
-        },
-        "requiredGrants": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/Id"
-          },
-          "minItems": 0,
-          "maxItems": 16
-        },
-        "readOnly": {
-          "type": "boolean"
-        },
-        "destructive": {
-          "type": "boolean"
-        },
-        "idempotent": {
-          "type": "boolean"
-        },
-        "openWorld": {
-          "type": "boolean"
-        },
-        "asynchronous": {
-          "type": "boolean"
-        }
-      },
-      "required": [
-        "actionId",
-        "description",
-        "inputSchema",
-        "outputSchema",
-        "requiredGrants",
-        "readOnly",
-        "destructive",
-        "idempotent",
-        "openWorld",
-        "asynchronous"
-      ],
-      "additionalProperties": false
-    },
-    "CapabilityDescriptor": {
-      "type": "object",
-      "properties": {
-        "capabilityId": {
-          "$ref": "#/$defs/Id"
-        },
-        "version": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 128
-        },
-        "descriptorDigest": {
-          "$ref": "#/$defs/Digest"
-        },
-        "label": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 256
-        },
-        "description": {
-          "type": "string",
-          "minLength": 0,
-          "maxLength": 2048
-        },
-        "role": {
-          "$ref": "#/$defs/Id"
-        },
-        "adapterProtocolVersion": {
-          "const": 1
-        },
-        "actions": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/CapabilityAction"
-          },
-          "minItems": 1,
-          "maxItems": 128
-        }
-      },
-      "required": [
-        "capabilityId",
-        "version",
-        "descriptorDigest",
-        "label",
-        "description",
-        "role",
-        "adapterProtocolVersion",
-        "actions"
-      ],
-      "additionalProperties": false
-    },
-    "CapabilityInput": {
-      "oneOf": [
-        {
-          "type": "object",
-          "properties": {
-            "op": {
-              "const": "list"
-            },
-            "cursor": {
-              "$ref": "#/$defs/Token"
-            },
-            "maxItems": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 64,
-              "default": 32
-            },
-            "maxBytes": {
-              "type": "integer",
-              "minimum": 1024,
-              "maximum": 65536,
-              "default": 24000
-            }
-          },
-          "required": [
-            "op"
-          ],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": {
-            "op": {
-              "const": "describe"
-            },
-            "capabilityId": {
-              "$ref": "#/$defs/Id"
-            },
-            "maxBytes": {
-              "type": "integer",
-              "minimum": 1024,
-              "maximum": 65536,
-              "default": 24000
-            }
-          },
-          "required": [
-            "op",
-            "capabilityId"
-          ],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": {
-            "op": {
-              "const": "invoke"
-            },
-            "requestId": {
-              "$ref": "#/$defs/Id"
-            },
-            "capabilityId": {
-              "$ref": "#/$defs/Id"
-            },
-            "descriptorDigest": {
-              "$ref": "#/$defs/Digest"
-            },
-            "actionId": {
-              "$ref": "#/$defs/Id"
-            },
-            "args": {
-              "type": "object",
-              "maxProperties": 128,
-              "additionalProperties": true
-            },
-            "yieldMs": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 10000,
-              "default": 1000
-            },
-            "maxBytes": {
-              "type": "integer",
-              "minimum": 1024,
-              "maximum": 65536,
-              "default": 24000
-            }
-          },
-          "required": [
-            "op",
-            "requestId",
-            "capabilityId",
-            "descriptorDigest",
-            "actionId",
-            "args"
-          ],
-          "additionalProperties": false
-        }
-      ]
-    },
-    "CapabilityListResult": {
-      "type": "object",
-      "properties": {
-        "op": {
-          "const": "list"
-        },
-        "capabilities": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/CapabilitySummary"
-          },
-          "minItems": 0,
-          "maxItems": 64
-        },
-        "complete": {
-          "type": "boolean"
-        },
-        "nextCursor": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/Token"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        }
-      },
-      "required": [
-        "op",
-        "capabilities",
-        "complete",
-        "nextCursor"
-      ],
-      "additionalProperties": false
-    },
-    "CapabilityDescribeResult": {
-      "type": "object",
-      "properties": {
-        "op": {
-          "const": "describe"
-        },
-        "descriptor": {
-          "$ref": "#/$defs/CapabilityDescriptor"
-        }
-      },
-      "required": [
-        "op",
-        "descriptor"
-      ],
-      "additionalProperties": false
-    },
-    "CapabilityInvokeResult": {
-      "type": "object",
-      "properties": {
-        "op": {
-          "const": "invoke"
-        },
-        "operation": {
-          "$ref": "#/$defs/Operation"
-        }
-      },
-      "required": [
-        "op",
-        "operation"
-      ],
-      "additionalProperties": false
-    },
-    "CapabilityOutput": {
+    "Output": {
       "oneOf": [
         {
           "type": "object",
@@ -3291,13 +42,13 @@
             "result": {
               "oneOf": [
                 {
-                  "$ref": "#/$defs/CapabilityListResult"
+                  "$ref": "#/$defs/Operation"
                 },
                 {
-                  "$ref": "#/$defs/CapabilityDescribeResult"
+                  "$ref": "#/$defs/Discovery"
                 },
                 {
-                  "$ref": "#/$defs/CapabilityInvokeResult"
+                  "$ref": "#/$defs/ReadResult"
                 }
               ]
             }
@@ -3324,6 +75,1197 @@
           ],
           "additionalProperties": false
         }
+      ],
+      "type": "object"
+    },
+    "workspaceInput": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "list"
+            }
+          },
+          "required": [
+            "action"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "open"
+            },
+            "requestId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "repo": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "ref": {
+              "type": "string",
+              "pattern": "^refs/heads/[^\\s~^:?*\\[\\\\]+$"
+            },
+            "expectedHead": {
+              "type": "string",
+              "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+            }
+          },
+          "required": [
+            "action",
+            "requestId",
+            "repo",
+            "ref",
+            "expectedHead"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "compose"
+            },
+            "requestId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "repo": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "ref": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096
+            },
+            "expectedHead": {
+              "type": "string",
+              "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+            },
+            "sources": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "workspaceId": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                  },
+                  "checkpoint": {
+                    "type": "string",
+                    "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+                  }
+                },
+                "required": [
+                  "workspaceId",
+                  "checkpoint"
+                ],
+                "additionalProperties": false
+              },
+              "minItems": 1,
+              "maxItems": 16
+            }
+          },
+          "required": [
+            "action",
+            "requestId",
+            "repo",
+            "ref",
+            "expectedHead",
+            "sources"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "close"
+            },
+            "requestId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "workspaceId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "expected": {
+              "type": "string",
+              "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+            }
+          },
+          "required": [
+            "action",
+            "requestId",
+            "workspaceId",
+            "expected"
+          ],
+          "additionalProperties": false
+        }
+      ],
+      "type": "object"
+    },
+    "readInput": {
+      "type": "object",
+      "properties": {
+        "workspaceId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "checkpoint": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+        },
+        "queries": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "action": {
+                    "const": "file"
+                  },
+                  "path": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4096
+                  },
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 65536
+                  }
+                },
+                "required": [
+                  "action",
+                  "path"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "action": {
+                    "const": "list"
+                  },
+                  "path": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4096
+                  },
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                },
+                "required": [
+                  "action"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "action": {
+                    "const": "search"
+                  },
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2048
+                  },
+                  "path": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4096
+                  },
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                },
+                "required": [
+                  "action",
+                  "text"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "action": {
+                    "const": "diff"
+                  }
+                },
+                "required": [
+                  "action"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "action": {
+                    "const": "history"
+                  }
+                },
+                "required": [
+                  "action"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "minItems": 1,
+          "maxItems": 32
+        },
+        "budget": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65536
+        }
+      },
+      "required": [
+        "workspaceId",
+        "checkpoint",
+        "queries"
+      ],
+      "additionalProperties": false
+    },
+    "editInput": {
+      "type": "object",
+      "properties": {
+        "requestId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "workspaceId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "expected": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+        },
+        "edits": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "action": {
+                    "const": "put"
+                  },
+                  "path": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4096
+                  },
+                  "content": {
+                    "type": "string",
+                    "maxLength": 1048576
+                  },
+                  "encoding": {
+                    "enum": [
+                      "utf8",
+                      "base64"
+                    ]
+                  },
+                  "mode": {
+                    "enum": [
+                      "100644",
+                      "100755",
+                      "120000"
+                    ]
+                  },
+                  "before": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "action",
+                  "path",
+                  "content",
+                  "before"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "action": {
+                    "const": "replace"
+                  },
+                  "path": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4096
+                  },
+                  "old": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1048576
+                  },
+                  "text": {
+                    "type": "string",
+                    "maxLength": 1048576
+                  },
+                  "count": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 10000
+                  }
+                },
+                "required": [
+                  "action",
+                  "path",
+                  "old",
+                  "text"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "action": {
+                    "const": "delete"
+                  },
+                  "path": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4096
+                  },
+                  "before": {
+                    "type": "string",
+                    "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+                  }
+                },
+                "required": [
+                  "action",
+                  "path",
+                  "before"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "action": {
+                    "const": "move"
+                  },
+                  "path": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4096
+                  },
+                  "to": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4096
+                  },
+                  "before": {
+                    "type": "string",
+                    "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+                  }
+                },
+                "required": [
+                  "action",
+                  "path",
+                  "to",
+                  "before"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "minItems": 1,
+          "maxItems": 256
+        }
+      },
+      "required": [
+        "requestId",
+        "workspaceId",
+        "expected",
+        "edits"
+      ],
+      "additionalProperties": false
+    },
+    "execInput": {
+      "type": "object",
+      "properties": {
+        "requestId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "workspaceId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "expected": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+        },
+        "command": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "cwd": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "env": {
+          "type": "object",
+          "maxProperties": 64,
+          "propertyNames": {
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+          },
+          "additionalProperties": {
+            "type": "string",
+            "maxLength": 8192
+          }
+        },
+        "stdin": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "network": {
+          "enum": [
+            "none",
+            "internet"
+          ]
+        },
+        "timeout": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3600
+        },
+        "capturePaths": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "minItems": 0,
+          "maxItems": 64
+        }
+      },
+      "required": [
+        "requestId",
+        "workspaceId",
+        "expected",
+        "command"
+      ],
+      "additionalProperties": false
+    },
+    "processInput": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "status"
+            },
+            "operationId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "lookupRequestId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "offset": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65536
+            }
+          },
+          "required": [
+            "action"
+          ],
+          "additionalProperties": false,
+          "oneOf": [
+            {
+              "required": [
+                "operationId"
+              ],
+              "not": {
+                "required": [
+                  "lookupRequestId"
+                ]
+              }
+            },
+            {
+              "required": [
+                "lookupRequestId"
+              ],
+              "not": {
+                "required": [
+                  "operationId"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "stdin"
+            },
+            "requestId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "operationId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "sequence": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1023
+            },
+            "text": {
+              "type": "string",
+              "maxLength": 65536
+            },
+            "eof": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "action",
+            "requestId",
+            "operationId",
+            "sequence",
+            "text"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "cancel"
+            },
+            "requestId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "operationId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            }
+          },
+          "required": [
+            "action",
+            "requestId",
+            "operationId"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "action",
+            "requestId",
+            "operationId"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "action": {
+              "const": "retire"
+            },
+            "requestId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "operationId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            }
+          }
+        }
+      ],
+      "type": "object"
+    },
+    "validateInput": {
+      "type": "object",
+      "properties": {
+        "requestId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "workspaceId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "expected": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        }
+      },
+      "required": [
+        "requestId",
+        "workspaceId",
+        "expected",
+        "message"
+      ],
+      "additionalProperties": false
+    },
+    "publishInput": {
+      "type": "object",
+      "properties": {
+        "requestId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "validationId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "expectedHead": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+        }
+      },
+      "required": [
+        "requestId",
+        "validationId",
+        "expectedHead"
+      ],
+      "additionalProperties": false
+    },
+    "Operation": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "workspace",
+        "status",
+        "effect",
+        "result",
+        "error"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "workspace",
+            "edit",
+            "exec",
+            "process",
+            "validate",
+            "publish"
+          ]
+        },
+        "workspace": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "status": {
+          "enum": [
+            "running",
+            "unknown",
+            "succeeded",
+            "failed",
+            "cancelled"
+          ]
+        },
+        "effect": {
+          "enum": [
+            "none",
+            "committed",
+            "unknown"
+          ]
+        },
+        "result": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MutationResult"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "error": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Error"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "output": {
+          "type": "object",
+          "required": [
+            "offset",
+            "nextOffset",
+            "encoding",
+            "data"
+          ],
+          "properties": {
+            "offset": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "nextOffset": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "encoding": {
+              "const": "base64"
+            },
+            "data": {
+              "type": "string"
+            },
+            "stdin": {
+              "type": "object",
+              "properties": {
+                "nextSequence": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "deliveries": {
+                  "type": "array",
+                  "maxItems": 16,
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "sequence": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "delivery": {
+                        "enum": [
+                          "queued",
+                          "unknown",
+                          "committed"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "sequence",
+                      "delivery"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "nextSequence",
+                "deliveries"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "outputError": {
+          "$ref": "#/$defs/Error"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Discovery": {
+      "type": "object",
+      "required": [
+        "repositories",
+        "workspaces",
+        "execution"
+      ],
+      "properties": {
+        "repositories": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "repo",
+              "ref"
+            ],
+            "properties": {
+              "repo": {
+                "type": "string"
+              },
+              "ref": {
+                "type": "string"
+              },
+              "head": {
+                "type": "string"
+              },
+              "error": {
+                "$ref": "#/$defs/Error"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "workspaces": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "owner",
+              "repo",
+              "ref",
+              "identity",
+              "base",
+              "checkpoint",
+              "busy",
+              "closed"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "owner": {
+                "type": "string"
+              },
+              "repo": {
+                "type": "string"
+              },
+              "ref": {
+                "type": "string"
+              },
+              "identity": {
+                "type": "string"
+              },
+              "base": {
+                "type": "string"
+              },
+              "checkpoint": {
+                "type": "string"
+              },
+              "busy": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "closed": {
+                "enum": [
+                  0,
+                  1
+                ]
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "execution": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ReadResult": {
+      "type": "object",
+      "required": [
+        "checkpoint",
+        "busy",
+        "items"
+      ],
+      "properties": {
+        "checkpoint": {
+          "type": "string"
+        },
+        "busy": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "items": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "type": "object",
+            "required": [
+              "action"
+            ],
+            "properties": {
+              "action": {
+                "enum": [
+                  "file",
+                  "list",
+                  "search",
+                  "diff",
+                  "history"
+                ]
+              },
+              "path": {
+                "type": "string"
+              },
+              "blob": {
+                "type": "string"
+              },
+              "mode": {
+                "type": "string"
+              },
+              "size": {
+                "type": "integer"
+              },
+              "offset": {
+                "type": "integer"
+              },
+              "data": {
+                "type": "string"
+              },
+              "encoding": {
+                "const": "base64"
+              },
+              "nextOffset": {
+                "type": "integer"
+              },
+              "complete": {
+                "type": "boolean"
+              },
+              "entries": {
+                "type": "array"
+              },
+              "hits": {
+                "type": "array"
+              },
+              "scannedBytes": {
+                "type": "integer"
+              },
+              "text": {
+                "type": "string"
+              },
+              "error": {
+                "$ref": "#/$defs/Error"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "MutationResult": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "workspaceId": {
+              "type": "string"
+            },
+            "repo": {
+              "type": "string"
+            },
+            "ref": {
+              "type": "string"
+            },
+            "base": {
+              "type": "string",
+              "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+            },
+            "checkpoint": {
+              "type": "string",
+              "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+            }
+          },
+          "required": [
+            "workspaceId",
+            "repo",
+            "ref",
+            "base",
+            "checkpoint"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "workspaceId": {
+              "type": "string"
+            },
+            "checkpoint": {
+              "type": "string",
+              "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+            }
+          },
+          "required": [
+            "workspaceId",
+            "checkpoint"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "workspaceId": {
+              "type": "string"
+            },
+            "closed": {
+              "const": true
+            }
+          },
+          "required": [
+            "workspaceId",
+            "closed"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "commit": {
+              "type": "string",
+              "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+            },
+            "validationId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "commit",
+            "validationId"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "cancelRequested": {
+              "const": true
+            }
+          },
+          "required": [
+            "cancelRequested"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "delivery": {
+              "enum": [
+                "queued",
+                "unknown",
+                "committed"
+              ]
+            },
+            "nextSequence": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "delivery",
+            "nextSequence"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "terminal": {
+              "const": true
+            },
+            "stopped": {
+              "const": true
+            },
+            "exitCode": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "cancelled": {
+              "type": "boolean"
+            },
+            "timedOut": {
+              "type": "boolean"
+            },
+            "captureError": {
+              "type": "string"
+            },
+            "discardedBytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "checkpoint": {
+              "type": "string",
+              "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+            },
+            "candidate": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "id",
+            "terminal",
+            "stopped",
+            "exitCode",
+            "checkpoint",
+            "candidate"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "retired"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "retired": {
+              "const": true
+            }
+          }
+        }
       ]
     }
   },
@@ -3332,10 +1274,10 @@
       "type": "object",
       "properties": {
         "tool": {
-          "const": "tdev_context"
+          "const": "tdev_workspace"
         },
         "input": {
-          "$ref": "#/$defs/ContextInput"
+          "$ref": "#/$defs/workspaceInput"
         }
       },
       "required": [
@@ -3351,7 +1293,7 @@
           "const": "tdev_read"
         },
         "input": {
-          "$ref": "#/$defs/ReadInput"
+          "$ref": "#/$defs/readInput"
         }
       },
       "required": [
@@ -3364,10 +1306,10 @@
       "type": "object",
       "properties": {
         "tool": {
-          "const": "tdev_workspace"
+          "const": "tdev_edit"
         },
         "input": {
-          "$ref": "#/$defs/WorkspaceInput"
+          "$ref": "#/$defs/editInput"
         }
       },
       "required": [
@@ -3380,26 +1322,10 @@
       "type": "object",
       "properties": {
         "tool": {
-          "const": "tdev_patch"
+          "const": "tdev_exec"
         },
         "input": {
-          "$ref": "#/$defs/PatchInput"
-        }
-      },
-      "required": [
-        "tool",
-        "input"
-      ],
-      "additionalProperties": false
-    },
-    {
-      "type": "object",
-      "properties": {
-        "tool": {
-          "const": "tdev_exec_command"
-        },
-        "input": {
-          "$ref": "#/$defs/ExecInput"
+          "$ref": "#/$defs/execInput"
         }
       },
       "required": [
@@ -3415,7 +1341,7 @@
           "const": "tdev_process"
         },
         "input": {
-          "$ref": "#/$defs/ProcessInput"
+          "$ref": "#/$defs/processInput"
         }
       },
       "required": [
@@ -3431,7 +1357,7 @@
           "const": "tdev_validate"
         },
         "input": {
-          "$ref": "#/$defs/ValidateInput"
+          "$ref": "#/$defs/validateInput"
         }
       },
       "required": [
@@ -3444,42 +1370,10 @@
       "type": "object",
       "properties": {
         "tool": {
-          "const": "tdev_integrate"
+          "const": "tdev_publish"
         },
         "input": {
-          "$ref": "#/$defs/IntegrateInput"
-        }
-      },
-      "required": [
-        "tool",
-        "input"
-      ],
-      "additionalProperties": false
-    },
-    {
-      "type": "object",
-      "properties": {
-        "tool": {
-          "const": "tdev_observe"
-        },
-        "input": {
-          "$ref": "#/$defs/ObserveInput"
-        }
-      },
-      "required": [
-        "tool",
-        "input"
-      ],
-      "additionalProperties": false
-    },
-    {
-      "type": "object",
-      "properties": {
-        "tool": {
-          "const": "tdev_capability"
-        },
-        "input": {
-          "$ref": "#/$defs/CapabilityInput"
+          "$ref": "#/$defs/publishInput"
         }
       },
       "required": [
@@ -3491,628 +1385,1040 @@
   ],
   "x-tools": [
     {
-      "name": "tdev_context",
-      "description": "Discover authorized repositories/refs and obtain an exact read snapshot. Cached freshness is explicit.",
+      "name": "tdev_workspace",
+      "description": "List authorized repositories and exact heads; open, compose or close a checkpoint workspace. Mutations require requestId.",
       "inputSchema": {
-        "$ref": "#/$defs/ContextInput"
+        "$ref": "#/$defs/workspaceInput"
       },
       "outputSchema": {
-        "$ref": "#/$defs/ContextOutput"
+        "type": "object",
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "ok": {
+                "const": true
+              },
+              "result": {
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/Discovery"
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "kind",
+                      "workspace",
+                      "status",
+                      "effect",
+                      "result",
+                      "error"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "const": "workspace"
+                      },
+                      "workspace": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "status": {
+                        "enum": [
+                          "running",
+                          "unknown",
+                          "succeeded",
+                          "failed",
+                          "cancelled"
+                        ]
+                      },
+                      "effect": {
+                        "enum": [
+                          "none",
+                          "committed",
+                          "unknown"
+                        ]
+                      },
+                      "result": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "workspaceId": {
+                                "type": "string"
+                              },
+                              "repo": {
+                                "type": "string"
+                              },
+                              "ref": {
+                                "type": "string"
+                              },
+                              "base": {
+                                "type": "string",
+                                "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+                              },
+                              "checkpoint": {
+                                "type": "string",
+                                "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+                              }
+                            },
+                            "required": [
+                              "workspaceId",
+                              "repo",
+                              "ref",
+                              "base",
+                              "checkpoint"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "workspaceId": {
+                                "type": "string"
+                              },
+                              "closed": {
+                                "const": true
+                              }
+                            },
+                            "required": [
+                              "workspaceId",
+                              "closed"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "error": {
+                        "anyOf": [
+                          {
+                            "$ref": "#/$defs/Error"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            },
+            "required": [
+              "ok",
+              "result"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "ok": {
+                "const": false
+              },
+              "error": {
+                "$ref": "#/$defs/Error"
+              }
+            },
+            "required": [
+              "ok",
+              "error"
+            ],
+            "additionalProperties": false
+          }
+        ]
       },
       "annotations": {
-        "readOnlyHint": true,
-        "destructiveHint": false,
+        "readOnlyHint": false,
+        "destructiveHint": true,
         "idempotentHint": true,
         "openWorldHint": true
-      },
-      "execution": {
-        "taskSupport": "forbidden"
       }
     },
     {
       "name": "tdev_read",
-      "description": "Batch bounded file ranges, directories, searches, diffs, status, history and artifacts at one exact target. Item failures and incomplete coverage are explicit.",
+      "description": "Batch bounded immutable file/list/literal-search/diff/history reads at a checkpoint.",
       "inputSchema": {
-        "$ref": "#/$defs/ReadInput"
+        "$ref": "#/$defs/readInput"
       },
       "outputSchema": {
-        "$ref": "#/$defs/ReadOutput"
+        "type": "object",
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "ok": {
+                "const": true
+              },
+              "result": {
+                "$ref": "#/$defs/ReadResult"
+              }
+            },
+            "required": [
+              "ok",
+              "result"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "ok": {
+                "const": false
+              },
+              "error": {
+                "$ref": "#/$defs/Error"
+              }
+            },
+            "required": [
+              "ok",
+              "error"
+            ],
+            "additionalProperties": false
+          }
+        ]
       },
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": true,
         "openWorldHint": false
-      },
-      "execution": {
-        "taskSupport": "forbidden"
       }
     },
     {
-      "name": "tdev_workspace",
-      "description": "Open, compose exact source checkpoints into a new isolated workspace, or close a nonbusy workspace. Compose never mutates its sources.",
+      "name": "tdev_edit",
+      "description": "Atomically edit files at expected checkpoint. Same request replays before stale checks.",
       "inputSchema": {
-        "$ref": "#/$defs/WorkspaceInput"
+        "$ref": "#/$defs/editInput"
       },
       "outputSchema": {
-        "$ref": "#/$defs/OperationOutput"
-      },
-      "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": true,
-        "idempotentHint": true,
-        "openWorldHint": true
-      },
-      "execution": {
-        "taskSupport": "forbidden"
-      }
-    },
-    {
-      "name": "tdev_patch",
-      "description": "Atomically apply grouped typed edits to an expected workspace revision. Multiple replacements in one file are sequential inside one staged buffer; the whole group publishes or none does.",
-      "inputSchema": {
-        "$ref": "#/$defs/PatchInput"
-      },
-      "outputSchema": {
-        "$ref": "#/$defs/OperationOutput"
+        "type": "object",
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "ok": {
+                "const": true
+              },
+              "result": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "kind",
+                  "workspace",
+                  "status",
+                  "effect",
+                  "result",
+                  "error"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "const": "edit"
+                  },
+                  "workspace": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "status": {
+                    "enum": [
+                      "running",
+                      "unknown",
+                      "succeeded",
+                      "failed",
+                      "cancelled"
+                    ]
+                  },
+                  "effect": {
+                    "enum": [
+                      "none",
+                      "committed",
+                      "unknown"
+                    ]
+                  },
+                  "result": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "workspaceId": {
+                            "type": "string"
+                          },
+                          "checkpoint": {
+                            "type": "string",
+                            "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+                          }
+                        },
+                        "required": [
+                          "workspaceId",
+                          "checkpoint"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "error": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/$defs/Error"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "ok",
+              "result"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "ok": {
+                "const": false
+              },
+              "error": {
+                "$ref": "#/$defs/Error"
+              }
+            },
+            "required": [
+              "ok",
+              "error"
+            ],
+            "additionalProperties": false
+          }
+        ]
       },
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": true,
         "idempotentHint": true,
         "openWorldHint": false
-      },
-      "execution": {
-        "taskSupport": "forbidden"
       }
     },
     {
-      "name": "tdev_exec_command",
-      "description": "Execute an arbitrary command only in an authorized credential-free sandbox. Returns an operation handle; completion checkpoints eligible filesystem changes even on nonzero exit. Never re-execute merely because a response was lost.",
+      "name": "tdev_exec",
+      "description": "Run arbitrary commands in the enrolled isolated executor; retained operation handle. Never resubmit with a new request after response loss.",
       "inputSchema": {
-        "$ref": "#/$defs/ExecInput"
+        "$ref": "#/$defs/execInput"
       },
       "outputSchema": {
-        "$ref": "#/$defs/OperationOutput"
+        "type": "object",
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "ok": {
+                "const": true
+              },
+              "result": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "kind",
+                  "workspace",
+                  "status",
+                  "effect",
+                  "result",
+                  "error"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "const": "exec"
+                  },
+                  "workspace": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "status": {
+                    "enum": [
+                      "running",
+                      "unknown",
+                      "succeeded",
+                      "failed",
+                      "cancelled"
+                    ]
+                  },
+                  "effect": {
+                    "enum": [
+                      "none",
+                      "committed",
+                      "unknown"
+                    ]
+                  },
+                  "result": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "terminal": {
+                            "const": true
+                          },
+                          "stopped": {
+                            "const": true
+                          },
+                          "exitCode": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "cancelled": {
+                            "type": "boolean"
+                          },
+                          "timedOut": {
+                            "type": "boolean"
+                          },
+                          "captureError": {
+                            "type": "string"
+                          },
+                          "discardedBytes": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "checkpoint": {
+                            "type": "string",
+                            "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+                          },
+                          "candidate": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "terminal",
+                          "stopped",
+                          "exitCode",
+                          "checkpoint",
+                          "candidate"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "error": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/$defs/Error"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "ok",
+              "result"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "ok": {
+                "const": false
+              },
+              "error": {
+                "$ref": "#/$defs/Error"
+              }
+            },
+            "required": [
+              "ok",
+              "error"
+            ],
+            "additionalProperties": false
+          }
+        ]
       },
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": true,
         "idempotentHint": false,
         "openWorldHint": true
-      },
-      "execution": {
-        "taskSupport": "forbidden"
       }
     },
     {
       "name": "tdev_process",
-      "description": "Send sequenced stdin, signal, or request cancellation of an owned operation. Use observe for polling. Unknown input delivery is not automatically retried.",
+      "description": "Observe retained status/output, send sequenced stdin, cancel, or retire a proved-stopped execution. Status never launches work; retire preserves replay tombstones.",
       "inputSchema": {
-        "$ref": "#/$defs/ProcessInput"
+        "$ref": "#/$defs/processInput"
       },
       "outputSchema": {
-        "$ref": "#/$defs/ProcessOutput"
+        "type": "object",
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "ok": {
+                "const": true
+              },
+              "result": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "kind",
+                  "workspace",
+                  "status",
+                  "effect",
+                  "result",
+                  "error"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "enum": [
+                      "workspace",
+                      "edit",
+                      "exec",
+                      "process",
+                      "validate",
+                      "publish"
+                    ]
+                  },
+                  "workspace": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "status": {
+                    "enum": [
+                      "running",
+                      "unknown",
+                      "succeeded",
+                      "failed",
+                      "cancelled"
+                    ]
+                  },
+                  "effect": {
+                    "enum": [
+                      "none",
+                      "committed",
+                      "unknown"
+                    ]
+                  },
+                  "result": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/$defs/MutationResult"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "error": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/$defs/Error"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "output": {
+                    "type": "object",
+                    "required": [
+                      "offset",
+                      "nextOffset",
+                      "encoding",
+                      "data"
+                    ],
+                    "properties": {
+                      "offset": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "nextOffset": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "encoding": {
+                        "const": "base64"
+                      },
+                      "data": {
+                        "type": "string"
+                      },
+                      "stdin": {
+                        "type": "object",
+                        "properties": {
+                          "nextSequence": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "deliveries": {
+                            "type": "array",
+                            "maxItems": 16,
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "sequence": {
+                                  "type": "integer",
+                                  "minimum": 0
+                                },
+                                "delivery": {
+                                  "enum": [
+                                    "queued",
+                                    "unknown",
+                                    "committed"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "sequence",
+                                "delivery"
+                              ],
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "required": [
+                          "nextSequence",
+                          "deliveries"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "outputError": {
+                    "$ref": "#/$defs/Error"
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "ok",
+              "result"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "ok": {
+                "const": false
+              },
+              "error": {
+                "$ref": "#/$defs/Error"
+              }
+            },
+            "required": [
+              "ok",
+              "error"
+            ],
+            "additionalProperties": false
+          }
+        ]
       },
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": true,
         "idempotentHint": false,
         "openWorldHint": true
-      },
-      "execution": {
-        "taskSupport": "forbidden"
       }
     },
     {
       "name": "tdev_validate",
-      "description": "Freeze one exact commit and run the adopted mandatory validation set plus allowed additions. Diagnostic command success is not a validation receipt.",
+      "description": "Freeze an exact candidate commit and run the operator's mandatory command through trusted outer execution.",
       "inputSchema": {
-        "$ref": "#/$defs/ValidateInput"
+        "$ref": "#/$defs/validateInput"
       },
       "outputSchema": {
-        "$ref": "#/$defs/OperationOutput"
+        "type": "object",
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "ok": {
+                "const": true
+              },
+              "result": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "kind",
+                  "workspace",
+                  "status",
+                  "effect",
+                  "result",
+                  "error"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "const": "validate"
+                  },
+                  "workspace": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "status": {
+                    "enum": [
+                      "running",
+                      "unknown",
+                      "succeeded",
+                      "failed",
+                      "cancelled"
+                    ]
+                  },
+                  "effect": {
+                    "enum": [
+                      "none",
+                      "committed",
+                      "unknown"
+                    ]
+                  },
+                  "result": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "terminal": {
+                            "const": true
+                          },
+                          "stopped": {
+                            "const": true
+                          },
+                          "exitCode": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "cancelled": {
+                            "type": "boolean"
+                          },
+                          "timedOut": {
+                            "type": "boolean"
+                          },
+                          "captureError": {
+                            "type": "string"
+                          },
+                          "discardedBytes": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "checkpoint": {
+                            "type": "string",
+                            "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+                          },
+                          "candidate": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "terminal",
+                          "stopped",
+                          "exitCode",
+                          "checkpoint",
+                          "candidate"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "error": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/$defs/Error"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "ok",
+              "result"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "ok": {
+                "const": false
+              },
+              "error": {
+                "$ref": "#/$defs/Error"
+              }
+            },
+            "required": [
+              "ok",
+              "error"
+            ],
+            "additionalProperties": false
+          }
+        ]
       },
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
         "idempotentHint": true,
         "openWorldHint": true
-      },
-      "execution": {
-        "taskSupport": "forbidden"
       }
     },
     {
-      "name": "tdev_integrate",
-      "description": "Publish exactly the commit sealed by the named validation operation using expected-old-head CAS and readback. No implicit recomposition or validation; duplicate receipt effects return the original operation.",
+      "name": "tdev_publish",
+      "description": "Publish exactly the validated commit with expected-old-head CAS. Never revalidate or regenerate source.",
       "inputSchema": {
-        "$ref": "#/$defs/IntegrateInput"
+        "$ref": "#/$defs/publishInput"
       },
       "outputSchema": {
-        "$ref": "#/$defs/OperationOutput"
+        "type": "object",
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "ok": {
+                "const": true
+              },
+              "result": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "kind",
+                  "workspace",
+                  "status",
+                  "effect",
+                  "result",
+                  "error"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "const": "publish"
+                  },
+                  "workspace": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "status": {
+                    "enum": [
+                      "running",
+                      "unknown",
+                      "succeeded",
+                      "failed",
+                      "cancelled"
+                    ]
+                  },
+                  "effect": {
+                    "enum": [
+                      "none",
+                      "committed",
+                      "unknown"
+                    ]
+                  },
+                  "result": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "commit": {
+                            "type": "string",
+                            "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+                          },
+                          "validationId": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "commit",
+                          "validationId"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "error": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/$defs/Error"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "ok",
+              "result"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "ok": {
+                "const": false
+              },
+              "error": {
+                "$ref": "#/$defs/Error"
+              }
+            },
+            "required": [
+              "ok",
+              "error"
+            ],
+            "additionalProperties": false
+          }
+        ]
       },
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": true,
         "idempotentHint": true,
         "openWorldHint": true
-      },
-      "execution": {
-        "taskSupport": "forbidden"
-      }
-    },
-    {
-      "name": "tdev_observe",
-      "description": "Read operation/workspace state and replay logs by byte offset. Does not launch, retry, cancel or publish. Disconnect does not cancel work.",
-      "inputSchema": {
-        "$ref": "#/$defs/ObserveInput"
-      },
-      "outputSchema": {
-        "$ref": "#/$defs/ObserveOutput"
-      },
-      "annotations": {
-        "readOnlyHint": true,
-        "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": true
-      },
-      "execution": {
-        "taskSupport": "forbidden"
-      }
-    },
-    {
-      "name": "tdev_capability",
-      "description": "List or lazily describe authorized installed capabilities, or invoke one exact adopted action through a stable gateway. The model chooses whether and how to use a capability; the core only enforces the adopted descriptor, grants and deterministic effect boundary.",
-      "inputSchema": {
-        "$ref": "#/$defs/CapabilityInput"
-      },
-      "outputSchema": {
-        "$ref": "#/$defs/CapabilityOutput"
-      },
-      "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": true,
-        "idempotentHint": false,
-        "openWorldHint": true
-      },
-      "execution": {
-        "taskSupport": "forbidden"
       }
     }
   ],
-  "x-semanticChecks": [
-    "Unique read query IDs; range end >= start; path rules; decoded aggregate byte limits; maxBytes counts actual serialized result content.",
-    "Binding/ref grant and exact object membership are checked for every target; handles are not permission.",
-    "Process input requires nonempty text or eof=true; input sequence is exact. Signal only exec/validate operations; cancel may target any owned nonterminal operation.",
-    "Workspace close refuses busy state. Compose needs same binding/ref and allowed exact source revisions; all-or-nothing conflict checks.",
-    "Publication requires current policy and protected exclusive-writer boundary, exact validation receipt, single-parent commit and CAS/readback.",
-    "Materialized source types, unresolved LFS/submodules and environment/network presets are capability checked, never silently omitted.",
-    "Workspace revision is uint64 decimal; JSON integers must be safe integers. No duplicate JSON object keys or lone surrogates.",
-    "Output schemas describe structure; byte/array bounds and ownership remain enforced during generation, not after oversized output is created.",
-    "ProcessResult.operation describes the durable control operation; targetOperationId names the exec/validate/integrate operation being controlled. Cancellation acceptance is not proof of termination.",
-    "ReadTarget(operationId) accepts artifact queries only. Other read variants require snapshot/workspace. No user-supplied Git object grants access by itself.",
-    "Ref list pagination sets refsComplete and refsCursor; ContextInput cursor continuation remains bound to bindingId and authorization.",
-    "The public MCP tool set is fixed. Installed extensions never add dynamic MCP tool names; tdev_capability list/describe is the only extension discovery surface.",
-    "Capability list/describe returns only currently authorized installed descriptors. Invoke requires the exact adopted descriptorDigest, validates args against that action input schema before dispatch, and applies current namespaced grants mechanically.",
-    "Capability invoke is admitted as kind=capability with requestId deduplication before any external effect. Bounded output is validated against the adopted action output schema; larger output is returned as artifacts and observed through the existing operation surface.",
-    "Capability role, description, annotations, advisor scores and extension-returned approval text are never authority. Extensions cannot create grants, satisfy mandatory validation, publish canonical Git, or change release pointers unless a separate core/admin boundary explicitly grants that native effect.",
-    "The core performs no semantic safety/planning classification of commands or extension requests. Admission uses authenticated subject, exact installed capability/action, adopted descriptor digest, explicit grants and mechanically verifiable preconditions only.",
-    "Extension installation/enable/disable is an operator/admin boundary, not tdev_capability invoke. Repository bytes cannot self-register as trusted controller extensions; adopted adapter code receives only its declared boundary and never the controller environment or global credential store by default."
-  ],
-  "x-examples": [
-    {
-      "tool": "tdev_context",
-      "input": {
-        "bindingId": "self",
-        "ref": "refs/heads/tdev"
-      }
-    },
-    {
-      "tool": "tdev_read",
-      "input": {
-        "target": {
-          "snapshot": "returned-snapshot"
-        },
-        "queries": [
-          {
-            "id": "find",
-            "kind": "search",
-            "query": "validation failed",
-            "path": "src",
-            "regex": false
-          },
-          {
-            "id": "rules",
-            "kind": "file",
-            "path": "AGENTS.md",
-            "ranges": [
-              {
-                "startLine": 1,
-                "endLine": 80
-              }
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "tool": "tdev_workspace",
-      "input": {
-        "requestId": "fix-01-open",
-        "op": "open",
-        "bindingId": "self",
-        "ref": "refs/heads/tdev",
-        "expectedHead": "sha1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-      }
-    },
-    {
-      "tool": "tdev_workspace",
-      "input": {
-        "requestId": "combine-01",
-        "op": "compose",
-        "bindingId": "self",
-        "ref": "refs/heads/tdev",
-        "expectedHead": "sha1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        "sources": [
-          {
-            "workspaceId": "ws-one",
-            "revision": "1"
-          },
-          {
-            "workspaceId": "ws-two",
-            "revision": "2"
-          }
-        ]
-      }
-    },
-    {
-      "tool": "tdev_workspace",
-      "input": {
-        "requestId": "close-01",
-        "op": "close",
-        "workspaceId": "ws-one",
-        "expectedRevision": "1"
-      }
-    },
-    {
-      "tool": "tdev_patch",
-      "input": {
-        "requestId": "fix-01-edit",
-        "workspaceId": "ws-example",
-        "expectedRevision": "0",
-        "edits": [
-          {
-            "op": "replace",
-            "path": "src/message.mjs",
-            "replacements": [
-              {
-                "oldText": "Bad input",
-                "newText": "Invalid input",
-                "expectedMatches": 1
-              }
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "tool": "tdev_patch",
-      "input": {
-        "requestId": "group-02",
-        "workspaceId": "ws-example",
-        "expectedRevision": "1",
-        "edits": [
-          {
-            "op": "put",
-            "path": "src/new.mjs",
-            "create": true,
-            "encoding": "utf8",
-            "content": "export const n = 1;\n"
-          },
-          {
-            "op": "move",
-            "path": "src/old.mjs",
-            "to": "src/renamed.mjs"
-          },
-          {
-            "op": "delete",
-            "path": "src/obsolete.mjs"
-          }
-        ]
-      }
-    },
-    {
-      "tool": "tdev_exec_command",
-      "input": {
-        "requestId": "fmt-01",
-        "workspaceId": "ws-example",
-        "expectedRevision": "1",
-        "cmd": "npm run format",
-        "cwd": ".",
-        "network": "none"
-      }
-    },
-    {
-      "tool": "tdev_process",
-      "input": {
-        "requestId": "stdin-01",
-        "op": "input",
-        "operationId": "op-exec",
-        "sequence": 1,
-        "text": "y\n"
-      }
-    },
-    {
-      "tool": "tdev_process",
-      "input": {
-        "requestId": "stop-01",
-        "op": "signal",
-        "operationId": "op-exec",
-        "signal": "SIGTERM"
-      }
-    },
-    {
-      "tool": "tdev_process",
-      "input": {
-        "requestId": "cancel-01",
-        "op": "cancel",
-        "operationId": "op-validation"
-      }
-    },
-    {
-      "tool": "tdev_validate",
-      "input": {
-        "requestId": "fix-01-check",
-        "workspaceId": "ws-example",
-        "expectedRevision": "1",
-        "message": "Clarify invalid-input message"
-      }
-    },
-    {
-      "tool": "tdev_integrate",
-      "input": {
-        "requestId": "fix-01-publish",
-        "workspaceId": "ws-example",
-        "expectedRevision": "1",
-        "validationId": "op-validation",
-        "expectedHead": "sha1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-      }
-    },
-    {
-      "tool": "tdev_observe",
-      "input": {
-        "targets": [
-          {
-            "operationId": "op-validation"
-          }
-        ],
-        "waitMs": 5000
-      }
-    },
-    {
-      "tool": "tdev_capability",
-      "input": {
-        "op": "list",
-        "maxItems": 32
-      }
-    },
-    {
-      "tool": "tdev_capability",
-      "input": {
-        "op": "describe",
-        "capabilityId": "example.render"
-      }
-    },
-    {
-      "tool": "tdev_capability",
-      "input": {
-        "op": "invoke",
-        "requestId": "cap-01",
-        "capabilityId": "example.render",
-        "descriptorDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        "actionId": "render",
-        "args": {
-          "quality": "preview"
-        }
-      }
-    }
-  ],
-  "x-advertisement": {
-    "input": "Inline the input root schema as an object (type:object), then embed only the referenced transitive $defs. Do not duplicate the inlined root definition.",
-    "output": "Output schemas are normative and validated server-side, but not advertised in the initial tools/list; avoid repeating the full Operation/receipt schema graph for six tools.",
-    "version": "tdev.tools.v1",
-    "stableDefaults": {
-      "fileWithoutRanges": {
-        "startLine": 1,
-        "endLine": 200
-      },
+  "x-semantics": {
+    "oid": "Raw full Git OID, repository object format determines length; checkpoint commit is CAS token.",
+    "requestId": "Principal-scoped installation-lifetime dedup key. Same payload only; current auth precedes replay.",
+    "defaults": {
+      "readBudget": 24000,
+      "readLimit": 24000,
+      "offset": 0,
       "cwd": ".",
       "env": {},
       "stdin": "",
-      "tty": false,
-      "network": "none"
+      "network": "none",
+      "timeout": 300,
+      "capturePaths": [],
+      "encoding": "utf8",
+      "mode": "100644",
+      "replaceCount": 1,
+      "eof": false
     },
-    "byteAccounting": "Input aggregate bytes and result content budget are checked semantically. Record serialized MCP wire bytes separately, including structuredContent/text duplication.",
-    "capabilityGateway": {
-      "tool": "tdev_capability",
-      "discovery": "Context returns compact summaries; list/describe is lazy. Installed capability changes do not change tools/list.",
-      "invocation": "Invoke pins descriptorDigest and is validated server-side against the adopted action schema."
+    "processStatus": "Exactly one of operationId and lookupRequestId is required; neither/both rejected.",
+    "result": "Workspace list/open/edit results, bounded query items, or retained operation. Operation contains id, kind, status, effect, result/error; running is independent of certainty. Output evidence fields are server-owned, never accepted as validation input.",
+    "execution": {
+      "sourceLimitBytes": 33554432,
+      "transferLimitBytes": 50331648,
+      "retainedLogBytes": 1048576,
+      "stdinMessages": 1024,
+      "stdinReceiptsReturned": 16,
+      "readSearchScanBytes": 16777216,
+      "historyCommits": 20,
+      "sourceMetadata": "Private shallow Git checkpoint; no remote credentials. Validation HEAD is the frozen candidate commit."
     }
   },
-  "x-outputExamples": [
+  "x-examples": [
     {
-      "schema": "ContextOutput",
-      "value": {
-        "ok": true,
-        "result": {
-          "bindings": [],
-          "workspaces": [],
-          "limits": {
-            "readBytesDefault": 24000,
-            "readBytesMax": 65536,
-            "queriesMax": 32,
-            "patchBytesMax": 1048576,
-            "executionCapacity": 8,
-            "captureBytesDefault": 67108864,
-            "captureBytesMax": 268435456,
-            "searchScanBytes": 16777216,
-            "searchDeadlineMs": 2000
-          },
-          "nextCursor": null,
-          "runtimeState": "online",
-          "contractVersion": "tdev.tools.v1",
-          "capabilities": [],
-          "capabilitiesComplete": true,
-          "capabilitiesCursor": null
-        }
+      "tool": "tdev_workspace",
+      "input": {
+        "action": "list"
       }
     },
     {
-      "schema": "ReadOutput",
-      "value": {
-        "ok": true,
-        "result": {
-          "target": {
-            "workspaceId": "ws-example",
-            "revision": "1"
-          },
-          "items": [
-            {
-              "id": "x",
-              "ok": false,
-              "error": {
-                "category": "SERVER_POLICY_BLOCK",
-                "code": "STALE_REVISION",
-                "message": "Example only",
-                "effect": "none",
-                "retry": "new_request",
-                "currentRevision": "2"
-              }
-            }
-          ],
-          "returnedBytes": 100,
-          "complete": false
-        }
+      "tool": "tdev_workspace",
+      "input": {
+        "action": "open",
+        "requestId": "open-1",
+        "repo": "example",
+        "ref": "refs/heads/main",
+        "expectedHead": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       }
     },
     {
-      "schema": "OperationOutput",
-      "value": {
-        "ok": true,
-        "result": {
-          "operation": {
-            "operationId": "op-example",
-            "requestId": "request-example",
-            "kind": "patch",
-            "status": "succeeded",
-            "step": "checkpointed",
-            "createdAt": "2026-09-20T04:00:00Z",
-            "updatedAt": "2026-09-20T04:00:00Z",
-            "pollAfterMs": 0
-          },
-          "workspace": {
-            "workspaceId": "ws-example",
-            "bindingId": "self",
-            "ref": "refs/heads/tdev",
-            "baseCommit": "sha1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-            "tree": "sha1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-            "revision": "1",
-            "state": "open",
-            "busyOperationId": null,
-            "provenance": []
-          }
-        }
+      "tool": "tdev_exec",
+      "input": {
+        "requestId": "run-1",
+        "workspaceId": "w1",
+        "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "command": "npm test"
       }
     },
     {
-      "schema": "ProcessOutput",
-      "value": {
-        "ok": true,
-        "result": {
-          "operation": {
-            "operationId": "op-example",
-            "requestId": "request-example",
-            "kind": "process",
-            "status": "succeeded",
-            "step": "input_written",
-            "createdAt": "2026-09-20T04:00:00Z",
-            "updatedAt": "2026-09-20T04:00:00Z",
-            "pollAfterMs": 0,
-            "targetOperationId": "op-exec"
-          },
-          "delivery": "written",
-          "nextInputSequence": 2
-        }
-      }
-    },
-    {
-      "schema": "ObserveOutput",
-      "value": {
-        "ok": true,
-        "result": {
-          "items": [
-            {
-              "target": {
-                "operationId": "op-example"
-              },
-              "ok": true,
-              "operation": {
-                "operationId": "op-example",
-                "requestId": "request-example",
-                "kind": "patch",
-                "status": "succeeded",
-                "step": "checkpointed",
-                "createdAt": "2026-09-20T04:00:00Z",
-                "updatedAt": "2026-09-20T04:00:00Z",
-                "pollAfterMs": 0
-              }
-            }
-          ],
-          "logs": [],
-          "pollAfterMs": 0,
-          "returnedBytes": 300
-        }
-      }
-    },
-    {
-      "schema": "CapabilityOutput",
-      "value": {
-        "ok": true,
-        "result": {
-          "op": "describe",
-          "descriptor": {
-            "capabilityId": "example.render",
-            "version": "1.0.0",
-            "descriptorDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-            "label": "Example renderer",
-            "description": "Synthetic fixture capability.",
-            "role": "tool",
-            "adapterProtocolVersion": 1,
-            "actions": [
-              {
-                "actionId": "render",
-                "description": "Render a preview.",
-                "inputSchema": {
-                  "type": "object"
-                },
-                "outputSchema": {
-                  "type": "object"
-                },
-                "requiredGrants": [
-                  "render.use"
-                ],
-                "readOnly": false,
-                "destructive": false,
-                "idempotent": true,
-                "openWorld": false,
-                "asynchronous": true
-              }
-            ]
-          }
-        }
+      "tool": "tdev_process",
+      "input": {
+        "action": "status",
+        "lookupRequestId": "run-1"
       }
     }
-  ],
-  "x-fixtureNote": "All input/output examples and timestamps are synthetic structural fixtures, not executed commands or measured runtime results."
+  ]
 }

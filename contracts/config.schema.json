@@ -1,0 +1,150 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "version",
+    "principals",
+    "repositories"
+  ],
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "principals": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "tokenHash",
+          "repos"
+        ],
+        "properties": {
+          "tokenHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "repos": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "pattern": "^refs/heads/[A-Za-z0-9_./-]+$"
+              }
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "repositories": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "kind",
+          "remote",
+          "identity",
+          "refs",
+          "validation"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "local",
+              "github"
+            ]
+          },
+          "remote": {
+            "type": "string",
+            "minLength": 1
+          },
+          "identity": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "refs": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^refs/heads/[A-Za-z0-9_./-]+$"
+            }
+          },
+          "validation": {
+            "type": "string",
+            "minLength": 1
+          },
+          "networks": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "none",
+                "internet"
+              ]
+            }
+          },
+          "executor": {
+            "type": "object",
+            "required": [
+              "target",
+              "script",
+              "digest",
+              "spool",
+              "image",
+              "knownHosts",
+              "identityFile"
+            ],
+            "properties": {
+              "target": {
+                "type": "string",
+                "minLength": 1
+              },
+              "python": {
+                "type": "string",
+                "minLength": 1
+              },
+              "script": {
+                "type": "string",
+                "minLength": 1
+              },
+              "digest": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "spool": {
+                "type": "string",
+                "minLength": 1
+              },
+              "image": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_./:-]+@sha256:[0-9a-f]{64}$"
+              },
+              "knownHosts": {
+                "type": "string",
+                "minLength": 1
+              },
+              "identityFile": {
+                "type": "string",
+                "minLength": 1
+              },
+              "networkPolicyDigest": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}
