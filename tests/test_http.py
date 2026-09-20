@@ -46,6 +46,14 @@ class HTTPTest(unittest.TestCase):
         conn.close()
         return response.status, json.loads(data) if data else None
 
+    def get(self, path, headers=None):
+        conn = http.client.HTTPConnection("127.0.0.1", self.server.server_port, timeout=5)
+        conn.request("GET", path, headers=headers or {})
+        response = conn.getresponse()
+        data = response.read()
+        conn.close()
+        return response.status, data
+
     def test_auth_before_discovery_metadata_does_not_grant(self):
         code, _ = self.request(headers={"Authorization": "Bearer wrong", "X-Openai-Subject": "full", "X-Openai-Session": "approved"})
         self.assertEqual(code, 401)
@@ -55,6 +63,14 @@ class HTTPTest(unittest.TestCase):
         self.assertEqual(code, 200)
         self.assertEqual(len(value["result"]["tools"]), 7)
         self.assertNotIn("$ref", json.dumps(value["result"]))
+
+    def test_oauth_well_known_is_optional_public_404(self):
+        for path in (
+            "/.well-known/oauth-protected-resource/mcp",
+            "/.well-known/oauth-protected-resource",
+        ):
+            self.assertEqual(self.get(path)[0], 404)
+        self.assertEqual(self.get("/mcp")[0], 401)
 
     def test_protocol_and_reconnect(self):
         _, discovery = self.request("server/discover")

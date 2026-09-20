@@ -20,9 +20,24 @@ sh install.sh --check /absolute/private/staging-root
 ```
 
 Stage includes the native runner and creates DOWN service templates outside live runsvdir.
-It never starts/replaces production services. Generated connector.secret is mode 0600;
-enter it only in the host credential UI, not chat/tool arguments. Initial config grants
-no repositories. Keep config/credentials outside source.
+It also creates a private mode-0700 tunnel-env directory; Termux does not need an envdir
+binary. It never starts/replaces production services. Generated connector.secret is mode
+0600; enter it only in the host credential UI, not chat/tool arguments. Initial config
+grants no repositories. Keep config/credentials outside source.
+
+Store the Tunnel runtime key once as an owner-only file:
+
+```sh
+umask 077
+read -rsp "Tunnel runtime API key: " KEY
+echo
+printf '%s' "$KEY" > /absolute/private/staging-root/tunnel-env/CONTROL_PLANE_API_KEY
+unset KEY
+chmod 600 /absolute/private/staging-root/tunnel-env/CONTROL_PLANE_API_KEY
+```
+
+The tunnel service reads that file directly into CONTROL_PLANE_API_KEY at process start.
+The secret is not placed in argv or repository configuration.
 
 ## Repository enrollment: native is the default
 
@@ -98,11 +113,26 @@ This verifies local modern-protocol discovery/tools/calls, not a live ChatGPT ho
 OpenAI's documented HTTP/Tunnel support alone does not prove support for this exact date.
 Do not downgrade silently if a host sends legacy initialize or lacks required headers.
 
-Use the installed tunnel-client help/doctor to configure a distinct development profile
-pointing at http://127.0.0.1:8765/mcp. Provide Tunnel runtime credentials privately and
-separately from installation bearer/provider credentials. Existing production profiles
-must not be repurposed automatically. Staged service templates expect profile tdev and
-a private tunnel-env directory.
+Use the installed tunnel-client help/doctor to configure profile tdev pointing at
+http://127.0.0.1:8765/mcp. Provide Tunnel runtime credentials privately and separately
+from installation bearer/provider credentials. Existing production profiles must not be
+repurposed automatically. OAuth/DCR discovery is intentionally absent; the two protected-
+resource well-known candidates return public HTTP 404 while /mcp remains bearer protected.
+
+For manual qualification, load the owner-only key file without an envdir dependency and
+use an ephemeral localhost health listener so an unrelated process on port 8080 cannot
+block the tunnel:
+
+```sh
+CONTROL_PLANE_API_KEY="$(cat /absolute/private/staging-root/tunnel-env/CONTROL_PLANE_API_KEY)" \
+  tunnel-client doctor --profile tdev --health.listen-addr 127.0.0.1:0 --explain
+
+CONTROL_PLANE_API_KEY="$(cat /absolute/private/staging-root/tunnel-env/CONTROL_PLANE_API_KEY)" \
+  tunnel-client run --profile tdev --health.listen-addr 127.0.0.1:0
+```
+
+The staged tdev-oai-tunnel runit template uses the same owner-only key-file loading and
+ephemeral health-listener policy.
 
 Connect/Refresh the ChatGPT connector and enter its bearer through the credential UI.
 Verify 2026-07-28 request metadata/header forwarding, seven tools, wrong-secret discovery denial, full native

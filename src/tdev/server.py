@@ -75,6 +75,13 @@ def make_server(controller, port=0):
         def do_GET(self):
             if self.path == "/healthz":
                 self.send(200, {"status": "up", "version": __version__})
+            elif self.path in (
+                "/.well-known/oauth-protected-resource/mcp",
+                "/.well-known/oauth-protected-resource",
+            ):
+                # This server uses the configured bearer directly, not OAuth/DCR.
+                # Returning public 404s lets tunnel clients treat OAuth discovery as optional.
+                self.send(404)
             elif self.ingress():
                 self.send(405)
 

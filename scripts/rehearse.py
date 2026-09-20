@@ -114,6 +114,11 @@ print(s.server_port,flush=True); s.serve_forever()
             assert (root / "services" / service / "down").exists()
             for filename in ("run", "log/run"):
                 subprocess.run(["sh", "-n", str(root / "services" / service / filename)], check=True)
+        tunnel_run = (root / "services/tdev-oai-tunnel/run").read_text()
+        assert "envdir" not in tunnel_run
+        assert "CONTROL_PLANE_API_KEY" in tunnel_run
+        assert "--health.listen-addr 127.0.0.1:0" in tunnel_run
+        assert (root / "tunnel-env").stat().st_mode & 0o777 == 0o700
         print(json.dumps({"bundle": checked["bundle"], "source": str(source),
                           "inactiveInstall": True, "productionServicesTouched": False,
                           "protocol": VERSION, "nativeSigkillRecoveryAndExactPublication": True,

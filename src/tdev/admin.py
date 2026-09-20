@@ -43,6 +43,9 @@ def stage(root, source):
     require(str(root) != "/" and not root.is_symlink(), "INSTALL_ROOT")
     root.mkdir(parents=True, exist_ok=True, mode=0o700)
     require(root.stat().st_uid == os.getuid() and root.stat().st_mode & 0o077 == 0, "INSTALL_PERMISSIONS")
+    tunnel_env = root / "tunnel-env"
+    tunnel_env.mkdir(exist_ok=True, mode=0o700)
+    require(tunnel_env.stat().st_uid == os.getuid() and tunnel_env.stat().st_mode & 0o077 == 0, "TUNNEL_ENV_PERMISSIONS")
     files = bundle_files(source)
     ident = digest(files)
     versions = root / "versions"
@@ -69,10 +72,19 @@ def stage(root, source):
             command = "exec " + shlex.join([sys.executable, "-m", "tdev.server", "--state", str(root / "state"), "--config", str(root / "config.json")])
             setup = "export PYTHONPATH=" + shlex.quote(str(root / "active" / "src") + ":" + str(root / "active" / ".tdev-deps")) + "\n"
         else:
-            # envdir reads owner-provided runtime secrets from files, not argv.
-            command = "exec " + shlex.join([shutil.which("envdir") or "envdir", str(root / "tunnel-env"),
-                                             shutil.which("tunnel-client") or "tunnel-client", "run", "--profile", "tdev"])
-            setup = ""
+            # Load the owner-only runtime key directly; Termux does not require envdir.
+            key_file = shlex.quote(str(root / "tunnel-env" / "CONTROL_PLANE_API_KEY"))
+            setup = (
+                "key_file=" + key_file + "\n"
+                "[ -r \"$key_file\" ] || { printf '%s\\n' 'missing tunnel runtime key' >&2; exit 78; }\n"
+                "CONTROL_PLANE_API_KEY=$(cat \"$key_file\")\n"
+                "[ -n \"$CONTROL_PLANE_API_KEY\" ] || { printf '%s\\n' 'empty tunnel runtime key' >&2; exit 78; }\n"
+                "export CONTROL_PLANE_API_KEY\n"
+            )
+            command = "exec " + shlex.join([
+                shutil.which("tunnel-client") or "tunnel-client", "run", "--profile", "tdev",
+                "--health.listen-addr", "127.0.0.1:0"
+            ])
         atomic_write(directory / "run", ("#!" + shell + "\nset -eu\nexec 2>&1\n" + setup + command + "\n").encode(), 0o700)
         log = directory / "log"
         log.mkdir(exist_ok=True)
