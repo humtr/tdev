@@ -148,6 +148,9 @@ ChatGPT -> primitive 선택/조합 -> tdev mechanical boundary checks -> effect
 그대로 가져오지 말 것:
 
 - Task/RootTask/registry 중심 workflow가 다시 core가 되는 것
+- 필요한 command/permission이 catalog에 없다는 이유로 모델이 admin route, 새 Task, compatibility bridge를 연쇄 탐색하게 만드는 것
+- creator Task가 terminal이면 자신이 만든 worktree/resource를 더 이상 정리하지 못하는 lifecycle trap
+- stale Task/lease/worktree 하나가 unrelated 개발이나 project rebind까지 전역 차단하는 것
 - same-UID shell을 hostile-code sandbox라고 부르는 것
 - command 자유도를 얻기 위해 canonical correctness/validation link를 희생하는 것
 
@@ -426,6 +429,9 @@ JEV도 Blender와 마찬가지로 **지금 넣으라는 요구가 아니다.**
 - 동일 success postcondition이 아닌 benchmark 수치를 speedup 근거로 사용
 - validation 수나 tool call 수를 줄이기 위해 correctness를 희생
 - clean-root 새 제품에 불필요한 legacy compatibility layer를 추가
+- ordinary 개발 command마다 별도 permission/Task/admin contract를 만들기
+- stale/uncertain object를 이유로 충돌하지 않는 다른 workspace/binding까지 막기
+- resource cleanup을 그 resource를 만든 옛 operation/task의 생존 여부에 종속시키기
 
 ## 18. 구현 과정에서 사용자가 원하는 작업 방식
 
@@ -441,6 +447,9 @@ repository를 수정할 때:
 - current authority가 허용하는 범위에서는 구현·검증·통합까지 실제로 진행한다.
 - 수행하지 않은 test/acceptance를 PASS라고 쓰지 않는다.
 - 문서와 실제 source/runtime가 서로 다른 현실을 설명하지 않도록 current state를 갱신한다.
+- `full` 또는 Permit-unlocked principal이면 이미 허용된 binding/ref 안의 일상 개발 권한을 harness가 자동 projection하여 모델이 바로 command/patch/validate/integrate를 조합하게 한다.
+- special API/device/credential boundary가 아니라면 generic command를 먼저 사용하고, bespoke operation 부재를 capability 부족으로 오판하지 않는다.
+- stale lease/process/worktree/operation은 exact scope에서 reconcile하고, unrelated 정상 작업을 계속 진행한다.
 
 ## 19. 성능/비용 판단 원칙
 
@@ -472,8 +481,11 @@ repository를 수정할 때:
 6. failure/reconnect 시 external effect를 중복시키지 않는가?
 7. exact source/result/validation/integration identity를 보존하는가?
 8. local execution이라면 controller credential과 untrusted code의 OS boundary가 실제로 존재하는가?
-9. 현재 근거로 결정 가능한데 과도한 연구/실험을 추가하고 있지 않은가?
-10. 실제 workload에서 성능/비용을 측정할 수 있는가?
+9. 이 ordinary development effect를 generic command/기존 primitive로 할 수 있는데 새 permission object나 workflow를 만들고 있지 않은가?
+10. resource creator가 terminal이 되어도 controller가 exact evidence로 reconcile/retire할 수 있는가?
+11. stale/uncertain 상태의 block scope가 실제 충돌 resource보다 넓어지고 있지 않은가?
+12. 현재 근거로 결정 가능한데 과도한 연구/실험을 추가하고 있지 않은가?
+13. 실제 workload에서 성능/비용을 측정할 수 있는가?
 
 대체로 다음 선택을 선호한다.
 
@@ -485,6 +497,9 @@ repository를 수정할 때:
 - lazy discovery > startup schema dump
 - extension > core 재설계
 - 최소한의 충분한 검증 > 의식적인 qualification bureaucracy
+- command-first generic execution > command별 server catalog
+- bounded authority projection > permission scaffolding
+- scoped reconciliation/quarantine > stale global lock
 
 ## 21. 현재 특정 예시는 요구사항으로 고정하지 말 것
 
@@ -512,8 +527,10 @@ repository를 수정할 때:
 - 과거 dev-2/runtime/provider 값을 current authority로 오해하지 않았는가?
 - 모델이 해야 할 판단을 server workflow로 옮기지 않았는가?
 - 새 기능을 core change보다 extension으로 구현할 수 있는지 검토했는가?
+- ordinary command에 필요한 authority가 자동 projection되고 있는가, 아니면 모델이 permission scaffolding을 관리하게 만들고 있는가?
+- stale creator/lease/resource가 unrelated 작업을 막지 않고 controller-level reconcile/retire가 가능한가?
 - 필요한 검증만 하고, 완료하지 않은 사실을 완료로 기록하지 않았는가?
 
 ## 23. 한 문장으로 요약
 
-**tdev는 ChatGPT의 개발 지능을 가로막지 않는 얇고 정확한 harness여야 하며, Git·workspace·execution·validation·integration의 필수 correctness만 기계적으로 보존하고, 미래의 어떤 tool/environment/executor/advisor도 stable capability gateway를 통해 core 재설계 없이 붙일 수 있어야 한다.**
+**tdev는 ChatGPT의 개발 지능을 가로막지 않는 얇고 정확한 harness여야 하며, generic command와 자동 authority projection으로 정상 개발을 직접 수행하게 하고, stale/orphan을 exact scope에서 reconcile하여 unrelated 작업을 멈추지 않으면서, Git·workspace·execution·validation·integration의 필수 correctness만 기계적으로 보존하고 미래의 어떤 tool/environment/executor/advisor도 stable capability gateway를 통해 core 재설계 없이 붙일 수 있어야 한다.**

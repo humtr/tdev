@@ -2,7 +2,7 @@
 ChatGPT가 repository와 필요한 외부 capability를 빠르고 정확하게 조합해 개발하도록 돕는 model-led MCP harness.
 
 ## 제품 목적
-개발 성능을 총비용(context·tool 왕복·runtime·engineering·coordination·실패 비용)으로 나눈 값을 높인다. 모델은 탐색·command·수정·진단뿐 아니라 설치된 capability 중 무엇을 언제 사용할지도 결정하고, harness는 repository/ref identity, workspace 격리, credential containment, exact capability/action authorization, mandatory validation과 exact integration을 기계적으로 강제한다. 별도 planner나 semantic safety classifier가 모델의 개발 전략을 대신하지 않는다.
+개발 성능을 총비용(context·tool 왕복·runtime·engineering·coordination·실패 비용)으로 나눈 값을 높인다. 모델은 탐색·command·수정·진단뿐 아니라 설치된 capability 중 무엇을 언제 사용할지도 결정하고, harness는 repository/ref identity, workspace 격리, credential containment, exact capability/action authorization, mandatory validation과 exact integration을 기계적으로 강제한다. 별도 planner나 semantic safety classifier가 모델의 개발 전략을 대신하지 않는다. `full` 또는 One-Time Permit으로 unlock된 principal은 이미 허용된 binding/ref 안의 **일상적인 개발 authority를 operation마다 자동 projection**받으며, 모델이 Task/permission scaffolding을 만들어 권한을 조립하지 않는다. 특수 tool이 없어도 허용된 개발 효과가 generic sandbox command로 가능한 경우 `tdev_exec_command`가 정상 경로다.
 
 Android/Termux에 하나의 trusted controller와 localhost HTTP MCP를 두고, first release ingress는 **OpenAI Secure MCP Tunnel**의 outbound `tunnel-client-runtime`을 사용한다. Termux/tdev의 public inbound endpoint, Cloudflare Worker/DO, 외부 OAuth provider는 first release 필수 dependency가 아니다. Connector Secret이 설치 ingress를 보호하고, OpenAI tunnel이 전달하는 subject/session metadata는 live acceptance를 통과한 뒤 account/session authorization에 사용한다. local root/systemd/Docker와 별도 모델 API는 요구하지 않는다. multi-repository/ref/principal은 binding/workspace/operation의 반복으로 지원한다.
 
@@ -14,6 +14,7 @@ Android/Termux에 하나의 trusted controller와 localhost HTTP MCP를 두고, 
 - first-release transport는 **localhost Streamable HTTP MCP + OpenAI Secure MCP Tunnel**로 선회했다. Tunnel은 replaceable ingress일 뿐 durable authority가 아니다. Cloudflare Worker/DO/OAuth control plane과 generic transport framework를 먼저 만들지 않는다.
 - first-release access는 `Connector Secret` + OpenAI subject 기반 `full|permit` local policy다. 미등록 subject는 deny이고, `permit`은 해당 OpenAI session에 Termux에서 발급한 **One-Time Permit**이 있어야 runtime을 쓸 수 있다. access policy authority는 Termux app-private env config이며 원격 MCP가 바꾸지 못한다.
 - extension tool 호출 방식은 **stable capability gateway**로 유지한다. extension 설치/제거는 public `tools/list`를 바꾸지 않고 `tdev_capability list/describe/invoke`를 사용한다.
+- runtime은 **command-first + bounded authority projection + stale-resilient reconciliation**을 기본으로 한다. command/CLI를 하나씩 server operation으로 등록하지 않고, creator operation이 끝났다는 이유로 worktree/process/resource의 관측·회수·정리가 막히지 않으며, 하나의 stale/uncertain object가 unrelated workspace/binding의 정상 작업을 전역 차단하지 않는다.
 - 다음 작업: [ARCHITECTURE §30](ARCHITECTURE.md#30-implementation-sequence)의 단계 1부터 구현한다. 단계 1에서 localhost MCP, ingress/auth wrapper, workspace vertical slice와 capability registry/gateway를 함께 고정하고, 단계 3에서 `ChatGPT → OAI Tunnel → tdev → validate → integrate` 최초 완전 경로를 만든다.
 - 현재 architecture를 막는 미해결 결정은 없다. OpenAI subject/session의 account/session 분리·reconnect·spoof resistance와 Permit elicitation은 **구현 acceptance**이며, 통과 전에는 undocumented metadata를 production authority로 간주하지 않는다. 성능 평가는 단계 3의 최초 완전 경로 직후다.
 - 기존 production/dev-2/provider/public endpoint와 현재 Termux 서비스는 이 설계 publication만으로 변경하지 않는다.

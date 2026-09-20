@@ -51,6 +51,7 @@ source truth는 immutable Git tree를 가리키는 workspace checkpoint다. oper
 - Connector Secret bearer 검증을 initialize/tools/list/tools/call보다 앞에 둔다. secret 원문은 owner-only file에만 둔다.
 - OpenAI tunnel transport metadata에서 subject/session을 bounded하게 읽는 auth adapter를 만든다. metadata가 없거나 malformed면 fail closed한다.
 - owner-only access env config를 parse해 subject digest별 `full|permit`, unknown=deny ceiling을 적용한다. config reload는 validate-then-swap한다.
+- `full` 또는 Permit-unlocked principal에 대해 current binding/ref grants + adopted policy + requested action에서 **ordinary development authority를 admission마다 자동 projection**하는 작은 mechanical projector를 구현한다. per-command Task/permission object를 만들지 않는다.
 - One-Time Permit issue/claim/revoke를 최소 local-only operator command로 구현한다. grant는 SQLite 기존 `grant` family에 넣고 digest-only, subject+session binding, idle+absolute expiry, persistent failed-attempt throttle을 강제한다.
 - Permit input은 core tool semantics와 분리한다. MCP form elicitation을 우선 사용하고 host 미지원 시 tool 이름/효과를 바꾸지 않는 bounded auth-input decoration을 사용해 handler 전에 제거한다.
 - installation DB schema/migration bootstrap과 `binding`, `grant`, `workspace`, `operation`, `executor`, `capability` table을 구현한다.
@@ -62,6 +63,8 @@ source truth는 immutable Git tree를 가리키는 workspace checkpoint다. oper
 
 - wrong Connector Secret은 MCP surface 이전에 거절
 - subject access ceiling: full / permit / unknown=deny
+- unlock된 principal의 ordinary development authority는 current binding/ref grant 안에서 자동 projection; user/model이 permission scaffolding을 구성하지 않음
+- authz/Connector/tunnel secret/release/capability install 같은 admin authority는 projection 불가
 - Permit이 account ceiling을 절대 확대하지 않음
 - Permit 평문 durable 저장 금지, atomic single/session claim, 다른 subject/session replay 거절
 - policy downgrade/revoke는 다음 admission에서 existing Permit보다 우선
@@ -97,6 +100,8 @@ public Termux endpoint나 외부 OAuth provider 없이 실제 ChatGPT가 OAI Tun
 
 - `tdev_exec_command`와 `tdev_process`를 managed credential-free sandbox에 연결한다.
 - command/cwd/env/stdin/tty/network/deadline/yield/capturePaths를 contract대로 구현한다.
+- executable 이름별 서버 allowlist를 제품 capability model로 만들지 않는다. sandbox 안에서 available한 Git/npm/node/python/rg/build/test/repository CLI는 generic command로 직접 실행하고, target/path/network/resource/credential 경계만 기계적으로 강제한다.
+- requested command가 요구하는 ordinary execution/network grant는 Stage 1 projector에서 자동 파생한다. bespoke server operation/permission이 없다는 이유로 우회 route를 찾지 않는다.
 - long-running process의 stdout/stderr를 byte cursor로 retained observation 가능하게 한다.
 - stdin sequence와 delivery state를 durable하게 기록한다.
 - cancel은 intent를 먼저 기록하고 전체 descendant/container termination을 확인한다.
@@ -106,6 +111,9 @@ public Termux endpoint나 외부 OAuth provider 없이 실제 ChatGPT가 OAI Tun
 ### 반드시 확보할 invariant
 
 - candidate container에 controller/Git/provider/device credential 없음
+- allowed ordinary command는 per-command 등록/Task 생성 없이 실행 가능
+- missing bespoke tool이 generic command로 표현 가능한 작업을 `CAPABILITY_GAP`으로 만들지 않음
+- projected authority가 binding/ref ceiling이나 operator/admin boundary를 넘지 않음
 - 다른 workspace/controller filesystem escape 없음
 - response loss가 새 command launch를 유발하지 않음
 - lost stdin acknowledgement에서 자동 resend 없음
@@ -115,11 +123,11 @@ public Termux endpoint나 외부 OAuth provider 없이 실제 ChatGPT가 OAI Tun
 
 ### 최소 검사
 
-credential sentinel negative test, cross-workspace read/write negative test, launch-response loss, interactive stdin, unknown delivery, SIGTERM/cancel, descendant process cleanup, nonzero edit preservation, output truncation/cursor continuation, provider host loss.
+credential sentinel negative test, cross-workspace read/write negative test, launch-response loss, interactive stdin, unknown delivery, SIGTERM/cancel, descendant process cleanup, nonzero edit preservation, output truncation/cursor continuation, provider host loss. 추가로 Git/npm/node/python/rg와 repository-local CLI 중 fixture에 존재하는 명령을 bespoke permission 등록 없이 실행하고, secret/admin path 접근은 같은 projector가 거절하는 것을 확인한다.
 
 ### 완료 조건
 
-ChatGPT가 arbitrary diagnostic/build/test command를 선택할 수 있고 그 자유도가 controller credential boundary를 약화시키지 않는다.
+ChatGPT가 arbitrary diagnostic/build/test/repository command를 직접 선택할 수 있고, 서버 명령 카탈로그 부족 때문에 대체 workflow를 탐색하지 않으며, 그 자유도가 controller credential/admin boundary를 약화시키지 않는다.
 
 ## 4. Stage 3 — mandatory validation + exact integration
 
@@ -157,7 +165,8 @@ Disposable protected ref에서 실제 `ChatGPT -> OAI Tunnel -> localhost tdev -
 - automatic H2 leader/member settlement를 만들지 않는다.
 - 동일 ref 병렬 작업은 필요할 때 모델이 explicit compose를 선택한 후 합성 결과를 한 번 mandatory validate한다.
 - multiple binding/ref/principal을 하나의 controller/DB/runtime에서 지원한다.
-- execution capacity 기본값 8을 실제 active/reserved/uncertain execution에만 적용한다.
+- execution capacity 기본값 8을 정상 active/reserved execution에 적용한다.
+- uncertain/stale execution은 별도 bounded quarantine budget으로 격리하여 정상 slot 전체를 무기한 점유하지 못하게 한다.
 - idle repository/workspace는 slot을 차지하지 않는다.
 - principal/binding 사이 starvation을 막는 deterministic fair scheduler를 구현한다.
 
@@ -183,6 +192,8 @@ repository 수와 실행 capacity를 혼동하지 않고 여러 ChatGPT 세션/�
 ### 구현
 
 - Termux restart/network drop 이후 DB/operation/executor reconciliation
+- resource creator provenance와 현재 관리 authority를 분리한다. creator operation이 terminal이어도 exact resource identity/evidence로 worktree/process/executor를 observe/reconcile/retire할 수 있게 한다.
+- lease expiry + holder process 없음 + running effect 없음이 증명되면 reclaim하고, DB `running`과 실제 process/provider 상태가 어긋나면 terminal 또는 `uncertain`으로 수렴시킨다.
 - OAI tunnel-client process/control-plane reconnect와 tdev operation lifetime을 분리
 - Permit expiry/revoke/policy reload/restart recovery
 - same executor/provider session reattach 가능한 범위 구현
@@ -193,7 +204,7 @@ repository 수와 실행 capacity를 혼동하지 않고 여러 ChatGPT 세션/�
 
 ### 최소 검사
 
-actual Termux process restart, tunnel-client restart/network loss/reconnect, transport disconnect 중 admitted operation 생존, output replay, unknown stdin, disk full, account policy/Permit revoke-before-new-admission, Connector Secret rotation, provider-terminal proof, adapter version/digest replacement, running operation 중 disable/reconcile.
+actual Termux process restart, tunnel-client restart/network loss/reconnect, transport disconnect 중 admitted operation 생존, output replay, unknown stdin, disk full, account policy/Permit revoke-before-new-admission, Connector Secret rotation, provider-terminal proof, adapter version/digest replacement, running operation 중 disable/reconcile. creator operation을 먼저 terminal로 만든 뒤 clean worktree/resource retire, stale lease reclaim, missing process reconciliation, uncertain quarantine capacity, stale workspace가 unrelated workspace/repository registration을 막지 않는 negative test를 포함한다.
 ## 7. Stage 6 — release/install/cutover
 
 ### 구현
@@ -278,7 +289,7 @@ Repository bytes는 self-register하여 trusted extension이 될 수 없다. ins
 
 ## 10. Native persistence와 hard-link-free rule
 
-SQLite는 one active controller process, WAL/FULL 기반으로 시작한다. SQL transaction 안에서 network/provider wait를 잡지 않는다.
+SQLite는 one active controller process, WAL/FULL 기반으로 시작한다. SQL transaction 안에서 network/provider wait를 잡지 않는다. resource row의 `createdByOperationId` 같은 provenance는 감사/추적 정보이지 creator-lifecycle-dependent control lock이 아니다. controller/operator maintenance는 exact current resource identity와 safety precondition으로 동작한다.
 
 Git object/checkpoint publication과 native files는 `link(2)` 성공을 correctness 전제로 삼지 않는다. 가능한 경로는:
 
@@ -304,7 +315,7 @@ Git object/checkpoint publication과 native files는 `link(2)` 성공을 correct
 - implementation invariant failure
 - genuinely unknown
 
-모든 mutating path는 가능한 범위에서 `effect:none / committed / uncertain`을 구분하고 retry가 replay인지 new request인지 알려준다. 여러 실패를 “안전검사” 하나로 합치지 않는다.
+모든 mutating path는 가능한 범위에서 `effect:none / committed / uncertain`을 구분하고 retry가 replay인지 new request인지 알려준다. 여러 실패를 “안전검사” 하나로 합치지 않는다. `uncertain`/stale은 해당 effect/resource scope의 상태이며 installation 전체의 암묵적 global lock이 아니다. exact collision이 없는 unrelated admission은 계속 가능해야 한다.
 
 ## 12. Performance/acceptance methodology
 
