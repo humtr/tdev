@@ -64,7 +64,10 @@ Example repository value (replace identity, repo and command; never put secret v
   "remote": "https://github.com/owner/repository.git",
   "identity": "github:NUMERIC_ID",
   "refs": ["refs/heads/main"],
-  "validation": "npm ci && npm test"
+  "validation": "npm test",
+  "toolingEnvironment": {
+    "NODE_PATH": "/absolute/operator-owned/node_modules"
+  }
 }
 ```
 
@@ -81,10 +84,13 @@ be written; existing source bytes/modes must remain unchanged at completion. Sou
 formatters/generators belong in exec, then validate their captured checkpoint. Test outputs
 are never published. This is owner-trusted before/after checking, not a read-only OS mount.
 Each exec/validation gets a fresh source copy and HOME. Ignored dependency/build directories
-from an earlier command are not copied to validation. An adopted validation command must
-prepare needed dependencies (for example npm ci && npm test), or use operator-installed
-Termux tools. Large installs can hit the documented native disk/source limits; this first
-runner does not promise a shared warm dependency cache.
+from an earlier command are not copied to validation. An adopted validation command may
+prepare dependencies inside that copy, use operator-installed Termux tools, or use the
+repository's bounded `toolingEnvironment` to reference an operator-owned warm dependency/
+tooling location outside source. Do not place credentials in this environment; private
+HOME/TMP/Git/SSH lookup variables are reserved. The tooling environment is part of validation
+policy identity, so changing it invalidates prior validation for publication. Large installs
+inside a per-operation copy can still hit the documented native disk/source limits.
 
 ## Local HTTP and Tunnel
 

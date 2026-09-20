@@ -37,6 +37,28 @@ class NativeTest(Base):
         retired = self.call("process", {"action": "retire", "requestId": "retire", "operationId": op["id"]})
         self.assertEqual(retired["result"], {"retired": True})
 
+    def test_operator_tooling_environment_reused_and_policy_bound(self):
+        tooling = self.root / "operator-tooling"
+        tooling.mkdir()
+        (tooling / "fixturetool.py").write_text("VALUE = 'shared-tooling'\n")
+        repo = self.repo.config["repositories"]["test"]
+        repo["toolingEnvironment"] = {"PYTHONPATH": str(tooling)}
+        repo["validation"] = "python -c \"import fixturetool; assert fixturetool.VALUE == 'shared-tooling'\""
+        w = self.open()
+        op = self.execute(w, "python -c \"import fixturetool; print(fixturetool.VALUE)\"")
+        done = self.wait(op["id"])
+        self.assertEqual(done["status"], "succeeded", done)
+        self.assertEqual(base64.b64decode(done["output"]["data"]).decode().strip(), "shared-tooling")
+        v = self.call("validate", {"requestId": "tooling-v", "workspaceId": w["workspaceId"],
+                                  "expected": done["result"]["checkpoint"], "message": "tooling"})
+        validated = self.wait(v["id"])
+        self.assertEqual(validated["status"], "succeeded", validated)
+        repo["toolingEnvironment"] = {"PYTHONPATH": str(self.root / "different-tooling")}
+        p = self.call("publish", {"requestId": "tooling-p", "validationId": v["id"],
+                                 "expectedHead": self.repo.head})
+        self.assertEqual(p["effect"], "none")
+        self.assertEqual(p["error"]["code"], "POLICY_CHANGED")
+
     def test_stdin_replay_and_controller_restart(self):
         w = self.open()
         op = self.execute(w, "read value; printf '%s' \"$value\" > a.txt; printf '%s' \"$value\"")

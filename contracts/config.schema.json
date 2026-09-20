@@ -161,6 +161,34 @@
                 "additionalProperties": false
               }
             ]
+          },
+          "toolingEnvironment": {
+            "type": "object",
+            "maxProperties": 64,
+            "propertyNames": {
+              "allOf": [
+                {
+                  "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                },
+                {
+                  "not": {
+                    "enum": [
+                      "HOME",
+                      "TMPDIR",
+                      "XDG_CONFIG_HOME",
+                      "XDG_CACHE_HOME",
+                      "GIT_CONFIG_GLOBAL",
+                      "GIT_CONFIG_SYSTEM",
+                      "SSH_AUTH_SOCK"
+                    ]
+                  }
+                }
+              ]
+            },
+            "additionalProperties": {
+              "type": "string",
+              "maxLength": 8192
+            }
           }
         },
         "additionalProperties": false

@@ -335,6 +335,12 @@ class Controller:
     def executor_config(config):
         return config.get("executor", {"kind": "native"})
 
+    @staticmethod
+    def validation_policy(config):
+        return digest({"command": config["validation"],
+                       "executor": Controller.executor_config(config),
+                       "toolingEnvironment": config.get("toolingEnvironment", {})})
+
     def launch(self, opid, kind, w, args):
         config = self.config["repositories"][w["repo"]]
         executor = self.executor_config(config)
@@ -343,7 +349,10 @@ class Controller:
         network = args.get("network", "host" if native else "none")
         require(network in config.get("networks", ["host"] if native else ["none"]), "NETWORK_DENIED")
         require(not native or network == "host", "NATIVE_NETWORK_UNSUPPORTED", "Native execution uses the app UID's host network; no network sandbox is claimed")
-        require(all("\0" not in v for v in args.get("env", {}).values()), "ENV")
+        tooling_env = config.get("toolingEnvironment", {})
+        request_env = args.get("env", {})
+        require(all("\0" not in v for v in (*tooling_env.values(), *request_env.values())), "ENV")
+        execution_env = {**tooling_env, **request_env}
         candidate = None
         if kind == "validate":
             require(g.head(w["ref"]) == w["base"], "STALE_HEAD")
@@ -351,7 +360,7 @@ class Controller:
         source_commit = candidate or w["checkpoint"]
         payload = {"id": opid, "checkpoint": source_commit, "candidate": candidate,
                    "files": g.export(source_commit), "command": config["validation"] if kind == "validate" else args["command"],
-                   "cwd": path(args.get("cwd", "."), dot=True), "env": args.get("env", {}),
+                   "cwd": path(args.get("cwd", "."), dot=True), "env": execution_env,
                    "stdin": args.get("stdin", ""), "network": network,
                    "timeout": args.get("timeout", 300), "readonly": kind == "validate",
                    "capturePaths": args.get("capturePaths", []), "gitPack": g.execution_pack(source_commit),
@@ -360,7 +369,7 @@ class Controller:
         # Keep bytes in Git; exact execution input can be reconstructed for auditing.
         execution = {k: v for k, v in payload.items() if k not in ("files", "gitPack")}
         intent = self.save_intent(opid, execution=execution, inputDigest=digest(payload),
-                                  executor=executor, policy=digest({"command": config["validation"], "executor": executor}), candidate=candidate)
+                                  executor=executor, policy=self.validation_policy(config), candidate=candidate)
         self.backend(intent).submit(payload)
 
     def publish(self, opid, w, args, validation):
@@ -368,7 +377,7 @@ class Controller:
         vi = json.loads(validation["intent"])
         vr = json.loads(validation["result"])
         c = self.config["repositories"][w["repo"]]
-        require(vi["policy"] == digest({"command": c["validation"], "executor": self.executor_config(c)}), "POLICY_CHANGED")
+        require(vi["policy"] == self.validation_policy(c), "POLICY_CHANGED")
         require(vi["workspace"]["checkpoint"] == w["checkpoint"] and vr["exitCode"] == 0, "VALIDATION_SOURCE_CHANGED")
         require(args["expectedHead"] == w["base"], "STALE_HEAD")
         g = self.git(w["repo"])

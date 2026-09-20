@@ -39,6 +39,11 @@ class ContractTest(unittest.TestCase):
             "refs": ["refs/heads/main"], "validation": "true"}}}
         repo = config["repositories"]["repo"]
         validator.validate(config)  # no remote enrollment
+        repo["toolingEnvironment"] = {"PYTHONPATH": "/operator/tooling"}
+        validator.validate(config)
+        repo["toolingEnvironment"] = {"HOME": "/must-remain-private"}
+        self.assertFalse(validator.is_valid(config))
+        repo["toolingEnvironment"] = {"PYTHONPATH": "/operator/tooling"}
         repo["executor"] = {"kind": "native"}
         repo["networks"] = ["host"]
         validator.validate(config)

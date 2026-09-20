@@ -44,8 +44,11 @@ operations. It cannot restrict a hostile native shell to that scope at the OS le
 Separate principals are API scopes, not same-UID hostile-code security domains.
 
 The runner supplies a clean environment, separate HOME/TMPDIR/XDG directories, no inherited
-SSH agent, provider/tunnel tokens, proxy variables or Git global credential helpers. Source
-contains credential-free shallow Git metadata, never a copied provider configuration.
+SSH agent, provider/tunnel tokens, proxy variables or Git global credential helpers. Operator
+repository config may add a bounded `toolingEnvironment` for non-secret toolchain/dependency
+locations needed by clean copies; private HOME/TMP/Git/SSH lookup variables remain reserved.
+The exact tooling environment is recorded in execution input and validation policy identity.
+Source contains credential-free shallow Git metadata, never a copied provider configuration.
 Controller/provider/Tunnel configuration stays outside the execution copy. Candidate stdout
 is never parsed as a receipt. These prevent accidental credential propagation and confused
 API authority; they do NOT prevent a malicious same-UID program from reading absolute paths,
