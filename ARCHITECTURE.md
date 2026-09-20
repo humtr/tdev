@@ -133,6 +133,70 @@ span subprocess/network waits. Per-workspace checkpoint CAS/busy ownership preve
 overwrite; reads use the last committed checkpoint. Different workspaces/ref tasks proceed
 independently. No global stale lock, timeout lease, automatic coordination or planner.
 
+### Progress continuity within a turn and across resumes
+
+The controller-facing state must remain **live and monotonic within the same model turn**.
+After the model starts or joins an operation, every bounded wait/status/readback must be able
+to observe a same-or-newer operation/frontier revision. If work advances or reaches terminal
+state while the model is still in the turn, the next observation must surface that progress;
+the model must not remain pinned to an earlier "running", stale snapshot, cached task view or
+pre-completion frontier.
+
+The current work frontier is the smallest bounded view that answers: exact current
+source/checkpoint and remote head, which accepted effects are terminal, which remain
+running/unknown, what resource ownership still requires cleanup, and which next action is
+actually admissible. It may be derived from workspace/operation/source state; this requirement
+does not introduce a planner or second workflow authority. Frontier observations need an
+explicit revision/cursor or equivalent freshness evidence so a caller can distinguish
+"nothing changed" from "I accidentally reread an old snapshot".
+
+Completed predecessors are facts, not work to rediscover. **Within the same turn**, once a
+predecessor completes, the model must be able to notice that completion cheaply and continue
+to the next admissible action. It is a product failure if the underlying work completed but
+the model keeps waiting on stale state, starts re-investigating already completed work, or
+remains trapped in a live turn without useful forward progress solely because completion was
+not surfaced.
+
+Same-turn observation must also be **bounded against stale loops**. Repeated no-change reads
+must either expose a newer revision when progress exists or return an explicit current
+no-progress/stalled observation with enough provenance to tell the caller what was actually
+checked. The caller must not need to keep polling, reinterpret an old snapshot, or invent a
+new diagnosis merely because freshness is unclear. A stale progress loop must not be treated
+as generic evidence that unrelated authorization, safety or policy state changed. Any guard
+or safety gate transition must be tied to a concrete current fact/policy decision, not used as
+a fallback escape from ambiguous progress state.
+
+The observed failure mode motivating this invariant is stronger than a slow resume: the model
+can stay inside one turn after the underlying work already advanced, lose its sense of what is
+complete/current, repeatedly inspect or question the same work, and eventually drift into
+defensive/guard-oriented checks instead of continuing the development path. Whether a specific
+external safety system caused that drift is not assumed here; tdev must remove the stale,
+ambiguous control state that permits the loop in the first place.
+
+The same invariant applies after a fresh model turn, reconnect or controller restart. Resume
+must recover the current frontier from durable product state without replaying chat history,
+scanning an unbounded event log, or re-running completed stages merely to discover that they
+already finished. If external state advanced, the resumed view reconciles that fresh evidence
+with durable state and moves forward from the newer proved state.
+
+A successful progress observation or resume is therefore not just "correctly rebound".
+Unless there is a genuine external blocker or unresolved unknown effect, the model must be
+able to continue useful work in the same turn after observing progress. Progress reporting
+must be cheap enough to call routinely and specific enough to distinguish completed,
+in-flight/unknown, blocked and next-admissible work.
+
+Resource lifecycle is part of the same invariant. Finishing one controller/session must not
+make its clean owned resources impossible to inspect or retire from a later authorized
+maintenance/resume path. Terminalization may seal mutation authority, but it must not create
+an orphan state that requires bypassing the product API for cleanup.
+
+Acceptance must exercise both **same-turn live progress** and fresh-session/reconnect/restart
+at multiple cut points, including after a predecessor completed but before its caller observed
+completion. A same-turn waiter must observe the terminal transition and continue; a resumed
+client must recover the same or newer frontier, skip proved-complete predecessors, preserve
+unknown effects without replay, expose any required cleanup, and continue useful work without
+an unbounded historical reconstruction step.
+
 Every mutation uses principal/request identity. Auth precedes replay; dedup precedes stale
 checks. Same identity with changed input conflicts. Local pointer and result commit together.
 Dispatch/stdin/cancel/publication have durable intent before effects. Reads need no journal.

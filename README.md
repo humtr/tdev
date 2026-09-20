@@ -33,8 +33,16 @@ proot package, not a sandbox claim. No production service/runtime was changed. E
 unrelated untracked files are preserved.
 
 The remaining host-dependent acceptance is ChatGPT/Tunnel 2026-07-28 discovery, bearer forwarding and
-reconnect. A separate Linux executor is not a next step or gate for normal use.
-See [local evidence](LOCAL_VALIDATION.md) and [operator steps](OPERATIONS.md).
+reconnect. A newly observed development-harness requirement is also still open: **within the
+same model turn**, progress/wait/readback must not go stale after underlying work advances or
+completes. The model must observe the newer frontier and continue from proved progress instead
+of waiting on an old snapshot, rediscovering completed predecessors, or remaining stuck in a
+live turn until it drifts into unrelated defensive/guard checks. No-change observation must
+also terminate in a bounded, explicit current result rather than an unbounded stale polling
+loop. Fresh session/reconnect must preserve the same property from durable state. Same-turn
+progress plus resume/cleanup acceptance is now normative in
+ARCHITECTURE §6 and IMPLEMENTATION_PLAN. A separate Linux executor is not a next step or gate
+for normal use. See [local evidence](LOCAL_VALIDATION.md) and [operator steps](OPERATIONS.md).
 
 Run deterministic checks with `sh scripts/check.sh` after
 `python -m pip install --target .tdev-deps -r requirements.txt`.

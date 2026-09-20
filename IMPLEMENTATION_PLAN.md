@@ -16,6 +16,29 @@ repair, scripts/check.sh, coherent diff/state review; then continue. Authored-pr
 exercise the real default runner but do not prove hostile-code isolation. Keep optional
 OCI tests without treating external enrollment as a gate.
 
+Live progress continuity is a required acceptance dimension, not optional UX polish.
+The primary failure case is **same-turn staleness**: an operation advances or completes while
+the model is still working, but subsequent wait/status/frontier reads keep returning an older
+view, so the model waits, re-investigates completed predecessors, or stays trapped in the turn
+without doing the now-admissible next work. In observed failure this prolonged ambiguity can
+also make the model abandon the normal development path and drift into unrelated defensive/
+guard checks. Tests must force this race and prove that bounded repeated observations are
+monotonic/current enough to expose the terminal transition and let the same turn continue.
+
+Acceptance must also cover the no-change case: after a bounded number/time of observations,
+the product must return an explicit current no-progress result with freshness/provenance rather
+than encouraging an unbounded polling loop. No test should require the model to infer that
+authorization/safety state changed merely because operation progress is stale or ambiguous.
+
+Fresh-session/reconnect continuity is the second half of the same invariant. At representative
+cut points, terminate the client/controller view and resume from a fresh session. One bounded
+current-frontier read must identify proved-complete predecessors, running/unknown effects,
+exact current source/remote state, cleanup ownership and the next admissible action. The fresh
+session must skip completed predecessors and, absent a genuine external blocker/unknown
+effect, perform useful forward work in that same turn. Tests must cover "completion happened
+but caller did not observe it" for both same-turn polling and fresh resume. Terminal lifecycle
+must also leave a supported inspection/cleanup path for clean owned resources.
+
 First complete path: open → read/edit → exec/process → validate → publish → readback.
 Never weaken exact publication/replay to hide missing native support. Keep native authority
 limitations explicit instead of promising unavailable kernel boundaries. No permission
