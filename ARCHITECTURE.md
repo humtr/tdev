@@ -5,7 +5,7 @@
 
 ## 1. Executive conclusion
 
-**Candidate C — model-led hybrid typed harness를 선택한다.** ChatGPT가 개발의 planner/orchestrator이며 tdev는 repository identity, immutable workspace checkpoint, bounded read/patch, credential-free execution, mandatory validation, exact integration을 제공한다. 별도 모델 API나 Codex agent loop는 필수가 아니다.
+**Candidate C — model-led hybrid typed harness를 선택한다.** ChatGPT가 개발의 planner/orchestrator이며 tdev는 repository identity, immutable workspace checkpoint, bounded read/patch, credential-free execution, mandatory validation, exact integration을 제공한다. 별도 모델 API나 Codex agent loop는 필수가 아니다. 장기적으로 새 CLI·MCP·device/API·executor·artifact source·보조 모델이 필요해져도 core를 다시 설계하지 않도록 **open capability extension plane**을 둔다. 공개 MCP surface는 9개 core tool과 하나의 안정된 `tdev_capability` gateway로 고정하고, 설치된 extension의 descriptor만 필요할 때 lazy-load한다.
 
 핵심은 “모든 것을 shell로”도 “작업을 server workflow로”도 아니다. 일반 개발은 `context → batch read/search → workspace → patch/exec → validate → integrate`이다. 모델이 관리할 주된 식별자는 workspace/revision과 실행 operation handle이다. candidate generation, prepared-result owner, campaign, Design route를 제품 사용자가 조립하지 않는다.
 
@@ -47,10 +47,15 @@ Termux는 신뢰된 제어·Git·상태 저장의 중심으로 유지한다. 임
 | canonical integration | 통합을 요청할 시점 | tested commit 그대로 publish, dedup | Git CAS + durable publication intent |
 | retry/reconnect/recovery | 불명확한 진단 후 새 의도 선택 | accepted intent 보존, unknown effect 격리 | operation record; read는 재호출 |
 | multi-repo/multi-ref/multi-principal | 대상·협업 | namespace/grants/fair capacity | binding/ workspace 반복; daemon 복제 없음 |
+| open-ended capability extension | 어떤 새 도구·환경·executor·advisor를 언제 사용할지 | installed descriptor digest, exact action schema, explicit namespaced grants | stable capability gateway + adopted adapter; core workflow 추가 없음 |
+| external/local environment interaction | 어떤 MCP/CLI/device/API를 어떤 순서로 사용할지 | exact installed target, declared execution boundary, bounded result/artifact | extension adapter; repository source가 스스로 trusted adapter가 되지 않음 |
+| optional advisor/model | 사용할지·어떤 질문을 맡길지·결과 해석 | advisor output은 authority/validation이 아님 | optional extension invocation; durable planner state 불필요 |
 | credential/authorization | 권한 요청 이유 | 인간 인증, credential containment | Access/provider secret store + local grants |
 | deploy/release | 명시적 승인·배포 선택 | artifact identity, quiescence, rollback pointer | 별도 operator 경계; 일반 coding loop 아님 |
 
 운영 조건은 Android/Termux, no root/no systemd/no local Docker, sleep/kill/reconnect, 하나의 안정적 public endpoint다. 정상 새 개발 작업을 여는 데 tmcp·GitHub 직접 mutation·Worker 재배포가 필요해서는 안 된다. 표의 capability는 모델의 지능을 대체할 workflow를 요구하지 않는다.
+
+장기 요구사항은 **기능은 열려 있고 authority는 닫혀 있는 것**이다. 미래 기능 하나를 추가하기 위해 core MCP tool 이름, workspace/operation state model, Cloudflare endpoint 또는 controller release를 매번 바꾸지 않는다. extension은 immutable descriptor+adapter binding으로 설치·활성화하며, `tdev_context`는 작은 authorized summary만 보여주고 `tdev_capability`가 `list/describe/invoke`를 제공한다. 설치/enable/disable은 operator/admin boundary이고, 설치된 뒤의 사용 순서와 action 선택은 모델이 결정한다. native correctness는 Android/Termux의 hard-link 지원을 전제로 하지 않으며 `link(2)` 없이 Git objects, SQLite transaction, copy와 같은-filesystem rename으로 구현 가능해야 한다.
 
 ## 3. Current tdev architecture summary
 
@@ -127,13 +132,15 @@ Codex source reuse, vocabulary imitation, execution pattern reuse, local bridge,
 
 좋은 abstraction은 반복되는 자연스러운 작업 단위와 failure boundary를 함께 묶는다. multi-file read와 atomic grouped edit는 좋고, “fix bug” 같은 지능 단계의 durable workflow는 불필요하다. 반대로 integration을 일반 shell에 숨기면 검증 결과와 canonical effect의 연결이 사라진다.
 
+확장성도 같은 원칙을 따른다. 외부 기능마다 새 public MCP tool이나 core workflow를 추가하면 tool discovery·Refresh·schema 비용과 제품 결합도가 계속 증가한다. 반대로 완전히 무형식의 generic registry는 tmcp에서 줄이려는 선택/계약 비용을 되살릴 수 있다. 따라서 **하나의 stable capability gateway + digest-pinned lazy descriptor + 기존 operation/observe 재사용**을 선택한다. extension은 primitive를 제공하고 모델이 조합한다.
+
 ## 9. Model vs harness responsibility
 
-모델은 탐색·command·수정·진단·작업 분해·합성 시점·추가 검사를 결정한다. 서버는 사용자의 목표가 달성됐는지를 별도 planner로 판단하지 않는다. model-generated objective는 display metadata이며 실행권한이 아니다.
+모델은 탐색·command·수정·진단·작업 분해·합성 시점·추가 검사뿐 아니라 설치된 extension 중 무엇을 언제 쓸지, 어떤 action과 인자를 선택할지도 결정한다. 서버는 사용자의 목표가 달성됐는지, 특정 command가 적절한지, 어느 advisor를 써야 하는지를 별도 planner나 semantic safety classifier로 판단하지 않는다. model-generated objective와 extension/advisor의 score·approval 문자열은 display/data이며 실행권한이 아니다.
 
-harness는 subject/repository/ref, path boundary, workspace writer, immutable result, mandatory validation, process ownership, credentials와 canonical effect를 강제한다. arbitrary command와 repository test는 untrusted input이며 서버 정책을 바꾸지 못한다.
+harness는 subject/repository/ref, path boundary, workspace writer, immutable result, mandatory validation, process ownership, credentials, installed capability/action identity와 canonical effect를 **기계적으로** 강제한다. capability admission은 authenticated subject, exact adopted descriptor digest, explicit namespaced grants, target/boundary와 mechanically verifiable precondition만 본다. arbitrary command와 repository test는 untrusted input이며 서버 정책을 바꾸지 못한다.
 
-Git은 content/history/CAS를, provider는 ref boundary와 execution-run identity를, OS/container는 process와 credential 격리를 맡는다. 이미 존재하는 primitive를 별도 semantic owner로 복제하지 않는다.
+Git은 content/history/CAS를, provider는 ref boundary와 execution-run identity를, OS/container는 process와 credential 격리를 맡는다. extension은 자기 domain의 primitive를 소유하지만 core authority를 만들지 않는다. 이미 존재하는 primitive를 별도 semantic owner로 복제하지 않는다.
 
 ## 10. Tool-surface alternatives
 
@@ -142,9 +149,10 @@ Git은 content/history/CAS를, provider는 ref boundary와 execution-run identit
 | Fine-grained 15–25 tools | 단순 개별 schema, 읽기/쓰기 분리 | create/delete/move/test마다 vocabulary·선택 비용; 자연스러운 batch가 깨짐 |
 | Codex-style 4 primitives + integrate | 익숙하고 composable | exec로 read/validate/status를 다 처리하면 effect/receipt semantics를 flags나 prompt에 숨김 |
 | 현재 four-tool union | 작은 이름 수, 확장 여지 | `work` schema와 owner identity가 큼; 이름 수만으로 cognitive cost를 평가할 수 없음 |
-| **선택: 9-tool typed hybrid** | read batching, atomic patch, process act/observe 분리, validation/integration 명시 | discovery 크기는 실제 생성 schema bytes로 측정해야 함; 9가 경험적으로 최적이라는 주장은 안 함 |
+| extension마다 dynamic MCP tool | 각 extension의 강한 개별 schema·자연스러운 이름 | 설치마다 tools/list 변화·client Refresh 가능성·startup schema/context 증가; core와 extension lifecycle 결합 |
+| **선택: 9 core tools + 1 stable `tdev_capability` gateway** | core effect boundary는 typed하게 유지하고 미래 기능은 lazy descriptor로 확장; extension 설치가 public tool list를 바꾸지 않음 | gateway가 무형식 registry로 비대해질 위험. descriptor digest, server-side schema validation, bounded list/describe, 기존 operation/observe 재사용으로 제한 |
 
-batch는 read queries/ranges, 한 workspace의 edits, 명시적 source composition, validation profile set에서 제공한다. arbitrary DAG, generic operation registry, 서로 다른 repository의 mutation transaction은 제공하지 않는다. 서로 다른 workspace의 독립 호출은 병렬 처리한다.
+batch는 read queries/ranges, 한 workspace의 edits, 명시적 source composition, validation profile set에서 제공한다. arbitrary DAG, generic operation registry, 서로 다른 repository의 mutation transaction은 제공하지 않는다. 서로 다른 workspace의 독립 호출은 병렬 처리한다. 공개 MCP tool set은 extension 수와 무관하게 **10개로 고정**한다. capability gateway는 extension workflow를 소유하지 않고 `list/describe/invoke`만 제공한다.
 
 ## 11. Repository-development plane analysis
 
@@ -154,9 +162,9 @@ startup은 AGENTS와 README의 current work를 읽고, 바꾸려는 component에
 
 ## 12. Product-operation plane analysis
 
-일반 제품 사용자는 binding/ref와 workspace, operation만 본다. source 파일에 적힌 대상 repository의 AGENTS를 따를 수는 있지만 tdev 자신의 campaign/Design history를 읽지 않는다. 이 둘은 서로 다른 문제다.
+일반 제품 사용자는 binding/ref와 workspace, operation, 그리고 현재 principal에게 노출된 **compact capability summary**만 본다. source 파일에 적힌 대상 repository의 AGENTS를 따를 수는 있지만 tdev 자신의 campaign/Design history를 읽지 않는다. 이 둘은 서로 다른 문제다.
 
-`context`는 authorized binding 목록과 선택한 ref의 정확한 snapshot, capabilities/limits, 자기 open workspace를 돌려준다. `read`는 immutable snapshot을 재사용하므로 매 source read마다 remote ref를 다시 확인하지 않는다. fresh head는 open/compose/validate/integrate의 의미 있는 경계에서 확인한다. 비용 감소를 freshness 위조로 얻지 않는다.
+`context`는 authorized binding 목록과 선택한 ref의 정확한 snapshot, limits, 자기 open workspace, 설치·허가된 extension의 작은 summary를 돌려준다. 전체 action schema는 startup에 싣지 않는다. 모델이 실제로 필요하다고 판단한 capability만 `tdev_capability{op:"describe"}`로 읽고 exact `descriptorDigest`를 고정하여 `invoke`한다. descriptor/args는 dispatch 전에 server가 검사하고 invoke 결과는 기존 operation/observe로 재관측한다. extension을 설치·제거해도 MCP public tool list는 바뀌지 않는다. `read`는 immutable snapshot을 재사용하므로 매 source read마다 remote ref를 다시 확인하지 않는다. fresh head는 open/compose/validate/integrate의 의미 있는 경계에서 확인한다. 비용 감소를 freshness 위조로 얻지 않는다.
 
 ## 13. Governance/authority cost analysis
 
@@ -183,11 +191,12 @@ ROI는 startup bytes/hops, first useful action까지 reads, wrong-route/rework, 
 | workspace | Git tree만으로 owner/base/revision/active writer를 알 수 없음 | SQLite workspace + Git pinned tree |
 | operation intent/result/tombstone | response loss 때 같은 의도인지 Git·process가 모름 | SQLite operation; compact tombstone은 installation 수명 |
 | executor session/launch identity | provider run과 local launch를 안전하게 join해야 함 | SQLite executor row; run terminal proof 이후 compact |
+| installed capability descriptor/binding | process memory나 external MCP가 재시작 후 어떤 exact schema·adapter가 승인됐는지 증명하지 못함 | SQLite capability row + immutable descriptor/adapter digest; 명시적 admin change까지 |
 | validation receipt | Git object가 테스트 성공/신뢰된 실행을 증명하지 않음 | validate operation의 immutable result/artifact |
 | integration effect | local DB와 remote ref는 단일 transaction이 아님 | integrate operation 안 exact old/new/receipt/observation |
 | release pointer | 재시작 시 어떤 검증된 bundle을 실행할지 필요 | operator-owned active/previous manifest; 일반 DB workflow 아님 |
 
-물리적 기본 table은 `binding`, `grant`, `workspace`, `operation`, `executor`와 schema metadata다. receipt/effect/checkpoint provenance는 각각의 immutable value이지 독립 workflow나 public owner ID가 아니다. Git content/hash cache, logs, backups는 별도 state machine이 아니다.
+물리적 기본 table은 `binding`, `grant`, `workspace`, `operation`, `executor`, `capability`와 schema metadata다. receipt/effect/checkpoint provenance는 각각의 immutable value이지 독립 workflow나 public owner ID가 아니다. Git content/hash cache, logs, backups는 별도 state machine이 아니다.
 
 통계적으로 신뢰할 수 있는 failure 빈도는 대부분 없다. 사용자 disconnect 이력과 기존 response-loss/retirement evidence는 위험의 존재를 지지하지만 발생 확률을 만들어내지 않는다. canonical 중복·credential 유출은 빈도가 낮아도 영향이 커 유지한다. read 실패는 durable row를 만들 이유가 없다.
 
@@ -201,9 +210,11 @@ ROI는 startup bytes/hops, first useful action까지 reads, wrong-route/rework, 
 
 process kill 후 임의 command를 자동 재실행하지 않는다. command의 외부 side effect에 exactly-once를 약속하지 않는다. stdin 전달과 수신 프로그램의 처리도 하나의 atomic transaction이 아니다. `delivery_unknown`이면 같은 input을 자동 재전송하지 않는다. 명시적 output cursor 재관측은 새 실행이 아니다.
 
+capability invoke도 같은 원칙을 사용한다. requestId/operation intent를 adapter dispatch보다 먼저 저장하고 response loss는 같은 operation을 observe한다. descriptor의 `idempotent` metadata만으로 unknown external effect를 자동 재실행하지 않는다. adopted adapter protocol이 exact operation/request identity의 중복 effect를 기계적으로 dedup하거나 기존 effect를 read back할 수 있을 때만 safe resend를 허용하며, 그렇지 않으면 `uncertain`으로 남기고 모델이 다음 행동을 결정한다.
+
 ## 16. Termux/Cloudflare topology analysis
 
-**CURRENT TDEV EVIDENCE [T5] [T6] + OFFICIAL PLATFORM EVIDENCE [P1] [P2] [P3] [P4] [P5].** 현재 target에서 user namespace/Landlock가 불가하다는 기존 조사와 no-root 조건을 받아들인다. source/test를 신뢰된 native UID로 실행하지 않는 경계를 유지한다. Termux는 Git/SQLite/fixed tools만 실행하며, Docker·systemd·root가 필요 없다.
+**CURRENT TDEV EVIDENCE [T5] [T6] + OFFICIAL PLATFORM EVIDENCE [P1] [P2] [P3] [P4] [P5].** 현재 target에서 user namespace/Landlock가 불가하다는 기존 조사와 no-root 조건을 받아들인다. source/test를 신뢰된 native UID로 실행하지 않는 경계를 유지한다. Termux는 trusted controller, Git/SQLite/fixed tools와 **명시적으로 adopted된 capability adapter**만 실행하며, Docker·systemd·root가 필요 없다. repository bytes나 모델이 방금 만든 executable이 단순 등록만으로 controller-trusted adapter가 되지 않는다. adapter가 같은 Android UID에서 실행되면 그 adapter는 그 UID의 trust domain에 들어간다는 사실을 숨기지 않고, hostile/untrusted 실행은 managed sandbox 또는 향후 별도 OS boundary executor로 보낸다. Android/Termux native path의 correctness는 hard-link creation을 요구하지 않는다.
 
 Cloudflare는 public MCP origin, Managed OAuth/Access, 제한된 request routing을 소유한다. DO는 installation당 하나의 WebSocket rendezvous이며 work/validation/queue를 소유하지 않는다. sleep/restart 중에도 edge health와 device-offline을 구분할 수 있지만 device-offline 동안 개발 명령 실행을 보장하지 않는다. D1/R2/Queues, per-repository Worker, changing public tunnel은 필요 없다.
 
@@ -220,7 +231,7 @@ Public `context/read/work/observe`. `work`의 create/edit/run/validate/integrate
 Public `context/read/apply_patch/exec_command/write_stdin/integrate`. workspace selector는 context/patch/exec 공통 input에 포함한다. `exec_command{mode:"diagnostic"|"validate", command|profiles}`가 검증 receipt를 만들고 integrate가 이를 검사한다. kernel sandbox와 credential exclusion은 C와 동일하게 유지하여 위험한 local shell을 비교의 지름길로 쓰지 않는다. explicit tree/revision/CAS/operation persistence도 필요하다. Git/OS/provider 위주의 작고 composable한 core지만 read/write 혼합 stdin과 exec의 validation mode, workspace opening/closing flags가 숨은 schema complexity가 된다. 기본은 per-workspace validation이며 explicit composition이 없으면 동일 ref 경쟁 비용이 남는다. simple registry config로 확장하고 단순 README/architecture를 사용한다.
 
 ### C — hybrid typed harness (선택)
-공통 primitive를 `context/read/workspace/patch/exec_command/process/validate/integrate/observe`로 나눈다. 개별 schema와 책임은 §20/JSON에 완결한다. C는 B와 같은 thin execution core에 atomic composition과 typed policy/effect boundary를 추가하되 A의 automatic group settlement는 제거한다. SQLite는 installation 단위, workspace당 한 revision, operation family 하나. fork/rebase/합성은 exact source checkpoint들을 `workspace.compose`해 새 workspace를 만드는 같은 알고리즘이다. mutable execution은 private sandbox, source truth는 local Git checkpoint. provider/OS가 physical lifecycle을 소유한다. 배포는 operator plane. extension은 bounded read kind/실행 image·policy/optional adapter에서 한다.
+공통 primitive를 `context/read/workspace/patch/exec_command/process/validate/integrate/observe`로 나누고, 미래 확장은 하나의 `tdev_capability` stable gateway로 연결한다. 개별 schema와 책임은 §20/JSON에 완결한다. C는 B와 같은 thin execution core에 atomic composition과 typed policy/effect boundary를 추가하되 A의 automatic group settlement는 제거한다. SQLite는 installation 단위, workspace당 한 revision, operation family 하나이며 capability invocation도 같은 operation family를 사용한다. fork/rebase/합성은 exact source checkpoint들을 `workspace.compose`해 새 workspace를 만드는 같은 알고리즘이다. mutable repository execution은 private sandbox, source truth는 local Git checkpoint. provider/OS가 physical lifecycle을 소유한다. 배포와 extension install/enable은 operator plane이다. 새 executor·CLI·MCP·device bridge·artifact provider·advisor는 core workflow를 추가하지 않고 immutable descriptor+adapter binding으로 설치한다.
 
 ### D — trusted-local thin shell (기각)
 B의 exec를 Termux same-UID로 실행하고 file-path guards/env filtering만 둔다. warm command latency와 engineering cost가 가장 낮을 가능성이 있지만 source command가 controller credential/state에 접근할 수 있다. 신뢰된 모든 repository code와 같은 OS user 전체를 승인한 별도 제품에는 가능하다. 이 세션의 credential/canonical boundary를 만족하지 못하므로 default나 숨은 fallback으로 채택하지 않는다.
@@ -241,7 +252,7 @@ B의 exec를 Termux same-UID로 실행하고 file-path guards/env filtering만 �
 | partial failure/retry | 강하지만 많은 owner | caller 규칙 증가 가능 | transaction/operation 단위 명확 | host/process 영향 큼 |
 | security/exactness | 강함 | 명시 구현 시 강함 | 필수 유지 | 요구 미충족 |
 | engineering/maintenance | 기존 lifecycle 유지 부담 | 작은 core, hidden contract 위험 | 작은 core+검증된 adapter 재사용 | 저렴하지만 다른 제품 |
-| 확장성/운용 | 이미 다수 해결 | 적은 abstraction | 반복되는 binding/workspace/handle | 동일 UID 확장 제한 |
+| 확장성/운용 | 이미 다수 해결 | 적은 abstraction | 반복되는 binding/workspace/handle + stable lazy capability gateway; extension별 core redeploy 불필요 | 동일 UID 확장 제한 |
 
 C를 고르는 이유는 A의 보장을 버리지 않으면서 B의 모델 자율성을 확보하고, 실제로 관측된 같은-ref 검증 비용과 model context overhead를 직접 줄이기 때문이다. remote provider cold start가 전체 시간을 지배하면 tool cleanup만으로 해결되지 않는다. 그 사실은 §31의 별도 cold/warm 측정으로 드러나게 한다.
 
@@ -256,29 +267,40 @@ operation은 durable admission/실행/결과의 동일 family다. validate opera
 
 **warm reuse의 단위는 provider session/승인된 image·immutable dependency cache다.** untrusted mutable container를 서로 다른 command/tenant에 공유하지 않는다. exec 한 번은 private container 하나와 연결된다. interactive command는 같은 operation으로 계속된다. 정상 종료 또는 취소 후 전체 container process가 멈춘 상태에서 변경을 수집한다. provider host가 warm이어도 mandatory validation은 깨끗한 materialization에서 한다.
 
+### Open capability extension plane
+
+public MCP surface는 **9개 core tool + `tdev_capability` 하나**로 고정한다. extension 설치가 `tools/list`에 새로운 이름을 추가하지 않는다. `tdev_context`는 현재 principal에게 보이는 capability의 작은 summary만 반환하고, 필요할 때 gateway의 `list`/`describe`가 exact descriptor를 lazy-load한다. 모델은 descriptor를 읽은 뒤 `invoke`할 action과 args를 스스로 선택한다.
+
+Capability는 `(capabilityId, version, descriptorDigest, role, actions)`의 immutable adopted descriptor와 실제 adapter binding으로 구성한다. `role`은 `executor`, `tool`, `observer`, `presenter`, `artifact`, `advisor` 같은 설명용 문자열일 수 있으나 closed enum이나 authority가 아니다. 미래에 새로운 역할이 생겨도 core schema를 바꿀 이유가 없어야 한다. 각 action descriptor는 input/output JSON schema, required namespaced grants, readOnly/destructive/idempotent/openWorld/asynchronous metadata를 가진다. metadata는 모델 선택과 표시를 돕지만 실제 permission은 current grant와 exact descriptor/action identity가 결정한다.
+
+`invoke`는 항상 모델이 마지막으로 본 `descriptorDigest`를 요구하고 args를 그 adopted action schema로 dispatch 전에 검증한다. side effect가 가능한 호출은 requestId intent를 먼저 저장하고 기존 `operation` family의 `kind=capability`로 관측한다. 작은 typed output은 operation에, 큰 결과는 artifact에 둔다. extension별 Task/Job/workflow owner나 별도 queue를 core에 만들지 않는다. advisor/JEV 같은 결과는 어떤 confidence를 반환해도 권한, mandatory validation, exact integration의 증거가 아니다.
+
+adapter install/enable/disable은 `tdev_capability`가 자기 자신을 확장하는 공개 mutation이 아니라 operator/admin boundary다. 다만 사용자가 명시적으로 새 capability 추가를 요구하고 현재 principal이 해당 admin authority를 가진다면 ChatGPT는 adapter를 정상 tdev 개발 경로로 구현·검증한 뒤 같은 세션에서 admin install을 수행할 수 있다. 설치에는 exact package/entrypoint/descriptor digest, adapter protocol version, 실행 boundary와 필요한 scoped credentials/grants를 고정한다. repository source가 자동으로 trusted extension이 되지 않는다. 설치되지 않은 capability는 startup/schema 비용을 만들지 않는다.
+
 ## 20. Public tool contract
 
 ### Wire의 단일 소유자
 
-`contracts/tools.schema.json`은 JSON Schema 2020-12 bundle이다. `$defs`와 `x-tools`의 input/output reference를 묶으며, 구현은 각 MCP tool의 input에 필요한 transitive definition만 embed한다. output schema는 이 bundle에 규범적으로 보존하고 서버가 검사하지만 초기 tools/list에는 반복 advertise하지 않는다. root input을 object로 inline하고 필요한 $defs만 포함한 9개 descriptor의 compact JSON은 이 설계본에서 17,987 bytes다. 이는 정적 serialization 측정이며 host token 사용량이나 선택 정확도 실측이 아니다. bundle 전체를 매 tool description에 복제하거나 모델에게 operation registry를 다시 읽게 하지 않는다. root schema는 `{tool,input}` contract fixture를 검사한다. `x-examples`는 실행 결과가 아니라 정적 예시다.
+`contracts/tools.schema.json`은 JSON Schema 2020-12 bundle이다. `$defs`와 `x-tools`의 input/output reference를 묶으며, 구현은 각 MCP tool의 input에 필요한 transitive definition만 embed한다. output schema는 이 bundle에 규범적으로 보존하고 서버가 검사하지만 초기 tools/list에는 반복 advertise하지 않는다. root input을 object로 inline하고 필요한 $defs만 포함한 **10개** descriptor의 동일 compact serialization은 이번 계약 갱신에서 **19,745 UTF-8 bytes**였다. 실제 MCP `tools/list` wire bytes와 host token 비용은 단계 1에서 별도로 측정한다. 이는 정적 serialization 측정이며 host token 사용량이나 선택 정확도 실측이 아니다. bundle 전체를 매 tool description에 복제하거나 모델에게 operation registry를 다시 읽게 하지 않는다. root schema는 `{tool,input}` contract fixture를 검사한다. `x-examples`는 실행 결과가 아니라 정적 예시다.
 
 이 section은 의미를 소유한다. JSON의 field/type/required/limit와 아래 의미가 어긋나면 구현 전에 같은 변경에서 둘을 고친다. field가 없는 capability를 “구현자가 알아서” 추가하지 않는다. 정상 응답은 validation의 짧은 summary만 포함하고 full execution/receipt tuple은 권한 있는 artifact read로 lazy-load한다.
 
 ### 공통 규칙
 
-- `requestId`는 모든 mutation에서 필수다. `(installation, authenticated subject, requestId)`가 unique하다. current authorization 후 기존 request를 찾고, 동일 normalized intent이면 기존 operation을 반환한다. 그 다음에만 새 revision/base precondition을 검사한다. 같은 key/다른 내용은 `IDEMPOTENCY_MISMATCH`다. transport wait/output budget은 intent hash에서 제외하고, command/edits/source/policy 선택에 영향을 주는 field는 포함한다.
+- `requestId`는 모든 mutation과 `tdev_capability.invoke`에서 필수다. `(installation, authenticated subject, requestId)`가 unique하다. current authorization 후 기존 request를 찾고, 동일 normalized intent이면 기존 operation을 반환한다. 그 다음에만 새 revision/base/descriptor precondition을 검사한다. 같은 key/다른 내용은 `IDEMPOTENCY_MISMATCH`다. transport wait/output budget은 intent hash에서 제외하고, command/edits/source/policy/capability/action/args 선택에 영향을 주는 field는 포함한다.
 - model이 반환한 principal, permission, “approved” 문자열은 authority가 아니다. durable action 이전에 side effect를 시작하지 않는다. request digest는 versioned canonical JSON의 SHA-256이며 현재 source의 검증된 scalar/integer/key-order codec을 회수한다. schema stable defaults만 확장한다. runtime에서 선택한 policy/image는 최초 admission에 한 번 고정하고 replay 때 재선택하지 않는다.
 - revision은 unsigned decimal string, Git OID는 `sha1:`/`sha256:` tagged value다. 새로운 설치/retired binding의 old request는 재실행하지 않는다.
 - 결과는 `{ok:true,result:...}` 또는 `{ok:false,error:...}`다. command nonzero는 API 호출 자체의 실패가 아니라 `operation.status:"failed"`와 exitCode로 표현할 수 있다. MCP `isError`는 error envelope와 일치시킨다. structuredContent와 동일한 compact JSON text를 제공하되 추가 설명·원래 command·full authority를 중복 dump하지 않는다.
 - 초기 read/output 기본 24,000 bytes, 상한 65,536 bytes는 **tdev 자체 budget**이며 ChatGPT의 보편적 host limit이라는 주장이 아니다. transport envelope overhead는 별도 계측한다. mutation 전체 request body는 1 MiB, decoded patch bytes도 합계 1 MiB를 넘기면 prefix 적용 없이 거절한다.
 - 거대한 source/log는 pagination한다. cursor는 subject/target/revision/query/position에 MAC-bound된 짧은 token이며 data owner가 아니다. log 읽기는 drain이 아니라 offset read다. snapshot/cursor 기본 유효기간 30분; expired이면 exact workspace나 fresh context로 새 handle을 얻는다.
 - read path는 UTF-8 repository-relative이고 절대 경로, `..`, NUL, `.git` control metadata 접근을 거절한다. symlink는 링크의 bytes로 읽고 자동 follow하지 않는다. 실행 materialization은 외부로 나가는 symlink를 거절한다. gitlink/LFS는 명시적인 unresolved capability로 보고하며 실제 내용처럼 검사 PASS하지 않는다.
+- capability discovery는 현재 principal에게 authorized된 installed summary만 반환한다. `describe`는 exact immutable descriptor를 반환하고 `invoke`는 그 `descriptorDigest`와 action schema가 현재 adopted state와 같을 때만 dispatch한다. role/description/annotation/advisor output을 권한으로 해석하지 않는다. 공개 tool list는 extension 설치/제거로 바뀌지 않는다.
 
 ### 도구별 책임
 
 | Tool | Input의 중심 | Output | Effect / batch / partial / retry / long-run |
 |---|---|---|---|
-| `tdev_context` | optional bindingId/ref, freshness, cursor | authorized bindings, 선택 snapshot, limits, grants의 capability projection, 자기 open workspace | semantic read-only. binding/ref 목록과 byte budget pagination; 선택 ref만 fresh 조회. offline cache는 명시. 같은 요청 재조회 가능; process 생성 없음 |
+| `tdev_context` | optional bindingId/ref, freshness, cursor | authorized bindings, 선택 snapshot, limits, 자기 open workspace, compact installed capability summaries | semantic read-only. binding/ref와 capability summary를 bounded하게 반환; full extension schema는 포함하지 않음. 선택 ref만 fresh 조회. offline cache는 명시. 같은 요청 재조회 가능; process 생성 없음 |
 | `tdev_read` | exact target + 1–32 tagged queries | query별 typed result/error, bytes·coverage·cursor | readonly. file/ranges/list/search/diff/status/history/artifact batch. 한 item 실패는 다른 item을 무효화하지 않음. 전체 budget 소진 뒤 item은 NOT_EXECUTED. cursor retry safe |
 | `tdev_workspace` | open: binding/ref/expectedHead; compose: exact source checkpoints+fresh target head; close: workspace/revision | operation summary + new/closed workspace | local durable mutation. compose는 1–16 sources를 하나로 all-or-nothing. open/compose source ingestion이 길면 handle 반환. request replay로 중복 workspace 방지. close는 live writer 있으면 거절 |
 | `tdev_patch` | workspace/revision, 1–128 typed edits | operation + new checkpoint + diffstat | all-or-nothing immutable tree publication. replace/put/delete/move; 한 파일의 여러 replacements는 배열 순서대로 staged buffer에 적용. 다른 항목의 중복 path는 거절. 실패 시 revision 불변. request replay safe |
@@ -287,6 +309,7 @@ operation은 durable admission/실행/결과의 동일 family다. validate opera
 | `tdev_validate` | workspace/revision, commit message, optional additionalProfiles | operation; 완료 시 exact commit/tree/policy receipt | mandatory profile set은 서버가 추가·고정. 한 묶음의 결과를 정확히 검증. 진단 exit 0은 대체 receipt 아님. frozen commit을 실행 전 저장. async handle; 실패해도 workspace 유지 |
 | `tdev_integrate` | workspace/revision, validationId, expectedHead | operation; exact integratedCommit/observedHead/proof | canonical mutation 유일 경계. 별도 validation/composition 숨겨서 실행하지 않음. unique validation effect + request dedup. commit을 재생성하지 않음. lost response는 같은 intent 관측 |
 | `tdev_observe` | operation/request/workspace handles, log cursors, bounded wait | item별 operation/workspace/error, output offsets, suggested poll delay | readonly presentation. remote 상태 관측/cache 갱신 가능; launch/retry/cancel/push를 부수효과로 하지 않음. 여러 handle batch; HTTP 종료가 작업 종료가 아님 |
+| `tdev_capability` | `list`, `describe(capabilityId)`, 또는 `invoke(requestId, capabilityId, descriptorDigest, actionId, args)` | authorized summaries / exact descriptor / capability operation | stable extension gateway. 모델이 action을 선택하고 core는 descriptor+grant+schema를 기계적으로 검사한다. invoke는 request dedup 후 adapter에 dispatch하고 기존 operation/observe를 사용한다. extension install/enable/disable은 이 tool의 effect가 아님 |
 
 ### Read와 patch의 상세 의미
 
@@ -317,7 +340,7 @@ patch의 put은 create인지 replace인지 명시하고, delete는 존재하는 
 | IMPLEMENTATION_ERROR | invariant failure, internal exception |
 | UNKNOWN | 근거로 구분할 수 없는 실패 |
 
-동일 “안전검사” 메시지로 합치지 않는다. actual effect에 맞는 annotations를 사용한다. readonly는 context/read/observe뿐이며 mutating tools는 readOnlyHint=false다. metadata는 permission도, confirmation 생략 보장도 아니다 [P2] [P6]. 다른 도구/계정/worker로 host block을 우회하지 않는다.
+동일 “안전검사” 메시지로 합치지 않는다. actual effect에 맞는 annotations를 사용한다. statically readonly인 public tools는 context/read/observe다. `tdev_capability`는 list/describe와 invoke를 한 stable surface에 함께 두므로 tool-level `readOnlyHint=false`이며, action별 readOnly/destructive metadata는 descriptor에서 제공하되 permission으로 사용하지 않는다. mutating tools는 readOnlyHint=false다. metadata는 permission도, confirmation 생략 보장도 아니다 [P2] [P6]. 다른 도구/계정/worker로 host block을 우회하지 않는다.
 
 ## 21. Runtime/component topology
 
@@ -328,9 +351,12 @@ ChatGPT (유일한 필수 intelligence loop)
   -> installation-scoped routing Durable Object
   <-> outbound authenticated WebSocket
   -> Termux tdev controller (하나의 native service)
-       |-- SQLite: binding/grant/workspace/operation/executor
+       |-- SQLite: binding/grant/workspace/operation/executor/capability
        |-- Git object/checkpoint store + bounded content/log cache
        |-- fixed-argv Git/provider integration client
+       |-- capability registry + adapter protocol host
+       |      -> explicitly adopted local/external/remote capability adapters
+       |      -> optional executors / tools / observers / presenters / artifacts / advisors
        |-- managed executor adapter
        |      -> approved GitHub workflow run / trusted outer runner
        |           -> per-operation untrusted rootless OCI container
@@ -338,7 +364,7 @@ ChatGPT (유일한 필수 intelligence loop)
        `-- operator-only configuration/release entrypoint
 ```
 
-edge는 MCP authentication/shape validation과 bounded forwarding까지만 한다. native controller가 operation authority를 결정한다. device transport key만으로 native mutation을 승인하지 않는다. user token은 candidate 환경/command/tool output에 넣지 않는다.
+edge는 MCP authentication/shape validation과 bounded forwarding까지만 한다. native controller가 operation authority와 adopted capability descriptor/grants를 결정한다. extension별 public Worker/endpoint나 dynamic MCP tool registration은 만들지 않는다. device transport key만으로 native mutation을 승인하지 않는다. user token은 candidate 환경/command/tool output에 넣지 않는다.
 
 MCP는 negotiated supported version의 Streamable HTTP JSON response를 기본으로 한다. GET SSE를 지원하지 않으면 405, notification은 202, Origin과 protocol version은 검사한다. 초기 구현은 검증된 기존 adapter와 2025-11-25 baseline을 사용하고 이것을 “최신 MCP 규격”이라고 부르지 않는다. host의 더 새 version 협상은 protocol adapter의 호환성 문제이며 business state를 바꾸지 않는다. task-augmented MCP 실행은 core requirement가 아니다. JSON-RPC ID/MCP session ID는 operation identity가 아니다 [P1] [P2].
 
@@ -353,17 +379,19 @@ terminal receipt는 container 전체 정지 증명, exit/signal, source/input/ou
 
 `tdev_process`의 request도 control operation row를 갖는다. 그 결과의 `operation`은 control operation이고 `targetOperationId`가 원래 exec/validate/integrate를 가리킨다. input에는 sequence와 delivery state를 보존한다. input marker를 durable하게 저장한 뒤 pipe에 쓰며, 그 사이 crash는 unknown으로 남기고 다시 쓰지 않는다. cancel accepted는 termination 완료가 아니므로 원래 target을 observe한다. control operation은 target의 writer reservation을 대체하지 않는다.
 
+capability adapter protocol v1도 planner가 아니라 얇은 effect transport다. controller→adapter는 `invoke`, `cancel`, `inspect`, adapter→controller는 `accepted`, `output`, `artifact`, `terminal`을 사용한다. 모든 메시지는 capabilityId/version/descriptorDigest/actionId/operationId와 canonical request digest에 묶이고, controller가 args를 먼저 schema-validate한다. adapter가 자체 descriptor나 grant를 런타임 응답으로 바꿀 수 없으며, disconnect는 effect 없음의 증거가 아니다. large output은 hash-bound artifact로 반환하고 bounded inline output만 operation에 저장한다.
+
 ## 22. State ownership
 
 | Owner | 사실 / 저장 방식 | 다른 owner와의 경계 |
 |---|---|---|
 | GitHub Git/ref | canonical content/history/current ref | DB cached head는 timestamp 있는 관측일 뿐 |
-| Termux SQLite controller | grants/bindings, workspace revision, immutable operation intent/result, selected executor identity | single active process OS lock+WAL/FULL; 네트워크 중 SQL transaction을 잡지 않음 |
+| Termux SQLite controller | grants/bindings, adopted capability descriptors/bindings, workspace revision, immutable operation intent/result, selected executor identity | single active process OS lock+WAL/FULL; 네트워크 중 SQL transaction을 잡지 않음 |
 | local Git/object store | workspace/receipt에 쓰이는 flushed immutable bytes | unreferenced insertion은 GC 가능, pointer가 content보다 먼저 durable해지지 않음 |
 | remote provider + trusted outer spool | physical job/container lifecycle, output/input receipt/checkpoint manifest | temporary per-operation spool은 runner 내부 재연결을 위한 것. logical work나 human authority의 주인이 아님. provider job 손실 이후 생존을 주장하지 않음 |
 | Cloudflare Access | identity/OAuth issuance·revocation | grant table의 repository 권한을 대신하지 않음 |
 | routing DO | 연결 attachment/nonce/요청 forwarding | job queue, canonical truth, durable result를 소유하지 않음 |
-| operator launcher | approved release manifests 및 active/previous pointer | 일반 tool에서 수정할 수 없음 |
+| operator launcher/admin | approved release manifests, active/previous pointer, capability install/enable/disable manifests | 일반 capability invoke나 repository source가 수정할 수 없음 |
 | bounded logs/backups | 관측 자료, offline restore | PASS/권한/작업 상태를 로그 텍스트에서 추론해 복원하지 않음 |
 
 SQLite operation은 `queued → running → succeeded|failed|cancelled|uncertain`을 사용한다. uncertain은 자동 재실행 상태가 아니며 exact observation으로 원래 결과를 확정할 수 있다. `step`은 kind별 필요한 checkpoint(예: admitted/launched/checkpointed, prepared/validated, intent/pushed/readback)만 저장하고 새로운 state machine class를 만들지 않는다. retries는 같은 canonical intent 안에서 오직 증명된 safe resend만 한다.
@@ -378,6 +406,8 @@ terminal payload/log는 기본 7일, 로그는 operation당 32 MiB/설치 전체
 
 ```json
 {"tool":"tdev_context","input":{"bindingId":"self","ref":"refs/heads/tdev"}}
+{"tool":"tdev_capability","input":{"op":"describe","capabilityId":"example.optional-tool"}}
+{"tool":"tdev_capability","input":{"op":"invoke","requestId":"cap-01","capabilityId":"example.optional-tool","descriptorDigest":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","actionId":"inspect","args":{}}}
 {"tool":"tdev_read","input":{"target":{"snapshot":"returned-snapshot"},"queries":[
   {"id":"find","kind":"search","query":"validation failed","path":"src","regex":false},
   {"id":"rules","kind":"file","path":"AGENTS.md","ranges":[{"startLine":1,"endLine":80}]}
@@ -391,7 +421,7 @@ terminal payload/log는 기본 7일, 로그는 operation당 32 MiB/설치 전체
 {"tool":"tdev_integrate","input":{"requestId":"fix-01-publish","workspaceId":"ws-example","expectedRevision":"1","validationId":"op-validation","expectedHead":"sha1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}
 ```
 
-대상이 알려졌으면 binding/ref를 명시한 context 한 번으로 시작한다. full test를 `exec`로 먼저 반복한 다음 같은 test를 validate에서 다시 실행하는 것은 기본 경로가 아니다. validate를 첫 mandatory test로 쓰고, 실패할 때 필요한 diagnostics만 exec한다.
+대상이 알려졌으면 binding/ref를 명시한 context 한 번으로 시작한다. 위 capability 두 줄은 **설치된 optional capability가 실제 작업에 필요할 때만** 사용하는 별도 예시이며 정상 repository 작업마다 실행하지 않는다. context summary로 충분하면 describe도 생략하고, descriptor가 필요할 때만 lazy-load한다. full test를 `exec`로 먼저 반복한 다음 같은 test를 validate에서 다시 실행하는 것은 기본 경로가 아니다. validate를 첫 mandatory test로 쓰고, 실패할 때 필요한 diagnostics만 exec한다.
 
 exec 예시는 `{cmd:"npm run format",cwd:".",network:"none"}`다. admission 후 workspace writer를 예약하고 private container를 만든다. 완료되면 전체 container process 종료를 확인하고 trusted outer가 filesystem diff를 수집한다. controller는 manifest/path/mode/size/hash를 검증하여 새 tree를 flush하고, operation 결과와 workspace revision을 한 DB transaction으로 publish한다. formatter가 nonzero여도 수집된 변경은 보존하고 exitCode를 숨기지 않는다.
 
@@ -439,6 +469,8 @@ scheduler는 queued operation을 principal/binding별 공정하게 고르고 blo
 
 같은 ref의 natural batch는 source workspace N개를 compose하고 resulting workspace 하나를 validate/integrate한다. 원본을 모두 integrated로 자동 settlement하지 않는다. 합성 workspace의 provenance와 receipt가 어떤 exact source revision을 포함했는지 증명하며 원본 정리는 명시적 close다. 이 단순화가 자동 H2 group recovery owner를 없앤다.
 
+capability invocation도 installation-wide scheduler와 operation capacity를 재사용하되 descriptor가 별도 executor를 선언한 경우 그 provider의 실제 quota를 따른다. capability는 특정 repository에 묶일 수도, installation/device 전체에 묶일 수도 있다. 어느 경우든 current subject의 namespaced grant와 exact target을 매 admission에 확인하며, extension role이나 model 판단으로 scope를 넓히지 않는다.
+
 ## 26. Security/authorization model
 
 **핵심 trust boundary:** candidate code는 악의적일 수 있다. 모델이 만든 shell string도 native controller에서 실행하지 않는다. Termux의 trusted executable/config/state/credentials와 sandbox filesystem/process/network namespace를 분리한다. Android owner UID 자체가 이미 침해된 상황, provider/OS administrator의 악의적 행동까지 방어한다고 주장하지 않는다.
@@ -453,7 +485,9 @@ network preset은 `none`, `dependencies`, `internet`이다. 기본 none이고 bi
 
 validation의 mandatory command/controller/policy는 operator가 digest로 adopt한다. candidate가 validation policy 파일을 바꿔도 곧바로 채택되지 않는다. 새 policy는 이전 policy로 검사한 commit을 명시적으로 adopt한다. 검증 성공은 **고정한 검사들의 실제 결과**이지 모든 버그/악의적 코드 부재의 증명은 아니다.
 
-destructive boundary는 canonical push, workspace close, process cancellation, release activation에 둔다. workspace close는 checkpoint를 즉시 지우는 recursive delete가 아니라 closed 표시다. retention 이후 object GC가 reclaim한다. 명시적 operator authorization 없이 runtime/schema-policy/provider resource를 바꾸지 않는다.
+destructive boundary는 canonical push, workspace close, process cancellation, release activation, capability install/enable/disable과 extension이 선언한 destructive external effect에 둔다. workspace close는 checkpoint를 즉시 지우는 recursive delete가 아니라 closed 표시다. retention 이후 object GC가 reclaim한다. 명시적 operator authorization 없이 runtime/schema-policy/provider/capability resource를 바꾸지 않는다.
+
+extension security는 **semantic intent 분류가 아니라 adopted contract enforcement**다. core는 command나 action 내용을 보고 ‘안전해 보인다’고 local로 승격하지 않는다. exact capability/action, descriptor digest, current grant, declared execution boundary와 structural precondition만 검사한다. extension은 controller DB/secret store에 직접 쓰지 않고 adapter protocol을 통해 bounded input/output/artifact만 교환한다. controller-trusted local adapter가 필요한 경우 그것은 명시적 operator trust transition이며, arbitrary repository code의 same-UID 실행을 우회적으로 허용하는 수단이 아니다. advisor/JEV/다른 모델의 출력은 어떤 confidence여도 권한·validation receipt·integration proof가 될 수 없다.
 
 ## 27. KEEP / REPLACE / MERGE / REMOVE / DEFER matrix
 
@@ -463,7 +497,7 @@ destructive boundary는 canonical push, workspace close, process cancellation, r
 | fixed argv Git + qualified CAS + readback | KEEP | 검증된 작은 implementation 회수 |
 | atomic candidate invariant | KEEP INVARIANT, REPLACE IMPLEMENTATION | workspace revision 한 개; sequential replacements와 one tree CAS |
 | batch/range read | KEEP INVARIANT, REPLACE IMPLEMENTATION | source 읽기마다 current-ref 재조회 제거; 범위/hash 비용 제한 |
-| four-tool surface | REMOVE | 9개의 자연스러운 효과 경계로 재선택 |
+| four-tool surface | REMOVE | 9개 core effect tool + 1 stable capability gateway로 재선택 |
 | tmcp generic Operation registry | REMOVE | core 도구를 직접 호출; registry discovery 왕복 불필요 |
 | tmcp shell 자율성 | KEEP INVARIANT, REPLACE IMPLEMENTATION | generic command, 그러나 credential-free sandbox |
 | Work/Action/Attempt/Prepared/Effect 노출 | MERGE | workspace + operation family, receipt/effect는 value |
@@ -485,11 +519,14 @@ destructive boundary는 canonical push, workspace close, process cancellation, r
 | Worker/Access/installation DO | KEEP | 실제 ingress/reconnect/auth 요구 |
 | D1 Case placement, queue/result provider DB | REMOVE | 현재 target의 local owner와 중복 |
 | changing tunnel manager | REMOVE | 안정 public origin/outbound bridge로 충분 |
-| browser/CDP/desktop automation | DEFER | coding core의 필수 dependency 아님 |
-| local Codex/ACP/subagent/model API | DEFER | host가 직접 orchestration; opt-in adapter만 |
+| stable open capability gateway | KEEP TARGET | extension별 public tool/core workflow를 만들지 않고 lazy descriptor+operation으로 확장 |
+| dynamic MCP tool per extension | REMOVE | tools/list/Refresh/schema context를 extension lifecycle과 결합하지 않음 |
+| browser/CDP/desktop automation | DEFER AS EXTENSION | coding core dependency가 아니며 필요 시 capability adapter로 추가 |
+| local Codex/ACP/subagent/model API | DEFER AS EXTENSION | host가 직접 orchestration; 필요 시 advisor/executor adapter로 추가 |
 | writable build-cache reuse, semantic search index | DEFER | 실제 workload 병목이 확인될 때 |
 | arbitrary local same-UID candidate execution | REMOVE | 선택한 trust model과 모순 |
-| local isolated executor | DEFER | 실제 OS boundary가 있을 때 같은 executor interface로 추가 |
+| local isolated executor | DEFER AS EXTENSION | 실제 OS boundary가 있을 때 capability/executor adapter로 추가 |
+| hard-link-dependent native correctness | REMOVE | Android/Termux portability를 위해 Git object/SQLite/copy/rename 기반으로 구현 |
 
 ## 28. Repository-development governance
 
@@ -497,9 +534,9 @@ destructive boundary는 canonical push, workspace close, process cancellation, r
 
 AGENTS는 README current work와 관련 architecture/contract를 찾는 방법만 말한다. README는 짧은 product intent와 현재 단계/다음 행동/진짜 blocker를 소유한다. 이 문서는 architecture와 분석 근거를 소유하며 전체를 매 세션 읽지 않는다. contract bundle은 wire 필드를 소유한다. chronology는 Git history에 남긴다.
 
-fresh-session의 필수 AGENTS+README 합계 목표는 **6 KiB 이하, navigation 1 hop**이다. 이 설계본의 실제 합계는 3,273 UTF-8 bytes다. 이는 관련 기술 source까지 6 KiB로 제한한다는 뜻이 아니다. 관련 section만 추가로 읽는다. 이 목표가 wrong-route/rework를 늘리면 구체적 실패를 근거로 바꾼다.
+fresh-session의 필수 AGENTS+README 합계 목표는 **6 KiB 이하, navigation 1 hop**이다. 이 계약 갱신 후 실제 합계는 **4,531 UTF-8 bytes**다. 이는 관련 기술 source까지 6 KiB로 제한한다는 뜻이 아니다. 관련 section만 추가로 읽는다. 이 목표가 wrong-route/rework를 늘리면 구체적 실패를 근거로 바꾼다.
 
-작은 구현 변경은 source/test와 현재 작업 상태만 바꾼다. 경계를 바꾸면 해당 architecture section과 schema/test를 같은 commit에서 고친다. 별도 Design ID/route-map/캠페인 인허가 단계는 없다. 증거는 실제 PASS/FAIL을 뒷받침하는 최소 receipt나 재현 script를 관련 변경에 남기며 historical narrative를 중복 유지하지 않는다.
+작은 구현 변경은 source/test와 현재 작업 상태만 바꾼다. 경계를 바꾸면 해당 architecture section과 schema/test를 같은 commit에서 고친다. 개별 extension은 중앙 architecture 문서를 새로 만들거나 core tool schema를 바꾸는 대신 자기 package의 descriptor/manifest와 필요한 adapter tests를 소유한다. 별도 Design ID/route-map/캠페인 인허가 단계는 없다. 증거는 실제 PASS/FAIL을 뒷받침하는 최소 receipt나 재현 script를 관련 변경에 남기며 historical narrative를 중복 유지하지 않는다.
 
 ## 29. Migration strategy
 
@@ -509,9 +546,9 @@ fresh-session의 필수 AGENTS+README 합계 목표는 **6 KiB 이하, navigatio
 dev-2의 identity/canonical encoding, Git object/path routines, qualified CAS, provider-boundary verification, Access assertions, framed transport, trusted outer receipt/managed-session fencing과 관련 regression assertion을 회수한다 [T2] [T3] [T4] [T5] [T6] [T7] [T8]. contract/workspace/operation storage와 generic exec command/checkpoint는 새로 구현한다. tmcp의 process-group/output/permission pattern과 외부 read/exec/patch pattern은 선택적으로 port한다. 실제 code를 복사할 때 upstream license/NOTICE와 pinned source를 보존한다. 이번 branch에는 외부 source를 vendor하지 않는다.
 
 ### 보존/폐기할 state
-보존 대상은 canonical Git, human principal의 명시적 grants, binding/policy 설정, 사용자 미통합 변경, 필요한 immutable receipts와 rollback artifact다. SQLite row를 구조 그대로 migration하지 않는다. old work는 exact base/tree의 Git bundle 또는 manifest export로 보존하고 새 workspace로 import한 뒤 새 controller로 다시 validate한다. old receipt를 새 policy의 PASS로 재라벨하지 않는다.
+보존 대상은 canonical Git, human principal의 명시적 grants, binding/policy 설정, 사용자가 명시적으로 재채택할 capability package/descriptor manifest, 사용자 미통합 변경, 필요한 immutable receipts와 rollback artifact다. SQLite row를 구조 그대로 migration하지 않는다. old work는 exact base/tree의 Git bundle 또는 manifest export로 보존하고 새 workspace로 import한 뒤 새 controller로 다시 validate한다. old receipt를 새 policy의 PASS로 재라벨하지 않는다.
 
-Case/Drive/old request/epoch/queue/H2 membership/tunnel state는 새 core로 import하지 않는다. old log/history는 접근 제한 archive이며 새 runtime의 authority가 아니다. 살아 있는 operation/process는 넘기지 않고 정상 drain/종료 증명 후 전환한다. 중지할 수 없는 genuine live work가 있으면 전환을 보류한다.
+Case/Drive/old request/epoch/queue/H2 membership/tunnel state와 old plugin/adapter runtime state는 새 core로 import하지 않는다. capability는 exact package/descriptor digest를 새 controller에서 다시 adopt하고 필요한 grant를 명시적으로 복원한다. old log/history는 접근 제한 archive이며 새 runtime의 authority가 아니다. 살아 있는 operation/process는 넘기지 않고 정상 drain/종료 증명 후 전환한다. 중지할 수 없는 genuine live work가 있으면 전환을 보류한다.
 
 ### Endpoint와 provider
 canonical endpoint/Worker name/Access application은 재사용 후보이고 resource identity/claim shape를 fresh 확인한다. existing routing DO를 protocol-compatible하게 쓸 수 있으면 재사용한다. incompatibility가 있으면 같은 installation route의 generation을 **quiescent cutover**에서 전환하며 old writer를 먼저 fence한다. per-repository endpoint는 만들지 않는다.
@@ -519,7 +556,7 @@ canonical endpoint/Worker name/Access application은 재사용 후보이고 reso
 Cloudflare D1/old Worker/DO namespace/aux refs는 inventory에서 active/historical/migration/orphan으로 구분한다. 실제 참조가 없는 것이 증명된 resource만 rollback 창 이후 제거한다. source에 이름이 없다는 이유만으로 provider resource를 지우지 않는다.
 
 ### Release와 rollback
-operator entrypoint는 `tdev-admin binding add/update`, `grant add/revoke`, `policy adopt`, `release stage/activate/rollback`이다. 모두 expected current config/pointer digest를 받는 explicit admin boundary다. `stage`는 source commit, artifact digest, protocol/schema versions, executable relative path, required acceptance를 manifest에 고정한다. `activate`는 no-live-writer → approved manifest 검증 → active/previous pointer의 atomic 교체 → 실제 PID/executable/bundle digest readback 순서다. bootstrap baseline executable을 고정 경로로 재실행하지 않는다.
+operator entrypoint는 `tdev-admin binding add/update`, `grant add/revoke`, `policy adopt`, `capability install/enable/disable`, `release stage/activate/rollback`이다. 모두 expected current config/pointer digest를 받는 explicit admin boundary다. capability install은 exact package/entrypoint digest, descriptor digest, adapter protocol version, execution boundary와 allowed scoped-secret references를 고정하고 core source/Worker/tool list를 수정하지 않는다. disable은 새 invoke를 fence하되 이미 admitted된 operation을 성공으로 가장하지 않으며 observe/cancel/reconcile이 끝난 뒤에만 제거할 수 있다. `stage`는 source commit, artifact digest, protocol/schema versions, executable relative path, required acceptance를 manifest에 고정한다. `activate`는 no-live-writer → approved manifest 검증 → active/previous pointer의 atomic 교체 → 실제 PID/executable/bundle digest readback 순서다. bootstrap baseline executable을 고정 경로로 재실행하지 않는다.
 
 rollback은 한 개의 previous verified bundle과 전환 전 state backup으로 한정한다. 처음 전환은 new store를 분리하여 old reader가 new schema를 해석할 필요가 없게 한다. activation 후 새 work가 생겼다면 다시 quiesce하고 exact changes/receipts를 보존해야 한다. canonical Git을 과거로 reset하지 않는다. 새 schema에 대해 old binary가 안전한지 확인하지 않고 pointer만 되돌리지 않는다.
 
@@ -531,11 +568,11 @@ old public tool aliases는 유지하지 않는다. endpoint 전환 뒤 client to
 
 | 단계 | 만드는 것 / 재사용 / 제거 | 확보할 invariant와 충분한 검사 | 다음으로 열리는 것 |
 |---|---|---|---|
-| 1. Contracts + native workspace vertical slice | JSON contract를 actual handlers에 연결, installation DB/bindings/grants/Git tree, context/read/open/patch/observe. 기존 fixed Git/encoding/edge auth adapter 회수. Work/Task hierarchy 없음 | fixture schema valid/invalid, same-key replay, revision race, path/symlink, crash-before/after pointer, native Termux 재시작. 변경 없는 staging route에서 실제 ChatGPT discovery/read | 모델이 정확한 source를 읽고 durable atomic 변경을 만듦 |
+| 1. Contracts + native workspace/capability vertical slice | JSON contract를 actual handlers에 연결, installation DB/bindings/grants/capability registry/Git tree, context/read/open/patch/observe와 stable `tdev_capability list/describe/invoke` gateway를 구현. 실제 production extension 대신 synthetic no-op/echo fixture adapter로 protocol을 고정. 기존 fixed Git/encoding/edge auth adapter 회수. Work/Task hierarchy 없음 | fixture schema valid/invalid, same-key replay, revision race, path/symlink, crash-before/after pointer, native Termux 재시작, descriptor digest mismatch, unauthorized action, adapter disable/restart. 변경 없는 staging route에서 실제 ChatGPT discovery/read와 gateway describe/invoke; extension install 전후 tools/list 동일 | 모델이 정확한 source를 읽고 durable atomic 변경을 만들며 core redeploy 없이 future capability를 붙일 기본 경계를 확보 |
 | 2. Generic sandbox process | 기존 approved managed-runner launch/outer receipt 경계 회수. exec/process/stdin/log cursor/terminated-container checkpoint 구현. profile-only diagnostic run 대체 | native credential sentinel에 접근 불가, cross-workspace escape, launch-response loss, group cancellation, nonzero edits 보존, bounded logs; live 한 번의 formatter/interactive session. control assertions는 container 밖 | 임의 test/build/diagnostic과 source 생성 |
 | 3. Validation + exact integration | fixed commit freeze, mandatory profiles, trusted receipt, sole writer boundary, qualified CAS/readback. old full publication workflow 대신 operation 값 사용 | stale-before/after validation, altered tree/policy/receipt 거절, lost push readback, same receipt 중복 integrate, no false PASS. disposable protected ref에서 실제 수정→검사→통합 | **최초 최소 완전 개발 경로. 즉시 one-file/multi-file/search workload 측정** |
 | 4. Composition + N-way operation | explicit compose, fair capacity, multiple binding/ref/subjects. H2 automatic group state 제거 | disjoint/overlap/mode/type conflict, source rev freeze, one combined mandatory validation, capacity1과8, 두 repo/two refs, cross-principal denied | 병렬 throughput과 multi-repo 실측; per-repo runtime 복제 없음 |
-| 5. Reconnect/운용 다듬기 | delta transfer/cache budget, same executor reattach, edge/offline classifications, bounded restore/GC. unrelated recovery framework 없음 | actual Termux restart/network drop, provider-terminal proof, output replay, unknown stdin, disk full, revoke-before-dispatch, device cred≠human 권한. 최초 전체 workload cohort | 공개 path의 운영성과 비용 자료 |
+| 5. Reconnect/운용 다듬기 | delta transfer/cache budget, same executor reattach, edge/offline classifications, bounded restore/GC, capability adapter reconnect/disable semantics. unrelated recovery framework 없음 | actual Termux restart/network drop, provider-terminal proof, output replay, unknown stdin, disk full, revoke-before-dispatch, device cred≠human 권한, one optional real capability adapter의 install→describe→invoke→disable. 최초 전체 workload cohort | 공개 path와 extension path의 운영성과 비용 자료 |
 | 6. Release/cutover | 작은 admin release entrypoint/manifest/pointer, exact export/import, 기존 endpoint/Access resource 회수. legacy aliases/state migration framework 없음 | actual activated executable digest readback, two-principal OAuth, no active writer, rollback one bundle, old/new schema 분리. 기존 acceptance 통과 후 실제 전환 | 새 production 경로 |
 | 7. Real acceptance + cleanup | 같은 workload production 재확인, state/provider inventory, proven orphan과 transition-only 코드 제거 | 정확한 canonical result/권한/회복 증거, current-work와 실제 상태 일치, archive 접근 제한, source/runtime identity 보고 | 구현 완료 판정과 이후 병목 기반 개선 |
 
@@ -553,33 +590,34 @@ old public tool aliases는 유지하지 않는다. endpoint 전환 뒤 client to
 | test/build failure diagnosis | 원인 설명만이 아니라 수리한 canonical 결과 |
 | concurrent independent tasks | N개의 의도 보존; 개별/합성 전략과 actual publication 수 명시 |
 | second repository task | 같은 runtime에서 다른 binding/ref 수정·검증·통합 |
+| optional capability adaptation | disposable extension 하나를 core source/public tool list 변경 없이 install→lazy describe→invoke→disable하고 exact grant/dedup을 보존 |
 
 각 workload는 같은 starting commit, 비슷한 task 크기, 같은 모델/effort/도구 설명, 권한·validation policy·provider class·네트워크 조건을 고정한다. cold/warm을 섞지 않고 따로 기록한다. 첫 smoke는 각 1회로 correctness를 보고, 성능 결정을 할 때 각 조건 3회 이상 반복하여 개별값과 median/range를 남긴다. 작은 표본으로 유의미한 백분위/보편적 speedup을 주장하지 않는다.
 
-측정값은 success/failure, time-to-first-useful-action, total wall time, tool calls, serialized input/output/schema/context/source bytes, duplicate blob/range reads, process/provider-session starts, Git/provider requests, validations/retries, peak actual parallel executions, held slots, user interventions다. billing data가 없으면 provider busy duration을 달러로 변환하지 않는다. token 사용량이 없으면 byte proxy라고 표시한다.
+측정값은 success/failure, time-to-first-useful-action, total wall time, tool calls, serialized input/output/schema/context/source bytes, capability summary/descriptor bytes와 lazy-load 횟수, duplicate blob/range reads, process/provider-session starts, Git/provider requests, validations/retries, peak actual parallel executions, held slots, user interventions다. billing data가 없으면 provider busy duration을 달러로 변환하지 않는다. token 사용량이 없으면 byte proxy라고 표시한다.
 
 현재 static 53,706-byte navigation과 새 mandatory startup bytes를 따로 비교한다. source reads까지 혼합하지 않는다. 기존 비용 진단의 6/8과 tmcp local 3/8은 동일 성공 조건이 아니므로 baseline speedup을 계산하지 않는다. 비교 runtime을 재구동하는 비용이 크면 새 core의 absolute measurements부터 보고한다.
 
-합격 조건은 모든 workload의 exact postcondition과 security/correctness checks, 같은 ref composition 1회 최종 mandatory validation, duplicate canonical effect 0, unrelated workspace overwrite 0, missed output 재관측 가능, 두 repository를 위해 deployment 0이다. wall time의 임의 절대 목표는 현재 근거가 없어 정하지 않는다. task success를 희생한 tool-call 감소는 최적화로 인정하지 않는다.
+합격 조건은 모든 workload의 exact postcondition과 security/correctness checks, 같은 ref composition 1회 최종 mandatory validation, duplicate canonical effect 0, unrelated workspace overwrite 0, missed output 재관측 가능, 두 repository를 위해 deployment 0, disposable capability install/disable 동안 public tool-list 변화 0, capability descriptor mismatch/unauthorized invoke effect 0이다. wall time의 임의 절대 목표는 현재 근거가 없어 정하지 않는다. task success를 희생한 tool-call 감소는 최적화로 인정하지 않는다.
 
 ## 32. Targeted verification tasks, only if genuinely necessary
 
 architecture를 결정하기 위한 별도 prototype/worker 실험은 **현재 0건**이다. 기존 source/evidence로 target을 선택할 수 있었다. 구현 단계의 acceptance 중 다음 한 가지 host-dependent 확인만 따로 식별한다.
 
 **QUESTION**
-실제 연결된 ChatGPT host가 선택한 nine-tool schema의 discriminated variants와 bounded batch 결과를 올바르게 discovery/호출/표시하는가?
+실제 연결된 ChatGPT host가 선택한 **ten-tool stable surface**의 discriminated variants와 bounded batch 결과를 올바르게 discovery/호출/표시하고, extension 설치 후 별도 client Refresh 없이 기존 `tdev_capability`를 통해 새 descriptor/action을 사용할 수 있는가?
 
 **WHY IT MATTERS**
 MCP 표준의 JSON Schema 지원과 특정 host의 실제 schema 취급은 다르다. 결과에 따라 wire schema의 표현 방식이 달라질 수 있지만 권한이나 runtime architecture는 바뀌지 않는다.
 
 **MINIMUM CHECK**
-단계 1에서 구현한 동일 adapter의 실제 descriptor를 Refresh한 뒤 한 번의 two-query read와 disposable workspace의 두-file patch를 호출하고 result를 재관측한다. 대규모 benchmark, 별도 agent loop, safety 우회 실험은 하지 않는다.
+단계 1에서 구현한 동일 adapter의 10개 public descriptor를 한 번 Refresh한 뒤 one two-query read와 disposable workspace의 two-file patch를 호출하고 result를 재관측한다. 이어 synthetic capability를 admin install/enable하고 **tools/list를 바꾸지 않은 채** `tdev_capability describe → invoke → observe`를 한 번 수행한 뒤 disable한다. 대규모 benchmark, 별도 agent loop, safety 우회 실험은 하지 않는다.
 
 **RESULT A**
-현재 tagged union schema와 typed result를 그대로 사용한다.
+현재 tagged union schema와 typed result, stable capability gateway를 그대로 사용한다. extension 설치/제거는 client tool Refresh를 요구하지 않는다.
 
 **RESULT B**
-host가 정상 schema를 처리하지 못하는 것이 확인되면 tool 수/효과를 바꾸지 않고, 해당 tool의 properties를 flat object+required discriminator로 advertise하며 server에서 원래 union을 엄격 검증한다. schema/result의 작은 변환만 다시 확인한다. mutation을 read-only로 속이거나 다른 tool로 policy block을 우회하지 않는다.
+host가 정상 schema를 처리하지 못하는 것이 확인되면 **10개 tool 수/효과와 stable gateway 선택을 바꾸지 않고**, 해당 tool의 properties를 flat object+required discriminator로 advertise하며 server에서 원래 union과 capability action schema를 엄격 검증한다. schema/result의 작은 변환만 다시 확인한다. mutation을 read-only로 속이거나 다른 tool로 policy block을 우회하지 않는다.
 
 이 확인이 실패할 수도 있다는 점은 미구현 제품의 host acceptance 미완료이지, target architecture 선택 보류가 아니다. PTY packaging·provider capacity·Android restart는 §30의 구현 acceptance이며 별도 architecture research program으로 만들지 않는다.
 
@@ -591,9 +629,11 @@ host가 정상 schema를 처리하지 못하는 것이 확인되면 tool 수/효
 
 가장 큰 구현 위험은 generic exec의 source checkpoint 수집과 stdin crash gap이다. 이를 감추지 않고 exact last checkpoint, whole-container termination, hash/path verification, unknown delivery, no automatic arbitrary replay로 한정했다. uncheckpointed interactive changes의 runner loss는 실제로 유실될 수 있다. Git/DB 손상은 backup과 수동 복구를 필요로 한다.
 
-초기 capability 제한은 unresolved submodule/LFS materialization, arbitrary private-package credential provisioning, local hostile-code execution, browser/desktop/subagents다. 정상 read는 제한을 드러내며 지원하지 않는 source를 검증 완료로 처리하지 않는다. extension이 필요하면 동일 executor/receipt 또는 read contract에 작은 기능으로 추가한다.
+초기 built-in capability 제한은 unresolved submodule/LFS materialization, arbitrary private-package credential provisioning, local hostile-code execution이다. browser/desktop/device adapters, Blender 같은 application bridge, 새로운 executor, JEV/다른 advisor 모델 등은 **core 미지원 기능이 아니라 설치되지 않은 optional extension**으로 취급한다. 필요 시 새 public tool이나 core workflow를 추가하지 않고 stable capability gateway에 adapter를 붙인다.
 
-**최종 판단:** 처음부터 다시 만든다면 ChatGPT의 지능을 다시 구현하지 않고, 자연스러운 batch read·atomic edit·generic sandbox process를 직접 제공하며, immutable workspace와 exact validation/integration에만 필요한 durable correctness를 둔다. 기존 구현에서 비싸게 얻은 경계는 보존하되, 그 경계를 이해하기 위해 모델이 authority graph 전체를 매번 읽도록 만들지는 않는다.
+open extension plane의 잔여 위험은 gateway가 다시 거대한 generic registry가 되거나 trusted adapter가 controller trust domain을 불필요하게 넓히는 것이다. 이를 bounded summary/lazy descriptor, immutable descriptor digest, namespaced grant, existing operation/observe 재사용, admin-only install, explicit execution boundary로 제한한다. 실제 host가 no-refresh dynamic descriptor 사용을 안정적으로 처리하는지는 §32에서 확인한다.
+
+**최종 판단:** 처음부터 다시 만든다면 ChatGPT의 지능을 다시 구현하지 않고, 자연스러운 batch read·atomic edit·generic sandbox process를 직접 제공하며, immutable workspace와 exact validation/integration에만 필요한 durable correctness를 둔다. 동시에 아직 존재하지 않는 future capability도 core를 다시 설계하지 않고 붙일 수 있도록 9개 core tool + 하나의 stable lazy capability gateway를 둔다. 기능은 extension으로 열어 두되 authority와 correctness boundary는 core에 닫아 둔다. 기존 구현에서 비싸게 얻은 경계는 보존하되, 그 경계를 이해하거나 새 기능을 쓰기 위해 모델이 authority graph 전체를 매번 읽도록 만들지는 않는다.
 
 ### Evidence index (분석용 링크, 별도 authority hierarchy 아님)
 

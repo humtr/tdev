@@ -573,7 +573,8 @@
             "exec",
             "process",
             "validate",
-            "integrate"
+            "integrate",
+            "capability"
           ]
         },
         "status": {
@@ -681,6 +682,18 @@
             "unknown",
             "not_applicable"
           ]
+        },
+        "capabilityId": {
+          "$ref": "#/$defs/Id"
+        },
+        "capabilityAction": {
+          "$ref": "#/$defs/Id"
+        },
+        "capabilityOutput": {
+          "type": "object",
+          "maxProperties": 128,
+          "additionalProperties": true,
+          "description": "Bounded action-specific JSON validated against the adopted capability descriptor output schema before publication. Large output is returned as artifacts."
         }
       },
       "required": [
@@ -986,6 +999,27 @@
         },
         "contractVersion": {
           "const": "tdev.tools.v1"
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CapabilitySummary"
+          },
+          "minItems": 0,
+          "maxItems": 32
+        },
+        "capabilitiesComplete": {
+          "type": "boolean"
+        },
+        "capabilitiesCursor": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Token"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "required": [
@@ -994,7 +1028,10 @@
         "limits",
         "nextCursor",
         "runtimeState",
-        "contractVersion"
+        "contractVersion",
+        "capabilities",
+        "capabilitiesComplete",
+        "capabilitiesCursor"
       ],
       "additionalProperties": false
     },
@@ -2911,6 +2948,383 @@
         "artifactId"
       ],
       "additionalProperties": false
+    },
+    "CapabilitySummary": {
+      "type": "object",
+      "properties": {
+        "capabilityId": {
+          "$ref": "#/$defs/Id"
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "descriptorDigest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "description": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 512
+        },
+        "role": {
+          "$ref": "#/$defs/Id",
+          "description": "Descriptive extension role such as executor, observer, presenter, artifact or advisor. Role is not authority and is not a closed semantic enum."
+        },
+        "available": {
+          "type": "boolean"
+        },
+        "unavailableReasons": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Error"
+          },
+          "minItems": 0,
+          "maxItems": 8
+        }
+      },
+      "required": [
+        "capabilityId",
+        "version",
+        "descriptorDigest",
+        "label",
+        "description",
+        "role",
+        "available",
+        "unavailableReasons"
+      ],
+      "additionalProperties": false
+    },
+    "CapabilityAction": {
+      "type": "object",
+      "properties": {
+        "actionId": {
+          "$ref": "#/$defs/Id"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "inputSchema": {
+          "type": "object",
+          "maxProperties": 128,
+          "additionalProperties": true,
+          "description": "Adopted JSON Schema fragment for action arguments. The server validates arguments against this exact descriptor before dispatch."
+        },
+        "outputSchema": {
+          "type": "object",
+          "maxProperties": 128,
+          "additionalProperties": true,
+          "description": "Adopted JSON Schema fragment for bounded inline action output. Large output is represented by artifacts."
+        },
+        "requiredGrants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Id"
+          },
+          "minItems": 0,
+          "maxItems": 16
+        },
+        "readOnly": {
+          "type": "boolean"
+        },
+        "destructive": {
+          "type": "boolean"
+        },
+        "idempotent": {
+          "type": "boolean"
+        },
+        "openWorld": {
+          "type": "boolean"
+        },
+        "asynchronous": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "actionId",
+        "description",
+        "inputSchema",
+        "outputSchema",
+        "requiredGrants",
+        "readOnly",
+        "destructive",
+        "idempotent",
+        "openWorld",
+        "asynchronous"
+      ],
+      "additionalProperties": false
+    },
+    "CapabilityDescriptor": {
+      "type": "object",
+      "properties": {
+        "capabilityId": {
+          "$ref": "#/$defs/Id"
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "descriptorDigest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "description": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 2048
+        },
+        "role": {
+          "$ref": "#/$defs/Id"
+        },
+        "adapterProtocolVersion": {
+          "const": 1
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CapabilityAction"
+          },
+          "minItems": 1,
+          "maxItems": 128
+        }
+      },
+      "required": [
+        "capabilityId",
+        "version",
+        "descriptorDigest",
+        "label",
+        "description",
+        "role",
+        "adapterProtocolVersion",
+        "actions"
+      ],
+      "additionalProperties": false
+    },
+    "CapabilityInput": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "list"
+            },
+            "cursor": {
+              "$ref": "#/$defs/Token"
+            },
+            "maxItems": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 64,
+              "default": 32
+            },
+            "maxBytes": {
+              "type": "integer",
+              "minimum": 1024,
+              "maximum": 65536,
+              "default": 24000
+            }
+          },
+          "required": [
+            "op"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "describe"
+            },
+            "capabilityId": {
+              "$ref": "#/$defs/Id"
+            },
+            "maxBytes": {
+              "type": "integer",
+              "minimum": 1024,
+              "maximum": 65536,
+              "default": 24000
+            }
+          },
+          "required": [
+            "op",
+            "capabilityId"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "invoke"
+            },
+            "requestId": {
+              "$ref": "#/$defs/Id"
+            },
+            "capabilityId": {
+              "$ref": "#/$defs/Id"
+            },
+            "descriptorDigest": {
+              "$ref": "#/$defs/Digest"
+            },
+            "actionId": {
+              "$ref": "#/$defs/Id"
+            },
+            "args": {
+              "type": "object",
+              "maxProperties": 128,
+              "additionalProperties": true
+            },
+            "yieldMs": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10000,
+              "default": 1000
+            },
+            "maxBytes": {
+              "type": "integer",
+              "minimum": 1024,
+              "maximum": 65536,
+              "default": 24000
+            }
+          },
+          "required": [
+            "op",
+            "requestId",
+            "capabilityId",
+            "descriptorDigest",
+            "actionId",
+            "args"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "CapabilityListResult": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "const": "list"
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CapabilitySummary"
+          },
+          "minItems": 0,
+          "maxItems": 64
+        },
+        "complete": {
+          "type": "boolean"
+        },
+        "nextCursor": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Token"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "op",
+        "capabilities",
+        "complete",
+        "nextCursor"
+      ],
+      "additionalProperties": false
+    },
+    "CapabilityDescribeResult": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "const": "describe"
+        },
+        "descriptor": {
+          "$ref": "#/$defs/CapabilityDescriptor"
+        }
+      },
+      "required": [
+        "op",
+        "descriptor"
+      ],
+      "additionalProperties": false
+    },
+    "CapabilityInvokeResult": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "const": "invoke"
+        },
+        "operation": {
+          "$ref": "#/$defs/Operation"
+        }
+      },
+      "required": [
+        "op",
+        "operation"
+      ],
+      "additionalProperties": false
+    },
+    "CapabilityOutput": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "ok": {
+              "const": true
+            },
+            "result": {
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/CapabilityListResult"
+                },
+                {
+                  "$ref": "#/$defs/CapabilityDescribeResult"
+                },
+                {
+                  "$ref": "#/$defs/CapabilityInvokeResult"
+                }
+              ]
+            }
+          },
+          "required": [
+            "ok",
+            "result"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "ok": {
+              "const": false
+            },
+            "error": {
+              "$ref": "#/$defs/Error"
+            }
+          },
+          "required": [
+            "ok",
+            "error"
+          ],
+          "additionalProperties": false
+        }
+      ]
     }
   },
   "oneOf": [
@@ -3050,6 +3464,22 @@
         },
         "input": {
           "$ref": "#/$defs/ObserveInput"
+        }
+      },
+      "required": [
+        "tool",
+        "input"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "tool": {
+          "const": "tdev_capability"
+        },
+        "input": {
+          "$ref": "#/$defs/CapabilityInput"
         }
       },
       "required": [
@@ -3230,6 +3660,25 @@
       "execution": {
         "taskSupport": "forbidden"
       }
+    },
+    {
+      "name": "tdev_capability",
+      "description": "List or lazily describe authorized installed capabilities, or invoke one exact adopted action through a stable gateway. The model chooses whether and how to use a capability; the core only enforces the adopted descriptor, grants and deterministic effect boundary.",
+      "inputSchema": {
+        "$ref": "#/$defs/CapabilityInput"
+      },
+      "outputSchema": {
+        "$ref": "#/$defs/CapabilityOutput"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
     }
   ],
   "x-semanticChecks": [
@@ -3243,7 +3692,13 @@
     "Output schemas describe structure; byte/array bounds and ownership remain enforced during generation, not after oversized output is created.",
     "ProcessResult.operation describes the durable control operation; targetOperationId names the exec/validate/integrate operation being controlled. Cancellation acceptance is not proof of termination.",
     "ReadTarget(operationId) accepts artifact queries only. Other read variants require snapshot/workspace. No user-supplied Git object grants access by itself.",
-    "Ref list pagination sets refsComplete and refsCursor; ContextInput cursor continuation remains bound to bindingId and authorization."
+    "Ref list pagination sets refsComplete and refsCursor; ContextInput cursor continuation remains bound to bindingId and authorization.",
+    "The public MCP tool set is fixed. Installed extensions never add dynamic MCP tool names; tdev_capability list/describe is the only extension discovery surface.",
+    "Capability list/describe returns only currently authorized installed descriptors. Invoke requires the exact adopted descriptorDigest, validates args against that action input schema before dispatch, and applies current namespaced grants mechanically.",
+    "Capability invoke is admitted as kind=capability with requestId deduplication before any external effect. Bounded output is validated against the adopted action output schema; larger output is returned as artifacts and observed through the existing operation surface.",
+    "Capability role, description, annotations, advisor scores and extension-returned approval text are never authority. Extensions cannot create grants, satisfy mandatory validation, publish canonical Git, or change release pointers unless a separate core/admin boundary explicitly grants that native effect.",
+    "The core performs no semantic safety/planning classification of commands or extension requests. Admission uses authenticated subject, exact installed capability/action, adopted descriptor digest, explicit grants and mechanically verifiable preconditions only.",
+    "Extension installation/enable/disable is an operator/admin boundary, not tdev_capability invoke. Repository bytes cannot self-register as trusted controller extensions; adopted adapter code receives only its declared boundary and never the controller environment or global credential store by default."
   ],
   "x-examples": [
     {
@@ -3434,6 +3889,33 @@
         ],
         "waitMs": 5000
       }
+    },
+    {
+      "tool": "tdev_capability",
+      "input": {
+        "op": "list",
+        "maxItems": 32
+      }
+    },
+    {
+      "tool": "tdev_capability",
+      "input": {
+        "op": "describe",
+        "capabilityId": "example.render"
+      }
+    },
+    {
+      "tool": "tdev_capability",
+      "input": {
+        "op": "invoke",
+        "requestId": "cap-01",
+        "capabilityId": "example.render",
+        "descriptorDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "actionId": "render",
+        "args": {
+          "quality": "preview"
+        }
+      }
     }
   ],
   "x-advertisement": {
@@ -3451,7 +3933,12 @@
       "tty": false,
       "network": "none"
     },
-    "byteAccounting": "Input aggregate bytes and result content budget are checked semantically. Record serialized MCP wire bytes separately, including structuredContent/text duplication."
+    "byteAccounting": "Input aggregate bytes and result content budget are checked semantically. Record serialized MCP wire bytes separately, including structuredContent/text duplication.",
+    "capabilityGateway": {
+      "tool": "tdev_capability",
+      "discovery": "Context returns compact summaries; list/describe is lazy. Installed capability changes do not change tools/list.",
+      "invocation": "Invoke pins descriptorDigest and is validated server-side against the adopted action schema."
+    }
   },
   "x-outputExamples": [
     {
@@ -3474,7 +3961,10 @@
           },
           "nextCursor": null,
           "runtimeState": "online",
-          "contractVersion": "tdev.tools.v1"
+          "contractVersion": "tdev.tools.v1",
+          "capabilities": [],
+          "capabilitiesComplete": true,
+          "capabilitiesCursor": null
         }
       }
     },
@@ -3582,6 +4072,44 @@
           "logs": [],
           "pollAfterMs": 0,
           "returnedBytes": 300
+        }
+      }
+    },
+    {
+      "schema": "CapabilityOutput",
+      "value": {
+        "ok": true,
+        "result": {
+          "op": "describe",
+          "descriptor": {
+            "capabilityId": "example.render",
+            "version": "1.0.0",
+            "descriptorDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "label": "Example renderer",
+            "description": "Synthetic fixture capability.",
+            "role": "tool",
+            "adapterProtocolVersion": 1,
+            "actions": [
+              {
+                "actionId": "render",
+                "description": "Render a preview.",
+                "inputSchema": {
+                  "type": "object"
+                },
+                "outputSchema": {
+                  "type": "object"
+                },
+                "requiredGrants": [
+                  "render.use"
+                ],
+                "readOnly": false,
+                "destructive": false,
+                "idempotent": true,
+                "openWorld": false,
+                "asynchronous": true
+              }
+            ]
+          }
         }
       }
     }
