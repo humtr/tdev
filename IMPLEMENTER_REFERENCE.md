@@ -170,39 +170,78 @@ ChatGPT -> primitive 선택/조합 -> tdev mechanical boundary checks -> effect
 
 중요한 해석:
 
-- `executionCapacity = 8` 같은 값은 **repository 최대 개수**가 아니다.
+- `executionCapacity = 8` 같은 값은 repository 최대 개수가 아니다.
 - idle workspace/repository는 실행 slot을 점유하지 않아야 한다.
 - 한 repository가 여러 실행을 쓰더라도 다른 principal/binding이 영구 starvation되지 않도록 fair scheduling이 필요하다.
 - repository/ref마다 별도 Worker/daemon/controller를 복제하는 방식은 원하지 않는다.
-- conversation ID를 durable authority로 쓰지 않는다.
-- workspace label이나 세션 표시 metadata는 UX를 도울 수 있으나 권한·identity가 아니다.
+- ChatGPT conversation/session identity를 **durable operation/workspace authority**로 쓰지 않는다.
+- 다만 shared login 보호를 위한 **One-Time Permit의 짧은 session binding**에는 OpenAI transport session metadata를 acceptance 후 사용할 수 있다. 이 값이 바뀌면 Permit 재승인이 필요할 수 있고, 그 UX가 durable identity를 만드는 이유가 되어서는 안 된다.
+- workspace label이나 세션 표시 metadata는 UX를 도울 수 있으나 repository/canonical 권한이 아니다.
+## 9. Termux, first-release ingress와 authorization에 대한 의도
 
-## 9. Termux와 local execution에 대한 의도
+사용자는 “모든 실행을 무조건 remote container로 보내라”는 요구를 한 것이 아니다. 반대로 “Termux에서 뭐든 직접 shell로 돌리자”도 아니다. 목표는 실제 trust boundary에 따라 local/remote/host capability를 조합하는 것이다.
 
-사용자는 “모든 실행을 무조건 remote container로 보내라”는 요구를 한 것이 아니다. 반대로 “Termux에서 뭐든 직접 shell로 돌리자”도 아니다.
-
-목표는 **실제 trust boundary에 따라 local/remote/host capability를 자유롭게 조합**하는 것이다.
-
-핵심 구분:
+핵심 실행 구분:
 
 - arbitrary repository-controlled code: controller credential과 분리된 hostile-code execution boundary 필요
-- explicitly adopted local capability: 실제 device/Termux/app와 상호작용할 수 있음
+- explicitly adopted local capability: 실제 device/Termux/app와 상호작용 가능
 - future isolated-local executor: 실제 OS-level isolation을 확보할 수 있으면 추가 가능
 - PRoot/cwd/env filtering만으로 hostile-code sandbox라고 주장하지 않음
 
-### controller credential의 의미
+### first-release MCP ingress
 
-Cloudflare OAuth를 했다고 모든 내부 경계가 사라지는 것이 아니다.
+사용자는 외부 OAuth service 가입이나 Termux public inbound URL을 원하지 않는다. 따라서 first release는:
 
-서로 다른 역할:
+```text
+ChatGPT
+ -> OpenAI Secure MCP Tunnel
+ -> tunnel-client-runtime on Termux
+ -> localhost HTTP tdev
+```
 
-- human authentication: 요청자가 누구인가
-- tdev authorization: 그 principal이 어떤 repo/ref/action을 할 수 있는가
-- machine authentication: Worker ↔ controller/executor가 등록된 machine인가
-- execution isolation: untrusted repository code가 controller의 Git/provider/device secret이나 state를 읽거나 변조하지 못하는가
+를 기본으로 한다. OAI Tunnel은 transport일 뿐 tdev durable authority가 아니다. generic transport abstraction이나 Cloudflare Worker/DO/custom WS를 먼저 만들지 않는다. 실제 측정/요구가 생기면 localhost MCP 앞 transport를 나중에 교체할 수 있어야 한다.
 
-추가 사용자 로그인을 요구한다는 뜻이 아니다. 대부분은 machine/authorization/OS boundary다.
+현재 Termux에는 ngrok/tmcp-server를 장기 실행하는 `termux-services`/runit/service-daemon 계층이 이미 존재한다. tdev와 tunnel-client도 최종 installer에서 별도 `runsv` service로 설치하고 자체 supervisor를 만들지 않는다.
 
+### Connector Secret
+
+공유 ChatGPT 계정 사용자가 tunnel을 보고 임의 Connector를 새로 등록하는 것을 막기 위해 installation-level bearer **Connector Secret**을 둔다. 이는 OpenAI tunnel runtime API key와 다르다. 틀린 Connector Secret은 tools가 보이지만 실행만 실패하는 것이 아니라 MCP ingress 자체에서 거절하는 것이 목표다.
+
+### account access mode
+
+복잡한 read/editor/admin RBAC는 원하지 않는다. account access는 다음뿐이다.
+
+- `full`: 정상 tdev runtime 사용
+- `permit`: 기본 locked; 현재 ChatGPT session이 One-Time Permit을 가져야 runtime 사용
+- 미등록 subject: deny
+
+account mapping은 local Termux owner-only env config를 사람이 직접 편집할 수 있어야 한다. remote MCP나 candidate code는 이를 수정하지 못한다.
+
+### One-Time Permit
+
+사용자가 tmcp에서 시험한 OTP/session authorization 방식을 tdev에서는 **One-Time Permit**이라는 제품 용어로 사용한다. literal shared ChatGPT login에서는 OAuth/account subject만으로 사람을 구분할 수 없으므로, local Termux 사용자가 짧은 Permit을 발급하고 원하는 chat/session에서 입력해야 unlock된다.
+
+회수할 prototype invariant:
+
+- Permit 평문 durable 저장 금지
+- atomic single/session claim과 concurrent-race 안전
+- subject + session binding
+- replay/challenge binding
+- expiry와 persistent failed-attempt throttling
+- immediate local revoke
+- account ceiling보다 높은 권한 생성 금지
+
+OAuth provider를 first release에 추가하지 않는다. 대신 OpenAI Tunnel이 전달하는 subject/session이 실제 account/session identity로 충분히 trustworthy한지 live acceptance한다. 실패하면 조용히 믿거나 OAuth service에 자동 가입하는 대신 identity 설계를 다시 선택한다.
+
+### credential 역할 구분
+
+- OpenAI tunnel runtime key: tunnel-client → OpenAI control plane
+- Connector Secret: ChatGPT Connector → tdev installation ingress
+- local account policy: subject → `full|permit`
+- One-Time Permit: `permit` subject의 특정 session unlock
+- provider/Git credentials: canonical integration/executor boundary
+
+candidate sandbox에는 이 credential들을 전달하지 않는다.
 ## 10. hard-link / Android filesystem 제약
 
 사용자는 Termux에서 `EACCES` hard-link 문제가 어떤 걸림돌인지 물었다.

@@ -21,70 +21,76 @@
 
 ```text
 ChatGPT
-  -> Cloudflare MCP ingress / human auth / installation route
-       -> authenticated outbound device channel
-            -> one Termux trusted controller
-                 -> SQLite: binding/grant/workspace/operation/executor/capability
-                 -> Git object/checkpoint store
-                 -> fixed Git/provider integration client
-                 -> capability registry + adapter protocol host
-                 -> managed executor adapter
-                      -> trusted outer runner
-                           -> credential-free per-operation OCI container
+  -> OpenAI Secure MCP Tunnel
+       -> tunnel-client-runtime on Termux
+            -> localhost Streamable HTTP MCP
+                 -> one Termux trusted controller
+                      -> ingress auth: Connector Secret
+                      -> account access: subject -> full | permit | deny
+                      -> permit account: session-bound One-Time Permit
+                      -> SQLite: binding/grant/workspace/operation/executor/capability
+                      -> Git object/checkpoint store
+                      -> fixed Git/provider integration client
+                      -> capability registry + adapter protocol host
+                      -> managed executor adapter
+                           -> trusted outer runner
+                                -> credential-free per-operation OCI container
 ```
 
-Termux controller가 소유할 것은 control state, Git canonical identity, authorization, adopted capability identity, provider credential custody다. untrusted repository code는 이 UID의 credential/state와 분리한다.
+first release는 Cloudflare Worker/DO/custom WebSocket/external OAuth provider를 필수 dependency로 두지 않는다. OAI Tunnel은 replaceable ingress이고 durable work/authorization authority가 아니다. localhost HTTP MCP 경계를 유지하되 generic transport framework를 만들지 않는다.
 
-source truth는 immutable Git tree를 가리키는 workspace checkpoint다. workspace의 모델-visible identity는 `(binding, fullRef, baseCommit, tree, revision, state)`로 단순화한다. candidate generation 같은 별도 parallel owner를 만들지 않는다.
+Termux controller가 소유할 것은 control state, Git canonical identity, repository/capability grants, One-Time Permit grant, adopted capability identity와 provider credential custody다. subject별 `full|permit` access ceiling은 owner-only local env config가 소유하고 remote MCP가 수정하지 못한다. untrusted repository code는 controller UID의 credentials/state와 분리한다.
 
-operation은 durable admission/실행/결과의 공통 family다. validate operation 자체가 receipt identity이며 integrate operation 자체가 publication intent다. feature별 Task/Case/Drive/Result/Effect owner를 새로 만들지 않는다.
-
-## 2. Stage 1 — contracts + native workspace/capability vertical slice
+source truth는 immutable Git tree를 가리키는 workspace checkpoint다. operation은 durable admission/실행/결과의 공통 family이며 validate 자체가 receipt, integrate 자체가 publication intent다.
+## 2. Stage 1 — contracts + local HTTP/auth + native workspace/capability vertical slice
 
 ### 구현
 
-- `contracts/tools.schema.json`을 actual MCP descriptor/handler validation에 연결한다.
-- installation DB schema와 migration bootstrap을 만든다.
-- `binding`, `grant`, `workspace`, `operation`, `executor`, `capability` table을 최소 필드로 구현한다.
-- Git object/tree/commit helper를 구현한다. hooks/filter/credential helper/foreign remote 같은 repository-controlled configuration을 신뢰하지 않는다.
-- `tdev_context`, `tdev_read`, `tdev_workspace`, `tdev_patch`, `tdev_observe`를 실제 handler로 구현한다.
-- stable `tdev_capability list/describe/invoke` gateway를 구현한다.
+- `contracts/tools.schema.json`의 exact 10 tools를 actual MCP descriptor/handler validation에 연결한다.
+- localhost Streamable HTTP MCP server를 구현한다.
+- Connector Secret bearer 검증을 initialize/tools/list/tools/call보다 앞에 둔다. secret 원문은 owner-only file에만 둔다.
+- OpenAI tunnel transport metadata에서 subject/session을 bounded하게 읽는 auth adapter를 만든다. metadata가 없거나 malformed면 fail closed한다.
+- owner-only access env config를 parse해 subject digest별 `full|permit`, unknown=deny ceiling을 적용한다. config reload는 validate-then-swap한다.
+- One-Time Permit issue/claim/revoke를 최소 local-only operator command로 구현한다. grant는 SQLite 기존 `grant` family에 넣고 digest-only, subject+session binding, idle+absolute expiry, persistent failed-attempt throttle을 강제한다.
+- Permit input은 core tool semantics와 분리한다. MCP form elicitation을 우선 사용하고 host 미지원 시 tool 이름/효과를 바꾸지 않는 bounded auth-input decoration을 사용해 handler 전에 제거한다.
+- installation DB schema/migration bootstrap과 `binding`, `grant`, `workspace`, `operation`, `executor`, `capability` table을 구현한다.
+- Git object/tree/commit helper와 `tdev_context/read/workspace/patch/observe`, stable `tdev_capability list/describe/invoke`를 구현한다.
 - capability adapter protocol v1을 synthetic no-op/echo fixture로 먼저 고정한다.
-- extension install/enable/disable은 public capability invoke가 아니라 admin boundary로 구현한다.
-- context에는 full descriptor가 아니라 compact authorized capability summary만 넣는다.
+- OAI `tunnel-client-runtime`은 installer 없이 explicit dev/manual command로 localhost MCP에 붙여 실제 host acceptance를 수행한다.
 
 ### 반드시 확보할 invariant
 
+- wrong Connector Secret은 MCP surface 이전에 거절
+- subject access ceiling: full / permit / unknown=deny
+- Permit이 account ceiling을 절대 확대하지 않음
+- Permit 평문 durable 저장 금지, atomic single/session claim, 다른 subject/session replay 거절
+- policy downgrade/revoke는 다음 admission에서 existing Permit보다 우선
 - request dedup-before-stale-check
 - workspace revision single-writer CAS
 - grouped patch all-or-nothing immutable publication
-- same-file multiple replace는 staged buffer에서 순차 적용
-- crash-before/after SQLite pointer publication에서 이전 또는 새 checkpoint 중 하나만 유효
 - path/symlink/`.git` control metadata 경계
 - capability exact descriptor digest + action schema + namespaced grant
-- repository source가 self-register하여 trusted adapter가 될 수 없음
 - extension install/disable 전후 public MCP tool names 동일
 - hard-link 없이 native core 동작
 
 ### 최소 검사
 
-- schema valid/invalid fixtures
-- same requestId/same intent replay
-- same requestId/different intent mismatch
-- stale revision/base
-- patch path/mode/type/symlink conflict
-- crash point injection around tree/object flush and pointer CAS
-- controller restart 후 workspace/operation/capability readback
-- descriptor digest mismatch
-- unauthorized capability action
-- disabled/replaced adapter rejection
-- actual ChatGPT host에서 10-tool discovery, two-query read, two-file patch
-- synthetic capability install 후 Refresh 없이 `describe -> invoke -> observe`, disable 후 rejection
+- bad/good Connector Secret
+- unknown/full/permit subjects
+- same shared subject의 session A/B에서 A Permit claim 후 A만 unlock
+- Permit expiry/revoke/replay/concurrent claim/persistent rate limit
+- policy `full→permit`, `permit→deny` 즉시 반영
+- actual ChatGPT/OAI Tunnel에서 subject/session 분리·reconnect·spoof resistance
+- form elicitation 또는 bounded fallback
+- schema fixtures, same request replay/mismatch, stale revision/base, patch conflict/crash-point
+- controller restart 후 workspace/operation/capability/Permit readback
+- capability descriptor mismatch/unauthorized/disabled rejection
+- actual ChatGPT 10-tool discovery, two-query read, two-file patch
+- synthetic capability install 후 Refresh 없이 `describe -> invoke -> observe`
 
 ### 완료 조건
 
-모델이 exact source를 읽고 durable atomic edit를 만들 수 있으며, future capability를 core/public tool-list 변경 없이 붙일 수 있는 실제 vertical slice가 존재한다.
-
+public Termux endpoint나 외부 OAuth provider 없이 실제 ChatGPT가 OAI Tunnel을 통해 private tdev MCP를 발견하고, account/session authorization을 거쳐 exact source를 읽고 durable atomic edit를 만들 수 있다. subject/session acceptance가 실패하면 account-specific production authorization은 완료로 판정하지 않는다.
 ## 3. Stage 2 — generic sandbox process
 
 ### 구현
@@ -137,7 +143,7 @@ ChatGPT가 arbitrary diagnostic/build/test command를 선택할 수 있고 그 �
 
 ### 최소 live acceptance
 
-Disposable protected ref에서 실제 `context -> read -> workspace -> patch/exec -> validate -> integrate -> readback` 한 경로를 완료한다.
+Disposable protected ref에서 실제 `ChatGPT -> OAI Tunnel -> localhost tdev -> context -> read -> workspace -> patch/exec -> validate -> integrate -> readback` 한 경로를 완료한다. 개인 `full` subject와 shared `permit` subject의 서로 다른 chat session을 함께 검증한다.
 
 ### 성능 측정 시작점
 
@@ -177,28 +183,32 @@ repository 수와 실행 capacity를 혼동하지 않고 여러 ChatGPT 세션/�
 ### 구현
 
 - Termux restart/network drop 이후 DB/operation/executor reconciliation
+- OAI tunnel-client process/control-plane reconnect와 tdev operation lifetime을 분리
+- Permit expiry/revoke/policy reload/restart recovery
 - same executor/provider session reattach 가능한 범위 구현
 - bounded cache/GC/retention
 - disk pressure와 offline/device state의 정확한 오류 분류
 - capability adapter disconnect/restart/disable semantics
-- actual optional capability adapter 하나를 선택해 install -> describe -> invoke -> observe -> disable 경로를 검증한다.
-
-여기서 선택하는 actual capability는 Blender/JEV/Android를 우선하라는 뜻이 아니다. 구현 시점에 가장 작고 실제적인 adapter를 고른다. 목적은 open extension plane 자체의 현실성을 검증하는 것이다.
+- actual optional capability adapter 하나를 install -> describe -> invoke -> observe -> disable
 
 ### 최소 검사
 
-actual Termux process restart, network loss/reconnect, provider-terminal proof, output replay, unknown stdin, disk full, grant revoke-before-dispatch, device credential != human authority, adapter version/digest replacement, running operation 중 disable/reconcile.
-
-## 7. Stage 6 — release/cutover
+actual Termux process restart, tunnel-client restart/network loss/reconnect, transport disconnect 중 admitted operation 생존, output replay, unknown stdin, disk full, account policy/Permit revoke-before-new-admission, Connector Secret rotation, provider-terminal proof, adapter version/digest replacement, running operation 중 disable/reconcile.
+## 7. Stage 6 — release/install/cutover
 
 ### 구현
 
 - 작은 `tdev-admin` operator surface를 만든다.
-- binding add/update/remove, grant add/revoke, policy adopt, capability install/enable/disable, release stage/activate/rollback만 둔다.
-- 모든 admin mutation은 exact expected current digest/pointer를 요구한다.
+- binding/grant/policy/capability/release 관리와 account policy inspection, Permit issue/list/revoke를 local operator boundary에 둔다.
 - approved release manifest와 active/previous pointer를 구현한다.
-- 기존 stable public endpoint와 Access registration은 exact readback 후 안전하게 회수할 수 있으면 회수한다.
-- clean-root product에 필요 없는 legacy alias/state migration framework를 만들지 않는다.
+- `install.sh`가 verified release, owner-only config/secrets, existing `termux-services` dependency를 검사하고 두 service definition을 설치한다:
+  - `$PREFIX/var/service/tdev`
+  - `$PREFIX/var/service/tdev-oai-tunnel`
+- 두 service는 `runsv -> exec` one-process ownership과 `svlogger`를 사용한다. tdev가 tunnel-client를 child로, tunnel-client가 tdev를 child로 관리하지 않는다.
+- default install은 tdev local readiness 후 tunnel readiness를 확인하고, `--no-start`와 read-only `--check`를 제공한다.
+- OpenAI tunnel runtime key, Connector Secret, authz env는 owner-only file로 설치하고 argv/repo/log에 원문을 두지 않는다.
+- 기존 Cloudflare public endpoint/Access/DO는 새 production path acceptance와 rollback 준비 뒤 unused가 증명될 때만 retire 후보로 둔다.
+- clean-root product에 generic transport/provider framework나 legacy migration hierarchy를 만들지 않는다.
 
 ### gate
 
@@ -206,8 +216,7 @@ Stage 1–5 acceptance가 통과하기 전에 production cutover를 서두르지
 
 ### 최소 검사
 
-activated executable digest readback, two-principal OAuth, no active writer at cutover, exact rollback, schema/runtime version separation, capability registry export/import/readback, old/new runtime confusion negative test.
-
+activated executable/tunnel-client digest readback, runit exact process ownership, tdev health + tunnel ready/control-plane poll health, secret/config owner/mode, two subjects(`full`, `permit`)과 shared-chat session isolation, Connector Secret rotation, no active writer at cutover, exact rollback, schema/runtime version separation, capability registry export/import/readback, old/new runtime confusion negative test.
 ## 8. Stage 7 — production acceptance + cleanup
 
 - stage 3–5 workload를 production path에서 다시 수행한다.

@@ -9,7 +9,7 @@
 
 핵심은 “모든 것을 shell로”도 “작업을 server workflow로”도 아니다. 일반 개발은 `context → batch read/search → workspace → patch/exec → validate → integrate`이다. 모델이 관리할 주된 식별자는 workspace/revision과 실행 operation handle이다. candidate generation, prepared-result owner, campaign, Design route를 제품 사용자가 조립하지 않는다.
 
-Termux는 신뢰된 제어·Git·상태 저장의 중심으로 유지한다. 임의 repository code는 credential 없는 managed Linux sandbox에서 실행한다. 기존 Cloudflare public edge/Access/단일 routing DO와 검증된 remote-executor 경계는 회수한다. 이 선택은 같은 UID의 shell을 안전한 sandbox라고 부르지 않으면서 command 자유도를 되찾는다.
+Termux는 신뢰된 제어·Git·상태 저장의 중심으로 유지한다. 임의 repository code는 credential 없는 managed Linux sandbox에서 실행한다. first release MCP ingress는 **localhost Streamable HTTP + OpenAI Secure MCP Tunnel**로 단순화하고, 기존 Cloudflare public edge/Access/routing DO는 필수 runtime에서 제거한다. 검증된 remote-executor exactness 경계는 회수한다. 이 선택은 같은 UID의 shell을 안전한 sandbox라고 부르지 않으면서 transport/control-plane 비용을 줄이고 command 자유도를 되찾는다.
 
 동일 ref 병렬 변경의 재검증 폭증은 **명시적 workspace composition → 합쳐진 정확한 결과 한 번 검증**으로 줄인다. 자동 H2 membership/leader/follower settlement는 없앤다. 명시적 합성을 선택하지 않은 경쟁 작업은 정확한 stale 결과를 받는다.
 
@@ -50,12 +50,12 @@ Termux는 신뢰된 제어·Git·상태 저장의 중심으로 유지한다. 임
 | open-ended capability extension | 어떤 새 도구·환경·executor·advisor를 언제 사용할지 | installed descriptor digest, exact action schema, explicit namespaced grants | stable capability gateway + adopted adapter; core workflow 추가 없음 |
 | external/local environment interaction | 어떤 MCP/CLI/device/API를 어떤 순서로 사용할지 | exact installed target, declared execution boundary, bounded result/artifact | extension adapter; repository source가 스스로 trusted adapter가 되지 않음 |
 | optional advisor/model | 사용할지·어떤 질문을 맡길지·결과 해석 | advisor output은 authority/validation이 아님 | optional extension invocation; durable planner state 불필요 |
-| credential/authorization | 권한 요청 이유 | 인간 인증, credential containment | Access/provider secret store + local grants |
+| credential/authorization | 권한 요청 이유 | Connector Secret, account access mode, session Permit, credential containment | Termux operator config + local grants + provider secret store |
 | deploy/release | 명시적 승인·배포 선택 | artifact identity, quiescence, rollback pointer | 별도 operator 경계; 일반 coding loop 아님 |
 
-운영 조건은 Android/Termux, no root/no systemd/no local Docker, sleep/kill/reconnect, 하나의 안정적 public endpoint다. 정상 새 개발 작업을 여는 데 tmcp·GitHub 직접 mutation·Worker 재배포가 필요해서는 안 된다. 표의 capability는 모델의 지능을 대체할 workflow를 요구하지 않는다.
+운영 조건은 Android/Termux, no root/no systemd/no local Docker, sleep/kill/reconnect이며 **Termux에 inbound public endpoint를 열지 않는 것**을 first-release 기본으로 한다. 정상 새 개발 작업을 여는 데 tmcp·GitHub 직접 mutation·Worker 재배포가 필요해서는 안 된다. 표의 capability는 모델의 지능을 대체할 workflow를 요구하지 않는다.
 
-장기 요구사항은 **기능은 열려 있고 authority는 닫혀 있는 것**이다. 미래 기능 하나를 추가하기 위해 core MCP tool 이름, workspace/operation state model, Cloudflare endpoint 또는 controller release를 매번 바꾸지 않는다. extension은 immutable descriptor+adapter binding으로 설치·활성화하며, `tdev_context`는 작은 authorized summary만 보여주고 `tdev_capability`가 `list/describe/invoke`를 제공한다. 설치/enable/disable은 operator/admin boundary이고, 설치된 뒤의 사용 순서와 action 선택은 모델이 결정한다. native correctness는 Android/Termux의 hard-link 지원을 전제로 하지 않으며 `link(2)` 없이 Git objects, SQLite transaction, copy와 같은-filesystem rename으로 구현 가능해야 한다.
+장기 요구사항은 **기능은 열려 있고 authority는 닫혀 있는 것**이다. 미래 기능 하나를 추가하기 위해 core MCP tool 이름, workspace/operation state model, tunnel provider 또는 controller release를 매번 바꾸지 않는다. extension은 immutable descriptor+adapter binding으로 설치·활성화하며, `tdev_context`는 작은 authorized summary만 보여주고 `tdev_capability`가 `list/describe/invoke`를 제공한다. 설치/enable/disable은 operator/admin boundary이고, 설치된 뒤의 사용 순서와 action 선택은 모델이 결정한다. native correctness는 Android/Termux의 hard-link 지원을 전제로 하지 않으며 `link(2)` 없이 Git objects, SQLite transaction, copy와 같은-filesystem rename으로 구현 가능해야 한다.
 
 ## 3. Current tdev architecture summary
 
@@ -183,11 +183,13 @@ ROI는 startup bytes/hops, first useful action까지 reads, wrong-route/rework, 
 
 ## 14. Durable-state analysis
 
-**선택 예산:** operational semantic owner는 **하나의 Termux controller/SQLite**다. 다른 물리적 권위(GitHub ref, OAuth, 실행 process)는 그 권위 자체를 재구현하지 않는다.
+**선택 예산:** operational semantic owner는 **하나의 Termux controller/SQLite**다. 다른 물리적 권위(GitHub ref, OpenAI tunnel transport, local operator access config, 실행 process)는 그 권위 자체를 재구현하지 않는다. account access mode의 authoritative source는 SQLite가 아니라 Termux app-private operator env config다; SQLite는 그 policy 아래에서 생성된 ephemeral One-Time Permit grant와 durable operation evidence를 저장한다.
 
 | Durable 내용 | 왜 memory/Git/filesystem/provider만으로 부족한가 | 저장·수명 |
 |---|---|---|
-| binding + grants + adopted policy | Git commit은 human 권한/allowed ref/실행 disclosure가 아님; provider가 local mapping을 모름 | SQLite binding/grant rows, 명시적 변경까지 |
+| binding + repository/capability grants + adopted policy | Git commit은 allowed ref/실행 disclosure/action grant가 아님 | SQLite binding/grant rows, 명시적 변경까지 |
+| account access mode | shared/private ChatGPT account별 `full|permit` ceiling은 remote code가 수정하면 안 됨 | operator-owned app-private env config; unknown subject는 deny |
+| One-Time Permit grant | 같은 account의 특정 ChatGPT session만 일시 unlock해야 하며 restart/replay/revoke를 구분해야 함 | SQLite `grant` row의 permit kind; subject+session digest, idle+absolute expiry, revokedAt |
 | workspace | Git tree만으로 owner/base/revision/active writer를 알 수 없음 | SQLite workspace + Git pinned tree |
 | operation intent/result/tombstone | response loss 때 같은 의도인지 Git·process가 모름 | SQLite operation; compact tombstone은 installation 수명 |
 | executor session/launch identity | provider run과 local launch를 안전하게 join해야 함 | SQLite executor row; run terminal proof 이후 compact |
@@ -196,10 +198,9 @@ ROI는 startup bytes/hops, first useful action까지 reads, wrong-route/rework, 
 | integration effect | local DB와 remote ref는 단일 transaction이 아님 | integrate operation 안 exact old/new/receipt/observation |
 | release pointer | 재시작 시 어떤 검증된 bundle을 실행할지 필요 | operator-owned active/previous manifest; 일반 DB workflow 아님 |
 
-물리적 기본 table은 `binding`, `grant`, `workspace`, `operation`, `executor`, `capability`와 schema metadata다. receipt/effect/checkpoint provenance는 각각의 immutable value이지 독립 workflow나 public owner ID가 아니다. Git content/hash cache, logs, backups는 별도 state machine이 아니다.
+물리적 기본 table은 `binding`, `grant`, `workspace`, `operation`, `executor`, `capability`와 schema metadata다. One-Time Permit 때문에 별도 workflow/state-machine table을 만들지 않고 `grant` kind로 표현한다. Connector Secret, OpenAI tunnel runtime key와 account policy 원문은 DB 일반 row나 repository에 복사하지 않고 owner-only secret/config file에 둔다. receipt/effect/checkpoint provenance는 각각의 immutable value이지 독립 workflow나 public owner ID가 아니다.
 
 통계적으로 신뢰할 수 있는 failure 빈도는 대부분 없다. 사용자 disconnect 이력과 기존 response-loss/retirement evidence는 위험의 존재를 지지하지만 발생 확률을 만들어내지 않는다. canonical 중복·credential 유출은 빈도가 낮아도 영향이 커 유지한다. read 실패는 durable row를 만들 이유가 없다.
-
 ## 15. Recovery analysis
 
 | 등급 | 상황 | 처리 |
@@ -212,14 +213,54 @@ process kill 후 임의 command를 자동 재실행하지 않는다. command의 
 
 capability invoke도 같은 원칙을 사용한다. requestId/operation intent를 adapter dispatch보다 먼저 저장하고 response loss는 같은 operation을 observe한다. descriptor의 `idempotent` metadata만으로 unknown external effect를 자동 재실행하지 않는다. adopted adapter protocol이 exact operation/request identity의 중복 effect를 기계적으로 dedup하거나 기존 effect를 read back할 수 있을 때만 safe resend를 허용하며, 그렇지 않으면 `uncertain`으로 남기고 모델이 다음 행동을 결정한다.
 
-## 16. Termux/Cloudflare topology analysis
+## 16. Termux / OpenAI Secure MCP Tunnel topology analysis
 
-**CURRENT TDEV EVIDENCE [T5] [T6] + OFFICIAL PLATFORM EVIDENCE [P1] [P2] [P3] [P4] [P5].** 현재 target에서 user namespace/Landlock가 불가하다는 기존 조사와 no-root 조건을 받아들인다. source/test를 신뢰된 native UID로 실행하지 않는 경계를 유지한다. Termux는 trusted controller, Git/SQLite/fixed tools와 **명시적으로 adopted된 capability adapter**만 실행하며, Docker·systemd·root가 필요 없다. repository bytes나 모델이 방금 만든 executable이 단순 등록만으로 controller-trusted adapter가 되지 않는다. adapter가 같은 Android UID에서 실행되면 그 adapter는 그 UID의 trust domain에 들어간다는 사실을 숨기지 않고, hostile/untrusted 실행은 managed sandbox 또는 향후 별도 OS boundary executor로 보낸다. Android/Termux native path의 correctness는 hard-link creation을 요구하지 않는다.
+**CURRENT/HISTORICAL TDEV EVIDENCE [T5] [T6] + OPENAI TUNNEL SOURCE EVIDENCE [P7] + LOCAL TERMUX OBSERVATION (2026-09-20).** 현재 target에서 user namespace/Landlock가 불가하다는 기존 조사와 no-root 조건을 받아들인다. source/test를 신뢰된 native UID로 실행하지 않는 경계를 유지한다. Termux는 trusted controller, Git/SQLite/fixed tools와 **명시적으로 adopted된 capability adapter**만 실행하며, Docker·systemd·root가 필요 없다. repository bytes나 모델이 방금 만든 executable이 단순 등록만으로 controller-trusted adapter가 되지 않는다. hostile/untrusted 실행은 managed sandbox 또는 향후 별도 OS boundary executor로 보낸다.
 
-Cloudflare는 public MCP origin, Managed OAuth/Access, 제한된 request routing을 소유한다. DO는 installation당 하나의 WebSocket rendezvous이며 work/validation/queue를 소유하지 않는다. sleep/restart 중에도 edge health와 device-offline을 구분할 수 있지만 device-offline 동안 개발 명령 실행을 보장하지 않는다. D1/R2/Queues, per-repository Worker, changing public tunnel은 필요 없다.
+first-release MCP ingress는 다음 한 경로로 고정한다.
+
+```text
+ChatGPT
+  -> OpenAI Secure MCP Tunnel
+       -> tunnel-client-runtime on Termux
+            -> http://127.0.0.1:<tdev-port>/mcp
+                 -> one Termux tdev controller
+```
+
+`tunnel-client-runtime`은 outbound HTTPS transport를 소유하고 local tdev는 public inbound address를 갖지 않는다. Tunnel은 installation routing/transport일 뿐 workspace, operation, validation, integration, authorization policy의 durable owner가 아니다. first release에서 Cloudflare Worker/DO, custom WebSocket protocol, public tdev hostname, generic `TransportManager`/provider registry를 만들지 않는다. 다른 tunnel/provider는 실제 요구나 측정된 병목이 생겼을 때 localhost HTTP MCP 앞의 얇은 ingress로 추가한다.
+
+2026-09-20 target Android/Termux에서 official Linux ARM64 `tunnel-client-runtime` v0.0.14의 checksum을 검증하고 `--version`/help 실행 성공을 관측했다. 이는 실용 compatibility evidence이지 Android 공식 지원 보장은 아니다. OpenAI source는 SIGTERM을 정상 cancellation context로 처리하므로 existing Termux runit supervision과 충돌하지 않는다 [P7].
+
+### Service ownership
+
+기존 Termux에는 `termux-services`/runit service root와 `service-daemon` recovery monitor가 존재하며 ngrok과 tmcp-server가 `runsv -> exec process` 형태로 장시간 운용되는 것을 관측했다. tdev는 이를 플랫폼 dependency로 사용하고 자체 supervisor를 만들지 않는다.
+
+```text
+service-daemon / runsvdir
+  |-- runsv tdev
+  |     -> exec tdev HTTP MCP server
+  `-- runsv tdev-oai-tunnel
+        -> exec tunnel-client-runtime run
+```
+
+runit은 process exit restart를, tunnel-client는 control-plane/network reconnect를, read-only checker는 health observation을 소유한다. `/healthz`/`/readyz` 실패만으로 checker가 자동 restart churn을 만들지 않는다. Android가 Termux app UID 전체를 종료한 경우 same-UID supervisor도 함께 사라질 수 있다는 platform 한계를 숨기지 않는다.
+
+### Ingress and account authorization
+
+first release는 별도 OAuth provider 가입을 요구하지 않는다. 경계는 서로 다른 네 역할로 분리한다.
+
+1. **OpenAI tunnel runtime key**: Termux tunnel-client가 OpenAI control plane에 접속하는 installation credential.
+2. **Connector Secret**: ChatGPT Connector가 해당 tdev installation MCP에 들어올 자격을 증명하는 bearer secret. tdev는 initialize/tools/list/tools/call보다 앞에서 검증한다.
+3. **Account access mode**: OpenAI tunnel이 전달한 account subject를 local operator config에서 `full|permit`으로 매핑한다. 미등록 subject는 deny다.
+4. **One-Time Permit**: `permit` account의 특정 OpenAI session을 로컬 사용자가 일시적으로 unlock하는 possession proof다.
+
+account policy는 예를 들어 owner-only `$PREFIX/etc/tdev/authz.env`에서 `TDEV_ACCESS_<subjectDigest>=full|permit`로 관리하며 repository/workspace/sandbox에서 접근할 수 없다. raw email은 authority가 아니고 stable subject를 digest한 key와 optional human label을 사용한다. policy reload는 새 config를 전부 parse/validate한 뒤 atomic하게 교체하며 downgrade/revoke는 **다음 admission부터** 기존 session Permit보다 우선한다.
+
+One-Time Permit은 tmcp의 실험 구현에서 검증한 invariant를 회수하되 tdev SQLite에 통합한다: 평문 미저장, timing-safe comparison, atomic consume/session claim, subject+session binding, bounded challenge/retry, persistent failure throttling, idle expiry + absolute expiry, local immediate revoke. 사용자가 chat에서 Permit을 입력하는 wire는 core tool semantic contract와 분리된 authorization wrapper가 소유한다. MCP form elicitation을 우선 검증하고, host가 이를 지원하지 않으면 **tool 이름/효과를 바꾸지 않는** bounded reserved auth input decoration을 사용해 canonical handler validation 전에 제거한다.
+
+가장 중요한 acceptance는 OpenAI tunnel의 `X-Openai-Subject`/`X-Openai-Session` 계열 metadata다. source에서 전달 경로가 관측됐다는 사실만으로 permanent security contract라 가정하지 않는다. production account authorization 전에 실제 ChatGPT에서 서로 다른 account subject 분리, 동일 shared account의 서로 다른 session 분리, reconnect/refresh semantics, client spoof/override 불가를 검증한다. 실패하면 이 metadata로 `full|permit`을 production 승인하지 않고 alternate identity 경계를 다시 선택한다.
 
 GitHub는 canonical Git/ref protection과 initial managed Linux execution provider다. 현재 검증된 hosted runner + rootless OCI boundary를 회수하므로 Linux container requirement는 **원격 실행 측**에만 있다. source disclosure, provider 비용·용량·cold start는 숨기지 않는다. optional future executor도 동일 isolation/receipt protocol을 만족해야 하며 local trusted-user shell로 조용히 fallback하지 않는다.
-
 ## 17. Candidate architectures
 
 공통으로 exact binding/grants, protected canonical ref, immutable Git content, idempotent canonical intent, no forced second model을 요구한다.
@@ -259,7 +300,7 @@ C를 고르는 이유는 A의 보장을 버리지 않으면서 B의 모델 자�
 
 ## 19. Recommended target architecture
 
-제품은 Node.js ES modules, SQLite, native Git, 기존 Cloudflare edge 및 managed Linux executor adapter로 구현한다. 새로운 agent framework나 분산 workflow engine은 도입하지 않는다. Node의 정확한 배포 버전/이미지 digest는 설치 시 고정하며, `node:sqlite`를 사용하는 core에 sqlite3 CLI를 필수로 추가하지 않는다.
+제품은 Node.js ES modules, SQLite, native Git, **localhost Streamable HTTP MCP + OpenAI Secure MCP Tunnel first transport**, 기존 managed Linux executor adapter로 구현한다. 새로운 agent framework나 분산 workflow engine은 도입하지 않는다. Node의 정확한 배포 버전/이미지 digest는 설치 시 고정하며, `node:sqlite`를 사용하는 core에 sqlite3 CLI를 필수로 추가하지 않는다.
 
 source truth는 **immutable Git tree를 가리키는 workspace checkpoint**다. physical worktree는 native 공유 checkout이 아니라 remote command의 disposable private materialization이다. workspace는 `(binding, fullRef, baseCommit, tree, revision, owner, state)`이며 revision 하나만 모델에 노출한다. workspace의 후보와 별도 generation counter를 만들지 않는다.
 
@@ -330,7 +371,7 @@ patch의 put은 create인지 replace인지 명시하고, delete는 존재하는 
 | CAPABILITY_GAP | unresolved submodule, unsupported executor/PTY/image |
 | TOOL_UNAVAILABLE | runtime descriptor에 없는 도구 |
 | SCHEMA_OR_CONTRACT_MISMATCH | invalid variant, malformed revision, unexpected field |
-| AUTHENTICATION_REQUIRED | human OAuth 없음/만료 |
+| AUTHENTICATION_REQUIRED | Connector Secret 또는 필요한 transport identity/One-Time Permit 증거가 없음·유효하지 않음 |
 | PERMISSION_DENIED | valid principal이나 해당 binding/exec 권한 없음 |
 | USER_CONFIRMATION_REQUIRED | 운영자가 구성한 실제 approval gate 미충족 |
 | SERVER_POLICY_BLOCK | STALE_BASE, STALE_REVISION, WORKSPACE_BUSY, policy changed, unsafe path |
@@ -346,60 +387,58 @@ patch의 put은 create인지 replace인지 명시하고, delete는 존재하는 
 
 ```text
 ChatGPT (유일한 필수 intelligence loop)
-  -> https://tdev.humtr.workers.dev/mcp
-  -> Cloudflare Managed OAuth / Access + MCP adapter
-  -> installation-scoped routing Durable Object
-  <-> outbound authenticated WebSocket
-  -> Termux tdev controller (하나의 native service)
-       |-- SQLite: binding/grant/workspace/operation/executor/capability
-       |-- Git object/checkpoint store + bounded content/log cache
-       |-- fixed-argv Git/provider integration client
-       |-- capability registry + adapter protocol host
-       |      -> explicitly adopted local/external/remote capability adapters
-       |      -> optional executors / tools / observers / presenters / artifacts / advisors
-       |-- managed executor adapter
-       |      -> approved GitHub workflow run / trusted outer runner
-       |           -> per-operation untrusted rootless OCI container
-       |           -> outer lifecycle/checkpoint/validation receipt
-       `-- operator-only configuration/release entrypoint
+  -> OpenAI Secure MCP Tunnel
+       -> tunnel-client-runtime (Termux runit service: tdev-oai-tunnel)
+            -> http://127.0.0.1:<port>/mcp
+                 -> Termux tdev controller (runit service: tdev)
+                      |-- ingress auth wrapper: Connector Secret + transport subject/session
+                      |-- local access policy: full | permit | unknown=deny
+                      |-- SQLite: binding/grant/workspace/operation/executor/capability
+                      |-- Git object/checkpoint store + bounded content/log cache
+                      |-- fixed-argv Git/provider integration client
+                      |-- capability registry + adapter protocol host
+                      |      -> explicitly adopted local/external/remote capability adapters
+                      |-- managed executor adapter
+                      |      -> approved GitHub workflow / trusted outer runner
+                      |           -> per-operation untrusted rootless OCI container
+                      `-- operator-only config/release/Permit entrypoint
 ```
 
-edge는 MCP authentication/shape validation과 bounded forwarding까지만 한다. native controller가 operation authority와 adopted capability descriptor/grants를 결정한다. extension별 public Worker/endpoint나 dynamic MCP tool registration은 만들지 않는다. device transport key만으로 native mutation을 승인하지 않는다. user token은 candidate 환경/command/tool output에 넣지 않는다.
+Tunnel/connector layer는 bounded transport와 installation ingress만 제공한다. native controller가 subject access mode, One-Time Permit grant, repository/capability grants, workspace/operation authority와 validation/integration을 결정한다. Connector Secret은 installation ingress credential이지 human account role이 아니며, OpenAI tunnel runtime key는 Connector Secret이나 tdev write grant가 아니다.
 
-MCP는 negotiated supported version의 Streamable HTTP JSON response를 기본으로 한다. GET SSE를 지원하지 않으면 405, notification은 202, Origin과 protocol version은 검사한다. 초기 구현은 검증된 기존 adapter와 2025-11-25 baseline을 사용하고 이것을 “최신 MCP 규격”이라고 부르지 않는다. host의 더 새 version 협상은 protocol adapter의 호환성 문제이며 business state를 바꾸지 않는다. task-augmented MCP 실행은 core requirement가 아니다. JSON-RPC ID/MCP session ID는 operation identity가 아니다 [P1] [P2].
+MCP는 negotiated supported version의 Streamable HTTP JSON response를 기본으로 한다. GET SSE를 지원하지 않으면 405, notification은 202, Origin과 protocol version은 검사한다. task-augmented MCP 실행은 core requirement가 아니다. JSON-RPC ID/MCP session ID 자체는 operation identity가 아니다 [P1] [P2]. OpenAI transport session metadata는 **One-Time Permit의 ephemeral binding**에만 사용하며 workspace/operation durable authority를 대체하지 않는다.
 
-Termux supervisor는 선택적으로 runit을 쓴다. launcher는 active manifest를 읽고 해당 executable을 exec하는 작은 프로그램이지 또 다른 지속 daemon이 아니다. Android sleep/process kill을 막는다고 약속하지 않으며 wake lock/battery 설정은 운영 안내다. DB/objects는 Termux app-private storage에 두고 공유 Android storage에서 lock/rename 보장을 추정하지 않는다.
+Termux service layer는 기존 `service-daemon/runsvdir/runsv/svlogger`를 사용한다. tdev와 tunnel-client는 서로를 child로 관리하지 않는 별도 장수 service다. 최초 installer는 tdev local readiness 뒤 tunnel service를 올릴 수 있으나 정상 runtime dependency graph를 별도 daemon으로 재구현하지 않는다. service checker는 exact process ownership과 local health/readiness를 관찰할 뿐 health failure를 restart policy로 변환하지 않는다.
 
 remote launch는 승인된 workflow source commit을 가리키는 auxiliary ref를 사용하는 기존 경로를 회수한다. default branch에 workflow가 없는 상황에서 `workflow_dispatch`로 바꾸지 않는다 [T6] [P4]. launch nonce/run_id/run_attempt/approved workflow digest를 join하고, 중복 provider run은 assignment를 받지 못한다. live 또는 ambiguous run의 launch ref는 GC하지 않는다.
 
+remote adapter의 message vocabulary와 trusted outer receipt 경계는 기존 exactness를 회수한다. candidate container 전체 정지 증명, source/input/output manifest, validation profile outcomes와 exact provider identity를 receipt에 묶고 candidate가 controller/provider credentials를 보지 못하게 한다. transport 재연결은 이미 admit한 immutable operation/receipt의 의미를 바꾸지 않는다.
 
-remote adapter의 message vocabulary도 고정한다. broker→outer는 `assign`, `input`, `signal`, `cancel`, `inspect`이고 outer→broker는 `started`, `output`, `terminal`, `input_ack`이다. 각 메시지는 operationId와 launch nonce, 선택한 provider repo/workflow commit/run_id/run_attempt에 묶인다. assign은 exact source manifest, sandbox plan/command, deadline과 adopted controller/image identity를 포함한다. output은 stream/byte offset/content digest를 포함하고 동일 offset의 다른 bytes는 integrity error다.
+`tdev_process`의 request도 control operation row를 갖는다. 그 결과의 `operation`은 control operation이고 `targetOperationId`가 원래 exec/validate/integrate를 가리킨다. input sequence/delivery state를 보존하며 crash gap은 unknown, 자동 resend 없음이다.
 
-terminal receipt는 container 전체 정지 증명, exit/signal, source/input/output manifest와 profile outcomes를 포함한다. 선택된 run의 OIDC/approved source를 검증한 후 controller가 제공한 per-session key로 outer가 canonical receipt bytes에 HMAC-SHA256을 붙인다. key는 candidate mount/env에 없다. authenticated receipt만 DB에 받아들이며 late callback은 current observer가 exact run을 다시 확인한 뒤 admit한다. checkpoint artifact는 전체 hash/path/type/size 확인과 pointer transaction 전에는 source truth가 아니다. transport 연결 재생성은 이미 admit한 immutable receipt의 유효성을 저절로 없애지 않는다.
-
-`tdev_process`의 request도 control operation row를 갖는다. 그 결과의 `operation`은 control operation이고 `targetOperationId`가 원래 exec/validate/integrate를 가리킨다. input에는 sequence와 delivery state를 보존한다. input marker를 durable하게 저장한 뒤 pipe에 쓰며, 그 사이 crash는 unknown으로 남기고 다시 쓰지 않는다. cancel accepted는 termination 완료가 아니므로 원래 target을 observe한다. control operation은 target의 writer reservation을 대체하지 않는다.
-
-capability adapter protocol v1도 planner가 아니라 얇은 effect transport다. controller→adapter는 `invoke`, `cancel`, `inspect`, adapter→controller는 `accepted`, `output`, `artifact`, `terminal`을 사용한다. 모든 메시지는 capabilityId/version/descriptorDigest/actionId/operationId와 canonical request digest에 묶이고, controller가 args를 먼저 schema-validate한다. adapter가 자체 descriptor나 grant를 런타임 응답으로 바꿀 수 없으며, disconnect는 effect 없음의 증거가 아니다. large output은 hash-bound artifact로 반환하고 bounded inline output만 operation에 저장한다.
-
+capability adapter protocol v1도 planner가 아니라 얇은 effect transport다. controller가 exact capabilityId/version/descriptorDigest/actionId/operationId와 args schema를 검증한 뒤 dispatch하며 extension이 grant/validation/integration authority를 만들 수 없다.
 ## 22. State ownership
 
 | Owner | 사실 / 저장 방식 | 다른 owner와의 경계 |
 |---|---|---|
 | GitHub Git/ref | canonical content/history/current ref | DB cached head는 timestamp 있는 관측일 뿐 |
-| Termux SQLite controller | grants/bindings, adopted capability descriptors/bindings, workspace revision, immutable operation intent/result, selected executor identity | single active process OS lock+WAL/FULL; 네트워크 중 SQL transaction을 잡지 않음 |
+| Termux operator authz config | OpenAI subject digest별 `full|permit` access ceiling, default deny | remote MCP/candidate가 수정할 수 없음; SQLite session grant가 ceiling을 넘지 못함 |
+| owner-only secret files | Connector Secret, OpenAI tunnel runtime key, provider secrets | repository/argv/log/general DB에 원문 복사 금지 |
+| Termux SQLite controller | bindings/repository grants, session One-Time Permit grant, adopted capability descriptors, workspace revision, immutable operation intent/result, selected executor identity | single active controller; 네트워크 중 SQL transaction을 잡지 않음 |
 | local Git/object store | workspace/receipt에 쓰이는 flushed immutable bytes | unreferenced insertion은 GC 가능, pointer가 content보다 먼저 durable해지지 않음 |
-| remote provider + trusted outer spool | physical job/container lifecycle, output/input receipt/checkpoint manifest | temporary per-operation spool은 runner 내부 재연결을 위한 것. logical work나 human authority의 주인이 아님. provider job 손실 이후 생존을 주장하지 않음 |
-| Cloudflare Access | identity/OAuth issuance·revocation | grant table의 repository 권한을 대신하지 않음 |
-| routing DO | 연결 attachment/nonce/요청 forwarding | job queue, canonical truth, durable result를 소유하지 않음 |
-| operator launcher/admin | approved release manifests, active/previous pointer, capability install/enable/disable manifests | 일반 capability invoke나 repository source가 수정할 수 없음 |
+| OpenAI Secure MCP Tunnel | one tunnel의 outbound transport/routing과 전달 metadata | workspace/job queue/human role/canonical truth를 소유하지 않음 |
+| Termux runit service layer | `tdev`, `tdev-oai-tunnel` desired up/down와 process restart/logging | network reconnect/business health/operation replay를 결정하지 않음 |
+| remote provider + trusted outer spool | physical job/container lifecycle, output/input receipt/checkpoint manifest | logical work나 human authority의 주인이 아님 |
+| operator launcher/admin | approved release manifests, active/previous pointer, capability install/enable/disable, local Permit issue/revoke | 일반 capability invoke나 repository source가 수정할 수 없음 |
 | bounded logs/backups | 관측 자료, offline restore | PASS/권한/작업 상태를 로그 텍스트에서 추론해 복원하지 않음 |
 
-SQLite operation은 `queued → running → succeeded|failed|cancelled|uncertain`을 사용한다. uncertain은 자동 재실행 상태가 아니며 exact observation으로 원래 결과를 확정할 수 있다. `step`은 kind별 필요한 checkpoint(예: admitted/launched/checkpointed, prepared/validated, intent/pushed/readback)만 저장하고 새로운 state machine class를 만들지 않는다. retries는 같은 canonical intent 안에서 오직 증명된 safe resend만 한다.
+SQLite operation은 `queued → running → succeeded|failed|cancelled|uncertain`을 사용한다. uncertain은 자동 재실행 상태가 아니며 exact observation으로 원래 결과를 확정할 수 있다. `step`은 kind별 필요한 checkpoint만 저장하고 새로운 state machine class를 만들지 않는다. retries는 같은 canonical intent 안에서 오직 증명된 safe resend만 한다.
 
 workspace state는 `open|integrated|closed`, revision은 tree/state 변화 때만 증가한다. writer reservation과 마지막 operation pointer는 DB transaction으로 묶는다. log append/poll은 revision을 올리지 않는다. integrated workspace를 다시 열지 않고 follow-up workspace를 만든다.
 
-terminal payload/log는 기본 7일, 로그는 operation당 32 MiB/설치 전체 2 GiB 상한으로 시작한다. 사용자의 미통합 workspace와 unresolved effect는 시간 경과로 삭제하지 않는다. tombstone은 subject/target/request digest/result identity만 compact하게 installation 수명 동안 보존한다. old key를 다시 새 의도로 허용하는 silent TTL은 없다. disk budget 초과 시 신규 mutation만 명시적으로 거절하고 observe/cancel/recovery 여유를 남긴다.
+One-Time Permit grant는 account access mode가 `permit`일 때만 runtime admission을 열 수 있으며 `full`을 넘어서는 새로운 scope를 만들지 않는다. local policy가 `permit→deny` 또는 `full→permit`로 바뀌면 기존 grant보다 새 ceiling이 우선한다. grant expiry/revoke는 새 admission을 즉시 막고 이미 admit된 durable operation의 처리는 별도 cancel/reconcile semantics를 따른다.
 
+terminal payload/log는 bounded retention을 사용하고 사용자의 미통합 workspace와 unresolved effect는 시간 경과만으로 삭제하지 않는다. tombstone은 subject/target/request digest와 terminal certainty를 보존하여 오래된 중복 effect를 막는다.
 ## 23. Normal development flow
 
 예시 ID/OID는 설명용이다. JSON bundle의 fixture가 문법을 검사하며 이 흐름을 실행했다고 주장하지 않는다.
@@ -457,7 +496,7 @@ requestId가 달라도 같은 validationId에 대한 canonical intent는 unique�
 
 ## 25. Multi-repository/concurrency model
 
-installation마다 하나의 controller/DB/endpoint를 둔다. binding row는 stable provider repo ID, sanitized fixed remote, allowed full refs, adopted policy, grants, executor class를 가진다. repository 이름은 display label이다. ref마다 별도 Worker나 daemon은 없다.
+installation마다 하나의 controller/DB와 하나의 first-release OpenAI tunnel을 둔다. binding row는 stable provider repo ID, sanitized fixed remote, allowed full refs, adopted policy, grants, executor class를 가진다. repository 이름은 display label이다. ref마다 별도 Worker나 daemon은 없다.
 
 새 repo 등록은 operator가 remote identity·allowed refs·policy·source disclosure·grant를 등록하는 한 번의 설정 변경이다. 기존 binding의 다른 허용 ref는 context/open에서 선택한다. 새 repo별 runtime build/배포는 필요 없다. 더 많은 ChatGPT 세션도 자기 authorized workspace/operation을 선택하며 conversation ID를 durable job authority로 사용하지 않는다.
 
@@ -475,20 +514,37 @@ capability invocation도 installation-wide scheduler와 operation capacity를 �
 
 **핵심 trust boundary:** candidate code는 악의적일 수 있다. 모델이 만든 shell string도 native controller에서 실행하지 않는다. Termux의 trusted executable/config/state/credentials와 sandbox filesystem/process/network namespace를 분리한다. Android owner UID 자체가 이미 침해된 상황, provider/OS administrator의 악의적 행동까지 방어한다고 주장하지 않는다.
 
-Access token assertion은 서명/issuer/audience/time/허용 algorithm을 검증하고 human subject를 local grant와 결합한다. transport service credential은 연결에만 쓰며 human write grant를 만들지 못한다. allowlisted subject별 repository/ref/read/write/exec/integrate 권한을 별도로 둔다. email label이나 browser `wfr_...` 요청 header를 human authority로 대체하지 않는다. 권한 폐기는 dispatch/publication 직전에 다시 확인한다.
+### Installation ingress
 
-canonical ref는 등록한 integration principal의 정상 write만 허용하고 deletion/rewrites를 막는다. 다른 writer를 허용하는 repository는 읽기/후보 작업은 할 수 있지만 이 exact canonical-acceptance mode를 허용하지 않는다. 초기 enrollment가 boundary를 확보하지 못하면 integrate capability를 false로 명시한다. Git/HTTP credential은 native client의 scoped secret store에 두고 candidate env/argv/output으로 전달하지 않는다.
+Connector를 새로 등록할 때 사용하는 **Connector Secret**은 tdev installation ingress의 bearer credential이다. tdev는 MCP initialize/discovery/call보다 먼저 이를 검증하고 틀린 secret으로는 정상 tdev surface가 성립하지 않게 한다. secret은 owner-only file로 생성/보관/rotation하며 repository, command argv, logs, model-visible result에 원문을 남기지 않는다. OpenAI tunnel runtime key는 tunnel-client→OpenAI control-plane credential이며 Connector Secret이나 human runtime permission과 혼동하지 않는다.
 
-remote container는 host socket, controller mount, GitHub token, Access/device secret, cloud metadata/OIDC endpoint를 받지 않는다. trusted outer만 실행 identity와 receipt를 증명한다. rootless OCI, uid/namespace/cgroup limits, no privileged mount, capability drop, egress policy를 사용한다. host run의 workflow code와 image digest는 승인된 source에 고정한다. candidate의 workflow/package script가 그 controller를 교체하지 못한다.
+### Account access
 
-network preset은 `none`, `dependencies`, `internet`이다. 기본 none이고 binding grant가 허용한 preset만 선택한다. dependencies는 승인된 lock/artifact fetch 경로이며 broker는 package bytes만 받아 code를 실행하지 않는다. install scripts는 sandbox 안에서 실행한다. private credential 지원이 없는 package source는 capability gap이지 candidate에 credential을 전달할 이유가 아니다. internet은 명시적 source-disclosure/egress 권한이며 기밀 source 유출 방지 보장과 동시에 주장하지 않는다.
+OpenAI tunnel에서 전달된 stable account subject가 Stage 1/3 acceptance를 통과한 경우에만 local account identity로 사용한다. local operator config는 subject digest별 access mode를 다음 두 값으로 제한한다.
 
-validation의 mandatory command/controller/policy는 operator가 digest로 adopt한다. candidate가 validation policy 파일을 바꿔도 곧바로 채택되지 않는다. 새 policy는 이전 policy로 검사한 commit을 명시적으로 adopt한다. 검증 성공은 **고정한 검사들의 실제 결과**이지 모든 버그/악의적 코드 부재의 증명은 아니다.
+- `full`: Connector Secret과 valid subject가 있으면 tdev runtime 사용 가능.
+- `permit`: Connector Secret과 valid subject가 있어도 기본 locked. 해당 subject+OpenAI session에 active One-Time Permit grant가 있을 때만 runtime admission 가능.
+- 미등록/unknown: deny.
 
-destructive boundary는 canonical push, workspace close, process cancellation, release activation, capability install/enable/disable과 extension이 선언한 destructive external effect에 둔다. workspace close는 checkpoint를 즉시 지우는 recursive delete가 아니라 closed 표시다. retention 이후 object GC가 reclaim한다. 명시적 operator authorization 없이 runtime/schema-policy/provider/capability resource를 바꾸지 않는다.
+이것은 일반 RBAC hierarchy가 아니다. `read/editor/admin` role을 만들지 않는다. repository/ref/capability의 구체적 grant는 기존 mechanical grant boundary가 별도로 소유하고, account access mode는 그 위의 installation-level ceiling이다.
 
-extension security는 **semantic intent 분류가 아니라 adopted contract enforcement**다. core는 command나 action 내용을 보고 ‘안전해 보인다’고 local로 승격하지 않는다. exact capability/action, descriptor digest, current grant, declared execution boundary와 structural precondition만 검사한다. extension은 controller DB/secret store에 직접 쓰지 않고 adapter protocol을 통해 bounded input/output/artifact만 교환한다. controller-trusted local adapter가 필요한 경우 그것은 명시적 operator trust transition이며, arbitrary repository code의 same-UID 실행을 우회적으로 허용하는 수단이 아니다. advisor/JEV/다른 모델의 출력은 어떤 confidence여도 권한·validation receipt·integration proof가 될 수 없다.
+literal shared ChatGPT login에서는 두 human이 같은 subject를 가질 수 있으므로 subject만으로 사람을 구분했다고 주장하지 않는다. `permit` mode는 Termux를 가진 local operator가 현재 conversation/session에 possession proof를 추가하도록 한다. Permit은 평문을 durable 저장하지 않고 subject+session에 bind하며 single-use/session-claim race를 atomic하게 처리한다. idle+absolute expiry, durable failure throttling, immediate local revoke를 제공한다. 다른 session이나 다른 subject가 같은 Permit/grant를 재사용할 수 없어야 한다.
 
+OpenAI session metadata는 **durable operation identity가 아니다.** reconnect/refresh에서 값이 바뀔 수 있으므로 실제 transport behavior를 acceptance로 확인하고, Permit grant의 scope/expiry semantics를 그 결과에 맞춘다. OpenAI subject/session header가 client-controlled로 spoof 가능하거나 account/session 분리가 안정적이지 않으면 production account authorization에 사용하지 않는다.
+
+### Canonical/provider/execution boundary
+
+canonical ref는 등록한 integration principal의 정상 write만 허용하고 deletion/rewrites를 막는다. 다른 writer를 허용하는 repository는 읽기/후보 작업은 할 수 있지만 이 exact canonical-acceptance mode를 허용하지 않는다. Git/HTTP credential은 native scoped secret store에 두고 candidate env/argv/output으로 전달하지 않는다.
+
+remote container는 host socket, controller mount, GitHub token, Connector Secret, tunnel runtime key, provider/device secret, cloud metadata/OIDC endpoint를 받지 않는다. trusted outer만 실행 identity와 receipt를 증명한다. rootless OCI, uid/namespace/cgroup limits, no privileged mount, capability drop, egress policy를 사용한다. candidate의 workflow/package script가 controller를 교체하지 못한다.
+
+network preset은 `none`, `dependencies`, `internet`이다. 기본 none이고 binding grant가 허용한 preset만 선택한다. private credential 지원이 없는 package source는 capability gap이지 candidate에 credential을 전달할 이유가 아니다.
+
+validation의 mandatory command/controller/policy는 operator가 digest로 adopt한다. candidate가 validation policy 파일을 바꿔도 곧바로 채택되지 않는다. 검증 성공은 고정한 검사들의 실제 결과이지 모든 버그/악의적 코드 부재의 증명은 아니다.
+
+destructive boundary는 canonical push, workspace close, process cancellation, release activation, capability install/enable/disable과 extension이 선언한 destructive external effect에 둔다. 명시적 operator authorization 없이 runtime/schema-policy/provider/capability resource를 바꾸지 않는다.
+
+extension security는 semantic intent 분류가 아니라 adopted contract enforcement다. exact capability/action, descriptor digest, current grant, declared execution boundary와 structural precondition만 검사한다. controller-trusted local adapter가 필요한 경우 그것은 명시적 operator trust transition이며 arbitrary repository code의 same-UID 실행 우회가 아니다.
 ## 27. KEEP / REPLACE / MERGE / REMOVE / DEFER matrix
 
 | 검토 요소 | 결정 | 이유 / target |
@@ -516,9 +572,9 @@ extension security는 **semantic intent 분류가 아니라 adopted contract enf
 | DIRECTIVE/RULE/WORKBOARD | MERGE | README 목적/작업 + architecture/test |
 | route-map/campaign/Design dependency graph | REMOVE | 작업 진행을 위해 graph 재구성 불필요 |
 | verification evidence | KEEP | 필요한 claim별 source/receipt; startup에서 lazy-load |
-| Worker/Access/installation DO | KEEP | 실제 ingress/reconnect/auth 요구 |
+| OpenAI Secure MCP Tunnel | KEEP AS FIRST TRANSPORT | outbound-only ingress로 public Termux endpoint와 custom Worker/DO/WS를 제거; durable authority는 아님 |
 | D1 Case placement, queue/result provider DB | REMOVE | 현재 target의 local owner와 중복 |
-| changing tunnel manager | REMOVE | 안정 public origin/outbound bridge로 충분 |
+| generic/changing tunnel manager | REMOVE | first release는 OAI Tunnel 하나; localhost HTTP boundary만 transport-neutral하게 유지 |
 | stable open capability gateway | KEEP TARGET | extension별 public tool/core workflow를 만들지 않고 lazy descriptor+operation으로 확장 |
 | dynamic MCP tool per extension | REMOVE | tools/list/Refresh/schema context를 extension lifecycle과 결합하지 않음 |
 | browser/CDP/desktop automation | DEFER AS EXTENSION | coding core dependency가 아니며 필요 시 capability adapter로 추가 |
@@ -540,44 +596,42 @@ fresh-session의 필수 AGENTS+README 합계 목표는 **6 KiB 이하, navigatio
 
 ## 29. Migration strategy
 
-이 설계 publication은 현재 production을 바꾸지 않는다. 실제 전환 때 runtime/provider를 다시 inventory하며 이 문서의 source SHA를 live deployment identity로 간주하지 않는다.
+이 설계 publication은 현재 production을 바꾸지 않는다. 실제 전환 때 runtime/provider/tunnel/service를 다시 inventory하며 이 문서의 source SHA를 live deployment identity로 간주하지 않는다.
 
 ### 회수할 source와 새로 만들 source
-dev-2의 identity/canonical encoding, Git object/path routines, qualified CAS, provider-boundary verification, Access assertions, framed transport, trusted outer receipt/managed-session fencing과 관련 regression assertion을 회수한다 [T2] [T3] [T4] [T5] [T6] [T7] [T8]. contract/workspace/operation storage와 generic exec command/checkpoint는 새로 구현한다. tmcp의 process-group/output/permission pattern과 외부 read/exec/patch pattern은 선택적으로 port한다. 실제 code를 복사할 때 upstream license/NOTICE와 pinned source를 보존한다. 이번 branch에는 외부 source를 vendor하지 않는다.
+dev-2의 identity/canonical encoding, Git object/path routines, qualified CAS, provider-boundary verification, trusted outer receipt/managed-session fencing과 관련 regression assertion을 회수한다 [T2] [T3] [T4] [T5] [T6] [T7] [T8]. old Cloudflare Access assertion/DO/WS 코드는 first-release ingress dependency로 회수하지 않는다. contract/workspace/operation storage와 generic exec command/checkpoint, localhost HTTP MCP/auth wrapper는 새로 구현한다. tmcp의 process-group/output/permission pattern과 **shared OTP/One-Time Permit invariant**는 선택적으로 port하되 JSON state subsystem을 복제하지 않고 tdev SQLite/grant에 통합한다.
 
 ### 보존/폐기할 state
-보존 대상은 canonical Git, human principal의 명시적 grants, binding/policy 설정, 사용자가 명시적으로 재채택할 capability package/descriptor manifest, 사용자 미통합 변경, 필요한 immutable receipts와 rollback artifact다. SQLite row를 구조 그대로 migration하지 않는다. old work는 exact base/tree의 Git bundle 또는 manifest export로 보존하고 새 workspace로 import한 뒤 새 controller로 다시 validate한다. old receipt를 새 policy의 PASS로 재라벨하지 않는다.
+보존 대상은 canonical Git, binding/policy 설정, 사용자가 명시적으로 재채택할 capability package/descriptor manifest, 사용자 미통합 변경, 필요한 immutable receipts와 rollback artifact다. account `full|permit` policy는 새 local operator config에서 명시적으로 설정하며 old OAuth/Access grant DB를 자동 trust하지 않는다. SQLite row를 구조 그대로 migration하지 않는다.
 
-Case/Drive/old request/epoch/queue/H2 membership/tunnel state와 old plugin/adapter runtime state는 새 core로 import하지 않는다. capability는 exact package/descriptor digest를 새 controller에서 다시 adopt하고 필요한 grant를 명시적으로 복원한다. old log/history는 접근 제한 archive이며 새 runtime의 authority가 아니다. 살아 있는 operation/process는 넘기지 않고 정상 drain/종료 증명 후 전환한다. 중지할 수 없는 genuine live work가 있으면 전환을 보류한다.
+Case/Drive/old request/epoch/queue/H2 membership/old tunnel state와 old plugin/adapter runtime state는 새 core로 import하지 않는다. capability는 exact package/descriptor digest를 새 controller에서 다시 adopt한다. old log/history는 접근 제한 archive이며 새 runtime의 authority가 아니다. 살아 있는 operation/process는 넘기지 않고 정상 drain/종료 증명 후 전환한다.
 
-### Endpoint와 provider
-canonical endpoint/Worker name/Access application은 재사용 후보이고 resource identity/claim shape를 fresh 확인한다. existing routing DO를 protocol-compatible하게 쓸 수 있으면 재사용한다. incompatibility가 있으면 같은 installation route의 generation을 **quiescent cutover**에서 전환하며 old writer를 먼저 fence한다. per-repository endpoint는 만들지 않는다.
+### Ingress와 provider
+first-release 새 ingress는 OpenAI Secure MCP Tunnel이다. production cutover 전에 exact tunnel id/runtime key owner, selected tunnel-client binary/version/digest, localhost MCP URL, Connector Secret, subject/session metadata acceptance를 readback한다. 기존 Cloudflare Worker/Access/DO/public endpoint는 **새 경로가 실제 ChatGPT E2E acceptance와 rollback 준비를 통과한 뒤** inactive dependency인지 확인하고서만 retire 후보가 된다. source에서 참조가 사라졌다는 이유만으로 provider resource를 삭제하지 않는다.
 
-Cloudflare D1/old Worker/DO namespace/aux refs는 inventory에서 active/historical/migration/orphan으로 구분한다. 실제 참조가 없는 것이 증명된 resource만 rollback 창 이후 제거한다. source에 이름이 없다는 이유만으로 provider resource를 지우지 않는다.
+다른 tunnel provider를 migration 동시 범위로 만들지 않는다. OAI Tunnel 성능/운영성이 실제 병목이면 Stage 3 이후 측정 근거로 별도 선택한다.
 
-### Release와 rollback
-operator entrypoint는 `tdev-admin binding add/update`, `grant add/revoke`, `policy adopt`, `capability install/enable/disable`, `release stage/activate/rollback`이다. 모두 expected current config/pointer digest를 받는 explicit admin boundary다. capability install은 exact package/entrypoint digest, descriptor digest, adapter protocol version, execution boundary와 allowed scoped-secret references를 고정하고 core source/Worker/tool list를 수정하지 않는다. disable은 새 invoke를 fence하되 이미 admitted된 operation을 성공으로 가장하지 않으며 observe/cancel/reconcile이 끝난 뒤에만 제거할 수 있다. `stage`는 source commit, artifact digest, protocol/schema versions, executable relative path, required acceptance를 manifest에 고정한다. `activate`는 no-live-writer → approved manifest 검증 → active/previous pointer의 atomic 교체 → 실제 PID/executable/bundle digest readback 순서다. bootstrap baseline executable을 고정 경로로 재실행하지 않는다.
+### Release와 Termux service
+operator entrypoint는 `tdev-admin binding ...`, policy/capability/release 관리와 local access/Permit 관리만 둔다. release installer는 기존 Termux `termux-services`를 dependency로 사용하여 **`tdev`와 `tdev-oai-tunnel` 두 runit service definition**을 설치한다. 자체 supervisor/service-root implementation을 만들지 않는다. secret/config/service file은 staged validation과 backup 후 설치하고 기본 install은 tdev readiness → tunnel readiness 순으로 activate하며 `--no-start`와 read-only `--check`를 제공한다.
 
-rollback은 한 개의 previous verified bundle과 전환 전 state backup으로 한정한다. 처음 전환은 new store를 분리하여 old reader가 new schema를 해석할 필요가 없게 한다. activation 후 새 work가 생겼다면 다시 quiesce하고 exact changes/receipts를 보존해야 한다. canonical Git을 과거로 reset하지 않는다. 새 schema에 대해 old binary가 안전한지 확인하지 않고 pointer만 되돌리지 않는다.
+rollback은 한 개의 previous verified bundle과 전환 전 state/service backup으로 한정한다. canonical Git을 과거로 reset하지 않는다. 새 schema에 대해 old binary가 안전한지 확인하지 않고 pointer만 되돌리지 않는다.
 
-old public tool aliases는 유지하지 않는다. endpoint 전환 뒤 client tool Refresh/OAuth 재인증이 실제로 필요하면 그 user boundary만 요청한다. 다계정 subject grants를 다시 확인하고 service credential로 human acceptance를 대신하지 않는다. new code 개발 ref는 `tdev`이며 main/default-branch promotion은 별도 명시적 결정 전까지 수행하지 않는다.
-
+old public tool aliases는 유지하지 않는다. public tool 이름은 처음부터 동일 10개를 유지한다. endpoint/tunnel 전환 뒤 client Refresh가 실제 descriptor/schema 변경 때문에 필요할 때만 그 user boundary를 요청한다. new code 개발 ref는 `tdev`이며 main/default-branch promotion은 별도 명시적 결정 전까지 수행하지 않는다.
 ## 30. Implementation sequence
 
 다음 **7단계**는 새로운 governance checkpoint ID가 아니라 engineering deliverable이다. 전체 architecture를 재발명하지 않고 순서대로 구현한다.
 
 | 단계 | 만드는 것 / 재사용 / 제거 | 확보할 invariant와 충분한 검사 | 다음으로 열리는 것 |
 |---|---|---|---|
-| 1. Contracts + native workspace/capability vertical slice | JSON contract를 actual handlers에 연결, installation DB/bindings/grants/capability registry/Git tree, context/read/open/patch/observe와 stable `tdev_capability list/describe/invoke` gateway를 구현. 실제 production extension 대신 synthetic no-op/echo fixture adapter로 protocol을 고정. 기존 fixed Git/encoding/edge auth adapter 회수. Work/Task hierarchy 없음 | fixture schema valid/invalid, same-key replay, revision race, path/symlink, crash-before/after pointer, native Termux 재시작, descriptor digest mismatch, unauthorized action, adapter disable/restart. 변경 없는 staging route에서 실제 ChatGPT discovery/read와 gateway describe/invoke; extension install 전후 tools/list 동일 | 모델이 정확한 source를 읽고 durable atomic 변경을 만들며 core redeploy 없이 future capability를 붙일 기본 경계를 확보 |
-| 2. Generic sandbox process | 기존 approved managed-runner launch/outer receipt 경계 회수. exec/process/stdin/log cursor/terminated-container checkpoint 구현. profile-only diagnostic run 대체 | native credential sentinel에 접근 불가, cross-workspace escape, launch-response loss, group cancellation, nonzero edits 보존, bounded logs; live 한 번의 formatter/interactive session. control assertions는 container 밖 | 임의 test/build/diagnostic과 source 생성 |
-| 3. Validation + exact integration | fixed commit freeze, mandatory profiles, trusted receipt, sole writer boundary, qualified CAS/readback. old full publication workflow 대신 operation 값 사용 | stale-before/after validation, altered tree/policy/receipt 거절, lost push readback, same receipt 중복 integrate, no false PASS. disposable protected ref에서 실제 수정→검사→통합 | **최초 최소 완전 개발 경로. 즉시 one-file/multi-file/search workload 측정** |
-| 4. Composition + N-way operation | explicit compose, fair capacity, multiple binding/ref/subjects. H2 automatic group state 제거 | disjoint/overlap/mode/type conflict, source rev freeze, one combined mandatory validation, capacity1과8, 두 repo/two refs, cross-principal denied | 병렬 throughput과 multi-repo 실측; per-repo runtime 복제 없음 |
-| 5. Reconnect/운용 다듬기 | delta transfer/cache budget, same executor reattach, edge/offline classifications, bounded restore/GC, capability adapter reconnect/disable semantics. unrelated recovery framework 없음 | actual Termux restart/network drop, provider-terminal proof, output replay, unknown stdin, disk full, revoke-before-dispatch, device cred≠human 권한, one optional real capability adapter의 install→describe→invoke→disable. 최초 전체 workload cohort | 공개 path와 extension path의 운영성과 비용 자료 |
-| 6. Release/cutover | 작은 admin release entrypoint/manifest/pointer, exact export/import, 기존 endpoint/Access resource 회수. legacy aliases/state migration framework 없음 | actual activated executable digest readback, two-principal OAuth, no active writer, rollback one bundle, old/new schema 분리. 기존 acceptance 통과 후 실제 전환 | 새 production 경로 |
-| 7. Real acceptance + cleanup | 같은 workload production 재확인, state/provider inventory, proven orphan과 transition-only 코드 제거 | 정확한 canonical result/권한/회복 증거, current-work와 실제 상태 일치, archive 접근 제한, source/runtime identity 보고 | 구현 완료 판정과 이후 병목 기반 개선 |
+| 1. Contracts + local HTTP/auth + native workspace/capability vertical slice | exact 10-tool JSON contract를 actual handlers에 연결. localhost Streamable HTTP MCP, Connector Secret auth wrapper, OpenAI subject/session capture, local `full|permit` policy loader, SQLite Permit grant, minimal local Permit issue/revoke, binding/grant/capability registry/Git tree, context/read/open/patch/observe와 stable gateway 구현. OAI tunnel-client는 installer 없이 dev/manual run으로 붙임 | wrong Connector Secret은 discovery 전 거절; unknown subject deny; full immediate; permit locked; Permit digest-only/atomic claim/subject+session bind/expiry/revoke/rate-limit; policy downgrade 우선. 실제 ChatGPT에서 10-tool discovery, subject/session 분리·spoof resistance, form elicitation 또는 bounded fallback. extension install 전후 tools/list 동일 | private Termux endpoint 없이 모델이 exact source를 읽고 durable atomic edit를 만들며 shared-account session authorization과 extension 경계를 확보 |
+| 2. Generic sandbox process | 기존 approved managed-runner/outer receipt 경계 회수. exec/process/stdin/log cursor/terminated-container checkpoint 구현 | native credential/Connector/tunnel secret sentinel 접근 불가, cross-workspace escape, launch-response loss, group cancellation, nonzero edits 보존, bounded logs | 임의 test/build/diagnostic과 source 생성 |
+| 3. Validation + exact integration + first OAI Tunnel E2E | fixed commit freeze, mandatory profiles, trusted receipt, sole writer boundary, qualified CAS/readback. `ChatGPT → OAI Tunnel → localhost tdev → read/patch/exec/validate/integrate` 실제 경로 | stale-before/after validation, altered receipt 거절, lost push readback, duplicate integrate 0. account A `full`, shared account `permit`의 chat A unlock/chat B locked, reconnect behavior, connector secret negative test | **최초 최소 완전 개발 경로. 즉시 one-file/multi-file/search workload와 tunnel overhead 측정** |
+| 4. Composition + N-way operation | explicit compose, fair capacity, multiple binding/ref/subjects. H2 automatic group state 제거 | composition conflict/source freeze/one final validation, capacity1/8, two repo/ref, cross-principal denied; account access ceiling이 repo grant를 넘지 않음 | 병렬 throughput과 multi-repo 실측 |
+| 5. Reconnect/운용 다듬기 | DB/operation/executor/tunnel reconnect 관측, bounded cache/GC, capability adapter reconnect/disable, Permit expiry/revoke/failure recovery | actual Termux restart/network drop, tunnel control-plane reconnect, output replay, unknown stdin, disk full, policy/Permit revoke-before-admission, one real optional capability | 공개 path와 extension path의 운영성 자료 |
+| 6. Release/install/cutover | 작은 admin release entrypoint, verified bundle/pointer, **install.sh + runit service definitions `tdev`/`tdev-oai-tunnel` + svlogger**, owner-only secret/config install, `--no-start`/`--check`, exact rollback. old Cloudflare ingress는 새 path acceptance 후 retire 후보 | activated executable/binary digest, service process ownership, local MCP readiness, tunnel ready/control-plane health, secret mode/owner, Connector rotation behavior, subject full/permit two-account check, rollback one bundle | 새 production 경로 |
+| 7. Real acceptance + cleanup | 같은 workload production 재확인, state/provider/service inventory, proven orphan/old ingress transition code만 제거 | exact canonical result/권한/회복 증거, current-work와 실제 상태 일치, source/runtime/tunnel identity 보고 | 구현 완료 판정과 병목 기반 개선 |
 
-1–3에서 반드시 필요한 stale/credential/duplicate effect boundary는 나중으로 미루지 않는다. 단계 5는 그 경계를 처음 만드는 단계가 아니라 더 넓은 실제 장애 조건을 점검하는 단계다. generic shell·최초 full path를 만들기 전에 완전한 release/migration/benchmark qualification framework부터 만들지 않는다.
-
+1–3에서 필요한 stale/credential/duplicate-effect와 ingress/account boundary를 나중으로 미루지 않는다. Stage 6의 installer/runit packaging은 Stage 1–3 runtime correctness를 대신하지 않는다. generic transport abstraction, OAuth service, release qualification framework를 최초 full path보다 먼저 만들지 않는다.
 ## 31. Minimal performance/acceptance methodology
 
 새 benchmark service는 만들지 않는다. fixture repositories 두 개, workload 설명 한 파일, connector/runner의 기존 structured logs와 단순 집계 script면 충분하다. 이 설계 세션에는 workload를 실행하지 않았다.
@@ -602,38 +656,45 @@ old public tool aliases는 유지하지 않는다. endpoint 전환 뒤 client to
 
 ## 32. Targeted verification tasks, only if genuinely necessary
 
-architecture를 결정하기 위한 별도 prototype/worker 실험은 **현재 0건**이다. 기존 source/evidence로 target을 선택할 수 있었다. 구현 단계의 acceptance 중 다음 한 가지 host-dependent 확인만 따로 식별한다.
+architecture를 결정하기 위한 별도 대규모 prototype은 만들지 않는다. 구현 단계에서 **두 개의 host-dependent acceptance**만 명시적으로 남긴다.
 
-**QUESTION**
-실제 연결된 ChatGPT host가 선택한 **ten-tool stable surface**의 discriminated variants와 bounded batch 결과를 올바르게 discovery/호출/표시하고, extension 설치 후 별도 client Refresh 없이 기존 `tdev_capability`를 통해 새 descriptor/action을 사용할 수 있는가?
+### A. Stable ten-tool surface + capability no-refresh
 
-**WHY IT MATTERS**
-MCP 표준의 JSON Schema 지원과 특정 host의 실제 schema 취급은 다르다. 결과에 따라 wire schema의 표현 방식이 달라질 수 있지만 권한이나 runtime architecture는 바뀌지 않는다.
+**QUESTION:** 실제 ChatGPT host가 10-tool surface의 schema를 정상 discovery/호출하고, extension install 뒤 tools/list 변화 없이 기존 `tdev_capability describe → invoke → observe`를 사용할 수 있는가?
 
-**MINIMUM CHECK**
-단계 1에서 구현한 동일 adapter의 10개 public descriptor를 한 번 Refresh한 뒤 one two-query read와 disposable workspace의 two-file patch를 호출하고 result를 재관측한다. 이어 synthetic capability를 admin install/enable하고 **tools/list를 바꾸지 않은 채** `tdev_capability describe → invoke → observe`를 한 번 수행한 뒤 disable한다. 대규모 benchmark, 별도 agent loop, safety 우회 실험은 하지 않는다.
+**MINIMUM CHECK:** Stage 1 동일 adapter에서 two-query read, two-file patch, synthetic capability install/describe/invoke/disable을 한 번 수행한다. host가 tagged union을 처리하지 못하면 tool 수/효과는 유지하고 flat discriminator advertisement로만 변환한다.
 
-**RESULT A**
-현재 tagged union schema와 typed result, stable capability gateway를 그대로 사용한다. extension 설치/제거는 client tool Refresh를 요구하지 않는다.
+### B. OpenAI Tunnel account/session authorization
 
-**RESULT B**
-host가 정상 schema를 처리하지 못하는 것이 확인되면 **10개 tool 수/효과와 stable gateway 선택을 바꾸지 않고**, 해당 tool의 properties를 flat object+required discriminator로 advertise하며 server에서 원래 union과 capability action schema를 엄격 검증한다. schema/result의 작은 변환만 다시 확인한다. mutation을 read-only로 속이거나 다른 tool로 policy block을 우회하지 않는다.
+**QUESTION:** 실제 Secure MCP Tunnel 경로가 tdev authorization에 쓸 수 있을 만큼 trustworthy한 account subject와 conversation/session metadata를 제공하는가?
 
-이 확인이 실패할 수도 있다는 점은 미구현 제품의 host acceptance 미완료이지, target architecture 선택 보류가 아니다. PTY packaging·provider capacity·Android restart는 §30의 구현 acceptance이며 별도 architecture research program으로 만들지 않는다.
+**MINIMUM CHECK:**
+- 서로 다른 ChatGPT accounts → 서로 다른 subject.
+- 동일 shared login의 서로 다른 chats → 같은 subject + 서로 다른 session.
+- chat A에서 One-Time Permit을 claim하면 A만 runtime 가능하고 B/C는 locked.
+- reconnect/refresh에서 session 변화와 Permit UX를 관측.
+- client/model이 subject/session transport metadata를 임의 override할 수 없음.
+- Connector Secret 오답은 MCP discovery/call 전에 거절.
+- MCP form elicitation으로 Permit을 안전하게 받을 수 있는지 확인; 미지원이면 동일 10 tools를 유지하는 bounded auth-input decoration fallback을 확인.
 
+**FAILURE RULE:** 이 metadata가 stable/trustworthy하지 않으면 production에서 account-specific `full|permit` authority로 승격하지 않는다. 별도 OAuth provider를 자동 도입하지 않고 identity boundary를 다시 선택한다.
+
+이 두 확인은 미구현 제품의 host acceptance이지 architecture 연구 프로그램이 아니다. PTY/provider capacity/Android restart/runit packaging은 해당 Stage의 정상 acceptance로 처리한다.
 ## 33. Remaining unknowns and risks
 
-**NEEDS TARGETED VERIFICATION:** 실제 host의 schema 표현/Refresh 동작은 §32로 남는다. 현재 source/evidence로 actual live production executable/provider inventory, 미래 provider quota/가격, 새 workload의 speedup을 확정할 수 없다. 이들을 현재 완료로 보고하지 않는다.
+**NEEDS TARGETED VERIFICATION:** 실제 host schema/no-refresh behavior와 OpenAI Tunnel subject/session/elicitation behavior는 §32로 남는다. 특히 subject/session source 전달이 관측됐다는 사실은 account identity의 permanent security contract를 뜻하지 않는다. 해당 acceptance 전에는 production `full|permit` 정책의 근거로 사용하지 않는다.
 
-**ENGINEERING INFERENCE:** 가장 큰 잔여 성능 위험은 remote cold start와 validation 비용이다. warm provider reuse/explicit composition/중복 ref 읽기 제거로 줄일 수 있는 부분과 provider floor를 분리해 측정해야 한다. 새 surface가 간결해도 모델의 tool-selection 향상을 실측 없이 보장하지 않는다.
+**ENGINEERING INFERENCE:** 가장 큰 잔여 성능 위험은 remote executor cold start와 validation 비용이며, tunnel transport overhead는 Stage 3 최초 완전 경로에서 별도 측정한다. OAI Tunnel을 선택했다는 이유만으로 latency 우위를 주장하지 않는다. 실제 bottleneck evidence 없이 Cloudflare/다른 transport를 병렬 구현하지 않는다.
 
-가장 큰 구현 위험은 generic exec의 source checkpoint 수집과 stdin crash gap이다. 이를 감추지 않고 exact last checkpoint, whole-container termination, hash/path verification, unknown delivery, no automatic arbitrary replay로 한정했다. uncheckpointed interactive changes의 runner loss는 실제로 유실될 수 있다. Git/DB 손상은 backup과 수동 복구를 필요로 한다.
+가장 큰 authorization 위험은 literal shared login에서 human identity와 account subject가 동일하다는 점이다. 이를 숨기지 않고 `permit` account에 local One-Time Permit possession proof를 추가한다. Permit 자체가 OAuth role을 뛰어넘는 privilege escalation이 되지 않도록 account ceiling을 항상 먼저 검사한다. session metadata가 바뀌거나 spoofable하면 grant를 fail closed한다.
 
-초기 built-in capability 제한은 unresolved submodule/LFS materialization, arbitrary private-package credential provisioning, local hostile-code execution이다. browser/desktop/device adapters, Blender 같은 application bridge, 새로운 executor, JEV/다른 advisor 모델 등은 **core 미지원 기능이 아니라 설치되지 않은 optional extension**으로 취급한다. 필요 시 새 public tool이나 core workflow를 추가하지 않고 stable capability gateway에 adapter를 붙인다.
+가장 큰 구현 위험은 generic exec의 source checkpoint 수집과 stdin crash gap이다. 이를 exact last checkpoint, whole-container termination, hash/path verification, unknown delivery, no automatic arbitrary replay로 한정한다. Git/DB 손상은 backup과 수동 복구를 필요로 한다.
 
-open extension plane의 잔여 위험은 gateway가 다시 거대한 generic registry가 되거나 trusted adapter가 controller trust domain을 불필요하게 넓히는 것이다. 이를 bounded summary/lazy descriptor, immutable descriptor digest, namespaced grant, existing operation/observe 재사용, admin-only install, explicit execution boundary로 제한한다. 실제 host가 no-refresh dynamic descriptor 사용을 안정적으로 처리하는지는 §32에서 확인한다.
+first-release 운영 위험은 Android가 Termux UID 전체를 종료할 수 있다는 점이다. runit/service-daemon은 Termux가 살아 있는 동안 tdev/tunnel-client process death를 복구하지만 OS-level always-on을 보장하지 않는다. health checker는 관찰만 하며 네트워크 degraded를 process crash로 오인해 restart loop를 만들지 않는다.
 
-**최종 판단:** 처음부터 다시 만든다면 ChatGPT의 지능을 다시 구현하지 않고, 자연스러운 batch read·atomic edit·generic sandbox process를 직접 제공하며, immutable workspace와 exact validation/integration에만 필요한 durable correctness를 둔다. 동시에 아직 존재하지 않는 future capability도 core를 다시 설계하지 않고 붙일 수 있도록 9개 core tool + 하나의 stable lazy capability gateway를 둔다. 기능은 extension으로 열어 두되 authority와 correctness boundary는 core에 닫아 둔다. 기존 구현에서 비싸게 얻은 경계는 보존하되, 그 경계를 이해하거나 새 기능을 쓰기 위해 모델이 authority graph 전체를 매번 읽도록 만들지는 않는다.
+open extension plane의 잔여 위험은 gateway가 다시 거대한 generic registry가 되거나 trusted adapter가 controller trust domain을 불필요하게 넓히는 것이다. 이를 bounded summary/lazy descriptor, immutable descriptor digest, namespaced grant, existing operation/observe 재사용, admin-only install, explicit execution boundary로 제한한다.
+
+**최종 판단:** 처음부터 다시 만든다면 ChatGPT의 지능을 다시 구현하지 않고, private localhost HTTP MCP와 OAI Secure Tunnel을 first ingress로 사용해 transport control-plane을 최소화한다. Connector Secret으로 installation ingress를 보호하고 OpenAI subject에 `full|permit` ceiling을 주며 shared account의 `permit` session은 local One-Time Permit으로만 unlock한다. 그 위에서 자연스러운 batch read·atomic edit·generic sandbox process와 immutable workspace/exact validation/integration을 제공하고, 미래 capability는 9개 core tool + stable lazy gateway를 통해 확장한다. 기능은 열어 두되 durable authority와 correctness는 Termux controller/operator boundary에 닫아 둔다.
 
 ### Evidence index (분석용 링크, 별도 authority hierarchy 아님)
 
@@ -666,6 +727,7 @@ open extension plane의 잔여 위험은 gateway가 다시 거대한 generic reg
 [P4]: https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows
 [P5]: https://developers.cloudflare.com/cloudflare-one/access-controls/applications/http-apps/managed-oauth/
 [P6]: https://developers.openai.com/api/docs/guides/tools-connectors-mcp
+[P7]: https://github.com/openai/tunnel-client/tree/3502fcb8953230215c832197b1e4835fe47183da
 
 추가 직접 조사 경로: dev-2 `DIRECTIVE.md`, `RULE.md`, `WORKBOARD.md`, `docs/campaign/route-map.md`, `C2-final-tdev-convergence.md`, `docs/ARCHITECTURE.md`, D0001/D0004, `github-boundary.mjs`, `config/validation-profiles.json`, `test/core/cost-efficient-group-recovery.test.mjs`, `test/core/hard-cutover-recovery.test.mjs`, `test/integration/action-deadline.test.mjs`. DevSpace `tool-surfaces/codex.ts`, `process-sessions.ts`, `roots.ts`, `db/schema.ts`, `workspaces.ts`, `local-agent-codex.ts`, `package.json`. AgentDock `app/specs_file.go`, `tool/file/contract.go`, `patch_transaction.go`, `tool/command/contract.go`, `session/runner.go`, `mcp/server.go`, `auth/bearer.go`, `acp/process.go`. CoS `codex/unified-exec.ts`, `apply-patch/index.ts`, `read-backend.ts`, `tool-specs.ts`, `mcp/tools-core.ts`, `mcp/surfaces.ts`, `mcp/inbound.ts`, `sandbox.ts`, `SECURITY.md`, Codex attribution. WebGPT `worker.mjs`, `terminal.mjs`, `browser.mjs`.
 
