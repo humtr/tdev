@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
@@ -16,6 +17,10 @@ class AdminTest(unittest.TestCase):
             (source / "src").mkdir(parents=True)
             (source / "src" / "example.py").write_text("version=1\n")
             (source / "requirements.txt").write_text("")
+            (root / "bin").mkdir(parents=True)
+            native = root / "bin/tunnel-client"
+            native.write_text("#!/bin/sh\nprintf '0.0.14\\n'\n")
+            native.chmod(0o700)
             one = stage(root, source)
             self.assertFalse(one["started"])
             self.assertTrue((root / "services/tdev/down").exists())
@@ -24,11 +29,9 @@ class AdminTest(unittest.TestCase):
             self.assertNotIn("envdir", tunnel_run)
             self.assertIn("CONTROL_PLANE_API_KEY", tunnel_run)
             self.assertIn("--health.listen-addr 127.0.0.1:0", tunnel_run)
-            prefix = os.environ.get("PREFIX")
-            if prefix and not Path("/etc/resolv.conf").is_file():
-                self.assertIn("proot", tunnel_run)
-                self.assertIn(f"{prefix}/etc/resolv.conf:/etc/resolv.conf", tunnel_run)
-                self.assertIn(f"{prefix}/etc/tls/cert.pem:/etc/ssl/cert.pem", tunnel_run)
+            self.assertEqual(one["tunnelMode"], "native-cgo")
+            self.assertIn(str(native), tunnel_run)
+            self.assertNotIn("termux-chroot", tunnel_run)
             self.assertFalse((root / "active").exists())
             point(root, one["bundle"])
             init_config(root)
@@ -51,3 +54,27 @@ class AdminTest(unittest.TestCase):
             (root / "active/src/example.py").write_text("tampered")
             with self.assertRaises(Fault):
                 check(root)
+
+    def test_termux_chroot_fallback_template(self):
+        prefix = os.environ.get("PREFIX")
+        if not (prefix and shutil.which("termux-chroot") and shutil.which("tunnel-client")):
+            self.skipTest("Termux tunnel fallback is host-specific")
+        cert = Path(prefix) / "etc/tls/cert.pem"
+        if not cert.is_file():
+            self.skipTest("Termux CA bundle unavailable")
+        with tempfile.TemporaryDirectory() as tmp:
+            source, root = Path(tmp) / "source", Path(tmp) / "installation"
+            (source / "src").mkdir(parents=True)
+            (source / "src/example.py").write_text("version=1\n")
+            (source / "requirements.txt").write_text("")
+            (root / "bin").mkdir(parents=True)
+            invalid_native = root / "bin/tunnel-client"
+            invalid_native.write_text("#!/bin/sh\nexit 1\n")
+            invalid_native.chmod(0o700)
+            staged = stage(root, source)
+            self.assertEqual(staged["tunnelMode"], "termux-chroot")
+            tunnel_run = (root / "services/tdev-oai-tunnel/run").read_text()
+            self.assertIn(shutil.which("termux-chroot"), tunnel_run)
+            self.assertIn("CA_BUNDLE=", tunnel_run)
+            self.assertIn(str(cert), tunnel_run)
+            self.assertNotIn(" -b ", tunnel_run)

@@ -121,25 +121,39 @@ from installation bearer/provider credentials. Existing production profiles must
 repurposed automatically. OAuth/DCR discovery is intentionally absent; the two protected-
 resource well-known candidates return public HTTP 404 while /mcp remains bearer protected.
 
-For manual qualification, load the owner-only key file without an envdir dependency and
-use an ephemeral localhost health listener so an unrelated process on port 8080 cannot
-block the tunnel:
+Prepare the Tunnel runtime before staging. The preferred path compiles the pinned official
+OpenAI source as an Android/arm64 CGO-enabled binary under the private installation root.
+If native compilation is unavailable or fails, Termux falls back to the installed official
+Linux binary through termux-chroot plus the Termux CA bundle:
+
+```sh
+PYTHONPATH=src:.tdev-deps python -m tdev.admin prepare-tunnel \
+  --root /absolute/private/staging-root
+```
+
+`install.sh --no-start` performs this preparation automatically before staging. A successful
+native preparation reports `mode: native-cgo`; fallback reports `mode: termux-chroot`.
+The native binary needs no PRoot/chroot wrapper, custom resolver variable or CA override.
+The fallback uses `CA_BUNDLE=$PREFIX/etc/tls/cert.pem`; termux-chroot supplies the Linux
+filesystem view including `/etc/resolv.conf`. termux-chroot comes from the Termux proot
+package, so this reduces wrapper complexity but is still PRoot-backed compatibility rather
+than isolation.
+
+For manual qualification, use the prepared private binary when native-cgo succeeded:
 
 ```sh
 CONTROL_PLANE_API_KEY="$(cat /absolute/private/staging-root/tunnel-env/CONTROL_PLANE_API_KEY)" \
-  tunnel-client doctor --profile tdev --health.listen-addr 127.0.0.1:0 --explain
+  /absolute/private/staging-root/bin/tunnel-client doctor \
+  --profile tdev --health.listen-addr 127.0.0.1:0 --explain
 
 CONTROL_PLANE_API_KEY="$(cat /absolute/private/staging-root/tunnel-env/CONTROL_PLANE_API_KEY)" \
-  proot \
-  -b "$PREFIX/etc/resolv.conf:/etc/resolv.conf" \
-  -b "$PREFIX/etc/tls/cert.pem:/etc/ssl/cert.pem" \
-  tunnel-client run --profile tdev --health.listen-addr 127.0.0.1:0
+  /absolute/private/staging-root/bin/tunnel-client run \
+  --profile tdev --health.listen-addr 127.0.0.1:0
 ```
 
-The staged tdev-oai-tunnel runit template uses the same owner-only key-file loading and
-ephemeral health-listener policy. On Termux hosts without /etc/resolv.conf it also applies
-the same two PRoot bind projections. A missing PRoot/resolver/CA prerequisite fails staging
-instead of generating a known-broken Tunnel service.
+The staged tdev-oai-tunnel runit template selects that private native binary first. If it is
+absent, a qualified Termux fallback template uses `termux-chroot tunnel-client` with
+`CA_BUNDLE` and the same owner-only key-file and ephemeral-health-listener policy.
 
 Connect/Refresh the ChatGPT connector and enter its bearer through the credential UI.
 Verify 2026-07-28 request metadata/header forwarding, seven tools, wrong-secret discovery denial, full native

@@ -21,7 +21,12 @@ def main():
     source = Path(__file__).resolve().parents[1]
     with tempfile.TemporaryDirectory(prefix=".tdev-rehearsal-", dir=source) as temporary:
         root = Path(temporary)
+        (root / "bin").mkdir()
+        native_tunnel = root / "bin/tunnel-client"
+        native_tunnel.write_text("#!/bin/sh\nprintf '0.0.14\\n'\n")
+        native_tunnel.chmod(0o700)
         bundle = stage(root, source)
+        assert bundle["tunnelMode"] == "native-cgo"
         init_config(root)
         repo = Repository(root)
         config = json.loads((root / "config.json").read_bytes())
@@ -118,12 +123,11 @@ print(s.server_port,flush=True); s.serve_forever()
         assert "envdir" not in tunnel_run
         assert "CONTROL_PLANE_API_KEY" in tunnel_run
         assert "--health.listen-addr 127.0.0.1:0" in tunnel_run
-        prefix = os.environ.get("PREFIX")
-        if prefix and not Path("/etc/resolv.conf").is_file():
-            assert "proot" in tunnel_run
-            assert f"{prefix}/etc/resolv.conf:/etc/resolv.conf" in tunnel_run
-            assert f"{prefix}/etc/tls/cert.pem:/etc/ssl/cert.pem" in tunnel_run
+        assert str(native_tunnel) in tunnel_run
+        assert "termux-chroot" not in tunnel_run
+        assert "proot -b" not in tunnel_run
         assert (root / "tunnel-env").stat().st_mode & 0o777 == 0o700
+        assert "prepare-tunnel" in (source / "install.sh").read_text()
         print(json.dumps({"bundle": checked["bundle"], "source": str(source),
                           "inactiveInstall": True, "productionServicesTouched": False,
                           "protocol": VERSION, "nativeSigkillRecoveryAndExactPublication": True,
