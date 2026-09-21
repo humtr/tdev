@@ -1,6 +1,8 @@
 import argparse
 import base64
 import json
+import os
+from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from . import __version__
@@ -9,6 +11,7 @@ from .core import Controller
 
 VERSION = "2026-07-28"
 META = "io.modelcontextprotocol/"
+SOURCE_ROOT = Path(__file__).resolve().parents[2]
 
 
 def expanded(schema, value):
@@ -22,6 +25,8 @@ def expanded(schema, value):
 
 
 def make_server(controller, port=0):
+    manifest = SOURCE_ROOT / "manifest.json"
+    bundle = json.loads(manifest.read_bytes())["id"] if manifest.is_file() else None
     class Handler(BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.1"
 
@@ -74,7 +79,7 @@ def make_server(controller, port=0):
 
         def do_GET(self):
             if self.path == "/healthz":
-                self.send(200, {"status": "up", "version": __version__})
+                self.send(200, {"status": "up", "version": __version__, "pid": os.getpid(), "bundle": bundle})
             elif self.path in (
                 "/.well-known/oauth-protected-resource/mcp",
                 "/.well-known/oauth-protected-resource",

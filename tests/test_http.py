@@ -61,7 +61,7 @@ class HTTPTest(unittest.TestCase):
         self.assertEqual(self.request(headers={"Host": "evil.example"})[0], 403)
         code, value = self.request()
         self.assertEqual(code, 200)
-        self.assertEqual(len(value["result"]["tools"]), 7)
+        self.assertEqual(len(value["result"]["tools"]), 9)
         self.assertNotIn("$ref", json.dumps(value["result"]))
 
     def test_oauth_well_known_is_optional_public_404(self):
@@ -79,7 +79,7 @@ class HTTPTest(unittest.TestCase):
         self.assertEqual(self.request("initialize")[0], 404)
         self.assertEqual(self.request("notifications/initialized", ident=None)[0], 400)
         self.assertEqual(self.request(headers={"MCP-Protocol-Version": "bad"})[0], 400)
-        args = {"name": "tdev_workspace", "arguments": {"action": "open", "requestId": "open", "repo": "test", "ref": "refs/heads/main", "expectedHead": self.repo.head}}
+        args = {"name": "tdev_task", "arguments": {"action": "open", "requestId": "open", "repo": "test", "ref": "refs/heads/main", "expectedHead": self.repo.head}}
         _, first = self.request("tools/call", args)
         _, second = self.request("tools/call", args)
         self.assertEqual(first["result"], second["result"])
@@ -95,11 +95,11 @@ class HTTPTest(unittest.TestCase):
         code, value = self.request(args={"_meta": {META + "protocolVersion": "2025-11-25", META + "clientCapabilities": {}}}, headers={"MCP-Protocol-Version": "2025-11-25"})
         self.assertEqual((code, value["error"]["code"]), (400, -32022))
         self.assertEqual(value["error"]["data"], {"supported": [VERSION], "requested": "2025-11-25"})
-        args = {"name": "tdev_workspace", "arguments": {"action": "list"}}
+        args = {"name": "tdev_task", "arguments": {"action": "list"}}
         for name in (None, "tdev_exec", "=?base64?invalid?="):
             code, value = self.request("tools/call", args, {"Mcp-Name": name})
             self.assertEqual((code, value["error"]["code"]), (400, -32020))
-        code, value = self.request("tools/call", args, {"Mcp-Name": "=?base64?dGRldl93b3Jrc3BhY2U=?="})
+        code, value = self.request("tools/call", args, {"Mcp-Name": "=?base64?dGRldl90YXNr?="})
         self.assertEqual(code, 200)
         self.assertTrue(value["result"]["structuredContent"]["ok"])
         self.assertEqual(self.request(headers={"Accept": "application/json"})[0], 406)
@@ -113,16 +113,67 @@ class HTTPTest(unittest.TestCase):
             return value["result"]
         def wait(op):
             for _ in range(100):
-                result = call("process", {"action": "status", "operationId": op["id"]})
+                result = call("operation", {"action": "status", "operationId": op["id"]})
                 if result["status"] not in ("running", "unknown"):
                     self.assertEqual(result["status"], "succeeded", result)
                     return result
                 time.sleep(.03)
             self.fail(result)
-        w = call("workspace", {"action": "open", "requestId": "open", "repo": "test", "ref": "refs/heads/main", "expectedHead": self.repo.head})["result"]
-        e = call("edit", {"requestId": "edit", "workspaceId": w["workspaceId"], "expected": w["checkpoint"], "edits": [{"action": "replace", "path": "a.txt", "old": "hello", "text": "http"}]})["result"]
-        executed = wait(call("exec", {"requestId": "exec", "workspaceId": w["workspaceId"], "expected": e["checkpoint"], "command": "printf native >> a.txt"}))
-        v = wait(call("validate", {"requestId": "validate", "workspaceId": w["workspaceId"], "expected": executed["result"]["checkpoint"], "message": "native HTTP"}))
+        w = call("task", {"action": "open", "requestId": "open", "repo": "test", "ref": "refs/heads/main", "expectedHead": self.repo.head})["result"]
+        e = call("edit", {"requestId": "edit", "taskId": w["taskId"], "expected": w["checkpoint"], "edits": [{"action": "replace", "path": "a.txt", "old": "hello", "text": "http"}]})["result"]
+        executed = wait(call("exec", {"requestId": "exec", "taskId": w["taskId"], "expected": e["checkpoint"], "command": "printf native >> a.txt"}))
+        v = wait(call("validate", {"requestId": "validate", "taskId": w["taskId"], "expected": executed["result"]["checkpoint"], "message": "native HTTP"}))
         p = call("publish", {"requestId": "publish", "validationId": v["id"], "expectedHead": self.repo.head})
         self.assertEqual(p["status"], "succeeded", p)
         self.assertEqual(p["result"]["commit"], v["result"]["candidate"])
+
+    def test_local_project_creation_native_validation_publish_cleanup_over_http(self):
+        self.repo.config['projectPolicies'] = {'local': {'kind': 'local', 'root': self.tmp.name,
+            'validation': 'test -f README.md', 'managedRefNamespace': 'refs/heads/tdev-work/', 'allowCreate': True}}
+        self.repo.config['principals']['alice']['projectPolicies'] = ['local']
+        def call(tool, args):
+            code, response = self.request('tools/call', {'name': 'tdev_' + tool, 'arguments': args})
+            self.assertEqual(code, 200)
+            value = response['result']['structuredContent']
+            self.assertTrue(value['ok'], value)
+            return value['result']
+        project = call('project', {'action': 'create', 'requestId': 'create', 'policy': 'local', 'name': 'new-http-project'})
+        self.assertEqual(project['status'], 'succeeded', project)
+        space = call('workspace', {'action': 'create', 'requestId': 'space', 'name': 'HTTP development',
+                                  'projects': [project['result']['repo']]})
+        self.assertEqual(call('operation', {'action': 'status', 'lookupRequestId': 'space'}), space)
+        checkout = Path(project['result']['checkout'])
+        (checkout / 'local.txt').write_text('local working change')
+        w = call('task', {'action': 'start', 'requestId': 'start', 'workspaceId': space['result']['workspaceId'],
+                          'localChanges': True})['result']
+        self.assertIn('localImport', w)
+        self.assertEqual(w['repo'], project['result']['repo'])
+        e = call('edit', {'requestId': 'edit', 'taskId': w['taskId'], 'expected': w['checkpoint'],
+            'edits': [{'action': 'put', 'path': 'feature.txt', 'before': None, 'content': 'http task'}]})['result']
+        source = call('task', {'action': 'start', 'requestId': 'source', 'workspaceId': w['workspaceId']})['result']
+        changed = call('edit', {'requestId': 'source-edit', 'taskId': source['taskId'], 'expected': source['checkpoint'],
+            'edits': [{'action': 'put', 'path': 'second.txt', 'before': None, 'content': 'parallel task'}]})['result']
+        merged = call('task', {'action': 'integrate', 'requestId': 'merge', 'taskId': w['taskId'],
+            'expected': e['checkpoint'], 'sourceTaskId': source['taskId']})['result']
+        self.assertTrue(merged['applied'])
+        diff = call('read', {'taskId': w['taskId'], 'queries': [{'action': 'diff', 'format': 'patch'}]})
+        self.assertIn('+local working change', diff['items'][0]['text'])
+        self.assertIn('+parallel task', diff['items'][0]['text'])
+        call('task', {'action': 'close', 'requestId': 'close-source', 'taskId': source['taskId'],
+                      'expected': changed['checkpoint']})
+        v = call('validate', {'requestId': 'v', 'taskId': w['taskId'], 'expected': merged['checkpoint'], 'message': 'new project'})
+        for _ in range(100):
+            v = call('operation', {'action': 'status', 'operationId': v['id']})
+            if v['status'] not in ('running', 'unknown'):
+                break
+            time.sleep(.03)
+        self.assertEqual(v['status'], 'succeeded', v)
+        published = call('publish', {'requestId': 'p', 'validationId': v['id']})
+        self.assertEqual(published['result']['commit'], v['result']['candidate'])
+        self.assertEqual(call('task', {'action': 'cleanup', 'requestId': 'cleanup', 'taskId': w['taskId']})['status'], 'succeeded')
+        self.assertEqual(call('operation', {'action': 'retire', 'requestId': 'retire', 'operationId': v['id']})['status'], 'succeeded')
+        view = call('workspace', {'action': 'inspect', 'workspaceId': w['workspaceId'], 'includeClosed': True})
+        self.assertEqual(view['tasks'][0]['taskId'], w['taskId'])
+        closed = call('workspace', {'action': 'close', 'requestId': 'close-space', 'workspaceId': w['workspaceId'],
+                                   'expectedRevision': view['workspace']['revision']})
+        self.assertTrue(closed['result']['closed'])

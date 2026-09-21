@@ -66,7 +66,7 @@ class Codex:
 
     def wait(self, op):
         for _ in range(30):
-            value = self.call("process", {"action": "status", "operationId": op["id"], "since": ""})
+            value = self.call("operation", {"action": "status", "operationId": op["id"], "since": ""})
             if value["status"] not in ("running", "unknown"):
                 assert value["status"] == "succeeded", value
                 return value
@@ -107,35 +107,38 @@ def main():
                     assert not value.get("isError"), "Installed Tunnel plugin read-only listing failed"
                     plugin = "discovered and read-only list called"
             if "--direct" in sys.argv:
-                client.call("workspace", {"action": "list"})
-            assert len(names) == 7, names
-            listing = client.call("workspace", {"action": "list"})
+                client.call("task", {"action": "list"})
+            assert len(names) == 9, names
+            listing = client.call("task", {"action": "list"})
             assert listing["repositories"][0]["head"] == repo.head
-            w = client.call("workspace", {"action": "open", "requestId": "codex-open", "repo": "test", "ref": "refs/heads/main", "expectedHead": repo.head})["result"]
-            client.call("read", {"workspaceId": w["workspaceId"], "checkpoint": w["checkpoint"], "queries": [{"action": "file", "path": "a.txt"}]})
-            e = client.call("edit", {"requestId": "codex-edit", "workspaceId": w["workspaceId"], "expected": w["checkpoint"], "edits": [{"action": "replace", "path": "a.txt", "old": "hello", "text": "codex"}]})["result"]
-            args = {"requestId": "codex-exec", "workspaceId": w["workspaceId"], "expected": e["checkpoint"], "command": "printf ready; read value; printf '%s' \"$value\" >> a.txt", "timeout": 60}
+            space = client.call("workspace", {"action": "create", "requestId": "codex-space", "name": "Client qualification", "projects": ["test"]})["result"]
+            w = client.call("task", {"action": "open", "requestId": "codex-open", "workspaceId": space["workspaceId"], "repo": "test", "ref": "refs/heads/main", "expectedHead": repo.head})["result"]
+            client.call("read", {"taskId": w["taskId"], "checkpoint": w["checkpoint"], "queries": [{"action": "file", "path": "a.txt"}]})
+            e = client.call("edit", {"requestId": "codex-edit", "taskId": w["taskId"], "expected": w["checkpoint"], "edits": [{"action": "replace", "path": "a.txt", "old": "hello", "text": "codex"}]})["result"]
+            args = {"requestId": "codex-exec", "taskId": w["taskId"], "expected": e["checkpoint"], "command": "printf ready; read value; printf '%s' \"$value\" >> a.txt", "timeout": 60}
             op = client.call("exec", args)
             client.close()
             client = Codex(f"http://127.0.0.1:{server.server_port}/mcp")
             assert client.call("exec", args)["id"] == op["id"]
-            client.call("workspace", {"action": "inspect", "workspaceId": w["workspaceId"]})
+            assert client.call("workspace", {"action": "inspect", "workspaceId": space["workspaceId"]})["tasks"][0]["taskId"] == w["taskId"]
+            client.call("task", {"action": "inspect", "taskId": w["taskId"]})
             stdin = {"action": "stdin", "requestId": "codex-input", "operationId": op["id"], "sequence": 0, "text": "once\n", "eof": True}
-            assert client.call("process", stdin) == client.call("process", stdin)
+            assert client.call("operation", stdin) == client.call("operation", stdin)
             done = client.wait(op)
-            va = {"requestId": "codex-validation", "workspaceId": w["workspaceId"], "expected": done["result"]["checkpoint"], "message": "Codex fixture acceptance"}
+            va = {"requestId": "codex-validation", "taskId": w["taskId"], "expected": done["result"]["checkpoint"], "message": "Codex fixture acceptance"}
             v = client.wait(client.call("validate", va))
             assert client.call("validate", va)["id"] == v["id"]
             pub = client.call("publish", {"requestId": "codex-publish", "validationId": v["id"], "expectedHead": repo.head})
             assert pub["status"] == "succeeded" and pub["result"]["commit"] == v["result"]["candidate"], pub
             for completed in (op, v):
-                client.call("process", {"action": "retire", "requestId": "retire-" + completed["id"], "operationId": completed["id"]})
-            final = client.call("workspace", {"action": "inspect", "workspaceId": w["workspaceId"]})
-            assert final["workspace"]["closed"] == 1
+                client.call("operation", {"action": "retire", "requestId": "retire-" + completed["id"], "operationId": completed["id"]})
+            final = client.call("task", {"action": "inspect", "taskId": w["taskId"]})
+            assert final["task"]["closed"] == 1
             assert all(o["cleanup"] == "retired" for o in final["operations"] if o["kind"] in ("exec", "validate"))
+            assert client.call("workspace", {"action": "close", "requestId": "codex-close-space", "workspaceId": space["workspaceId"], "expectedRevision": space["revision"]})["result"]["closed"]
             print(json.dumps({"client": "installed Codex app-server", "path": "explicit stdio adapter -> local HTTP 2026-07-28",
                               "tools": names, "nativeCodingPath": True, "reconnectReplay": True,
-                              "exactLocalPublication": True, "cleanup": True, "productionTouched": False,
+                              "exactLocalPublication": True, "workspaceComposition": True, "cleanup": True, "productionTouched": False,
                               "tunnelPlugin": plugin}))
         finally:
             if client:

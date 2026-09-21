@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://tdev.local/contracts/tools.schema.json",
-  "title": "tdev command-first MCP v1",
+  "title": "tdev MCP tool contract (draft)",
   "$defs": {
     "Error": {
       "type": "object",
@@ -52,6 +52,18 @@
                 },
                 {
                   "$ref": "#/$defs/Frontier"
+                },
+                {
+                  "$ref": "#/$defs/Project"
+                },
+                {
+                  "$ref": "#/$defs/ProjectList"
+                },
+                {
+                  "$ref": "#/$defs/WorkspaceList"
+                },
+                {
+                  "$ref": "#/$defs/WorkspaceInspection"
                 }
               ]
             }
@@ -81,7 +93,7 @@
       ],
       "type": "object"
     },
-    "workspaceInput": {
+    "taskInput": {
       "oneOf": [
         {
           "type": "object",
@@ -101,6 +113,10 @@
             },
             "includeClosed": {
               "type": "boolean"
+            },
+            "workspaceId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
             }
           },
           "required": [
@@ -129,6 +145,10 @@
             "expectedHead": {
               "type": "string",
               "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+            },
+            "workspaceId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
             }
           },
           "required": [
@@ -168,7 +188,7 @@
               "items": {
                 "type": "object",
                 "properties": {
-                  "workspaceId": {
+                  "taskId": {
                     "type": "string",
                     "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
                   },
@@ -178,13 +198,17 @@
                   }
                 },
                 "required": [
-                  "workspaceId",
+                  "taskId",
                   "checkpoint"
                 ],
                 "additionalProperties": false
               },
               "minItems": 1,
               "maxItems": 16
+            },
+            "workspaceId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
             }
           },
           "required": [
@@ -207,7 +231,7 @@
               "type": "string",
               "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
             },
-            "workspaceId": {
+            "taskId": {
               "type": "string",
               "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
             },
@@ -219,7 +243,7 @@
           "required": [
             "action",
             "requestId",
-            "workspaceId",
+            "taskId",
             "expected"
           ],
           "additionalProperties": false
@@ -230,7 +254,7 @@
             "action": {
               "const": "inspect"
             },
-            "workspaceId": {
+            "taskId": {
               "type": "string"
             },
             "since": {
@@ -250,7 +274,231 @@
           },
           "required": [
             "action",
-            "workspaceId"
+            "taskId"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "start"
+            },
+            "requestId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "repo": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "baseRef": {
+              "type": "string",
+              "pattern": "^refs/heads/[^\\s~^:?*\\[\\\\]+$"
+            },
+            "expectedHead": {
+              "type": "string",
+              "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+            },
+            "label": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            },
+            "fromTaskId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "workspaceId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "localChanges": {
+              "type": "boolean",
+              "description": "Capture the enrolled checkout final working-tree bytes into a new task; preserve its index/files/refs. Requires a matching checked-out source branch."
+            }
+          },
+          "required": [
+            "action",
+            "requestId"
+          ],
+          "additionalProperties": false,
+          "not": {
+            "required": [
+              "fromTaskId",
+              "baseRef"
+            ]
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "localChanges": {
+                    "const": true
+                  }
+                },
+                "required": [
+                  "localChanges"
+                ]
+              },
+              "then": {
+                "not": {
+                  "required": [
+                    "fromTaskId"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "cleanup"
+            },
+            "requestId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "taskId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            }
+          },
+          "required": [
+            "action",
+            "requestId",
+            "taskId"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "integrate"
+            },
+            "requestId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "taskId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "expected": {
+              "type": "string",
+              "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+            },
+            "sourceTaskId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "sourceCheckpoint": {
+              "type": "string",
+              "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+            },
+            "resolutions": {
+              "type": "array",
+              "maxItems": 1000,
+              "items": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "path": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 4096
+                      },
+                      "choice": {
+                        "enum": [
+                          "current",
+                          "incoming",
+                          "base",
+                          "delete"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "path",
+                      "choice"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "path": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 4096
+                      },
+                      "choice": {
+                        "const": "content"
+                      },
+                      "content": {
+                        "type": "string",
+                        "maxLength": 1048576
+                      },
+                      "encoding": {
+                        "enum": [
+                          "utf8",
+                          "base64"
+                        ]
+                      },
+                      "mode": {
+                        "enum": [
+                          "100644",
+                          "100755"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "path",
+                      "choice",
+                      "content"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            }
+          },
+          "required": [
+            "action",
+            "requestId",
+            "taskId",
+            "expected",
+            "sourceTaskId"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "resetEnvironment"
+            },
+            "requestId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "taskId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "expected": {
+              "type": "string",
+              "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+            }
+          },
+          "required": [
+            "action",
+            "requestId",
+            "taskId",
+            "expected"
           ],
           "additionalProperties": false
         }
@@ -260,7 +508,7 @@
     "readInput": {
       "type": "object",
       "properties": {
-        "workspaceId": {
+        "taskId": {
           "type": "string",
           "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
         },
@@ -352,6 +600,31 @@
                 "properties": {
                   "action": {
                     "const": "diff"
+                  },
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 65536
+                  },
+                  "format": {
+                    "enum": [
+                      "stat",
+                      "patch",
+                      "names"
+                    ]
+                  },
+                  "base": {
+                    "type": "string",
+                    "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+                  },
+                  "path": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4096
                   }
                 },
                 "required": [
@@ -364,6 +637,15 @@
                 "properties": {
                   "action": {
                     "const": "history"
+                  },
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 65536
                   }
                 },
                 "required": [
@@ -383,8 +665,7 @@
         }
       },
       "required": [
-        "workspaceId",
-        "checkpoint",
+        "taskId",
         "queries"
       ],
       "additionalProperties": false
@@ -396,7 +677,7 @@
           "type": "string",
           "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
         },
-        "workspaceId": {
+        "taskId": {
           "type": "string",
           "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
         },
@@ -550,7 +831,7 @@
       },
       "required": [
         "requestId",
-        "workspaceId",
+        "taskId",
         "expected",
         "edits"
       ],
@@ -563,7 +844,7 @@
           "type": "string",
           "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
         },
-        "workspaceId": {
+        "taskId": {
           "type": "string",
           "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
         },
@@ -617,17 +898,31 @@
           },
           "minItems": 0,
           "maxItems": 64
+        },
+        "mode": {
+          "enum": [
+            "command",
+            "process"
+          ],
+          "description": "command captures stopped source and defaults to 300s. Native process keeps a fixed source copy, permits task edits, never captures source and runs until stop/exit unless timeout is supplied."
+        },
+        "environment": {
+          "enum": [
+            "task",
+            "fresh"
+          ],
+          "description": "Native default task reuses private dependency/cache storage; fresh uses only this operation. Remote supports fresh only. HOME and source remain per-operation."
         }
       },
       "required": [
         "requestId",
-        "workspaceId",
+        "taskId",
         "expected",
         "command"
       ],
       "additionalProperties": false
     },
-    "processInput": {
+    "operationInput": {
       "oneOf": [
         {
           "type": "object",
@@ -774,7 +1069,7 @@
           "type": "string",
           "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
         },
-        "workspaceId": {
+        "taskId": {
           "type": "string",
           "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
         },
@@ -786,11 +1081,18 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 4096
+        },
+        "environment": {
+          "enum": [
+            "task",
+            "fresh"
+          ],
+          "description": "Native default task reuses private dependency/cache storage; fresh uses only this operation. Remote supports fresh only. HOME and source remain per-operation."
         }
       },
       "required": [
         "requestId",
-        "workspaceId",
+        "taskId",
         "expected",
         "message"
       ],
@@ -808,14 +1110,20 @@
           "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
         },
         "expectedHead": {
-          "type": "string",
-          "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "required": [
         "requestId",
-        "validationId",
-        "expectedHead"
+        "validationId"
       ],
       "additionalProperties": false
     },
@@ -824,7 +1132,7 @@
       "required": [
         "id",
         "kind",
-        "workspace",
+        "task",
         "status",
         "effect",
         "result",
@@ -837,14 +1145,16 @@
         "kind": {
           "enum": [
             "workspace",
+            "task",
             "edit",
             "exec",
-            "process",
+            "operation",
             "validate",
-            "publish"
+            "publish",
+            "project"
           ]
         },
-        "workspace": {
+        "task": {
           "type": [
             "string",
             "null"
@@ -960,6 +1270,41 @@
         },
         "observation": {
           "$ref": "#/$defs/Observation"
+        },
+        "execution": {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "enum": [
+                "command",
+                "process"
+              ]
+            },
+            "checkpoint": {
+              "type": "string"
+            },
+            "environment": {
+              "enum": [
+                "task",
+                "fresh"
+              ]
+            },
+            "timeout": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 1,
+              "maximum": 3600
+            }
+          },
+          "required": [
+            "mode",
+            "checkpoint",
+            "environment",
+            "timeout"
+          ],
+          "additionalProperties": false
         }
       },
       "additionalProperties": false
@@ -968,7 +1313,7 @@
       "type": "object",
       "required": [
         "repositories",
-        "workspaces",
+        "tasks",
         "execution"
       ],
       "properties": {
@@ -997,57 +1342,10 @@
             "additionalProperties": false
           }
         },
-        "workspaces": {
+        "tasks": {
           "type": "array",
           "items": {
-            "type": "object",
-            "required": [
-              "id",
-              "owner",
-              "repo",
-              "ref",
-              "identity",
-              "base",
-              "checkpoint",
-              "busy",
-              "closed"
-            ],
-            "properties": {
-              "id": {
-                "type": "string"
-              },
-              "owner": {
-                "type": "string"
-              },
-              "repo": {
-                "type": "string"
-              },
-              "ref": {
-                "type": "string"
-              },
-              "identity": {
-                "type": "string"
-              },
-              "base": {
-                "type": "string"
-              },
-              "checkpoint": {
-                "type": "string"
-              },
-              "busy": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "closed": {
-                "enum": [
-                  0,
-                  1
-                ]
-              }
-            },
-            "additionalProperties": false
+            "$ref": "#/$defs/Task"
           }
         },
         "execution": {
@@ -1152,7 +1450,7 @@
         {
           "type": "object",
           "properties": {
-            "workspaceId": {
+            "taskId": {
               "type": "string"
             },
             "repo": {
@@ -1168,21 +1466,59 @@
             "checkpoint": {
               "type": "string",
               "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+            },
+            "managed": {
+              "type": "boolean"
+            },
+            "sourceRef": {
+              "type": "string"
+            },
+            "workspaceId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "localImport": {
+              "type": "object",
+              "properties": {
+                "head": {
+                  "type": "string",
+                  "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+                },
+                "tree": {
+                  "type": "string",
+                  "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+                },
+                "files": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "selectionDigest": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "head",
+                "tree",
+                "files",
+                "selectionDigest"
+              ],
+              "additionalProperties": false
             }
           },
           "required": [
-            "workspaceId",
+            "taskId",
             "repo",
             "ref",
             "base",
-            "checkpoint"
+            "checkpoint",
+            "workspaceId"
           ],
           "additionalProperties": false
         },
         {
           "type": "object",
           "properties": {
-            "workspaceId": {
+            "taskId": {
               "type": "string"
             },
             "checkpoint": {
@@ -1191,7 +1527,7 @@
             }
           },
           "required": [
-            "workspaceId",
+            "taskId",
             "checkpoint"
           ],
           "additionalProperties": false
@@ -1199,7 +1535,7 @@
         {
           "type": "object",
           "properties": {
-            "workspaceId": {
+            "taskId": {
               "type": "string"
             },
             "closed": {
@@ -1207,7 +1543,7 @@
             }
           },
           "required": [
-            "workspaceId",
+            "taskId",
             "closed"
           ],
           "additionalProperties": false
@@ -1330,6 +1666,51 @@
               "const": true
             }
           }
+        },
+        {
+          "type": "object",
+          "properties": {
+            "taskId": {
+              "type": "string"
+            },
+            "ref": {
+              "type": "string"
+            },
+            "cleaned": {
+              "const": true
+            }
+          },
+          "required": [
+            "taskId",
+            "ref",
+            "cleaned"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "$ref": "#/$defs/Project"
+        },
+        {
+          "$ref": "#/$defs/Workspace"
+        },
+        {
+          "$ref": "#/$defs/IntegrationResult"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "taskId": {
+              "type": "string"
+            },
+            "environmentReset": {
+              "const": true
+            }
+          },
+          "required": [
+            "taskId",
+            "environmentReset"
+          ],
+          "additionalProperties": false
         }
       ]
     },
@@ -1375,61 +1756,17 @@
     "Frontier": {
       "type": "object",
       "properties": {
-        "workspace": {
-          "type": "object",
-          "required": [
-            "id",
-            "owner",
-            "repo",
-            "ref",
-            "identity",
-            "base",
-            "checkpoint",
-            "busy",
-            "closed"
-          ],
-          "properties": {
-            "id": {
-              "type": "string"
-            },
-            "owner": {
-              "type": "string"
-            },
-            "repo": {
-              "type": "string"
-            },
-            "ref": {
-              "type": "string"
-            },
-            "identity": {
-              "type": "string"
-            },
-            "base": {
-              "type": "string"
-            },
-            "checkpoint": {
-              "type": "string"
-            },
-            "busy": {
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "closed": {
-              "enum": [
-                0,
-                1
-              ]
-            }
-          },
-          "additionalProperties": false
+        "task": {
+          "$ref": "#/$defs/Task"
         },
         "remote": {
           "type": "object",
           "properties": {
             "head": {
-              "type": "string"
+              "type": [
+                "string",
+                "null"
+              ]
             },
             "error": {
               "$ref": "#/$defs/Error"
@@ -1446,7 +1783,7 @@
             "required": [
               "id",
               "kind",
-              "workspace",
+              "task",
               "status",
               "effect",
               "result",
@@ -1459,14 +1796,16 @@
               "kind": {
                 "enum": [
                   "workspace",
+                  "task",
                   "edit",
                   "exec",
-                  "process",
+                  "operation",
                   "validate",
-                  "publish"
+                  "publish",
+                  "project"
                 ]
               },
-              "workspace": {
+              "task": {
                 "type": [
                   "string",
                   "null"
@@ -1623,10 +1962,42 @@
         },
         "observation": {
           "$ref": "#/$defs/Observation"
+        },
+        "refCleanup": {
+          "enum": [
+            "unmanaged",
+            "observe",
+            "ready",
+            "changed",
+            "done"
+          ]
+        },
+        "processes": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/Operation"
+          }
+        },
+        "environment": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "present": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "path",
+            "present"
+          ],
+          "additionalProperties": false
         }
       },
       "required": [
-        "workspace",
+        "task",
         "remote",
         "operations",
         "active",
@@ -1636,6 +2007,882 @@
         "observation"
       ],
       "additionalProperties": false
+    },
+    "projectInput": {
+      "type": "object",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "list"
+            }
+          },
+          "required": [
+            "action"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "inspect"
+            },
+            "repo": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            }
+          },
+          "required": [
+            "action",
+            "repo"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "connect"
+            },
+            "requestId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "policy": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096
+            }
+          },
+          "required": [
+            "action",
+            "requestId",
+            "policy",
+            "name"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "create"
+            },
+            "requestId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "policy": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096
+            }
+          },
+          "required": [
+            "action",
+            "requestId",
+            "policy",
+            "name"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "Project": {
+      "type": "object",
+      "properties": {
+        "repo": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "identity": {
+          "type": "string"
+        },
+        "defaultRef": {
+          "type": "string"
+        },
+        "managedRefNamespaces": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "policy": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "provider": {
+          "enum": [
+            "github",
+            "local"
+          ]
+        },
+        "permissions": {
+          "type": "object",
+          "properties": {
+            "push": {
+              "type": "boolean"
+            },
+            "admin": {
+              "type": "boolean"
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        },
+        "head": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+        },
+        "error": {
+          "$ref": "#/$defs/Error"
+        },
+        "checkout": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "repo",
+        "name",
+        "identity",
+        "defaultRef",
+        "managedRefNamespaces",
+        "policy",
+        "provider"
+      ],
+      "additionalProperties": false
+    },
+    "ProjectList": {
+      "type": "object",
+      "properties": {
+        "projects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Project"
+          }
+        },
+        "policies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "provider": {
+                "enum": [
+                  "local",
+                  "github"
+                ]
+              },
+              "scope": {
+                "type": "string"
+              },
+              "canCreate": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "name",
+              "provider",
+              "scope",
+              "canCreate"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "projects",
+        "policies"
+      ],
+      "additionalProperties": false
+    },
+    "Task": {
+      "type": "object",
+      "required": [
+        "id",
+        "owner",
+        "repo",
+        "ref",
+        "identity",
+        "base",
+        "checkpoint",
+        "busy",
+        "closed",
+        "workspace"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "owner": {
+          "type": "string"
+        },
+        "repo": {
+          "type": "string"
+        },
+        "ref": {
+          "type": "string"
+        },
+        "identity": {
+          "type": "string"
+        },
+        "base": {
+          "type": "string"
+        },
+        "checkpoint": {
+          "type": "string"
+        },
+        "busy": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "closed": {
+          "enum": [
+            0,
+            1
+          ]
+        },
+        "managed": {
+          "enum": [
+            0,
+            1
+          ]
+        },
+        "source_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "namespace": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "published_oid": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ref_state": {
+          "enum": [
+            null,
+            "reserved",
+            "published",
+            "deleted"
+          ]
+        },
+        "workspace": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Workspace": {
+      "type": "object",
+      "properties": {
+        "workspaceId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "closed": {
+          "type": "boolean"
+        },
+        "defaultRepo": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "isDefault": {
+          "type": "boolean"
+        },
+        "projects": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "repo": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+              },
+              "identity": {
+                "type": "string"
+              },
+              "available": {
+                "type": "boolean"
+              },
+              "error": {
+                "$ref": "#/$defs/Error"
+              }
+            },
+            "required": [
+              "repo",
+              "identity"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "workspaceId",
+        "name",
+        "revision",
+        "closed",
+        "defaultRepo",
+        "isDefault",
+        "projects"
+      ],
+      "additionalProperties": false
+    },
+    "WorkspaceList": {
+      "type": "object",
+      "properties": {
+        "workspaces": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Workspace"
+          },
+          "maxItems": 50
+        },
+        "nextAfter": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "workspaces",
+        "nextAfter"
+      ],
+      "additionalProperties": false
+    },
+    "WorkspaceInspection": {
+      "type": "object",
+      "properties": {
+        "workspace": {
+          "$ref": "#/$defs/Workspace"
+        },
+        "tasks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "taskId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+              },
+              "repo": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+              },
+              "checkpoint": {
+                "type": "string"
+              },
+              "closed": {
+                "type": "boolean"
+              },
+              "busy": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "error": {
+                "$ref": "#/$defs/Error"
+              },
+              "active": {
+                "$ref": "#/$defs/Operation"
+              }
+            },
+            "required": [
+              "taskId",
+              "repo"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 50
+        },
+        "nextAfter": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "observation": {
+          "$ref": "#/$defs/Observation"
+        },
+        "pendingTasks": {
+          "type": "array",
+          "maxItems": 50,
+          "items": {
+            "type": "object",
+            "properties": {
+              "operationId": {
+                "type": "string"
+              },
+              "requestId": {
+                "type": "string"
+              },
+              "operation": {
+                "$ref": "#/$defs/Operation"
+              },
+              "error": {
+                "$ref": "#/$defs/Error"
+              }
+            },
+            "required": [
+              "operationId",
+              "requestId"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "nextPendingAfter": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "workspace",
+        "tasks",
+        "nextAfter",
+        "observation",
+        "pendingTasks",
+        "nextPendingAfter"
+      ],
+      "additionalProperties": false
+    },
+    "workspaceInput": {
+      "type": "object",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "list"
+            },
+            "after": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            },
+            "includeClosed": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "action"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "inspect"
+            },
+            "workspaceId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "after": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            },
+            "includeClosed": {
+              "type": "boolean"
+            },
+            "since": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "pendingAfter": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "action",
+            "workspaceId"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "create"
+            },
+            "requestId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "projects": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+              },
+              "uniqueItems": true,
+              "maxItems": 64
+            },
+            "defaultRepo": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            }
+          },
+          "required": [
+            "action",
+            "requestId",
+            "name"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "attach"
+            },
+            "requestId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "workspaceId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "expectedRevision": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "repo": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            }
+          },
+          "required": [
+            "action",
+            "requestId",
+            "workspaceId",
+            "expectedRevision",
+            "repo"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "detach"
+            },
+            "requestId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "workspaceId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "expectedRevision": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "repo": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            }
+          },
+          "required": [
+            "action",
+            "requestId",
+            "workspaceId",
+            "expectedRevision",
+            "repo"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "configure"
+            },
+            "requestId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "workspaceId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "expectedRevision": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "defaultRepo": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "action",
+            "requestId",
+            "workspaceId",
+            "expectedRevision"
+          ],
+          "additionalProperties": false,
+          "anyOf": [
+            {
+              "required": [
+                "name"
+              ]
+            },
+            {
+              "required": [
+                "defaultRepo"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "close"
+            },
+            "requestId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "workspaceId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "expectedRevision": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "action",
+            "requestId",
+            "workspaceId",
+            "expectedRevision"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "IntegrationResult": {
+      "type": "object",
+      "properties": {
+        "taskId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "checkpoint": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+        },
+        "sourceTaskId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "sourceCheckpoint": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+        },
+        "sourceBase": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+        },
+        "applied": {
+          "type": "boolean"
+        },
+        "conflicts": {
+          "type": "array",
+          "maxItems": 50,
+          "items": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4096
+              },
+              "reason": {
+                "enum": [
+                  "add-add",
+                  "delete-modify",
+                  "type-or-link",
+                  "binary",
+                  "mode",
+                  "content",
+                  "path-collision"
+                ]
+              },
+              "base": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "mode": {
+                        "type": "string"
+                      },
+                      "blob": {
+                        "type": "string",
+                        "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+                      }
+                    },
+                    "required": [
+                      "mode",
+                      "blob"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "current": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "mode": {
+                        "type": "string"
+                      },
+                      "blob": {
+                        "type": "string",
+                        "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+                      }
+                    },
+                    "required": [
+                      "mode",
+                      "blob"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "incoming": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "mode": {
+                        "type": "string"
+                      },
+                      "blob": {
+                        "type": "string",
+                        "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+                      }
+                    },
+                    "required": [
+                      "mode",
+                      "blob"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "path",
+              "reason",
+              "base",
+              "current",
+              "incoming"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "conflictCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "conflictsTruncated": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "taskId",
+        "checkpoint",
+        "sourceTaskId",
+        "sourceCheckpoint",
+        "sourceBase",
+        "applied",
+        "conflicts",
+        "conflictCount",
+        "conflictsTruncated"
+      ],
+      "additionalProperties": false
     }
   },
   "oneOf": [
@@ -1643,10 +2890,10 @@
       "type": "object",
       "properties": {
         "tool": {
-          "const": "tdev_workspace"
+          "const": "tdev_task"
         },
         "input": {
-          "$ref": "#/$defs/workspaceInput"
+          "$ref": "#/$defs/taskInput"
         }
       },
       "required": [
@@ -1707,10 +2954,10 @@
       "type": "object",
       "properties": {
         "tool": {
-          "const": "tdev_process"
+          "const": "tdev_operation"
         },
         "input": {
-          "$ref": "#/$defs/processInput"
+          "$ref": "#/$defs/operationInput"
         }
       },
       "required": [
@@ -1750,14 +2997,52 @@
         "input"
       ],
       "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "tool": {
+          "const": "tdev_project"
+        },
+        "input": {
+          "$ref": "#/$defs/projectInput"
+        }
+      },
+      "required": [
+        "tool",
+        "input"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "tool": {
+          "const": "tdev_workspace"
+        },
+        "input": {
+          "$ref": "#/$defs/workspaceInput"
+        }
+      },
+      "required": [
+        "tool",
+        "input"
+      ],
+      "additionalProperties": false
     }
   ],
   "x-tools": [
     {
       "name": "tdev_workspace",
-      "description": "Discover paginated workspaces; inspect a live bounded frontier (including closed resources), open/compose/close exact source. Mixed read/write tool; inspect reports facts, not an automatic plan.",
+      "description": "Create, list and inspect development spaces; attach/detach enrolled projects, configure defaults and close. Membership selects projects, never grants authority. Empty spaces need no Git repository. Mutations use expectedRevision; close/detach retain source tasks and owned branches and require no open or uncertain tasks. Omit workspaceId when starting a task to use an automatic default space.",
       "inputSchema": {
         "$ref": "#/$defs/workspaceInput"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
       },
       "outputSchema": {
         "type": "object",
@@ -1771,113 +3056,64 @@
               "result": {
                 "oneOf": [
                   {
-                    "$ref": "#/$defs/Discovery"
+                    "$ref": "#/$defs/Operation"
                   },
                   {
-                    "type": "object",
-                    "required": [
-                      "id",
-                      "kind",
-                      "workspace",
-                      "status",
-                      "effect",
-                      "result",
-                      "error"
-                    ],
-                    "properties": {
-                      "id": {
-                        "type": "string"
-                      },
-                      "kind": {
-                        "const": "workspace"
-                      },
-                      "workspace": {
-                        "type": [
-                          "string",
-                          "null"
-                        ]
-                      },
-                      "status": {
-                        "enum": [
-                          "running",
-                          "unknown",
-                          "succeeded",
-                          "failed",
-                          "cancelled"
-                        ]
-                      },
-                      "effect": {
-                        "enum": [
-                          "none",
-                          "committed",
-                          "unknown"
-                        ]
-                      },
-                      "result": {
-                        "anyOf": [
-                          {
-                            "type": "object",
-                            "properties": {
-                              "workspaceId": {
-                                "type": "string"
-                              },
-                              "repo": {
-                                "type": "string"
-                              },
-                              "ref": {
-                                "type": "string"
-                              },
-                              "base": {
-                                "type": "string",
-                                "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
-                              },
-                              "checkpoint": {
-                                "type": "string",
-                                "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
-                              }
-                            },
-                            "required": [
-                              "workspaceId",
-                              "repo",
-                              "ref",
-                              "base",
-                              "checkpoint"
-                            ],
-                            "additionalProperties": false
-                          },
-                          {
-                            "type": "object",
-                            "properties": {
-                              "workspaceId": {
-                                "type": "string"
-                              },
-                              "closed": {
-                                "const": true
-                              }
-                            },
-                            "required": [
-                              "workspaceId",
-                              "closed"
-                            ],
-                            "additionalProperties": false
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      "error": {
-                        "anyOf": [
-                          {
-                            "$ref": "#/$defs/Error"
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      }
-                    },
-                    "additionalProperties": false
+                    "$ref": "#/$defs/WorkspaceList"
+                  },
+                  {
+                    "$ref": "#/$defs/WorkspaceInspection"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "ok",
+              "result"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "ok": {
+                "const": false
+              },
+              "error": {
+                "$ref": "#/$defs/Error"
+              }
+            },
+            "required": [
+              "ok",
+              "error"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "tdev_task",
+      "description": "Start, inspect and manage an isolated source task for one project in a workspace. Start resolves project/base HEAD and owned branch naming. Omit workspaceId for an automatic default workspace; explicit workspaces use attached projects and their defaultRepo. Edit source with tdev_edit. Close retains branches; cleanup removes only an unchanged branch owned by this task. Continue a proved publication via start.fromTaskId. Start with localChanges=true to import the enrolled local checkout without writing to it. Integrate another same-project task delta with three-way merging; applied=false means the target is unchanged. Retry conflict resolution with new requestId and the returned sourceCheckpoint; keep prior resolutions if conflicts are truncated. Inspect includes outstanding processes independent of history pagination and dependency storage. resetEnvironment removes task dependencies/caches only after every execution is proved stopped; it also works after close. Close retains processes and dependencies.",
+      "inputSchema": {
+        "$ref": "#/$defs/taskInput"
+      },
+      "outputSchema": {
+        "type": "object",
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "ok": {
+                "const": true
+              },
+              "result": {
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/Operation"
+                  },
+                  {
+                    "$ref": "#/$defs/Discovery"
                   },
                   {
                     "$ref": "#/$defs/Frontier"
@@ -1918,7 +3154,7 @@
     },
     {
       "name": "tdev_read",
-      "description": "Batch bounded immutable file/list/literal-search/diff/history reads at a checkpoint.",
+      "description": "Batch bounded immutable file/list/literal-search/diff/history reads at a checkpoint. Omit checkpoint to read the current committed task snapshot. Diff supports stat/patch/names, an accessible base checkpoint and byte pagination.",
       "inputSchema": {
         "$ref": "#/$defs/readInput"
       },
@@ -1982,81 +3218,7 @@
                 "const": true
               },
               "result": {
-                "type": "object",
-                "required": [
-                  "id",
-                  "kind",
-                  "workspace",
-                  "status",
-                  "effect",
-                  "result",
-                  "error"
-                ],
-                "properties": {
-                  "id": {
-                    "type": "string"
-                  },
-                  "kind": {
-                    "const": "edit"
-                  },
-                  "workspace": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
-                  },
-                  "status": {
-                    "enum": [
-                      "running",
-                      "unknown",
-                      "succeeded",
-                      "failed",
-                      "cancelled"
-                    ]
-                  },
-                  "effect": {
-                    "enum": [
-                      "none",
-                      "committed",
-                      "unknown"
-                    ]
-                  },
-                  "result": {
-                    "anyOf": [
-                      {
-                        "type": "object",
-                        "properties": {
-                          "workspaceId": {
-                            "type": "string"
-                          },
-                          "checkpoint": {
-                            "type": "string",
-                            "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
-                          }
-                        },
-                        "required": [
-                          "workspaceId",
-                          "checkpoint"
-                        ],
-                        "additionalProperties": false
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "error": {
-                    "anyOf": [
-                      {
-                        "$ref": "#/$defs/Error"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  }
-                },
-                "additionalProperties": false
+                "$ref": "#/$defs/Operation"
               }
             },
             "required": [
@@ -2092,7 +3254,7 @@
     },
     {
       "name": "tdev_exec",
-      "description": "Run commands on Termux by default (same-UID developer authority, not a sandbox); explicit remote executor is optional. Returns a retained operation handle. Never resubmit with a new request after response loss.",
+      "description": "Run commands on Termux by default (same-UID developer authority, not a sandbox); explicit remote executor is optional. Returns a retained operation handle. Never resubmit with a new request after response loss. Native dependencies/caches persist per task through TDEV_ENV_DIR; use environment=fresh for a disposable environment. mode=process starts a foreground development server/debugger on a fixed checkpoint without blocking source edits or capturing its files; omit timeout to run until cancel/exit. Observe logs/stdin/cancel/retire through tdev_operation.",
       "inputSchema": {
         "$ref": "#/$defs/execInput"
       },
@@ -2106,121 +3268,7 @@
                 "const": true
               },
               "result": {
-                "type": "object",
-                "required": [
-                  "id",
-                  "kind",
-                  "workspace",
-                  "status",
-                  "effect",
-                  "result",
-                  "error"
-                ],
-                "properties": {
-                  "id": {
-                    "type": "string"
-                  },
-                  "kind": {
-                    "const": "exec"
-                  },
-                  "workspace": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
-                  },
-                  "status": {
-                    "enum": [
-                      "running",
-                      "unknown",
-                      "succeeded",
-                      "failed",
-                      "cancelled"
-                    ]
-                  },
-                  "effect": {
-                    "enum": [
-                      "none",
-                      "committed",
-                      "unknown"
-                    ]
-                  },
-                  "result": {
-                    "anyOf": [
-                      {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "string"
-                          },
-                          "terminal": {
-                            "const": true
-                          },
-                          "stopped": {
-                            "const": true
-                          },
-                          "exitCode": {
-                            "type": [
-                              "integer",
-                              "null"
-                            ]
-                          },
-                          "cancelled": {
-                            "type": "boolean"
-                          },
-                          "timedOut": {
-                            "type": "boolean"
-                          },
-                          "captureError": {
-                            "type": "string"
-                          },
-                          "discardedBytes": {
-                            "type": "integer",
-                            "minimum": 0
-                          },
-                          "checkpoint": {
-                            "type": "string",
-                            "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
-                          },
-                          "candidate": {
-                            "anyOf": [
-                              {
-                                "type": "string",
-                                "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "terminal",
-                          "stopped",
-                          "exitCode",
-                          "checkpoint",
-                          "candidate"
-                        ],
-                        "additionalProperties": false
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "error": {
-                    "anyOf": [
-                      {
-                        "$ref": "#/$defs/Error"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  }
-                },
-                "additionalProperties": false
+                "$ref": "#/$defs/Operation"
               }
             },
             "required": [
@@ -2255,10 +3303,10 @@
       }
     },
     {
-      "name": "tdev_process",
-      "description": "Observe a retained operation; optional since cursor reports current change/no-change. Control stdin/cancel/retire. Admission ok is not command success: inspect status, effect, result.exitCode and captureError.",
+      "name": "tdev_operation",
+      "description": "Inspect any accepted operation by operationId or original request ID, including project and workspace changes. Status observes current progress without repeating effects. For exec/validation processes only: deliver sequenced stdin, request cancellation or retire stopped resources.",
       "inputSchema": {
-        "$ref": "#/$defs/processInput"
+        "$ref": "#/$defs/operationInput"
       },
       "outputSchema": {
         "type": "object",
@@ -2270,149 +3318,7 @@
                 "const": true
               },
               "result": {
-                "type": "object",
-                "required": [
-                  "id",
-                  "kind",
-                  "workspace",
-                  "status",
-                  "effect",
-                  "result",
-                  "error"
-                ],
-                "properties": {
-                  "id": {
-                    "type": "string"
-                  },
-                  "kind": {
-                    "enum": [
-                      "workspace",
-                      "edit",
-                      "exec",
-                      "process",
-                      "validate",
-                      "publish"
-                    ]
-                  },
-                  "workspace": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
-                  },
-                  "status": {
-                    "enum": [
-                      "running",
-                      "unknown",
-                      "succeeded",
-                      "failed",
-                      "cancelled"
-                    ]
-                  },
-                  "effect": {
-                    "enum": [
-                      "none",
-                      "committed",
-                      "unknown"
-                    ]
-                  },
-                  "result": {
-                    "anyOf": [
-                      {
-                        "$ref": "#/$defs/MutationResult"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "error": {
-                    "anyOf": [
-                      {
-                        "$ref": "#/$defs/Error"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "output": {
-                    "type": "object",
-                    "required": [
-                      "offset",
-                      "nextOffset",
-                      "encoding",
-                      "data"
-                    ],
-                    "properties": {
-                      "offset": {
-                        "type": "integer",
-                        "minimum": 0
-                      },
-                      "nextOffset": {
-                        "type": "integer",
-                        "minimum": 0
-                      },
-                      "availableBytes": {
-                        "type": "integer",
-                        "minimum": 0
-                      },
-                      "encoding": {
-                        "const": "base64"
-                      },
-                      "data": {
-                        "type": "string"
-                      },
-                      "stdin": {
-                        "type": "object",
-                        "properties": {
-                          "nextSequence": {
-                            "type": "integer",
-                            "minimum": 0
-                          },
-                          "deliveries": {
-                            "type": "array",
-                            "maxItems": 16,
-                            "items": {
-                              "type": "object",
-                              "properties": {
-                                "sequence": {
-                                  "type": "integer",
-                                  "minimum": 0
-                                },
-                                "delivery": {
-                                  "enum": [
-                                    "queued",
-                                    "unknown",
-                                    "committed"
-                                  ]
-                                }
-                              },
-                              "required": [
-                                "sequence",
-                                "delivery"
-                              ],
-                              "additionalProperties": false
-                            }
-                          }
-                        },
-                        "required": [
-                          "nextSequence",
-                          "deliveries"
-                        ],
-                        "additionalProperties": false
-                      }
-                    },
-                    "additionalProperties": false
-                  },
-                  "outputError": {
-                    "$ref": "#/$defs/Error"
-                  },
-                  "observation": {
-                    "$ref": "#/$defs/Observation"
-                  }
-                },
-                "additionalProperties": false
+                "$ref": "#/$defs/Operation"
               }
             },
             "required": [
@@ -2462,121 +3368,7 @@
                 "const": true
               },
               "result": {
-                "type": "object",
-                "required": [
-                  "id",
-                  "kind",
-                  "workspace",
-                  "status",
-                  "effect",
-                  "result",
-                  "error"
-                ],
-                "properties": {
-                  "id": {
-                    "type": "string"
-                  },
-                  "kind": {
-                    "const": "validate"
-                  },
-                  "workspace": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
-                  },
-                  "status": {
-                    "enum": [
-                      "running",
-                      "unknown",
-                      "succeeded",
-                      "failed",
-                      "cancelled"
-                    ]
-                  },
-                  "effect": {
-                    "enum": [
-                      "none",
-                      "committed",
-                      "unknown"
-                    ]
-                  },
-                  "result": {
-                    "anyOf": [
-                      {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "string"
-                          },
-                          "terminal": {
-                            "const": true
-                          },
-                          "stopped": {
-                            "const": true
-                          },
-                          "exitCode": {
-                            "type": [
-                              "integer",
-                              "null"
-                            ]
-                          },
-                          "cancelled": {
-                            "type": "boolean"
-                          },
-                          "timedOut": {
-                            "type": "boolean"
-                          },
-                          "captureError": {
-                            "type": "string"
-                          },
-                          "discardedBytes": {
-                            "type": "integer",
-                            "minimum": 0
-                          },
-                          "checkpoint": {
-                            "type": "string",
-                            "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
-                          },
-                          "candidate": {
-                            "anyOf": [
-                              {
-                                "type": "string",
-                                "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "terminal",
-                          "stopped",
-                          "exitCode",
-                          "checkpoint",
-                          "candidate"
-                        ],
-                        "additionalProperties": false
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "error": {
-                    "anyOf": [
-                      {
-                        "$ref": "#/$defs/Error"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  }
-                },
-                "additionalProperties": false
+                "$ref": "#/$defs/Operation"
               }
             },
             "required": [
@@ -2612,7 +3404,7 @@
     },
     {
       "name": "tdev_publish",
-      "description": "Publish exactly the validated commit with expected-old-head CAS. Never revalidate or regenerate source.",
+      "description": "Publish exactly the validated commit. Expected remote state is derived from its task when omitted; managed tasks create their branch only on first publication. Provider authentication belongs to the controller, not tdev_exec.",
       "inputSchema": {
         "$ref": "#/$defs/publishInput"
       },
@@ -2626,81 +3418,67 @@
                 "const": true
               },
               "result": {
-                "type": "object",
-                "required": [
-                  "id",
-                  "kind",
-                  "workspace",
-                  "status",
-                  "effect",
-                  "result",
-                  "error"
-                ],
-                "properties": {
-                  "id": {
-                    "type": "string"
+                "$ref": "#/$defs/Operation"
+              }
+            },
+            "required": [
+              "ok",
+              "result"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "ok": {
+                "const": false
+              },
+              "error": {
+                "$ref": "#/$defs/Error"
+              }
+            },
+            "required": [
+              "ok",
+              "error"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_project",
+      "description": "List projects and delegated policies; connect existing local Git folders or GitHub repositories, or create initialized projects. Local names are relative to the policy root; GitHub names are repository names under the policy owner. GitHub creation is private. Uses controller provider credentials; no gh authentication in exec needed. No caller-supplied credentials, commands or executor settings. Inspect original mutations through tdev_operation status.",
+      "inputSchema": {
+        "$ref": "#/$defs/projectInput"
+      },
+      "outputSchema": {
+        "type": "object",
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "ok": {
+                "const": true
+              },
+              "result": {
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/Operation"
                   },
-                  "kind": {
-                    "const": "publish"
+                  {
+                    "$ref": "#/$defs/Project"
                   },
-                  "workspace": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
-                  },
-                  "status": {
-                    "enum": [
-                      "running",
-                      "unknown",
-                      "succeeded",
-                      "failed",
-                      "cancelled"
-                    ]
-                  },
-                  "effect": {
-                    "enum": [
-                      "none",
-                      "committed",
-                      "unknown"
-                    ]
-                  },
-                  "result": {
-                    "anyOf": [
-                      {
-                        "type": "object",
-                        "properties": {
-                          "commit": {
-                            "type": "string",
-                            "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
-                          },
-                          "validationId": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "commit",
-                          "validationId"
-                        ],
-                        "additionalProperties": false
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "error": {
-                    "anyOf": [
-                      {
-                        "$ref": "#/$defs/Error"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
+                  {
+                    "$ref": "#/$defs/ProjectList"
                   }
-                },
-                "additionalProperties": false
+                ]
               }
             },
             "required": [
@@ -2746,15 +3524,17 @@
       "env": {},
       "stdin": "",
       "network": "backend default: host for native; none for SSH/OCI",
-      "timeout": 300,
+      "timeout": "300 seconds for command/validation; process has no deadline unless supplied",
       "capturePaths": [],
       "encoding": "utf8",
       "mode": "100644",
       "replaceCount": 1,
-      "eof": false
+      "eof": false,
+      "environment": "task for native; fresh for remote",
+      "execMode": "command"
     },
     "processStatus": "Exactly one of operationId and lookupRequestId is required; neither/both rejected.",
-    "result": "Workspace list/open/edit results, bounded query items, or retained operation. Operation contains id, kind, status, effect, result/error; running is independent of certainty. Output evidence fields are server-owned, never accepted as validation input.",
+    "result": "Task list/open/edit results, bounded query items, or retained operation. Operation contains id, kind, status, effect, result/error; running is independent of certainty. Output evidence fields are server-owned, never accepted as validation input.",
     "execution": {
       "sourceLimitBytes": 33554432,
       "transferLimitBytes": 50331648,
@@ -2765,21 +3545,24 @@
       "historyCommits": 20,
       "sourceMetadata": "Private shallow Git checkpoint; no copied provider credentials. Validation HEAD starts at the frozen candidate commit; native validation rejects changed existing source and never imports test outputs.",
       "nativeBoundary": "Same app UID, host network. Clean env and separate HOME/cwd are hygiene, not hostile-code isolation. Native code can access other same-UID files; use only code trusted with ordinary Termux user authority.",
-      "nativeLimits": "1 MiB retained output; timeout; per-process CPU, 128 MiB file-size, 256 file-descriptor limits; sampled 128 MiB workspace/home/tmp budget. No hard aggregate memory/PID/disk quota.",
+      "nativeLimits": "1 MiB retained output; optional process deadline (required bounded command/validation deadline); CPU limit when a deadline is selected; 128 MiB file-size and 256 file-descriptor limits; sampled 128 MiB source/home/tmp and 2 GiB task dependency budgets (100000 files each). No hard aggregate memory/PID/disk quota. At most eight outstanding process-mode operations per task.",
       "nativeRecovery": "Detached subreaper supervisor survives controller restart. Lost supervisor after dispatch without a sealed result remains uncertain, never automatically relaunched."
     },
-    "progress": "workspace inspect reconciles its busy operation then reads bounded operation page and live remote head. Observation cursor hashes the returned facts, timestamps delimit observation (not atomic cross-provider snapshot). since equal means checked now/no change, not stalled proof; wait at least pollAfterMs or do independent work. Mutation prerequisites are rechecked at admission. Closed workspaces discoverable with includeClosed. Process status since opts into freshness. Replaying a mutation reconciles original identity, never repeats the effect.",
-    "annotations": "Fixed tmcp host hints: all seven tools set readOnlyHint=true and the other hints=false. Hints do not grant authority; core still enforces mutation identity, authorization, validation and publication."
+    "progress": "task inspect reconciles its busy operation and up to eight outstanding snapshot processes independently of history pagination, then reads bounded operation page and live remote head. Observation cursor hashes the returned facts, timestamps delimit observation (not atomic cross-provider snapshot). since equal means checked now/no change, not stalled proof; wait at least pollAfterMs or do independent work. Mutation prerequisites are rechecked at admission. Closed tasks discoverable with includeClosed. Process status since opts into freshness. Replaying a mutation reconciles original identity, never repeats the effect.",
+    "annotations": "Fixed tmcp host hints: all advertised tools set readOnlyHint=true and the other hints=false. Hints do not grant authority; core still enforces mutation identity, authorization, validation and publication.",
+    "managedProjects": "Policies delegate local-root or GitHub-owner project connect/create with current operator validation/tooling. Start resolves defaults once; first publish uses absence CAS. Close retains refs; cleanup needs ownership and exact last published OID, works after close, and never adopts existing refs. Delegated projects publish only managed branches.",
+    "composition": "Workspace membership binds enrolled project identity without granting permissions. taskId selects a source task; workspaceId selects composition. Omitted workspaceId creates/reuses the principal default workspace atomically during task admission. Explicit membership/defaults are rechecked at admission. close/detach reject open or pending tasks; closed tasks and cleanup evidence remain inspectable. Workspace mutations commit state and replay result together with expectedRevision CAS.",
+    "sourceIntegration": "localChanges=true on start captures the enrolled checkout final tracked plus nonignored untracked bytes into a new source task, preserving user index/refs/files. Matching HEAD/ref and two equal scans detect observed races; no atomic filesystem snapshot is claimed. integrate freezes the same-project source checkpoint at admission and applies its delta from source base, requiring that base to precede the target base. Conflicts return applied=false without changing target source; explicit resolutions apply atomically. Source-task lineage is retained in the operation, not added as Git merge parents; exact frozen validation/publication rules remain unchanged."
   },
   "x-examples": [
     {
-      "tool": "tdev_workspace",
+      "tool": "tdev_task",
       "input": {
         "action": "list"
       }
     },
     {
-      "tool": "tdev_workspace",
+      "tool": "tdev_task",
       "input": {
         "action": "open",
         "requestId": "open-1",
@@ -2792,16 +3575,81 @@
       "tool": "tdev_exec",
       "input": {
         "requestId": "run-1",
-        "workspaceId": "w1",
+        "taskId": "w1",
         "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "command": "npm test"
       }
     },
     {
-      "tool": "tdev_process",
+      "tool": "tdev_operation",
       "input": {
         "action": "status",
         "lookupRequestId": "run-1"
+      }
+    },
+    {
+      "tool": "tdev_project",
+      "input": {
+        "action": "list"
+      }
+    },
+    {
+      "tool": "tdev_task",
+      "input": {
+        "action": "start",
+        "requestId": "start-task"
+      }
+    },
+    {
+      "tool": "tdev_task",
+      "input": {
+        "action": "cleanup",
+        "requestId": "cleanup-task",
+        "taskId": "w1"
+      }
+    },
+    {
+      "tool": "tdev_workspace",
+      "input": {
+        "action": "create",
+        "requestId": "space-create",
+        "name": "Integration",
+        "projects": []
+      }
+    },
+    {
+      "tool": "tdev_workspace",
+      "input": {
+        "action": "list"
+      }
+    },
+    {
+      "tool": "tdev_task",
+      "input": {
+        "action": "integrate",
+        "requestId": "integrate",
+        "taskId": "target",
+        "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "sourceTaskId": "source"
+      }
+    },
+    {
+      "tool": "tdev_exec",
+      "input": {
+        "requestId": "server",
+        "taskId": "task",
+        "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "command": "python -m http.server 8080 --bind 127.0.0.1",
+        "mode": "process"
+      }
+    },
+    {
+      "tool": "tdev_task",
+      "input": {
+        "action": "resetEnvironment",
+        "requestId": "reset",
+        "taskId": "task",
+        "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       }
     }
   ],

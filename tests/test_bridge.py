@@ -16,7 +16,7 @@ class BridgeTest(unittest.TestCase):
         init = call("initialize", {"protocolVersion": "2025-11-25"})
         self.assertEqual(init["result"]["protocolVersion"], "2025-11-25")
         tools = call("tools/list", {})["result"]["tools"]
-        self.assertEqual(len(tools), 7)
+        self.assertEqual(len(tools), 9)
         expected_annotations = {
             "readOnlyHint": True,
             "destructiveHint": False,
@@ -24,7 +24,7 @@ class BridgeTest(unittest.TestCase):
             "openWorldHint": False,
         }
         self.assertTrue(all(t["annotations"] == expected_annotations for t in tools))
-        args = {"name": "tdev_workspace", "arguments": {"action": "open", "requestId": "bridge-open", "repo": "test", "ref": "refs/heads/main", "expectedHead": self.repo.head}}
+        args = {"name": "tdev_task", "arguments": {"action": "open", "requestId": "bridge-open", "repo": "test", "ref": "refs/heads/main", "expectedHead": self.repo.head}}
         first = call("tools/call", args)
         self.assertEqual(call("tools/call", args), first)
         self.repo.config["principals"].clear()

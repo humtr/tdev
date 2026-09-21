@@ -25,6 +25,14 @@ def require(condition, code, message=""):
         raise Fault(code, message)
 
 
+def branch_ref(value):
+    """Restricted full branch names, also checked by Git before effects."""
+    return (isinstance(value, str) and value.startswith('refs/heads/')
+            and re.fullmatch(r'refs/heads/[A-Za-z0-9_./-]+', value) is not None
+            and '..' not in value and not value.endswith('.')
+            and all(p and not p.startswith('.') and not p.endswith('.lock') for p in value.split('/')))
+
+
 def canonical(value):
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True,
                       allow_nan=False).encode()

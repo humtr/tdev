@@ -1,93 +1,121 @@
 # tdev
 
-ChatGPT leads repository development; tdev supplies commands and exact source handling,
-mutation replay/recovery and controlled validation/publication. **Android + Termux is the
-default development and operating environment**, not just a controller for another machine.
+Intelligence leads development; tdev supplies the foundation for using and composing tools,
+projects and execution environments. ChatGPT chooses strategy and tools within the user's
+delegated authority. **Android + Termux is the default development and operating environment**,
+not just a controller for another machine.
 
-Seven MCP tools, Git checkpoint OIDs and two SQLite row families (workspace/operation).
-Core HTTP MCP is pinned to **2026-07-28** with per-request metadata and server/discover, not
-legacy initialize. Local Codex can explicitly select a separate legacy stdio adapter; it
-does not downgrade core HTTP. Normal exec/tests run natively in per-operation copies with detached
-supervisors. No SSH host, VPS, OCI, root, systemd or Docker prerequisite. Explicit remote
-execution remains optional; it never silently falls back to native.
+The first development goal is complete Git/local development, validation and deployment:
+create/connect projects → inspect/edit/debug → test → commit/integrate/publish → deploy →
+verify live behaviour → recover and clean up. A successful Git push is not deployment.
+Routine work should not require the user to manage internal IDs, HEAD OIDs, branch grants or
+private config files by hand. Long-running processes and reconnects must preserve usable progress.
 
-Native execution carries ordinary Termux app-UID authority. Clean environment, private
-HOME, source capture, process controls and API grants are useful safeguards, not hostile-code
-sandboxing or same-UID credential isolation. Use native commands/dependencies only when
-trusted with the local user's authority. See [trust boundary](ARCHITECTURE.md#3-native-trust-and-containment).
+The longer-term goal includes external MCP services (such as Blender), Android device control
+and computer use, CLI/API tools, local/remote/container runtimes and optional decision models.
+Jev is an example of a replaceable tool, not a dependency or mandatory decision gate. Build
+extension boundaries now, then qualify concrete integrations when needed; do not delay the
+complete coding path to build a speculative universal framework. These are product goals,
+not claims that these integrations or the full deployment path already exist.
+
+## Version policy
+
+The current product line is **0.1**, pre-release. The agent may choose patch-level and lower
+pre-release/build revisions within this line when warranted. Raising the minor or major
+version requires the user's explicit authorization; no product or public-contract v1 (or
+later major version) may be declared without it. Documentation changes need no automatic bump.
+
+The executable version has one source: `src/tdev/__init__.py`; consumers must derive it
+there rather than scatter version literals through code, contracts or tool names. Internal
+storage/format revisions and external protocol versions are independent of product maturity.
+No production release has been made. Pre-release redesign does not require compatibility
+aliases or migration machinery solely for experimental interfaces; actual user files,
+credentials and in-flight effects still require deliberate handling.
+
+## Implementation status
+
+Nine MCP tools separate composition (`tdev_workspace`), source tasks (`tdev_task`), projects
+(`tdev_project`), source read/edit, execution, general operation observation/control
+(`tdev_operation`), validation and publication. Git holds checkpoints; SQLite holds workspace
+composition, source tasks, enrolled projects and accepted operations. These interfaces replace
+the experimental source-workspace/process names without aliases.
+
+Core HTTP MCP is pinned to **2026-07-28**. Local Codex has an explicitly selected legacy stdio
+adapter; it does not downgrade core HTTP. Commands/tests run natively on Termux by default.
+Explicit remote execution remains optional and never silently falls back to native. No SSH
+host, VPS, OCI, root, systemd or Docker prerequisite is imposed on local development.
+
+Native execution carries ordinary Termux app-UID authority. Source copies, private HOME,
+clean environment and API grants are useful safeguards, not hostile-code or credential
+isolation. See the [trust boundary](ARCHITECTURE.md#3-native-trust-and-containment).
 
 ## Current work
 
-The remote-only architecture regression is corrected in config, default command/process/
-validation dispatch, source handling and operations. The real native runner and full HTTP
-workspace/edit → exec/process → validate → publish path pass local qualification, including
-restart, stdin replay, cancellation, output/deadline limits and validation-source integrity.
-The original four deliverables and the added local-client/CLI-extension deliverable have
-locally executable source/tests. Current results and exact scope are in LOCAL_VALIDATION,
-including the official SDK 2.0.0 pinned-protocol probe and inactive packaged native
-SIGKILL/recovery/publication rehearsal. **64 deterministic tests pass** after independent review.
+Persistent task dependencies and development processes are implemented in the **0.1** line.
+Native exec/validation reuse task-owned dependency/cache storage while keeping source and HOME
+separate per operation. `exec mode=process` runs a foreground server/debugger on a fixed source
+snapshot without blocking edits; existing operation status/stdin/cancel/retire controls survive
+controller reconnect. Task inspect exposes outstanding processes independently of history pages.
+Explicit resetEnvironment cleans dependencies after executions stop, including after task close.
+The owned resident installation has been updated and its authenticated MCP path qualified;
+verification tasks/processes/dependency storage were cleaned up.
+See [usage and limits](OPERATIONS.md#persistent-dependencies-and-development-processes).
 
-OpenAI tunnel-client 0.0.14 is qualified on Termux in two forms: the primary path builds the
-official source as an Android/arm64 CGO-enabled binary and uses Android DNS/system trust
-directly; the fallback runs the official Linux binary through termux-chroot with the Termux
-CA bundle. termux-chroot is a convenience wrapper supplied by the Termux proot package, not
-a sandbox claim.
+Resident installation is implemented. `bash install.sh` now prepares a verified bundle,
+registers owned `tdev` and `tdev-tunnel` services in Termux's shared runit graph, updates them
+with failure recovery, and verifies controller identity plus Tunnel control-plane health.
+`--check`, `--rollback`, `--recover` and `--uninstall` are available. Existing credentials,
+project grants and state remain in the selected private installation. No manual Tunnel/server
+startup is needed while termux-services is running. See [installation](OPERATIONS.md#resident-installation-and-deployment).
 
-**Prior live ChatGPT/Tunnel acceptance was recorded as 2026-09-21** on the development installation.
-Connector Refresh exposed all seven tools. Authenticated workspace discovery, disposable-ref
-read/edit, native exec/process, validation, exact GitHub publication/readback, same-request
-replay and controller-restart replay all succeeded. Because the server rejects mismatched
-protocol/method/name metadata before tool effects, the successful host calls also exercised
-the required MCP **2026-07-28** request metadata/header path and bearer delivery. That run
-used the fixed tmcp host-hint profile now restored in source; host acceptance after this
-restoration still requires a Connector Refresh and user-side retest.
 
-The first live validation exposed a real native defect: rebuilding ignored dependencies
-inside each clean validation copy hit `DISK_LIMIT`. The repair adds a bounded non-secret
-repository `toolingEnvironment`; its exact values are recorded in execution input and bound
-into validation policy identity. A second live disposable-ref validation then ran the full
-58-test suite directly from an operator-owned warm tooling path, with no `pip install` in
-the operation copy, and published/replayed successfully. Temporary acceptance refs and
-authorizations were removed afterward. No production cutover occurred.
-Retained native execution copies were not all retired; the historical run is not evidence
-of complete resource cleanup. Tooling policy binds configured strings, not external-directory
-contents; use operator-owned dependencies and candidate-source-first lookup.
+Local checkout import and task integration are implemented. Explicit localChanges on task
+start captures working edits while preserving the original files/index/HEAD. Same-project tasks
+can integrate independent text changes, inspect conflicts and resolve them atomically; the
+source task remains intact and publication requires validation of the resulting target.
+Source reads default to the current checkpoint and support paged patch/stat/name comparisons.
+See [import and integration usage](OPERATIONS.md#import-existing-local-edits-and-integrate-tasks).
 
-The previously observed development-harness requirement remains a permanent regression
-invariant: **within the same model turn**, progress/wait/readback must expose underlying
-advancement and completion instead of pinning the model to an old snapshot. The live
-acceptance directly observed increasing output cursors, `running → terminal` transitions,
-and durable terminal state after controller restart. No-change observations must remain
-bounded/current, and fresh sessions must resume from durable state without rediscovering
-proved-complete predecessors. These requirements remain normative in ARCHITECTURE §6 and
-IMPLEMENTATION_PLAN.
+Workspace/source-task separation is implemented. Empty or multi-project spaces support
+create/list/inspect/attach/detach/configure/close, revision CAS and durable replay. Starting a
+source task without workspaceId automatically uses a default space; an explicit space resolves
+its own project defaults. A project can participate in multiple spaces with independent source
+checkpoints. Busy-task completion is observed during bounded workspace inspection. Composition
+never grants project permissions, and close/detach never delete owned refs or process resources.
 
-Independent review of `99372b5..989f580` corrected stale mutation replay and missing
-bounded progress/resume inspection. Workspace inspect and process status now expose current
-facts, change/no-change evidence and cleanup ownership; no workflow table or planner was
-added. After refreshed host testing, the public tool annotations are restored to the fixed
-tmcp host-hint scope: all seven are read-only-hinted and the other three hints are false.
-Those hints do not change tdev's mutation, execution, validation or publication authority.
+Delegated local/GitHub project connect/create, automatic source-base/managed-branch selection,
+exact validation/publication and owned branch cleanup remain available through the renamed
+source-task API. `tdev_edit` modifies source; `tdev_task` manages its lifecycle. `tdev_operation`
+observes all accepted effects; process controls apply only to exec/validation operations.
+See [usage](OPERATIONS.md#workspace-composition-and-source-tasks).
 
-Installed **Local Codex 0.155.1** discovery and disposable native read/edit/exec/process/
-validate/publish, client reconnect/replay and retirement pass through the explicit stdio
-adapter → localhost HTTP path. The installed client proposes 2025-06-18 in direct initialize;
-the explicit adapter replies with supported version 2025-11-25, accepted by this client.
-Neither is direct 2026-07-28 client support; core HTTP remains pinned and rejects legacy initialize.
-This is actual Codex app-server MCP, not an autonomous model turn or Codex-through-Tunnel
-test. The official Tunnel plugin is installed in the tested Codex profiles; plugin runtime
-management and tdev tool registration are separate. CLI extension capture/real-exit and
-forged-authority rejection are tested without adding a public gateway.
+Qualification: **123 deterministic tests pass**. New coverage includes dependency reuse, a live
+HTTP development server during edits/validation, reconnects, writer independence, process limits
+and interrupted environment cleanup. Official MCP SDK and installed Local Codex checks also pass
+with the same nine-tool surface. Prior resident installation/recovery evidence remains separate.
+Exact results are recorded in [LOCAL_VALIDATION.md](LOCAL_VALIDATION.md#persistent-environments-and-processes--2026-09-21).
 
-The reviewed code is now loaded by the existing development controller following explicit
-restart approval; authenticated local tools/list matches the current contract exactly.
-Tunnel, credentials, grants and durable operation/workspace rows were preserved.
-Remaining: ChatGPT Connector Refresh and targeted discovery/approval requalification,
-optional interactive Local Codex/Tunnel
-route, intentionally wrong bearer through ChatGPT UI, selected remote backend isolation and
-separately authorized production cutover. Shared credentials do not promise account/session
-isolation. Only the explicitly approved development controller was restarted afterward. A separate
-Linux executor is not a next step or gate. See [evidence](LOCAL_VALIDATION.md) and [operations](OPERATIONS.md).
+The new internal state format uses the existing fresh schema-3 development state. The
+installation now runs through owned runit services on localhost:8765, with the same Tunnel
+identity, credentials and project enrollments. The old manual runtime and experimental tdev
+service/helper/agent registrations have been retired from the live graph. Historical private
+state and retired service files remain outside that graph. The accumulated implementation is
+now delivered on the canonical tdev branch under the user-authorized 0.1 pre-release line;
+this resident installation is not a product v1 release.
+See [resident evidence](LOCAL_VALIDATION.md#resident-service-installation--2026-09-21).
+
+The next development work connects concrete execution/provider resources and deployment of
+authored projects. Persistent task dependencies and snapshot processes cover the initial native
+path; hot reload, PTY debugging and cross-task environment sharing are not implemented.
+Installing tdev itself does not implement arbitrary project deployment. Blender/MCP/device/
+computer-use/model connections remain future integrations. See
+[implementation order](IMPLEMENTATION_PLAN.md#next-implementation-sequence).
+
+Earlier project-management evidence includes 81 deterministic tests, actual GitHub managed-ref
+publication/readback/cleanup and an unchanged canonical HEAD. It used the earlier eight-tool
+contract. Earlier native SDK/client and inactive packaged crash-recovery evidence, with their
+exact tested scope, are retained in [LOCAL_VALIDATION.md](LOCAL_VALIDATION.md). New composition
+qualification is recorded there separately; do not infer live rollout from local tests.
 
 Run deterministic checks with `sh scripts/check.sh` after
 `python -m pip install --target .tdev-deps -r requirements.txt`.

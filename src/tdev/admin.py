@@ -122,10 +122,16 @@ def bundle_files(source):
     return {name: digest((source / name).read_bytes()) for name in names}
 
 
+def state_versions(directory):
+    schema = Path(directory) / 'contracts/config.schema.json'
+    return json.loads(schema.read_bytes()).get('x-stateVersions', [1]) if schema.exists() else [1]
+
+
 def verify(directory):
     directory = Path(directory)
     manifest = json.loads((directory / "manifest.json").read_bytes())
     require(manifest["schema"] == 1 and digest(manifest["files"]) == manifest["id"], "BUNDLE_IDENTITY")
+    require(manifest.get('stateVersions', [1]) == state_versions(directory), 'BUNDLE_STATE_VERSION')
     for name, expected in manifest["files"].items():
         file = directory / name
         require(not file.is_symlink() and file.is_file() and digest(file.read_bytes()) == expected, "BUNDLE_CHANGED", name)
@@ -154,49 +160,16 @@ def stage(root, source):
                 file = tmp / name
                 file.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(source / name, file)
-            atomic_write(tmp / "manifest.json", canonical({"schema": 1, "id": ident, "files": files}))
+            atomic_write(tmp / "manifest.json", canonical({"schema": 1, "id": ident, "files": files,
+                                                          "stateVersions": state_versions(tmp)}))
             verify(tmp)
             os.rename(tmp, destination)
     verify(destination)
     tunnel_runtime = _select_tunnel_runtime(root)
     require(tunnel_runtime["mode"] != "unprepared", "TUNNEL_CLIENT_INSTALL",
             "run prepare-tunnel before staging")
-    # Service templates are staged outside the live runsvdir. Never start here.
-    for service in ("tdev", "tdev-oai-tunnel"):
-        directory = root / "services" / service
-        directory.mkdir(parents=True, exist_ok=True, mode=0o700)
-        atomic_write(directory / "down", b"")
-        shell = shutil.which("sh")
-        if service == "tdev":
-            command = "exec " + shlex.join([sys.executable, "-m", "tdev.server", "--state", str(root / "state"), "--config", str(root / "config.json")])
-            setup = "export PYTHONPATH=" + shlex.quote(str(root / "active" / "src") + ":" + str(root / "active" / ".tdev-deps")) + "\n"
-        else:
-            # Load the owner-only runtime key directly; Termux does not require envdir.
-            key_file = shlex.quote(str(root / "tunnel-env" / "CONTROL_PLANE_API_KEY"))
-            setup = (
-                "key_file=" + key_file + "\n"
-                "[ -r \"$key_file\" ] || { printf '%s\\n' 'missing tunnel runtime key' >&2; exit 78; }\n"
-                "CONTROL_PLANE_API_KEY=$(cat \"$key_file\")\n"
-                "[ -n \"$CONTROL_PLANE_API_KEY\" ] || { printf '%s\\n' 'empty tunnel runtime key' >&2; exit 78; }\n"
-                "export CONTROL_PLANE_API_KEY\n"
-            )
-            runtime = tunnel_runtime
-            tunnel_argv = [
-                runtime["binary"], "run", "--profile", "tdev",
-                "--health.listen-addr", "127.0.0.1:0",
-                "--health.url-file", str(root / "tunnel-health.url")
-            ]
-            if runtime["mode"] == "termux-chroot":
-                setup += "CA_BUNDLE=" + shlex.quote(runtime["caBundle"]) + "\nexport CA_BUNDLE\n"
-                tunnel_argv = [runtime["wrapper"], *tunnel_argv]
-            command = "exec " + shlex.join(tunnel_argv)
-        atomic_write(directory / "run", ("#!" + shell + "\nset -eu\nexec 2>&1\n" + setup + command + "\n").encode(), 0o700)
-        log = directory / "log"
-        log.mkdir(exist_ok=True)
-        atomic_write(log / "run", ("#!" + shell + "\nexec " + shlex.join([shutil.which("svlogd") or "svlogd", "-tt", str(root / "logs" / service)]) + "\n").encode(), 0o700)
-        logs = root / "logs" / service
-        logs.mkdir(parents=True, exist_ok=True)
-        atomic_write(logs / "config", b"s1048576\nn3\n")
+    from .resident import templates
+    templates(root)
     return {"bundle": ident, "directory": str(destination), "started": False,
             "tunnelMode": tunnel_runtime["mode"]}
 
@@ -205,7 +178,7 @@ def point(root, ident):
     root = Path(root)
     require(len(ident) == 64 and all(c in "0123456789abcdef" for c in ident), "BUNDLE_IDENTITY")
     destination = root / "versions" / ident
-    verify(destination)
+    manifest = verify(destination)
     state = root / "state"
     state.mkdir(exist_ok=True, mode=0o700)
     with open(state / "controller.lock", "a+b") as lock:
@@ -217,7 +190,8 @@ def point(root, ident):
         if dbfile.exists():
             db = sqlite3.connect("file:" + str(dbfile) + "?mode=ro", uri=True)
             try:
-                require(db.execute("PRAGMA user_version").fetchone()[0] == 1, "SCHEMA_VERSION")
+                require(db.execute("PRAGMA user_version").fetchone()[0] in manifest.get('stateVersions', [1]),
+                        "SCHEMA_VERSION", 'Selected bundle cannot read the current state schema; rollback requires a compatible bundle')
                 require(db.execute("SELECT count(*) FROM operation WHERE status IN ('running','unknown')").fetchone()[0] == 0, "OUTSTANDING_EFFECT")
             finally:
                 db.close()
@@ -265,12 +239,50 @@ def init_config(root):
     return {"config": str(root / "config.json"), "secretFile": str(root / "connector.secret"), "grants": 0}
 
 
+def delegate_projects(root, principal, name, local_root=None, github_owner=None, validation=None,
+                      allow_create=False, namespace='refs/heads/tdev-work/'):
+    """One-time scope delegation; subsequent project connect/create goes through MCP."""
+    from jsonschema import Draft202012Validator
+    from .projects import validate_policies
+    filename = Path(root) / 'config.json'
+    require(bool(local_root) != bool(github_owner), 'PROJECT_SCOPE', 'Select one local root or GitHub owner')
+    require(validation, 'VALIDATION_REQUIRED', 'Provide the mandatory command for this project policy')
+    with open(Path(root) / 'config.lock', 'a+b') as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        value = json.loads(private_file(filename))
+        require(principal in value['principals'], 'PRINCIPAL_NOT_FOUND')
+        require(name not in value.get('projectPolicies', {}), 'PROJECT_POLICY_EXISTS', 'Existing policies are not silently replaced')
+        policy = {'kind': 'local' if local_root else 'github', 'validation': validation,
+                  'allowCreate': allow_create, 'managedRefNamespace': namespace}
+        if local_root:
+            directory = Path(local_root).resolve(strict=True)
+            require(directory.is_dir(), 'PROJECT_SCOPE')
+            policy['root'] = str(directory)
+        else:
+            policy['owner'] = github_owner
+        value.setdefault('projectPolicies', {})[name] = policy
+        value['principals'][principal].setdefault('projectPolicies', []).append(name)
+        schema = json.loads((Path(__file__).resolve().parents[2] / 'contracts/config.schema.json').read_bytes())
+        require(Draft202012Validator(schema).is_valid(value), 'CONFIG', 'Invalid project delegation')
+        validate_policies(value)
+        atomic_write(filename, canonical(value))
+    return {'policy': name, 'principal': principal, 'scope': policy.get('root', policy.get('owner')),
+            'canCreate': allow_create, 'started': False}
+
+
 def main():
     parser = argparse.ArgumentParser(description="Local-only operator actions; stage never starts services")
-    parser.add_argument("action", choices=("stage", "point", "rollback", "check", "init", "prepare-tunnel"))
+    parser.add_argument("action", choices=("stage", "point", "rollback", "check", "init", "prepare-tunnel", "delegate-projects"))
     parser.add_argument("--root", required=True)
     parser.add_argument("--source", default=str(Path(__file__).resolve().parents[2]))
     parser.add_argument("--bundle")
+    parser.add_argument('--principal', default='owner')
+    parser.add_argument('--policy')
+    parser.add_argument('--local-root')
+    parser.add_argument('--github-owner')
+    parser.add_argument('--validation')
+    parser.add_argument('--allow-create', action='store_true')
+    parser.add_argument('--namespace', default='refs/heads/tdev-work/')
     args = parser.parse_args()
     if args.action == "stage":
         result = stage(args.root, args.source)
@@ -282,6 +294,10 @@ def main():
         result = init_config(args.root)
     elif args.action == "prepare-tunnel":
         result = prepare_tunnel(args.root)
+    elif args.action == 'delegate-projects':
+        require(args.policy, 'PROJECT_POLICY_REQUIRED')
+        result = delegate_projects(args.root, args.principal, args.policy, args.local_root, args.github_owner,
+                                   args.validation, args.allow_create, args.namespace)
     else:
         result = check(args.root)
     print(canonical(result).decode())

@@ -2,19 +2,84 @@
 
 ## 1. Product and authority
 
-Android + Termux is both the development and normal operating environment. The complete
-default path is ChatGPT → Tunnel → localhost tdev → workspace/edit → exec/process →
+Android + Termux is both the development and normal operating environment. The current
+source-development path is ChatGPT → Tunnel → localhost tdev → task/edit → exec/operation →
 validate → publish. No Linux host, VPS, SSH, OCI, root, systemd or Docker is required.
 
 ChatGPT chooses strategy, commands, edits, diagnostics, composition and publication.
 tdev owns exact repository/ref/source identity, current MCP admission, immutable checkpoint
 handling, mutation identity, concurrency and validation/publication joins. Git owns source
-and canonical refs; SQLite owns workspace pointers and accepted intents/results; the native
+and canonical refs; SQLite owns workspace composition, task pointers and accepted intents/results; the native
 supervisor owns subprocess lifetime; runit owns service restart; Tunnel owns delivery.
 
 User instructions and actual permissions bound work. README owns purpose/current status;
 this file owns semantics; contracts/tools.schema.json owns wire types; IMPLEMENTATION_PLAN
 owns execution order. AGENTS is navigation. Superseded designs live in Git history.
+
+### Target composition model
+
+Workspace/project/source-task composition is implemented. Tool/runtime connections and
+broader deployment below remain design requirements. Product goals and version policy belong
+in README; wire types live in the contract.
+
+| Concept | Responsibility |
+|---|---|
+| Workspace | Composes project references, connected tools and execution environments for development. |
+| Project | Reusable development target/source identity; may participate in multiple workspaces. |
+| Source task | Isolated source state for one project within a workspace; a multi-project objective uses multiple tasks. |
+| Operation | An accepted execution or effect with identity, progress, result and recovery evidence. |
+
+`tdev_workspace` owns composition; `tdev_task` owns source-task lifecycle. `tdev_edit` changes
+source. `tdev_operation` inspects every accepted operation and controls exec/validation
+processes where applicable. No old-name aliases are provided for experimental contracts.
+Workspace create/list/inspect/attach/detach/configure/close need no Git source task. A workspace
+may be empty. Each project membership captures its enrolled identity and never grants authority.
+
+Task start/open/compose admit an optional workspaceId. When omitted, the controller creates or
+reuses the principal's default workspace and attaches the resolved project in the same local
+transaction as task admission. Explicit workspaces use only their attached projects and their
+configured default (or sole member); they never silently use an unrelated global default.
+The same project can participate in multiple spaces with independent tasks and checkpoints.
+
+Workspace mutations use revision CAS and commit composition and replay results together.
+Close/detach reject open tasks and pending/unknown source-task creation, including the interval
+before a task row exists. Closed tasks, published refs and execution resources are retained;
+closing a workspace never implies deleting a branch or cancelling a process. Owned cleanup
+and inspection remain available after close/detach subject to current project authority.
+Workspace inspect observes the selected bounded page of task executors outside the store lock,
+then rereads task state; its observation records freshness and no-change evidence. Revoked or
+replaced projects are reported unavailable rather than silently re-enrolled. Old receipts
+record historical composition; current membership comes from workspace inspect.
+Pending source-task creation is separately paged in that inspection, exposing operation and
+request identity even before the task row exists. It must not look like an empty idle space.
+
+Reading a device or calling an external tool must not require a Git branch or source task
+when those adapters are implemented. Connections below are future requirements, not an
+advertisement of currently implemented device or MCP attachment.
+
+The intelligence chooses strategy and composition. Connections supply discoverable capabilities,
+actual authorization, endpoint/runtime identity and attach/use/inspect/detach lifecycles. MCP,
+CLI, API, device and model adapters may differ; do not force all tools through one transport.
+Host-connected tools can be used directly. Runtime-side connections do not automatically
+register tools in the host. No particular model, decision intermediary or workflow is mandatory.
+
+Workspace membership does not grant OS/provider authority. Within delegated scope, route effects
+through the authenticated connection that can perform them; missing shell credential inheritance
+alone must not strand an otherwise authorized operation. Distinguish absent credentials,
+insufficient external authority, unsupported capability and unavailable runtime. Revocation
+gates new effects; changing a connection must not silently reroute or repeat accepted effects.
+Record enough input/resource identity and results to continue after reconnect or replacement.
+
+Source checkpoints, validation and Git CAS belong to source-development adapters. External
+effects need their own observed success and recovery semantics; a model judgment is not an
+effect receipt. Multi-repository publication is not atomic, device effects are not Git-reversible,
+and native working-copy separation is not a security sandbox. Deployment binds a verified
+artifact to a target, checks live identity/readiness and supports explicit recovery and cleanup.
+Publishing source alone does not establish any of those facts.
+
+Implement the full coding/deployment path first using these boundaries. Add concrete integrations
+as selected, with evidence for their actual capabilities, rather than building a universal
+registry or planner before there is a usable development loop.
 
 ## 2. Runtime choice and public surface
 
@@ -24,15 +89,16 @@ owns execution order. AGENTS is navigation. Superseded designs live in Git histo
 | Native subprocess in a per-operation copy | installed Termux CLIs, no provisioning/cold remote startup | same UID, no hostile-code filesystem/network isolation; materialization/capture cost | default |
 | SSH + rootless OCI outer runner | OS isolation and enforceable network/resource controls after qualification | external host/image/SSH maintenance, transfer/cold start and more failure points | optional explicit backend |
 
-Retain workspace/read/edit/exec/process/validate/publish. CLI adapters need no additional
-public tools or permission registration. No planner, Task, permission projection,
-registry/gateway or per-command allowlist. CLI extensions gain no MCP admin operation;
+The source surface is task/read/edit/exec/operation/validate/publish; workspace supplies
+composition and project supplies delegated local/GitHub enrollment. CLI adapters need no
+additional permission registration. General tool/runtime connection lifecycle remains future
+work. CLI extensions gain no MCP admin operation;
 native programs nevertheless have the real app UID's authority (§3).
 
-Tool annotations use the fixed tmcp host-hint scope: all seven public tools advertise
+Tool annotations use the fixed tmcp host-hint scope: all nine public tools advertise
 `readOnlyHint=true`, with `destructiveHint=false`, `idempotentHint=false` and
 `openWorldHint=false`. These annotations are host hints, not effect semantics, admission
-authority or a safety boundary. The actual workspace mutation, owner-trusted execution,
+authority or a safety boundary. The actual task mutation, owner-trusted execution,
 validation and remote publication effects remain enforced by tdev's normal contracts,
 authentication, CAS, validation and provider authority.
 
@@ -60,6 +126,16 @@ Owner-adopted tooling must be non-secret dependencies, not another copy of repos
 put candidate source first in module lookup. Prefer immutable versioned dependency paths and
 change the configured path when updating them. This is not dependency-content attestation.
 Source contains credential-free shallow Git metadata, never a copied provider configuration.
+Native commands and validation now default to a task-owned dependency directory, exposed as
+`TDEV_ENV_DIR`, with persistent pip/npm/XDG caches. The directory is independent of source and
+private per-operation HOME/TMP/config. Its `venv/bin` and `bin` precede the command PATH; callers
+install their selected tools explicitly. `environment=fresh` omits this directory and uses the
+disposable caches. No automatic dependency installation, lockfile inference or sharing between
+tasks is implied. Environment identity is part of the retained execution input; mutable
+dependency contents are not attested. As with adopted toolingEnvironment, validation proves
+the exact candidate ran in that environment, not a hermetic dependency build. Concurrent
+processes can use the same task dependencies; stop consumers before changing an installed
+toolchain. The API does not serialize arbitrary package-manager writes.
 Controller/provider/Tunnel configuration stays outside the execution copy. Candidate stdout
 is never parsed as a receipt. These prevent accidental credential propagation and confused
 API authority; they do NOT prevent a malicious same-UID program from reading absolute paths,
@@ -99,11 +175,15 @@ provisioning. Android can kill the whole app UID, including runit and supervisor
 
 | Row | Durable ownership |
 |---|---|
-| workspace | owner, enrolled repo/ref identity, canonical base, checkpoint, busy operation, closed state |
+| workspace | owner, name, revision, default project and enrolled project membership identities |
+| task | workspace identity, owner, enrolled repo/ref identity, source base, checkpoint, busy operation, closed state; managed ref ownership and last published OID |
+| project | delegated repository identity/path/default source branch and creating principal/policy; no credentials or copied executable policy |
 | operation | principal/request digest, exact intent/backend/policy, result and effect certainty |
 
-Operator config owns credentials, repo/ref enrollment, adopted validation and optional
-executor selection. No mirrored grant/binding/executor/capability tables. Runner spool
+Operator config owns credentials, static repo/ref enrollment, delegated project scope, adopted
+validation and optional executor selection. Project rows record enrollment within that scope;
+current policy supplies validation/tooling/backend on every admission. No mirrored grant,
+binding, executor or capability tables. Runner spool
 stores accepted input, process observation, bounded output, controls and terminal evidence;
 these are execution evidence, not new authority/workflow owners.
 
@@ -113,7 +193,7 @@ no numerical revision. Private index/tree plumbing makes multi-file edits atomic
 Objects are written/pinned before the SQLite pointer/result transaction. Shared FETCH_HEAD
 is not used. Concurrent first opens see a completely initialized object store.
 
-Commands materialize an exact checkpoint with shallow Git HEAD. Capture atomically imports
+Command mode materializes an exact checkpoint with shallow Git HEAD. Capture atomically imports
 tracked files, nonignored new files under STARTING ignore rules and explicit extra paths.
 Candidate index/config cannot change selection. Nonzero exit, timeout or cancellation may
 still capture safely stopped native work. Capture overflow/failure keeps the previous
@@ -126,9 +206,58 @@ tree-only pointers cannot distinguish ABA; custom content-addressed storage dupl
 Keep Git plumbing plus temporary command copies. File payload and shallow pack currently
 duplicate transfer/storage; optimize only with measurements.
 
+Task dependency storage survives process retirement, controller reconnect and task/workspace
+close. `task resetEnvironment` explicitly removes only that task's native dependency directory,
+including after close, and requires no running/unknown execution for the task. Admission is
+serialized with starts; an executor lease also rejects removal while a supervisor uses it.
+The retained reset intent, same-directory rename and replayed deletion recover interruption
+without deleting a newly rebuilt environment on replay of a completed request. Source, job
+receipts and logs are separate and retained. This extends schema-3 intents, not stored grants.
+
+### Local checkout import and task integration
+
+A connected non-bare local project records its working-folder identity separately from its
+Git common-directory identity. Linked checkouts use their own checked-out branch. Connecting
+another checkout of the same enrolled repository does not silently rebind that source folder.
+Task start may explicitly import local changes: the selected branch and HEAD must still match
+the admitted base. Read tracked paths and nonignored untracked paths using the existing index
+only for selection, then capture final working-file bytes, executable bits and safe symlinks.
+Staged and unstaged versions are not separate snapshots; ignored untracked files are omitted.
+No index refresh, add, clean filter, hook, checkout write or ref write is performed by import.
+Unmerged indexes, skip-worktree entries, gitlinks and unsafe tracked file types are rejected.
+Two matching scans check identities, selection, content and file metadata before committing the
+new task; this detects concurrent changes but is not an atomic filesystem snapshot. Interrupted
+import leaves no partially admitted task. Durable replay returns the captured source, not a
+new scan. Existing native capture limits also bound imported files and total bytes.
+
+Task integrate applies one task's delta (source base → selected source checkpoint) to another
+task in the same repository. Both tasks require current access. The source checkpoint must
+lie between its base and current checkpoint; source base must be an ancestor of target base.
+For a newer upstream base, start a new target there and integrate the older task into it.
+Admission freezes the source checkpoint in the operation; target checkpoint CAS and busy
+ownership prevent stale writes. Ordinary independent text changes use Git's built-in
+[three-way file merge](https://git-scm.com/docs/git-merge-file); user attributes, external merge
+drivers and hooks are not executed. Binary, add/add, delete/modify, link/type and path topology
+conflicts require explicit resolution when simple equality/unchanged-side rules cannot decide.
+
+Unresolved integration completes with applied=false, bounded conflict details and the original
+target checkpoint. It commits no partial merge or conflict markers. A new request can resolve
+the frozen source version using current/incoming/base/delete choices or supplied file content;
+all conflicts and file/directory collisions must be resolved before the target advances. The
+source task never changes. The result is a single-parent target checkpoint with source lineage
+in the operation receipt, not a Git merge-parent graph or automatic rename detection. Repeated
+integration is another delta application and may need resolution. Validation is bound to the
+exact resulting checkpoint; earlier validation cannot authorize publication after integration.
+
+Source reads default to the task's current checkpoint and return that identity. Callers pin it
+for subsequent pages when concurrent edits are possible. Diff supports stat, patch and name
+summaries, an accessible historical base and literal path filtering. Diff/history pages carry
+byte offsets and lossless base64 data alongside a text preview; concatenate decoded bytes for
+exact reconstruction across UTF-8 boundaries. History currently covers the latest 20 commits.
+
 ## 5. Admission and authentication
 
-Installation bearer maps directly to a principal and exact repo/ref scope. Check current
+Installation bearer maps directly to a principal and exact repo/ref or delegated project scope. Check current
 config on every admission and replay. No permission object per command. Bearer identifies
 a credential holder, not a verified ChatGPT account/session. Shared credentials share API
 authority. Subject/session headers never grant access.
@@ -140,12 +269,75 @@ admissions/replays; it cannot revoke an already running native process's app-UID
 Private config stays outside source; MCP has no config/install/release endpoint. Actual
 provider/user permissions remain the upper bound.
 
+### Delegated projects and managed tasks
+
+Project policies authorize a fixed local root or GitHub owner, optionally repository creation,
+and an operator-owned validation/tooling/backend profile. A principal may use only named
+policies granted to it. Project connect/create cannot supply credentials, commands, executors
+or expand a root/owner. Changing/revoking that scope also gates replay and existing projects.
+Project identity stays bound to the Git common-directory device/inode or GitHub repository ID;
+a same-name replacement is not the enrolled repository. Static enrollment remains supported.
+The one-time operator CLI configures delegation; routine new projects use MCP, not config edits.
+
+Local connect uses an existing Git project (including ordinary working checkouts) inside the
+root. Create initializes a new directory and README commit without replacing existing files.
+GitHub create uses controller credentials and a private initialized repository under the fixed
+owner. Execution copies do not need provider authentication to finish project work: controller
+project/Git operations own those effects for native and explicitly selected remote runners.
+Provider scope and actual OS permissions remain upper bounds. Discovery distinguishes delegated
+scope from live provider authentication/permissions; inspect performs current repository checks.
+
+Task start chooses the sole accessible project or configured default, otherwise requires
+an explicit project. It chooses the configured/sole source branch, resolves its actual HEAD once,
+and journals that immutable base before fetching. Retries retain original identity. No global
+current-project/session pointer. Start reserves a unique server-generated branch name within
+the intersection of repository and principal namespaces; no remote branch exists yet. Exact
+open/compose remain available for enrolled refs, never as a way to adopt a managed branch.
+
+Managed tasks publish only their frozen validated candidate, parented by the admitted source
+base, using create-if-absent CAS. Source base and publication target expected state are distinct:
+first publication expects absence even when the source branch has advanced. Delegated projects
+use base refs as sources; direct base publication is not granted by connect/create. Existing
+explicit canonical publication grants keep their previous meaning. Start from a proved
+published task continues its retained commit, even after that task's branch cleanup.
+
+Close retains branches. Explicit cleanup works before or after close and deletes only the
+task's created branch at its exact recorded publication OID. Prefix matching alone is
+never ownership; foreign or changed branches are preserved. Clean local checked-out branches
+must be switched away before deletion. User checkout/index/untracked content is never a
+materialization/publication target. Absence can finish cleanup only when no prior uncertain
+writer is active. Branch names are never reused. Namespace operators must not delete/recreate
+or rewrite owned refs behind the controller; Git OID CAS cannot detect an external ABA rewrite.
+
+Remote ref mutations journal intent before dispatch and survive restart as unknown until
+observed; task cleanup is no longer classified as a purely local mutation. Unknown
+publication cannot be cleared by an absent ref. Known exact publication and absent deletion
+can reconcile without repeating effects. GitHub create persists its returned repository ID
+before enrollment; loss before that ID is durable remains unknown, never re-POSTed or claimed
+successful from the name alone. Explicit connect can enroll a repository independently.
+SQLite schema 3 separates workspace composition and source tasks. Earlier experimental state
+is rejected before table changes; this redesign uses a fresh private state directory and
+provides no automatic migration or deletion of old state. Activation/rollback rejects bundles
+unable to read the actual schema. Storage revisions are independent of product versions.
+
 ## 6. Process, concurrency and recovery
 
 One controller holds a kernel lock released on death; SQLite WAL/FULL transactions do not
-span subprocess/network waits. Per-workspace checkpoint CAS/busy ownership prevents silent
-overwrite; reads use the last committed checkpoint. Different workspaces/ref tasks proceed
+span subprocess/network waits. Per-task checkpoint CAS/busy ownership prevents silent
+overwrite; reads use the last committed checkpoint. Different tasks/ref tasks proceed
 independently. No global stale lock, timeout lease, automatic coordination or planner.
+
+Native `exec mode=process` starts a foreground development server/debugger on a fixed checkpoint
+copy. It has no default wall/CPU deadline; an explicit timeout restores both limits. It never
+captures files into a task, so admission records the checkpoint without reserving the task
+writer. Later completion, cancellation or supervisor loss cannot clear another writer or
+change/reopen a closed task. Ordinary command and validation modes retain their existing
+writer/deadline rules. Process mode remains an ordinary retained exec operation: status/logs,
+sequenced stdin, cancel and stopped-resource retirement use the same controls and dedup rules.
+It is not resident service deployment, auto-restart, hot reload or a PTY. To serve new source,
+stop the old process and start a new operation at the new checkpoint. No shell detachment is
+needed. Native supervisor loss retains uncertainty and blocks environment cleanup/installation
+updates, while unrelated source editing remains possible.
 
 ### Progress continuity within a turn and across resumes
 
@@ -154,8 +346,8 @@ including when the caller missed the completion response. Replaying a mutation r
 the original operation before returning; it never starts the effect again. Process status
 reads the supervisor's current result/log evidence, not a cached admission response.
 
-Use workspace list (bounded workspace pages, includeClosed for cleanup) then workspace
-inspect for a known workspace. Inspect reconciles its busy operation and returns current
+Use task list (bounded task pages, includeClosed for cleanup) then task
+inspect for a known task. Inspect reconciles its busy operation and returns current
 checkpoint/base, live remote head or a provider error, a bounded newest-first operation page
 (including related controls), original request IDs, cleanup state and mutationReady.
 Older predecessors are available by before cursor; the response does not claim the entire
@@ -163,7 +355,7 @@ unbounded history fits in one page. mutationReady means only open/no busy, not a
 permission for every action: expected source, validation and old head are checked on admission.
 The model chooses the next useful action; no planner or new durable workflow owner.
 
-Inspect, and process status with since, return a content-hash cursor, changed, observation
+Inspect, and operation status with since, return a content-hash cursor, changed, observation
 time/provenance and pollAfterMs. The cursor is equality evidence, NOT an ordered revision.
 Inspect also bounds its observation interval with startedAtNs; SQLite, executor and remote
 reads are not an atomic distributed snapshot. Concurrent changes may require another read;
@@ -171,6 +363,11 @@ an active summary is omitted if the busy identity changed during observation. Ad
 remains authoritative. Local logs expose availableBytes so growth beyond the returned page
 changes the cursor; older optional remote runners may omit that field until explicitly upgraded.
 Retained output remains capped; unchanged output alone is not proof a process is stalled.
+Task inspect also observes all admitted outstanding process-mode operations independently of
+the history page. Admission caps their count so this observation is bounded; a just-completed
+process remains visible in that observation and then in operation history. Execution summaries
+identify mode, source checkpoint, environment selection and deadline. Closing a task does not
+stop processes; use includeClosed for discovery and the original operation handle for controls.
 
 Equal since returns a freshly checked no-change result, not an ambiguous cached response.
 Wait at least the polling hint or do independent work, and bound polling by the task deadline;
@@ -178,7 +375,8 @@ the server does not impose a new scheduler, infer a guard/permission transition,
 model behaviour. Provider failure is an explicit current error, not evidence of completion.
 Transport reconnect is unrelated to operation lifetime.
 
-Closed workspaces remain inspectable and discoverable with includeClosed. Terminal execution
+Closed tasks remain inspectable and discoverable with includeClosed. Inspect also reports
+managed ref cleanup readiness and current absence separately from provider errors. Terminal execution
 copies can be retired via the original operation after creator/session completion; unknown
 effects retain evidence and cannot be retired automatically. Tests exercise live output growth,
 no-change freshness, missed completion/replay, fresh controller/client resume, useful next work,
@@ -198,7 +396,7 @@ Dispatch/stdin/cancel/publication have durable intent before effects. Reads need
 Native dispatch reserves a spool job before launching one detached supervisor. Lost
 controller response/restart reconnects to that job. Launch reservation gaps and supervisor
 death without a sealed result remain uncertain, even if no PID is currently visible.
-Only the affected workspace is fenced. Do not invent successful receipts or recapture
+Only the affected task is fenced. Do not invent successful receipts or recapture
 possibly live bytes. Operator recovery may be needed after supervisor/app-UID loss; it
 is not a prerequisite to ordinary native execution. Process start identity is not a lease.
 
@@ -232,7 +430,8 @@ Native mode does not claim unforgeable receipts against same-UID attacks.
 Publish rechecks scope/policy, successful validation, unchanged checkpoint and expected
 old head. Publish the frozen commit, never regenerate it. Unique publication per validation
 survives different request IDs. GitHub identity is immutable repository ID plus exact HTTPS
-URL/full ref; local bare fixture identity is device/inode. No guessed targets/wildcard refs.
+URL/full ref; local bare fixture identity is device/inode. No guessed targets or wildcard mutation commands. Managed namespace grants resolve to one
+owned exact ref before effects.
 
 No force push. Trusted pre-push hook checks actual advertised old/new/ref; ordinary receive-pack
 CASes that old OID. Local bare publication uses explicit old-OID update-ref. Lost response is
@@ -281,8 +480,25 @@ durable owner, public tool or implicit downgrade. The Tunnel Codex plugin manage
 runtimes; installing it alone does not register tdev tools with Codex.
 
 Runit services and bounded logging are separate from coding calls. Inactive installation
-stages a verified bundle and DOWN templates; rollback checks schema and outstanding effects.
-Production activation needs explicit authority. Bundle verification is not protection from
+stages verified bundles and DOWN templates. The operator installer registers tdev/tdev-tunnel
+with installation identity/root and exact launcher hashes. Unknown owners are never inferred
+from names. Explicit legacy retirement requires the current script digest and retains the old
+directory outside the live graph. New launchers resolve/verify active source at every restart;
+controller health includes PID and bundle identity. Live checks bind the supervised process to
+its actual arguments/environment and the tunnel to its pinned executable/profile and successful
+control-plane poll. Public liveness metadata grants no authorization.
+
+An advisory shared admission lock surrounds API dispatch. The installer exclusively acquires
+it to durably place a maintenance marker, then releases it so observations remain available.
+Mutations while fenced fail explicitly; outstanding/unknown operations block installation.
+Install/update/uninstall serialize with root and shared-service locks, journal before changes,
+stop owned services, and switch only compatible bundles. Recovery restores old files/pointer
+and desired state before clearing the fence. A process interruption leaves recoverable intent;
+there is no claim of atomic two-directory filesystem replacement. Initial takeover is an
+explicit operator action with private recovery receipts; ordinary updates use owned runit
+services. A persisted DOWN marker survives shared-supervisor recovery. termux-services owns
+root recovery; tdev does not duplicate it or silently install shared infrastructure.
+Production activation needs user authority. Bundle verification is not protection from
 hostile same-UID code. Native runner is included without extra executor enrollment.
 
 ## 9. Evidence and acceptance
@@ -296,8 +512,9 @@ without a relevant change; changed host-facing annotations require targeted requ
 Local Codex qualification covers the installed client's discovery/calls and disposable
 native coding/reconnect/cleanup, separately from an interactive model turn or Tunnel route.
 CLI extension qualification uses ordinary exec with real exit/capture and cannot replace
-mandatory validation/publication. Other MCP services are independent integrations, not
-unimplemented core gateways. Optional remote adapters require acceptance only if selected.
+mandatory validation/publication. Other MCP services currently remain independent integrations;
+that evidence does not qualify future connection composition. Optional remote adapters require
+acceptance only if selected.
 
 References: [Git CAS](https://git-scm.com/docs/git-update-ref),
 [Linux subreaper](https://man7.org/linux/man-pages/man2/PR_SET_CHILD_SUBREAPER.2const.html),

@@ -5,12 +5,26 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tdev.admin import stage, point, check, rollback, init_config
+from tdev.admin import stage, point, check, rollback, init_config, delegate_projects
 from tdev.common import Fault
 from tdev.store import Store
 
 
 class AdminTest(unittest.TestCase):
+    def test_once_only_project_delegation_preserves_credentials_and_existing_scope(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'install'; projects = Path(tmp) / 'projects'; projects.mkdir()
+            init_config(root)
+            original = json.loads((root / 'config.json').read_bytes())
+            delegate_projects(root, 'owner', 'local', local_root=projects, validation='git diff --check', allow_create=True)
+            changed = json.loads((root / 'config.json').read_bytes())
+            self.assertEqual(changed['principals']['owner']['tokenHash'], original['principals']['owner']['tokenHash'])
+            self.assertEqual(changed['repositories'], original['repositories'])
+            self.assertEqual(changed['principals']['owner']['projectPolicies'], ['local'])
+            with self.assertRaises(Fault):
+                delegate_projects(root, 'owner', 'local', github_owner='different', validation='true')
+            self.assertEqual(json.loads((root / 'config.json').read_bytes()), changed)
+
     def test_inactive_install_exact_rollback_and_tamper(self):
         with tempfile.TemporaryDirectory() as tmp:
             source, root = Path(tmp) / "source", Path(tmp) / "installation"
@@ -25,14 +39,11 @@ class AdminTest(unittest.TestCase):
             self.assertFalse(one["started"])
             self.assertTrue((root / "services/tdev/down").exists())
             self.assertEqual((root / "tunnel-env").stat().st_mode & 0o777, 0o700)
-            tunnel_run = (root / "services/tdev-oai-tunnel/run").read_text()
-            self.assertNotIn("envdir", tunnel_run)
-            self.assertIn("CONTROL_PLANE_API_KEY", tunnel_run)
-            self.assertIn("--health.listen-addr 127.0.0.1:0", tunnel_run)
-            self.assertIn("--health.url-file " + str(root / "tunnel-health.url"), tunnel_run)
-            self.assertEqual(one["tunnelMode"], "native-cgo")
-            self.assertIn(str(native), tunnel_run)
-            self.assertNotIn("termux-chroot", tunnel_run)
+            tunnel_run = (root / "services/tdev-tunnel/run").read_text()
+            self.assertIn('tdev.resident', tunnel_run)
+            self.assertIn('--role tunnel', tunnel_run)
+            self.assertEqual(one['tunnelMode'], 'native-cgo')
+            self.assertFalse((root / 'services/tdev-oai-tunnel').exists())
             self.assertFalse((root / "active").exists())
             point(root, one["bundle"])
             init_config(root)
@@ -52,6 +63,15 @@ class AdminTest(unittest.TestCase):
                         point(root, two["bundle"])
                 finally:
                     store.close()
+            # Incompatible bundles cannot read the composition state format.
+            with self.assertRaises(Fault) as incompatible:
+                point(root, two['bundle'])
+            self.assertEqual(incompatible.exception.value['code'], 'SCHEMA_VERSION')
+            (source / 'contracts').mkdir()
+            (source / 'contracts/config.schema.json').write_text(json.dumps({'x-stateVersions': [3]}))
+            compatible = stage(root, source)
+            point(root, compatible['bundle'])
+            self.assertEqual(check(root)['bundle'], compatible['bundle'])
             (root / "active/src/example.py").write_text("tampered")
             with self.assertRaises(Fault):
                 check(root)
@@ -74,8 +94,6 @@ class AdminTest(unittest.TestCase):
             invalid_native.chmod(0o700)
             staged = stage(root, source)
             self.assertEqual(staged["tunnelMode"], "termux-chroot")
-            tunnel_run = (root / "services/tdev-oai-tunnel/run").read_text()
-            self.assertIn(shutil.which("termux-chroot"), tunnel_run)
-            self.assertIn("CA_BUNDLE=", tunnel_run)
-            self.assertIn(str(cert), tunnel_run)
-            self.assertNotIn(" -b ", tunnel_run)
+            tunnel_run = (root / "services/tdev-tunnel/run").read_text()
+            self.assertIn('tdev.resident', tunnel_run)
+            self.assertIn('--role tunnel', tunnel_run)

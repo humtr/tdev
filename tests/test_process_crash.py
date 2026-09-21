@@ -24,8 +24,8 @@ class CrashTest(unittest.TestCase):
             program = """import json,sys,time
 from tdev.core import Controller
 c=Controller(sys.argv[1],sys.argv[2])
-w=c.call('alice','tdev_workspace',{'action':'open','requestId':'open','repo':'test','ref':'refs/heads/main','expectedHead':sys.argv[3]})['result']['result']
-a={'requestId':'exec','workspaceId':w['workspaceId'],'expected':w['checkpoint'],'command':'read value; printf %s "$value" >> a.txt','timeout':15}
+w=c.call('alice','tdev_task',{'action':'open','requestId':'open','repo':'test','ref':'refs/heads/main','expectedHead':sys.argv[3]})['result']['result']
+a={'requestId':'exec','taskId':w['taskId'],'expected':w['checkpoint'],'command':'read value; printf %s "$value" >> a.txt','timeout':15}
 r=c.call('alice','tdev_exec',a)
 print(json.dumps([a,r]),flush=True)
 time.sleep(60)
@@ -45,11 +45,11 @@ time.sleep(60)
                 try:
                     self.assertEqual(c.call("alice", "tdev_exec", args)["result"]["id"], op["id"])
                     stdin = {"action": "stdin", "requestId": "input", "operationId": op["id"], "sequence": 0, "text": "once\n", "eof": True}
-                    first = c.call("alice", "tdev_process", stdin)
+                    first = c.call("alice", "tdev_operation", stdin)
                     self.assertTrue(first["ok"], first)
-                    self.assertEqual(c.call("alice", "tdev_process", stdin), first)
+                    self.assertEqual(c.call("alice", "tdev_operation", stdin), first)
                     while True:
-                        result = c.call("alice", "tdev_process", {"action": "status", "operationId": op["id"]})["result"]
+                        result = c.call("alice", "tdev_operation", {"action": "status", "operationId": op["id"]})["result"]
                         if result["status"] not in ("running", "unknown"):
                             break
                         self.assertLess(time.monotonic(), deadline)
@@ -76,18 +76,18 @@ time.sleep(60)
             program = """import os,sys
 from tdev.core import Controller
 c=Controller(sys.argv[1],sys.argv[2])
-w=c.call('alice','tdev_workspace',{'action':'open','requestId':'open','repo':'test','ref':'refs/heads/main','expectedHead':sys.argv[3]})['result']['result']
+w=c.call('alice','tdev_task',{'action':'open','requestId':'open','repo':'test','ref':'refs/heads/main','expectedHead':sys.argv[3]})['result']['result']
 c.launch=lambda *args: os._exit(77)
-c.call('alice','tdev_exec',{'requestId':'exec','workspaceId':w['workspaceId'],'expected':w['checkpoint'],'command':'true'})
+c.call('alice','tdev_exec',{'requestId':'exec','taskId':w['taskId'],'expected':w['checkpoint'],'command':'true'})
 """
             p = subprocess.run([sys.executable, "-c", program, str(root / "state"), str(config), repo.head], timeout=10)
             self.assertEqual(p.returncode, 77)
             c = Controller(root / "state", str(config))
             try:
-                result = c.call("alice", "tdev_process", {"action": "status", "lookupRequestId": "exec"})["result"]
+                result = c.call("alice", "tdev_operation", {"action": "status", "lookupRequestId": "exec"})["result"]
                 self.assertEqual(result["effect"], "none")
                 self.assertEqual(result["status"], "failed")
-                self.assertIsNone(c.workspace("alice", result["workspace"])["busy"])
+                self.assertIsNone(c.task("alice", result["task"])["busy"])
             finally:
                 c.close()
 
@@ -97,9 +97,9 @@ c.call('alice','tdev_exec',{'requestId':'exec','workspaceId':w['workspaceId'],'e
             repo = Repository(root, "sha256")
             c = Controller(root / "state", repo.config)
             try:
-                w = c.call("alice", "tdev_workspace", {"action": "open", "requestId": "open", "repo": "test", "ref": "refs/heads/main", "expectedHead": repo.head})["result"]["result"]
+                w = c.call("alice", "tdev_task", {"action": "open", "requestId": "open", "repo": "test", "ref": "refs/heads/main", "expectedHead": repo.head})["result"]["result"]
                 self.assertEqual(len(w["checkpoint"]), 64)
-                e = c.call("alice", "tdev_edit", {"requestId": "edit", "workspaceId": w["workspaceId"], "expected": w["checkpoint"], "edits": [{"action": "replace", "path": "a.txt", "old": "hello", "text": "sha256"}]})
+                e = c.call("alice", "tdev_edit", {"requestId": "edit", "taskId": w["taskId"], "expected": w["checkpoint"], "edits": [{"action": "replace", "path": "a.txt", "old": "hello", "text": "sha256"}]})
                 self.assertEqual(e["result"]["status"], "succeeded")
                 self.assertEqual(len(e["result"]["result"]["checkpoint"]), 64)
             finally:
@@ -115,8 +115,8 @@ c.call('alice','tdev_exec',{'requestId':'exec','workspaceId':w['workspaceId'],'e
             program = """import json,sys,time
 from tdev.core import Controller
 c=Controller(sys.argv[1],sys.argv[2])
-a=c.call('alice','tdev_workspace',{'action':'open','requestId':'open','repo':'test','ref':'refs/heads/main','expectedHead':sys.argv[3]})['result']['result']
-r=c.call('alice','tdev_edit',{'requestId':'edit','workspaceId':a['workspaceId'],'expected':a['checkpoint'],'edits':[{'action':'replace','path':'a.txt','old':'hello','text':'durable'}]})
+a=c.call('alice','tdev_task',{'action':'open','requestId':'open','repo':'test','ref':'refs/heads/main','expectedHead':sys.argv[3]})['result']['result']
+r=c.call('alice','tdev_edit',{'requestId':'edit','taskId':a['taskId'],'expected':a['checkpoint'],'edits':[{'action':'replace','path':'a.txt','old':'hello','text':'durable'}]})
 print(json.dumps(r),flush=True)
 time.sleep(60)
 """
@@ -128,7 +128,7 @@ time.sleep(60)
                 p.wait(timeout=5)
                 c = Controller(root / "state", str(config))
                 try:
-                    observed = c.call("alice", "tdev_process", {"action": "status", "lookupRequestId": "edit"})
+                    observed = c.call("alice", "tdev_operation", {"action": "status", "lookupRequestId": "edit"})
                     self.assertEqual(observed, result)
                 finally:
                     c.close()

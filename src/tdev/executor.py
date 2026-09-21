@@ -184,8 +184,8 @@ def prepare_git(source, payload):
         raise ValueError("SOURCE_LIMIT")
     git("index-pack", "--stdin", data=pack)
     (source / ".git/shallow").write_text(checkpoint + "\n")
-    git("update-ref", "refs/heads/workspace", checkpoint)
-    git("symbolic-ref", "HEAD", "refs/heads/workspace")
+    git("update-ref", "refs/heads/task", checkpoint)
+    git("symbolic-ref", "HEAD", "refs/heads/task")
     git("reset", "--mixed", checkpoint)
 
 
@@ -275,7 +275,7 @@ def capture_tar(stream, initial, capture_paths, ignore_root):
 
 def capture_process(copier, initial, capture_paths, ignore, timeout=30):
     # The deadline covers reading the pipe, not only wait() after tar parsing.
-    # A stalled engine must not strand the workspace in capture forever.
+    # A stalled engine must not strand the task in capture forever.
     expired = threading.Event()
     def stop():
         expired.set()
@@ -407,7 +407,7 @@ def worker(spool, image, ident):
                 finally:
                     engine(["unpause", name], check=False)
             elif not payload["readonly"]:
-                result["captureError"] = "WORKSPACE_LOST_ON_STOP"
+                result["captureError"] = "TASK_LOST_ON_STOP"
         except Exception as error:
             result.pop("files", None)
             result["captureError"] = type(error).__name__ + ":" + str(error)[:128]
@@ -435,7 +435,7 @@ def rpc(spool, image, request):
     ident = request["payload"]["id"] if action == "submit" else request["id"]
     container_name(ident)
     job = root / ident
-    # Slow cancellation/observation for one job must not fence other workspaces.
+    # Slow cancellation/observation for one job must not fence other tasks.
     with open(root / (ident + ".lock"), "a+b") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         if action == "submit":

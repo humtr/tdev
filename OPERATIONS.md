@@ -39,8 +39,242 @@ unset KEY
 chmod 600 /absolute/private/staging-root/tunnel-env/CONTROL_PLANE_API_KEY
 ```
 
-The tunnel service reads that file directly into CONTROL_PLANE_API_KEY at process start.
-The secret is not placed in argv or repository configuration.
+The resident tunnel profile refers to that file; no secret is placed in argv or repository configuration.
+
+## Resident installation and deployment
+
+`bash install.sh` installs or updates the owned `tdev` and `tdev-tunnel` services in the shared
+`$PREFIX/var/service`, starts the controller before the tunnel and checks live identity/health.
+It discovers the existing owned installation (or an unambiguous running packaged controller).
+Use `--root /absolute/private/root` or TDEV_ROOT to select another installation explicitly.
+Pinned Python dependencies are bootstrapped into .tdev-deps when missing. Existing credentials,
+project delegation, state and Tunnel identity are retained; install does not create remote
+Tunnels or expand project grants.
+
+```sh
+bash install.sh
+bash install.sh --check
+bash install.sh --rollback
+bash install.sh --recover
+bash install.sh --uninstall
+```
+
+For a fresh installation, supply `--tunnel-id tunnel_... --runtime-key-file /private/key` or
+`--profile-file /private/existing-profile.yaml` (native JSON-formatted profile). The secret file
+must be private. The installer stores a file reference, never an inline credential or secret
+argument. Repository delegation remains the explicit operator profile setup documented below.
+A matching existing managed Tunnel profile can be discovered for the first manual-to-service
+transition; `--takeover` explicitly stops this installation's manual controller and matching
+managed runtime. Subsequent `bash install.sh` runs need neither manual server startup nor
+that flag. The resident tunnel runs directly under runsv, without a second tmux supervisor.
+
+Termux's runit commands, running service-daemon and shared SVDIR are prerequisites. The installer
+checks them and reports recovery-monitor availability; it does not replace shared termux-services.
+Use a configured recovery monitor for runsvdir-root recovery. Termux session/boot infrastructure
+must itself start service-daemon after device reboot; tdev does not install Termux:Boot or alter
+Android battery settings. `sv down` controls the current supervisor; `sv-disable` persists a
+DOWN marker across root recovery/reboot. An existing DOWN state is preserved across updates.
+
+Service ownership binds installation identity/root and run-script hashes. Unmanaged or changed
+services are rejected before replacement. A deliberate old-service replacement uses
+`--retire-legacy NAME:RUN_SHA256`; it verifies that exact script, stops its supervisor and moves
+its directory outside the live service graph before registration. This is an explicit operator
+exception, not prefix/name-based ownership. The stale tdev-oai-tunnel name is rejected.
+
+An installation-wide and shared-service lock, admission fence and durable journal protect
+updates. Outstanding or uncertain operations block switching. Both services stop before the
+active bundle changes; failure restores the old pointer, scripts and desired service states.
+A hard interruption leaves a journal and admission fence: `--recover` restores the previous
+state before another install. Registration uses complete DOWN directories; it does not claim
+that two directory renames are a single filesystem transaction. First manual takeover retains
+private process/environment receipts for restoring the former controller if installation fails.
+
+`--check` verifies packaged files, run-script ownership, supervised PID, actual controller
+source/config/state/port, tunnel binary/profile identity and successful control-plane polling.
+It reports intentionally DOWN services explicitly. Rollback rejects bundles that predate the
+resident launcher before stopping any service. Uninstall removes only owned services and
+preserves config/state/secrets/logs and private service backups; it never purges project files.
+To reinstall after uninstall, pass the previous `--root` explicitly.
+
+`PYTHONPATH=src:.tdev-deps python scripts/rehearse_services.py` exercises actual runit and a
+copy of the installed recovery monitor in an isolated graph: install/update, process SIGKILL,
+root recovery, intentional DOWN and uninstall. Its tunnel process is a local fixture; actual
+provider health requires the live service check. The shared live graph is not killed by tests.
+Installing tdev itself does not qualify arbitrary project deployment targets.
+
+## Workspace composition and source tasks
+
+Use a fresh private state directory for the composition implementation. Earlier experimental
+state formats are rejected without migration/deletion; do not restart a previous development
+controller against its existing state directory with this code. Prepare a separate inactive
+installation and qualify it before any authorized replacement. Credentials and project config
+can be supplied deliberately; source changes do not authorize switching a live installation.
+
+The current development connection uses a separately prepared bundle and fresh state; its
+exact root and activation receipt are recorded in LOCAL_VALIDATION. The original state path
+is retained history, not the active controller state. Do not revive an old manual command
+against it. The resident tdev-tunnel service owns the current connection; inspect it
+with bash install.sh --check instead of starting a duplicate foreground tunnel. Refresh in ChatGPT only rediscovers what the running server advertises;
+first activate/verify the selected server, then Refresh and test in a new conversation.
+
+The simple path is `tdev_task start` → `tdev_read`/`tdev_edit` → `tdev_exec` →
+`tdev_operation status` → `tdev_validate` → `tdev_publish`. Omit workspaceId for the automatic
+default space. The returned taskId selects source; workspaceId selects its composition.
+Successful publication closes that source task. Continue with start.fromTaskId as needed.
+
+For multiple projects, create a named space with `tdev_workspace create` and a projects list
+of enrolled repo IDs; optionally set defaultRepo. Start each source task with that workspaceId
+and a repo when ambiguous. Project defaults inside an explicit space take precedence over
+global defaults. An empty space is valid and does not create a repository or Git branch.
+
+Use workspace inspect to obtain the current revision, project availability and a bounded page
+of tasks. Supply expectedRevision for attach/detach/configure/close. A stale revision requires
+inspection; retrying the same requestId returns the original receipt, never a second mutation.
+Inspect current state separately from historical replay. Task list can filter by workspaceId.
+Workspace inspect reconciles busy tasks on its page; follow nextAfter for the rest and use
+includeClosed to find published/closed tasks for cleanup. Pending task creation appears in
+pendingTasks even before a source-task row exists; follow nextPendingAfter with pendingAfter
+for the rest. tdev_operation status handles project,
+workspace and source operations; stdin/cancel/retire apply only to execution/validation processes.
+
+Close or reconcile open source tasks before detaching their project or closing the space.
+These actions keep branches and execution resources. tdev_task cleanup remains available for
+owned unchanged refs after workspace close, and tdev_operation retire removes proved-stopped
+execution resources. Project membership is not a grant and cannot repair revoked credentials
+or a replaced repository identity.
+
+## Persistent dependencies and development processes
+
+Native exec and validation default to task dependency reuse. Source, HOME and temporary
+files remain fresh per operation; dependencies/caches live in `$TDEV_ENV_DIR`. No private
+config edit is needed. For example, run this once through `tdev_exec` command mode:
+
+```sh
+python -m venv "$TDEV_ENV_DIR/venv"
+"$TDEV_ENV_DIR/venv/bin/python" -m pip install -r requirements.txt
+```
+
+The environment's venv/bin precedes PATH, so subsequent commands and validation use that
+Python. pip/npm caches are retained automatically. For Node, install dependencies with
+`npm --prefix "$TDEV_ENV_DIR" install ...`, then link its node_modules into each source copy
+when needed; include node_modules in the starting .gitignore so capture does not import the
+external dependency link. tdev never silently imports the user's ignored directories. Follow
+the project's lockfile/install procedure; a reused environment is mutable, not a hermetic
+build. Stop consumers before replacing dependencies they use. `environment: "fresh"` on exec
+or validation opts out of task storage (adopted operator tooling still applies).
+
+For a server or pipe-driven debugger, call `tdev_exec` with `mode: "process"`, the current
+checkpoint and a foreground command, for example `python -m http.server 8080 --bind 127.0.0.1`.
+Omit timeout to keep it running until exit/cancellation. Save the operation ID, or recover it
+by original request ID. The process uses a fixed source snapshot; edits and validation can
+continue on the task. Restart at the newer checkpoint to serve edits. This does not implement
+hot reload, a terminal/PTY, automatic restart, or deployment of that project.
+
+Use `tdev_operation status` for logs and source/environment/deadline identity, `stdin` for
+sequenced input, `cancel` to request termination, then observe stopped proof before `retire`.
+`task inspect` includes outstanding processes even if their start is outside the history
+page; closed tasks remain available via includeClosed. Controller reconnect never restarts
+them. A process with a lost supervisor stays unknown and must not be automatically relaunched.
+Log retention is bounded to the first contract-sized output segment; later bytes are counted
+as discarded, so silence in retained output is not proof of a stalled process.
+
+Task/workspace close and operation retire preserve dependencies. Use `tdev_task` action
+`resetEnvironment` with taskId, expected checkpoint and a new requestId to remove dependencies
+and caches. All exec/validation operations for that task must first be terminal with stop
+proof. The reset also works after task close; source checkpoints, original checkout and
+operation receipts/logs remain. If interrupted, inspect/replay that same reset identity.
+
+An installer update is deliberately blocked while development processes or other uncertain
+operations remain. Stop and observe them first, then run `bash install.sh`; recreate selected
+servers at their recorded checkpoints afterward. Environment storage is under persistent
+state, outside bundles, so it survives service updates. Native-only features are rejected by
+an explicit remote executor instead of silently changing execution backend.
+
+## Project management from ChatGPT
+
+Configure each trusted local root or GitHub owner once. These operator commands preserve existing
+credentials and exact grants, and do not start/restart services. Choose a validation command
+appropriate to projects in this profile; create additional profiles for different toolchains.
+
+```sh
+PYTHONPATH=src:.tdev-deps python -m tdev.admin delegate-projects \
+  --root /absolute/private/installation --principal owner --policy local-dev \
+  --local-root /absolute/projects --validation 'git diff --check' --allow-create
+PYTHONPATH=src:.tdev-deps python -m tdev.admin delegate-projects \
+  --root /absolute/private/installation --principal owner --policy github-dev \
+  --github-owner YOUR_ACCOUNT --validation 'npm test' --allow-create
+```
+
+The first sample is a minimal whitespace check, not a substitute for a project's test suite.
+Policies may also specify the existing optional executor, networks and toolingEnvironment
+settings in operator config. Local connect requires an existing Git repository; local create
+makes a new initialized folder. A directory outside the delegated root cannot be connected.
+GitHub connect/create uses the controller's existing `gh` credential, not the clean command HOME.
+The provider must grant the selected repository/account/organization operations; the MCP grant
+does not expand GitHub or OS permissions. There is no token argument in the project tools.
+
+After deploying the tested bundle and refreshing tool discovery, the normal conversation uses:
+
+1. `tdev_project` list to discover enrolled projects and available policies.
+2. `tdev_project` create/connect with policy, project name and requestId. Local names are relative
+   to the policy root; GitHub names are relative to its fixed owner. Creation never overwrites
+   an existing folder/repository and GitHub creation is private.
+3. `tdev_task` start with the returned repo and requestId. No branch/OID entry is needed.
+   Repo can be omitted when unambiguous or when the principal has a configured defaultRepo.
+4. Read/edit/exec/validate as usual; publish needs requestId and validationId. Exact expected
+   remote state comes from durable task facts, never a newly observed convenient HEAD.
+5. Retain the published branch or explicitly task cleanup by taskId. Cleanup also
+   works after close. Retire execution copies using tdev_operation retire as before.
+6. Continue an earlier publication with task start.fromTaskId, including after cleanup.
+
+Project inspect reports current source HEAD/provider errors and GitHub permissions when supplied
+by the provider. `PROJECT_POLICY_DENIED` is delegation, `PROVIDER_AUTH_REQUIRED` is controller
+credential setup, and `PROVIDER_PERMISSION_DENIED` is actual provider rejection. An uncertain
+create/publish/delete retains its operation and must be inspected, not blindly resubmitted.
+Existing disposable refs are not retroactively adopted as managed refs merely by their names.
+
+The current state format requires a fresh private state directory. Older experimental state
+is rejected without conversion or deletion; never point an incompatible bundle at newer state.
+
+### Import existing local edits and integrate tasks
+
+Connect the working folder once, then start with localChanges=true to bring its current edits
+into an isolated task. Without this option, start uses committed source. For example:
+
+```json
+{"action":"start","requestId":"import-local-1","repo":"RETURNED_PROJECT_ID","localChanges":true}
+```
+
+The original files, index and HEAD remain intact. The import includes tracked working-file
+contents and nonignored untracked files; it preserves neither a separate staged version nor
+ignored dependency caches. The connected checkout must still have the selected source branch
+and HEAD. Local unmerged indexes and sparse checkouts require resolution/full checkout first.
+If files change during capture, inspect the failure and use a new request after edits settle.
+Retrying the same successful request always returns the original frozen import.
+
+Use tdev_task integrate to combine another task's changes into an existing target:
+
+```json
+{"action":"integrate","requestId":"integrate-1","taskId":"TARGET_TASK_ID","expected":"TARGET_CHECKPOINT","sourceTaskId":"SOURCE_TASK_ID"}
+```
+
+Use returned IDs/checkpoints directly; the caller does not need to choose a branch or resolve
+HEAD manually. A successful operation with applied=false means conflicts were found and the
+target was preserved. Read each side with tdev_read using the returned sourceCheckpoint and
+sourceBase, then submit a new integrate request with that sourceCheckpoint and resolutions.
+Choices are current, incoming, base, delete, or content with explicit replacement bytes. Conflict
+details are bounded to 50 with a total count/truncation flag. For larger sets, carry previously
+chosen resolutions into each new request to expose the next unresolved conflicts; no changes
+apply until the complete set is resolved. Validate the
+resulting target before publishing; validation from before integration is no longer sufficient.
+To integrate onto advanced upstream source, start a new target at that base first.
+
+tdev_read can omit checkpoint for the current view. Diff queries accept format=patch/stat/names,
+optional base/path and offset/limit. Pin the returned checkpoint for subsequent pages. data is
+base64 for exact byte reconstruction; text is a convenient preview. Integration applies a
+source delta with a single target parent; it does not preserve a merge-parent history or detect
+renames automatically. Persistent development environments and checkout writeback are separate
+capabilities, not consequences of importing a local folder.
 
 ## Repository enrollment: native is the default
 
@@ -169,15 +403,15 @@ absent, a qualified Termux fallback template uses `termux-chroot tunnel-client` 
 `CA_BUNDLE` and the same owner-only key-file and ephemeral-health-listener policy.
 
 Connect/Refresh the ChatGPT connector and enter its bearer through the credential UI.
-Verify 2026-07-28 request metadata/header forwarding, seven tools, wrong-secret discovery denial, full native
-workspace/edit → exec/process → validate → publish, and same-request replay after reconnect.
+Verify 2026-07-28 request metadata/header forwarding, the current contract's tools, wrong-secret discovery denial, full native
+task/edit → exec/operation → validate → publish, and same-request replay after reconnect.
 If bearer forwarding is unsupported, qualify another supported host auth route; do not
 substitute unverified subject/session headers. Shared credentials share API authority.
 
 ## Processes and restart
 
 Workspace inspect returns a bounded current source/remote/operation/cleanup view, even for
-closed workspaces (discover with list includeClosed). Follow nextBefore/nextAfter for older
+closed tasks (discover with list includeClosed). Follow nextBefore/nextAfter for older
 rows. Process status with since (empty initially) and inspect expose a cursor, changed,
 observation time and pollAfterMs. Reuse the returned cursor with the same query: unchanged
 means checked now, not stalled. Respect the polling hint/task deadline or do independent
@@ -189,11 +423,11 @@ arrived. Stdin delivery is sequenced and durable; queued/committed means pipe de
 not application consumption. Cancellation requests stop supervised descendants before capture.
 Timeout/cancel can retain safely captured edits; capture failure preserves prior checkpoint.
 
-After terminal reconciliation, process action retire with a new requestId removes execution
+After terminal reconciliation, tdev_operation action retire with a new requestId removes execution
 copies/payloads, retaining intent digest, result and bounded logs. It also works after the
 creator finished. Unknown/live operations cannot be retired. Runit/Android may kill the whole
 app UID; there is no always-on promise. Supervisor death without a sealed result remains
-uncertain and fences only that workspace; preserve the spool for operator investigation.
+uncertain and fences only that task; preserve the spool for operator investigation.
 No stale job becomes a global lock or a reason to provision another machine.
 
 ## Local Codex and optional CLI extensions
@@ -215,7 +449,7 @@ unchanged and never automatically retries effects. Native trust limitations stil
 
 Use the prepared native `tunnel-client codex plugin install` when the optional Tunnel plugin
 is missing. This changes Codex plugin configuration, not production services. The plugin
-manages Tunnel runtimes; it does not by itself expose tdev's seven tools to Local Codex.
+manages Tunnel runtimes; it does not by itself register tdev tools with Local Codex.
 Test installed-client discovery/calls without a model run or permanent MCP config rewrite:
 
 ```sh
@@ -224,14 +458,15 @@ PYTHONPATH=src:.tdev-deps python scripts/check_codex.py
 
 This runs a disposable local bare-ref/native coding path through actual Codex app-server MCP,
 with client restart/replay and retirement. It does not test Codex through Secure MCP Tunnel.
-External CLIs already use exec/stdin/output/capture and the normal process lifecycle; no
-public capability gateway is required. Other MCP services remain independent clients.
+External CLIs already use exec/stdin/output/capture and the normal process lifecycle.
+Other MCP services currently remain separate host integrations. Future runtime-side connections
+follow the composition design in ARCHITECTURE and require their own qualification; connecting
+one in tdev does not automatically add its tools to the host.
 
-Annotations now honestly mark mixed/mutating tools as such. A host may prompt or refuse an
-action; use its supported approval settings, not false read-only/destructive hints. After
-deploying changed annotations to the chosen development installation, Refresh the ChatGPT
-connector and recheck only affected discovery/approval behaviour. Prior full-path acceptance
-does not prove a new annotation profile is accepted.
+Tool annotations follow the current contract's host-hint profile; hints do not grant authority
+or describe proof of effects. After changed tool names/schemas are deployed to an explicitly
+selected development installation, refresh the host connector and recheck affected discovery
+and approval behaviour. Earlier host acceptance does not qualify the new tool contract.
 
 New DOWN Tunnel service templates write their randomly assigned health address to
 `<installation-root>/tunnel-health.url`. After authorized startup, inspect it with

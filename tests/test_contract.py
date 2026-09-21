@@ -10,13 +10,13 @@ from tdev.server import VERSION, expanded
 class ContractTest(unittest.TestCase):
     def test_advertisement_and_all_input_families(self):
         s, validator = load_contract()
-        oid, wid = "a" * 40, "workspace"
+        oid, wid = "a" * 40, "task"
         examples = s["x-examples"] + [
-            {"tool": "tdev_read", "input": {"workspaceId": wid, "checkpoint": oid, "queries": [{"action": "file", "path": "a"}, {"action": "search", "text": "a"}]}},
-            {"tool": "tdev_edit", "input": {"requestId": "edit", "workspaceId": wid, "expected": oid, "edits": [{"action": "put", "path": "a", "before": None, "content": "new"}]}},
-            {"tool": "tdev_validate", "input": {"requestId": "v", "workspaceId": wid, "expected": oid, "message": "validate"}},
+            {"tool": "tdev_read", "input": {"taskId": wid, "checkpoint": oid, "queries": [{"action": "file", "path": "a"}, {"action": "search", "text": "a"}]}},
+            {"tool": "tdev_edit", "input": {"requestId": "edit", "taskId": wid, "expected": oid, "edits": [{"action": "put", "path": "a", "before": None, "content": "new"}]}},
+            {"tool": "tdev_validate", "input": {"requestId": "v", "taskId": wid, "expected": oid, "message": "validate"}},
             {"tool": "tdev_publish", "input": {"requestId": "p", "validationId": "v", "expectedHead": oid}},
-            {"tool": "tdev_process", "input": {"action": "stdin", "requestId": "stdin", "operationId": "exec", "sequence": 0, "text": "hello"}},
+            {"tool": "tdev_operation", "input": {"action": "stdin", "requestId": "stdin", "operationId": "exec", "sequence": 0, "text": "hello"}},
         ]
         for example in examples:
             validator.validate(example)
@@ -69,9 +69,9 @@ class ContractTest(unittest.TestCase):
         for tool in s["x-tools"]:
             self.assertEqual(tool["annotations"], expected_annotations)
         self.assertEqual([t["name"].removeprefix("tdev_") for t in s["x-tools"]],
-                         ["workspace", "read", "edit", "exec", "process", "validate", "publish"])
+                         ["workspace", "task", "read", "edit", "exec", "operation", "validate", "publish", "project"])
         architecture = (root / "ARCHITECTURE.md").read_text()
-        self.assertIn("workspace/read/edit/exec/process/validate/publish", architecture)
+        self.assertIn("task/read/edit/exec/operation/validate/publish", architecture)
         plan = (root / "IMPLEMENTATION_PLAN.md").read_text()
         self.assertLess(plan.index("Contract/SQLite/Git"), plan.index("Command + validation"))
         self.assertLess(plan.index("Command + validation"), plan.index("Inactive install"))

@@ -10,7 +10,7 @@ from .common import Fault, canonical, require
 
 
 class Store:
-    """One controller; two semantic tables. Network calls never occur in tx()."""
+    """One controller; source, project enrollment and operation rows. No network in tx()."""
     def __init__(self, directory):
         self.root = Path(directory)
         self.root.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -32,22 +32,39 @@ class Store:
         self.db.execute("PRAGMA synchronous=FULL")
         self.db.execute("PRAGMA foreign_keys=ON")
         version = self.db.execute("PRAGMA user_version").fetchone()[0]
-        if version not in (0, 1):
+        if version not in (0, 3):
             self.close()
-            raise Fault("SCHEMA_VERSION")
+            raise Fault("SCHEMA_VERSION", "This pre-release requires a fresh state directory; existing state was not migrated or deleted")
         self.db.executescript("""
         CREATE TABLE IF NOT EXISTS workspace (
+          id TEXT PRIMARY KEY, owner TEXT NOT NULL, name TEXT NOT NULL,
+          revision INTEGER NOT NULL DEFAULT 1, closed INTEGER NOT NULL DEFAULT 0,
+          default_repo TEXT, is_default INTEGER NOT NULL DEFAULT 0);
+        CREATE UNIQUE INDEX IF NOT EXISTS workspace_default ON workspace(owner)
+          WHERE is_default=1 AND closed=0;
+        CREATE TABLE IF NOT EXISTS workspace_project (
+          workspace TEXT NOT NULL REFERENCES workspace(id), repo TEXT NOT NULL,
+          identity TEXT NOT NULL, PRIMARY KEY(workspace,repo));
+        CREATE TABLE IF NOT EXISTS task (
           id TEXT PRIMARY KEY, owner TEXT NOT NULL, repo TEXT NOT NULL, ref TEXT NOT NULL,
           identity TEXT NOT NULL, base TEXT NOT NULL, checkpoint TEXT NOT NULL,
-          busy TEXT, closed INTEGER NOT NULL DEFAULT 0);
+          busy TEXT, closed INTEGER NOT NULL DEFAULT 0,
+          workspace TEXT NOT NULL REFERENCES workspace(id),
+          managed INTEGER NOT NULL DEFAULT 0, source_ref TEXT,
+          namespace TEXT, published_oid TEXT, ref_state TEXT);
         CREATE TABLE IF NOT EXISTS operation (
           id TEXT PRIMARY KEY, owner TEXT NOT NULL, request TEXT NOT NULL, hash TEXT NOT NULL,
-          kind TEXT NOT NULL, workspace TEXT, repo TEXT, ref TEXT,
+          kind TEXT NOT NULL, task TEXT, repo TEXT, ref TEXT,
           status TEXT NOT NULL, effect TEXT NOT NULL, intent TEXT NOT NULL,
           result TEXT, error TEXT, publication TEXT UNIQUE,
           UNIQUE(owner,request));
-        PRAGMA user_version=1;
+        CREATE TABLE IF NOT EXISTS project (
+          id TEXT PRIMARY KEY, owner TEXT NOT NULL, policy TEXT NOT NULL,
+          authority TEXT NOT NULL, identity TEXT NOT NULL, config TEXT NOT NULL,
+          UNIQUE(owner,identity));
         """)
+        with self.tx() as db:
+            db.execute("PRAGMA user_version=3")
         os.chmod(self.root / "state.sqlite", 0o600)
         # A local pointer and its result were one transaction. Interrupted local work
         # cannot have committed. External work must be observed, never relaunched.
@@ -56,13 +73,13 @@ class Store:
             for row in pending:
                 db.execute("UPDATE operation SET status='failed',error=? WHERE id=?",
                            (canonical({"code": "INTERRUPTED", "message": "No dispatch or local pointer committed", "effect": "none"}).decode(), row[0]))
-                db.execute("UPDATE workspace SET busy=NULL WHERE busy=?", (row[0],))
+                db.execute("UPDATE task SET busy=NULL WHERE busy=?", (row[0],))
             db.execute("UPDATE operation SET status='unknown',effect='unknown' WHERE status='running'")
-            local = db.execute("SELECT id FROM operation WHERE status='unknown' AND kind IN ('edit','workspace')").fetchall()
+            local = db.execute("SELECT id FROM operation WHERE status='unknown' AND kind IN ('edit','task') AND json_extract(intent,'$.refMutation') IS NULL AND json_extract(intent,'$.environmentReset') IS NULL").fetchall()
             for row in local:
                 db.execute("UPDATE operation SET status='failed',effect='none',error=? WHERE id=?",
                            (canonical({"code": "INTERRUPTED", "message": "No local pointer committed", "effect": "none"}).decode(), row[0]))
-                db.execute("UPDATE workspace SET busy=NULL WHERE busy=?", (row[0],))
+                db.execute("UPDATE task SET busy=NULL WHERE busy=?", (row[0],))
 
     @contextmanager
     def tx(self):
@@ -91,4 +108,4 @@ class Store:
     @staticmethod
     def public(row):
         return {k: json.loads(v) if k in ("result", "error") and v else v
-                for k, v in row.items() if k in ("id", "kind", "workspace", "status", "effect", "result", "error")}
+                for k, v in row.items() if k in ("id", "kind", "task", "status", "effect", "result", "error")}

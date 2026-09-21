@@ -17,7 +17,7 @@ class NativeTest(Base):
         self.c.executor_override = None
 
     def execute(self, w, command, **extra):
-        return self.call("exec", {"requestId": "exec", "workspaceId": w["workspaceId"],
+        return self.call("exec", {"requestId": "exec", "taskId": w["taskId"],
                                 "expected": w["checkpoint"], "command": command, **extra})
 
     def test_default_complete_path_and_clean_environment(self):
@@ -28,13 +28,13 @@ class NativeTest(Base):
         self.assertEqual(done["status"], "succeeded", done)
         self.assertIn(w["checkpoint"], base64.b64decode(done["output"]["data"]).decode())
         self.assertEqual((self.repo.work / "a.txt").read_text(), "hello\n")
-        v = self.call("validate", {"requestId": "v", "workspaceId": w["workspaceId"], "expected": done["result"]["checkpoint"], "message": "native"})
+        v = self.call("validate", {"requestId": "v", "taskId": w["taskId"], "expected": done["result"]["checkpoint"], "message": "native"})
         validated = self.wait(v["id"])
         self.assertEqual(validated["status"], "succeeded", validated)
         p = self.call("publish", {"requestId": "p", "validationId": v["id"], "expectedHead": self.repo.head})
         self.assertEqual(p["status"], "succeeded", p)
         self.assertEqual(git("--git-dir=" + str(self.repo.remote), "rev-parse", "refs/heads/main"), validated["result"]["candidate"])
-        retired = self.call("process", {"action": "retire", "requestId": "retire", "operationId": op["id"]})
+        retired = self.call("operation", {"action": "retire", "requestId": "retire", "operationId": op["id"]})
         self.assertEqual(retired["result"], {"retired": True})
 
     def test_operator_tooling_environment_reused_and_policy_bound(self):
@@ -49,7 +49,7 @@ class NativeTest(Base):
         done = self.wait(op["id"])
         self.assertEqual(done["status"], "succeeded", done)
         self.assertEqual(base64.b64decode(done["output"]["data"]).decode().strip(), "shared-tooling")
-        v = self.call("validate", {"requestId": "tooling-v", "workspaceId": w["workspaceId"],
+        v = self.call("validate", {"requestId": "tooling-v", "taskId": w["taskId"],
                                   "expected": done["result"]["checkpoint"], "message": "tooling"})
         validated = self.wait(v["id"])
         self.assertEqual(validated["status"], "succeeded", validated)
@@ -68,13 +68,13 @@ class NativeTest(Base):
         repo["toolingEnvironment"] = {"PYTHONPATH": str(tooling)}
         repo["validation"] = "python -c \"import candidate,dependency,os; assert candidate.VALUE == 'exact'; assert dependency.VALUE == 'dependency'; assert not os.getenv('GH_TOKEN')\""
         w = self.open()
-        edited = self.call("edit", {"requestId": "candidate", "workspaceId": w["workspaceId"], "expected": w["checkpoint"], "edits": [{"action": "put", "path": "candidate.py", "before": None, "content": "VALUE = 'exact'\n"}]})
+        edited = self.call("edit", {"requestId": "candidate", "taskId": w["taskId"], "expected": w["checkpoint"], "edits": [{"action": "put", "path": "candidate.py", "before": None, "content": "VALUE = 'exact'\n"}]})
         with patch.dict(os.environ, {"GH_TOKEN": "sentinel-not-a-secret"}):
-            v = self.call("validate", {"requestId": "source-first", "workspaceId": w["workspaceId"], "expected": edited["result"]["checkpoint"], "message": "source-first"})
+            v = self.call("validate", {"requestId": "source-first", "taskId": w["taskId"], "expected": edited["result"]["checkpoint"], "message": "source-first"})
         self.assertEqual(self.wait(v["id"])["status"], "succeeded")
         # The same warm environment never exempts candidate source from integrity checks.
         repo["validation"] = "printf changed > candidate.py"
-        bad = self.call("validate", {"requestId": "source-change", "workspaceId": w["workspaceId"], "expected": edited["result"]["checkpoint"], "message": "reject"})
+        bad = self.call("validate", {"requestId": "source-change", "taskId": w["taskId"], "expected": edited["result"]["checkpoint"], "message": "reject"})
         self.assertEqual(self.wait(bad["id"])["result"]["captureError"], "VALIDATION_SOURCE_CHANGED")
 
     def test_stdin_replay_and_controller_restart(self):
@@ -83,8 +83,8 @@ class NativeTest(Base):
         self.c.close()
         self.c = Controller(self.root / "state", self.repo.config)
         args = {"action": "stdin", "requestId": "stdin", "operationId": op["id"], "sequence": 0, "text": "once\n", "eof": True}
-        first = self.call("process", args)
-        self.assertEqual(self.call("process", args), first)
+        first = self.call("operation", args)
+        self.assertEqual(self.call("operation", args), first)
         done = self.wait(op["id"])
         self.assertEqual(done["status"], "succeeded", done)
         self.assertEqual(base64.b64decode(done["output"]["data"]), b"once")
@@ -95,7 +95,7 @@ class NativeTest(Base):
             with self.subTest(command=command):
                 self.repo.config["repositories"]["test"]["validation"] = command
                 w = self.open()
-                v = self.call("validate", {"requestId": "v" + str(self.counter), "workspaceId": w["workspaceId"], "expected": w["checkpoint"], "message": "reject"})
+                v = self.call("validate", {"requestId": "v" + str(self.counter), "taskId": w["taskId"], "expected": w["checkpoint"], "message": "reject"})
                 result = self.wait(v["id"])
                 self.assertEqual(result["status"], "failed", result)
                 if expected:
@@ -110,7 +110,7 @@ class NativeTest(Base):
         self.assertTrue(result["result"]["timedOut"])
         self.assertNotEqual(result["result"]["checkpoint"], w["checkpoint"])
         w = self.open()
-        op = self.call("exec", {"requestId": "output", "workspaceId": w["workspaceId"], "expected": w["checkpoint"], "command": "python -c 'print(\"x\"*1200000)'"})
+        op = self.call("exec", {"requestId": "output", "taskId": w["taskId"], "expected": w["checkpoint"], "command": "python -c 'print(\"x\"*1200000)'"})
         result = self.wait(op["id"])
         self.assertEqual(result["status"], "succeeded", result)
         self.assertGreater(result["result"]["discardedBytes"], 0)
@@ -121,14 +121,14 @@ class NativeTest(Base):
         op = self.execute(w, "python -c 'import subprocess,time; p=subprocess.Popen([\"sleep\",\"30\"],start_new_session=True); print(p.pid,flush=True); time.sleep(30)'")
         child_pid = None
         for _ in range(100):
-            value = self.call("process", {"action": "status", "operationId": op["id"]})
+            value = self.call("operation", {"action": "status", "operationId": op["id"]})
             output = base64.b64decode(value.get("output", {}).get("data", ""))
             if output:
                 child_pid = int(output.strip())
                 break
             time.sleep(.02)
         self.assertIsNotNone(child_pid)
-        self.call("process", {"action": "cancel", "requestId": "cancel", "operationId": op["id"]})
+        self.call("operation", {"action": "cancel", "requestId": "cancel", "operationId": op["id"]})
         result = self.wait(op["id"])
         self.assertTrue(result["result"]["cancelled"])
         self.assertIsNone(identity(child_pid))
@@ -138,10 +138,10 @@ class NativeTest(Base):
         denied = self.execute(w, "true", network="none")
         self.assertEqual(denied["effect"], "none")
         self.assertEqual(denied["error"]["code"], "NETWORK_DENIED")
-        op = self.call("exec", {"requestId": "link", "workspaceId": w["workspaceId"], "expected": w["checkpoint"], "command": "ln -s /outside escape"})
+        op = self.call("exec", {"requestId": "link", "taskId": w["taskId"], "expected": w["checkpoint"], "command": "ln -s /outside escape"})
         result = self.wait(op["id"])
         self.assertEqual(result["status"], "failed")
-        self.assertEqual(self.c.workspace("alice", w["workspaceId"])["checkpoint"], w["checkpoint"])
+        self.assertEqual(self.c.task("alice", w["taskId"])["checkpoint"], w["checkpoint"])
 
     def test_lost_dispatch_reply_does_not_launch_twice(self):
         w = self.open()
@@ -149,7 +149,7 @@ class NativeTest(Base):
         def lost(executor, payload):
             original(executor, payload)
             raise Fault("LOST_REPLY", effect="unknown")
-        args = {"requestId": "lost", "workspaceId": w["workspaceId"], "expected": w["checkpoint"], "command": "printf once >> a.txt"}
+        args = {"requestId": "lost", "taskId": w["taskId"], "expected": w["checkpoint"], "command": "printf once >> a.txt"}
         with patch.object(NativeExecutor, "submit", lost):
             op = self.call("exec", args)
         self.assertEqual(op["effect"], "unknown")
@@ -175,7 +175,7 @@ class NativeTest(Base):
             self.c.backend({"executor": None})
         self.assertEqual(error.exception.value["code"], "EXECUTOR_IDENTITY_MISSING")
 
-    def test_missing_supervisor_identity_fences_only_affected_workspace(self):
+    def test_missing_supervisor_identity_fences_only_affected_task(self):
         w = self.open()
         op = self.execute(w, "read value; printf '%s' \"$value\" >> a.txt", timeout=10)
         job = self.root / "state/native" / op["id"]
@@ -185,12 +185,12 @@ class NativeTest(Base):
             time.sleep(.02)
         # Inject loss of OS process identity, not a fabricated successful receipt.
         with patch("tdev.native.identity", return_value=None):
-            unknown = self.call("process", {"action": "status", "operationId": op["id"]})
+            unknown = self.call("operation", {"action": "status", "operationId": op["id"]})
         self.assertEqual(unknown["effect"], "unknown")
         self.assertEqual(unknown["error"]["code"], "NATIVE_SUPERVISOR_LOST")
         other = self.open()
-        edited = self.call("edit", {"requestId": "other-edit", "workspaceId": other["workspaceId"], "expected": other["checkpoint"], "edits": [{"action": "replace", "path": "a.txt", "old": "hello", "text": "independent"}]})
+        edited = self.call("edit", {"requestId": "other-edit", "taskId": other["taskId"], "expected": other["checkpoint"], "edits": [{"action": "replace", "path": "a.txt", "old": "hello", "text": "independent"}]})
         self.assertEqual(edited["status"], "succeeded")
-        self.assertEqual(self.c.workspace("alice", w["workspaceId"])["busy"], op["id"])
-        self.call("process", {"action": "stdin", "requestId": "recover-input", "operationId": op["id"], "sequence": 0, "text": "recovered\n", "eof": True})
+        self.assertEqual(self.c.task("alice", w["taskId"])["busy"], op["id"])
+        self.call("operation", {"action": "stdin", "requestId": "recover-input", "operationId": op["id"], "sequence": 0, "text": "recovered\n", "eof": True})
         self.assertEqual(self.wait(op["id"])["status"], "succeeded")

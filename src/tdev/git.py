@@ -6,7 +6,7 @@ import re
 import tempfile
 from pathlib import Path
 
-from .common import Fault, canonical, decode, digest, path, require, run, atomic_write
+from .common import Fault, canonical, decode, digest, path, require, run, atomic_write, branch_ref
 
 
 class Git:
@@ -46,10 +46,14 @@ class Git:
     def identity(self):
         c = self.config
         if c["kind"] == "local":
-            p = Path(c["remote"]).resolve(strict=True)
-            st = p.stat()
+            try:
+                p = Path(c["remote"]).resolve(strict=True)
+                st = p.stat()
+            except OSError:
+                raise Fault('REPOSITORY_IDENTITY', 'The enrolled local repository is missing or inaccessible') from None
             require(str(p) == c["remote"], "REPOSITORY_IDENTITY")
-            require(run(["git", "--git-dir=" + str(p), "rev-parse", "--is-bare-repository"], env=self.env).stdout.strip() == b"true", "BARE_REQUIRED")
+            bare = run(["git", "--git-dir=" + str(p), "rev-parse", "--is-bare-repository"], env=self.env).stdout.strip() == b"true"
+            require(bare or c.get("allowWorktree", False), "BARE_REQUIRED")
             actual = f"local:{st.st_dev}:{st.st_ino}"
         else:
             require(c["kind"] == "github" and re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", c["name"]), "REPOSITORY_IDENTITY")
@@ -58,20 +62,26 @@ class Git:
         require(actual == c["identity"], "REPOSITORY_IDENTITY")
         return actual
 
-    def head(self, ref):
+    def allowed_ref(self, ref):
+        return branch_ref(ref) and (ref in self.config['refs'] or any(
+            ref.startswith(ns) for ns in self.config.get('managedRefNamespaces', [])))
+
+    def head(self, ref, missing=False):
         self.identity()
-        require(ref in self.config["refs"], "REF_DENIED")
+        require(self.allowed_ref(ref), "REF_DENIED")
         if self.config["kind"] == "local":
             symbolic = run(["git", "--git-dir=" + self.config["remote"], "symbolic-ref", "-q", ref], env=self.env, check=False)
             require(symbolic.returncode != 0, "SYMBOLIC_REF")
         out = self.call("ls-remote", "--refs", "--", self.config["remote"], ref).stdout.decode().splitlines()
+        if not out and missing:
+            return None
         require(len(out) == 1 and out[0].split()[1] == ref, "REF_NOT_FOUND")
         return out[0].split()[0]
 
     def fetch(self, ref, expected):
         require(self.head(ref) == expected, "STALE_HEAD")
         # Fetch the admitted immutable source, without a shared FETCH_HEAD owner.
-        # A concurrent ref fetch must not change another workspace's source check.
+        # A concurrent ref fetch must not change another task's source check.
         self.call("fetch", "--no-tags", "--no-write-fetch-head", "--", self.config["remote"], expected, timeout=120)
         require(self.call("cat-file", "-t", expected).stdout.strip() == b"commit", "COMMIT_REQUIRED")
         self.pin(expected)
@@ -195,17 +205,44 @@ class Git:
             self.push_ref(ref, old, new)
         require(self.head(ref) == new, "PUBLICATION_UNKNOWN")
 
+    def managed_change(self, ref, old, new):
+        """Create-if-absent or delete-at-exact-OID, never update/adopt a branch."""
+        require(branch_ref(ref) and ref not in self.config['refs'] and any(
+            ref.startswith(ns) for ns in self.config.get('managedRefNamespaces', [])), 'REF_DENIED')
+        require((old is None) != (new is None), 'REF_MUTATION')
+        self.call('check-ref-format', ref)
+        require(self.head(ref, missing=True) == old, 'STALE_HEAD')
+        sample = old or new
+        zero = '0' * len(sample)
+        if self.config['kind'] == 'local':
+            remote = '--git-dir=' + self.config['remote']
+            # Never remove a branch currently checked out by the project owner.
+            worktrees = run(['git', remote, 'worktree', 'list', '--porcelain'], env=self.env).stdout.decode()
+            require('branch ' + ref not in worktrees.splitlines(), 'REF_CHECKED_OUT',
+                    'Switch the local checkout off this task branch before cleanup')
+            if new:
+                run(['git', remote, 'fetch', '--no-tags', '--no-write-fetch-head', str(self.root), new], env=self.env)
+                run(['git', remote, 'update-ref', '--no-deref', ref, new, zero], env=self.env)
+            else:
+                run(['git', remote, 'update-ref', '--no-deref', '-d', ref, old], env=self.env)
+        else:
+            self.push_exact(ref, old or zero, new or zero, (new or '') + ':' + ref)
+        require(self.head(ref, missing=True) == new, 'REF_MUTATION_UNKNOWN')
+
     def push_ref(self, ref, old, new):
         parents = self.call("rev-list", "--parents", "-n", "1", new).stdout.decode().split()
         require(parents == [new, old], "DIRECT_CHILD_REQUIRED")
         require(ref in self.config["refs"] and re.fullmatch(r"refs/heads/[A-Za-z0-9_./-]+", ref), "REF_DENIED")
+        self.push_exact(ref, old, new, new + ':' + ref)
+
+    def push_exact(self, ref, old, new, refspec):
         with tempfile.TemporaryDirectory(prefix="push-", dir=self.root) as tmp:
             # POSIX hook sees receive-pack's actual advertisement; that OID is
             # also the old value sent in the non-force receive-pack transaction.
             hook = '#!/bin/sh\ncount=0\nwhile read localref localoid remoteref remoteoid; do\n  count=$((count + 1))\n  [ "$localoid" = "' + new + '" ] && [ "$remoteoid" = "' + old + '" ] && [ "$remoteref" = "' + ref + '" ] || exit 1\ndone\n[ "$count" = 1 ]\n'
             atomic_write(Path(tmp) / "pre-push", hook.encode(), 0o700)
             self.call("-c", "core.hooksPath=" + tmp, "push", "--porcelain", "--",
-                      self.config["remote"], new + ":" + ref, timeout=120)
+                      self.config["remote"], refspec, timeout=120)
 
     def contains(self, head, commit):
         self.call("fetch", "--no-tags", "--no-write-fetch-head", "--", self.config["remote"], head, timeout=120)

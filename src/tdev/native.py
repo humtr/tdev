@@ -26,6 +26,23 @@ from tdev.common import Fault, digest, path, require, run
 from tdev.executor import InputPump, LOG_LIMIT, SOURCE_LIMIT, materialize, prepare_git, rpc, safe_link, save
 
 DISK_LIMIT = 128 * 1024 * 1024
+ENVIRONMENT_LIMIT = 2 * 1024 * 1024 * 1024
+
+
+def environment_path(spool, ident):
+    require(isinstance(ident, str) and len(ident) == 32 and all(c in '0123456789abcdef' for c in ident), 'ENVIRONMENT_IDENTITY')
+    parent = spool / 'environments'
+    require(not parent.is_symlink() and not (parent / ident).is_symlink(), 'ENVIRONMENT_SYMLINK')
+    return parent / ident
+
+
+def dependency_environment(job, payload):
+    ident = payload.get('environmentId')
+    if not ident:
+        return {}
+    root = environment_path(job.parent, ident)
+    return {'TDEV_ENV_DIR': str(root), 'XDG_CACHE_HOME': str(root / 'cache'),
+            'PIP_CACHE_DIR': str(root / 'cache/pip'), 'npm_config_cache': str(root / 'cache/npm')}
 
 
 def environment(job):
@@ -141,9 +158,9 @@ def scan(root, initial, extras, ignore, validation=False):
     return sorted(files, key=lambda f: f["path"])
 
 
-def disk_usage(job):
+def disk_usage(job, dependency_root=None):
     total, count = 0, 0
-    for root in (job / "work", job / "home", job / "tmp"):
+    for root in ((dependency_root,) if dependency_root else (job / "work", job / "home", job / "tmp")):
         for base, dirs, names in os.walk(root, followlinks=False):
             for name in names:
                 try:
@@ -151,22 +168,28 @@ def disk_usage(job):
                     count += 1
                 except FileNotFoundError:
                     pass
-                if total > DISK_LIMIT or count > 100000:
+                if total > (ENVIRONMENT_LIMIT if dependency_root else DISK_LIMIT) or count > 100000:
                     return True
     return False
 
 
 def child(job):
     payload = json.loads((job / "request.json").read_bytes())
-    for limit, amount in ((resource.RLIMIT_CORE, 0), (resource.RLIMIT_FSIZE, DISK_LIMIT),
-                          (resource.RLIMIT_NOFILE, 256), (resource.RLIMIT_CPU, payload["timeout"] + 1)):
+    limits = [(resource.RLIMIT_CORE, 0), (resource.RLIMIT_FSIZE, DISK_LIMIT), (resource.RLIMIT_NOFILE, 256)]
+    if payload['timeout'] is not None:
+        limits.append((resource.RLIMIT_CPU, payload['timeout'] + 1))
+    for limit, amount in limits:
         _, hard = resource.getrlimit(limit)
         value = amount if hard == resource.RLIM_INFINITY else min(amount, hard)
         resource.setrlimit(limit, (value, value))
     env = environment(job)
     # Keep the private default credential lookup locations, even when callers add env.
-    require(not set(payload["env"]) & {"HOME", "TMPDIR", "XDG_CONFIG_HOME", "GIT_CONFIG_GLOBAL", "GIT_CONFIG_SYSTEM", "SSH_AUTH_SOCK"}, "RESERVED_ENV")
+    require(not set(payload["env"]) & {"HOME", "TMPDIR", "XDG_CONFIG_HOME", "GIT_CONFIG_GLOBAL", "GIT_CONFIG_SYSTEM", "SSH_AUTH_SOCK", "TDEV_ENV_DIR"}, "RESERVED_ENV")
+    env.update(dependency_environment(job, payload))
     env.update(payload["env"])
+    if payload.get('environmentId'):
+        root = environment_path(job.parent, payload['environmentId'])
+        env['PATH'] = os.pathsep.join((str(root / 'venv/bin'), str(root / 'bin'), env['PATH']))
     root = job / "work"
     cwd = (root / path(payload["cwd"], dot=True)).resolve(strict=True)
     require(cwd == root or root in cwd.parents, "CWD_SCOPE")
@@ -185,12 +208,19 @@ def worker(job):
         payload = json.loads((job / "request.json").read_bytes())
         result = {"id": payload["id"], "inputDigest": digest(payload), "terminal": True,
                   "stopped": False, "exitCode": None, "cancelled": False, "timedOut": False}
-        proc = None
+        proc, dependency_lock = None, None
         try:
             libc = ctypes.CDLL(None, use_errno=True)
             require(libc.prctl(36, 1, 0, 0, 0) == 0, "SUBREAPER_UNAVAILABLE")
             require(libc.prctl(38, 1, 0, 0, 0) == 0, "NO_NEW_PRIVILEGES_UNAVAILABLE")
             require(payload["network"] == "host", "NATIVE_NETWORK_UNSUPPORTED")
+            dependency_root = None
+            if payload.get('environmentId'):
+                dependency_root = environment_path(job.parent, payload['environmentId'])
+                dependency_root.parent.mkdir(mode=0o700, exist_ok=True)
+                dependency_lock = open(dependency_root.with_suffix('.lock'), 'a+b')
+                fcntl.flock(dependency_lock, fcntl.LOCK_SH | fcntl.LOCK_NB)
+                dependency_root.mkdir(mode=0o700, exist_ok=True)
             for name in ("home", "tmp"):
                 (job / name).mkdir(mode=0o700)
             source = job / "work"
@@ -213,7 +243,8 @@ def worker(job):
                 os.set_blocking(proc.stdin.fileno(), False)
                 os.set_blocking(proc.stdout.fileno(), False)
                 pump = InputPump(job, payload["stdin"])
-                deadline, next_scan = time.monotonic() + payload["timeout"], 0
+                deadline = time.monotonic() + payload['timeout'] if payload['timeout'] is not None else float('inf')
+                next_scan, next_dependency_scan = 0, 0
                 retained, discarded = 0, 0
                 with open(job / "output", "wb") as output:
                     while proc.poll() is None:
@@ -224,6 +255,10 @@ def worker(job):
                             if disk_usage(job):
                                 result["captureError"] = "DISK_LIMIT"
                             next_scan = now + .25
+                        if dependency_root and now >= next_dependency_scan:
+                            if disk_usage(job, dependency_root):
+                                result['captureError'] = 'ENVIRONMENT_DISK_LIMIT'
+                            next_dependency_scan = now + 5
                         if result["cancelled"] or result["timedOut"] or result.get("captureError"):
                             break
                         pump.step(proc.stdin)
@@ -256,11 +291,15 @@ def worker(job):
                 result["discardedBytes"] = discarded
             require(stop_children(proc), "STOP_UNCERTAIN")
             result["stopped"] = True
-            captured = scan(source, payload["files"], payload["capturePaths"], ignore, payload["readonly"])
-            if payload["readonly"]:
-                require(captured == sorted(payload["files"], key=lambda f: f["path"]), "VALIDATION_SOURCE_CHANGED")
-            elif not result.get("captureError"):
-                result["files"] = captured
+            if payload.get('mode') != 'process':
+                captured = scan(source, payload["files"], payload["capturePaths"], ignore, payload["readonly"])
+                if payload["readonly"]:
+                    require(captured == sorted(payload["files"], key=lambda f: f["path"]), "VALIDATION_SOURCE_CHANGED")
+                elif not result.get("captureError"):
+                    result["files"] = captured
+            if dependency_root and disk_usage(job, dependency_root):
+                result.pop('files', None)
+                result['captureError'] = 'ENVIRONMENT_DISK_LIMIT'
         except Exception as error:
             result.pop("files", None)
             result["captureError"] = error.value["code"] if isinstance(error, Fault) else type(error).__name__ + ":" + str(error)[:100]
@@ -269,6 +308,8 @@ def worker(job):
             if proc is not None:
                 proc.stdin.close()
                 proc.stdout.close()
+            if dependency_lock is not None:
+                dependency_lock.close()
             save(job / "result.json", result)
 
 
@@ -281,6 +322,28 @@ class NativeExecutor:
     def job(self, ident):
         require(len(ident) == 32 and all(c in "0123456789abcdef" for c in ident), "PROCESS_IDENTITY")
         return self.root / ident
+
+    def reset_environment(self, ident, operation_id):
+        root = environment_path(self.root, ident)
+        self.job(operation_id)  # Validate the retained cleanup identity.
+        root.parent.mkdir(mode=0o700, exist_ok=True)
+        trash = root.parent / (ident + '.reset-' + operation_id)
+        require(not trash.is_symlink(), 'ENVIRONMENT_SYMLINK')
+        with open(root.with_suffix('.lock'), 'a+b') as lock:
+            try:
+                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                raise Fault('ENVIRONMENT_BUSY') from None
+            require(not (root.exists() and trash.exists()), 'ENVIRONMENT_RESET_CONFLICT')
+            if root.exists():
+                os.rename(root, trash)
+                fd = os.open(root.parent, os.O_RDONLY | os.O_DIRECTORY)
+                try:
+                    os.fsync(fd)
+                finally:
+                    os.close(fd)
+            if trash.exists():
+                shutil.rmtree(trash)
 
     def submit(self, payload):
         job = self.job(payload["id"])
@@ -310,7 +373,7 @@ class NativeExecutor:
             saved = json.loads((job / "worker.json").read_bytes())
             current = identity(saved["pid"])
             if not current or current["start"] != saved["start"] or current["state"] == "Z":
-                raise Fault("NATIVE_SUPERVISOR_LOST", "Execution may have happened; do not relaunch. Only this workspace is fenced.", "unknown")
+                raise Fault("NATIVE_SUPERVISOR_LOST", "Execution may have happened; do not relaunch. Only this task is fenced.", "unknown")
         return {"terminal": False}
 
     def logs(self, ident, offset, limit):

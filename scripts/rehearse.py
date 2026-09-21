@@ -76,7 +76,7 @@ print(s.server_port,flush=True); s.serve_forever()
                 def wait(op):
                     deadline = time.monotonic() + 20
                     while True:
-                        result = call("process", {"action": "status", "operationId": op["id"]})
+                        result = call("operation", {"action": "status", "operationId": op["id"]})
                         if result["status"] not in ("running", "unknown"):
                             assert result["status"] == "succeeded", result
                             return result
@@ -86,11 +86,11 @@ print(s.server_port,flush=True); s.serve_forever()
                     status, data = request("tools/list", {}, secret)
                     assert status == expected, status
                     if expected == 200:
-                        assert len(data["result"]["tools"]) == 7
+                        assert len(data["result"]["tools"]) == 9
                 if iteration == 0:
-                    w = call("workspace", {"action": "open", "requestId": "open", "repo": "test", "ref": "refs/heads/main", "expectedHead": repo.head})["result"]
-                    e = call("edit", {"requestId": "edit", "workspaceId": w["workspaceId"], "expected": w["checkpoint"], "edits": [{"action": "replace", "path": "a.txt", "old": "hello", "text": "packaged"}]})["result"]
-                    exec_args = {"requestId": "exec", "workspaceId": w["workspaceId"], "expected": e["checkpoint"], "command": "printf ready; read value; printf '%s' \"$value\" >> a.txt", "timeout": 30}
+                    w = call("task", {"action": "open", "requestId": "open", "repo": "test", "ref": "refs/heads/main", "expectedHead": repo.head})["result"]
+                    e = call("edit", {"requestId": "edit", "taskId": w["taskId"], "expected": w["checkpoint"], "edits": [{"action": "replace", "path": "a.txt", "old": "hello", "text": "packaged"}]})["result"]
+                    exec_args = {"requestId": "exec", "taskId": w["taskId"], "expected": e["checkpoint"], "command": "printf ready; read value; printf '%s' \"$value\" >> a.txt", "timeout": 30}
                     op = call("exec", exec_args)
                     deadline = time.monotonic() + 10
                     while not (root / "state/native" / op["id"] / "output").exists():
@@ -99,27 +99,27 @@ print(s.server_port,flush=True); s.serve_forever()
                 else:
                     assert call("exec", exec_args)["id"] == op["id"]
                     stdin = {"action": "stdin", "requestId": "input", "operationId": op["id"], "sequence": 0, "text": "once\n", "eof": True}
-                    assert call("process", stdin) == call("process", stdin)
+                    assert call("operation", stdin) == call("operation", stdin)
                     done = wait(op)
-                    v = wait(call("validate", {"requestId": "validate", "workspaceId": w["workspaceId"], "expected": done["result"]["checkpoint"], "message": "installed native crash recovery"}))
+                    v = wait(call("validate", {"requestId": "validate", "taskId": w["taskId"], "expected": done["result"]["checkpoint"], "message": "installed native crash recovery"}))
                     pub = call("publish", {"requestId": "publish", "validationId": v["id"], "expectedHead": repo.head})
                     assert pub["status"] == "succeeded", pub
                     assert git("--git-dir=" + str(repo.remote), "rev-parse", "refs/heads/main") == v["result"]["candidate"]
                     assert git("--git-dir=" + str(repo.remote), "show", "refs/heads/main:a.txt") == "packaged\nonce"
                     for completed in (op, v):
-                        call("process", {"action": "retire", "requestId": "retire-" + completed["id"], "operationId": completed["id"]})
-                observations.append({"restart": iteration, "wrongBearer": 401, "authorizedTools": 7})
+                        call("operation", {"action": "retire", "requestId": "retire-" + completed["id"], "operationId": completed["id"]})
+                observations.append({"restart": iteration, "wrongBearer": 401, "authorizedTools": 9})
             finally:
                 if proc.poll() is None:
                     os.kill(proc.pid, signal.SIGKILL)
                 proc.wait(timeout=5)
                 proc.stdout.close()
                 proc.stderr.close()
-        for service in ("tdev", "tdev-oai-tunnel"):
+        for service in ("tdev", "tdev-tunnel"):
             assert (root / "services" / service / "down").exists()
             for filename in ("run", "log/run"):
                 subprocess.run(["sh", "-n", str(root / "services" / service / filename)], check=True)
-        tunnel_run = (root / "services/tdev-oai-tunnel/run").read_text()
+        tunnel_run = (root / "services/tdev-tunnel/run").read_text()
         assert "envdir" not in tunnel_run
         assert "CONTROL_PLANE_API_KEY" in tunnel_run
         assert "--health.listen-addr 127.0.0.1:0" in tunnel_run

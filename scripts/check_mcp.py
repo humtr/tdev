@@ -23,10 +23,18 @@ try {
   await client.connect(transport);
   assert.equal(client.getProtocolEra(), 'modern');
   const listed = await client.listTools();
-  assert.equal(listed.tools.length, 7);
-  const called = await client.callTool({name:'tdev_workspace',arguments:{action:'list'}});
+  assert.equal(listed.tools.length, 9);
+  const execSchema = listed.tools.find(t => t.name === 'tdev_exec').inputSchema;
+  assert(execSchema.properties.mode.enum.includes('process'));
+  assert(execSchema.properties.environment.enum.includes('task'));
+  const taskSchema = listed.tools.find(t => t.name === 'tdev_task').inputSchema;
+  assert(taskSchema.oneOf.some(s => s.properties.action.const === 'resetEnvironment'));
+  const called = await client.callTool({name:'tdev_task',arguments:{action:'list'}});
   assert.equal(called.isError, false);
   assert.equal(called.structuredContent.ok, true);
+  const workspace = await client.callTool({name:'tdev_workspace',arguments:{action:'list'}});
+  assert.equal(workspace.isError, false);
+  assert.equal(workspace.structuredContent.ok, true);
   console.log(JSON.stringify({sdk:'@modelcontextprotocol/client@2.0.0',
     protocol:'2026-07-28',era:client.getProtocolEra(),tools:listed.tools.length,call:true}));
 } finally { await client.close(); }

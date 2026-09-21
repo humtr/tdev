@@ -28,13 +28,13 @@ def main():
                 assert value["ok"], value
                 return value["result"]
             try:
-                w = call("workspace", {"action": "open", "requestId": "open", "repo": "test", "ref": "refs/heads/main", "expectedHead": repo.head})["result"]
-                call("read", {"workspaceId": w["workspaceId"], "checkpoint": w["checkpoint"], "queries": [{"action": "file", "path": "a.txt"}, {"action": "search", "text": "world"}]})
-                e = call("edit", {"requestId": "edit", "workspaceId": w["workspaceId"], "expected": w["checkpoint"], "edits": [{"action": "replace", "path": "a.txt", "old": "hello", "text": "hi"}, {"action": "replace", "path": "b.txt", "old": "world", "text": "earth"}]})["result"]
-                v = call("validate", {"requestId": "validate", "workspaceId": w["workspaceId"], "expected": e["checkpoint"], "message": "measured fixture"})
+                w = call("task", {"action": "open", "requestId": "open", "repo": "test", "ref": "refs/heads/main", "expectedHead": repo.head})["result"]
+                call("read", {"taskId": w["taskId"], "checkpoint": w["checkpoint"], "queries": [{"action": "file", "path": "a.txt"}, {"action": "search", "text": "world"}]})
+                e = call("edit", {"requestId": "edit", "taskId": w["taskId"], "expected": w["checkpoint"], "edits": [{"action": "replace", "path": "a.txt", "old": "hello", "text": "hi"}, {"action": "replace", "path": "b.txt", "old": "world", "text": "earth"}]})["result"]
+                v = call("validate", {"requestId": "validate", "taskId": w["taskId"], "expected": e["checkpoint"], "message": "measured fixture"})
                 deadline = time.monotonic() + 10
                 while True:
-                    observed = call("process", {"action": "status", "operationId": v["id"]})
+                    observed = call("operation", {"action": "status", "operationId": v["id"]})
                     polls += 1
                     if observed["status"] == "succeeded":
                         break
