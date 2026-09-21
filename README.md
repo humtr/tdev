@@ -39,7 +39,8 @@ read/edit, native exec/process, validation, exact GitHub publication/readback, s
 replay and controller-restart replay all succeeded. Because the server rejects mismatched
 protocol/method/name metadata before tool effects, the successful host calls also exercised
 the required MCP **2026-07-28** request metadata/header path and bearer delivery. That run
-used the now-corrected all-read-only annotation profile; it is not acceptance of today's hints.
+used the fixed tmcp host-hint profile now restored in source; host acceptance after this
+restoration still requires a Connector Refresh and user-side retest.
 
 The first live validation exposed a real native defect: rebuilding ignored dependencies
 inside each clean validation copy hit `DISK_LIMIT`. The repair adds a bounded non-secret
@@ -61,11 +62,12 @@ bounded/current, and fresh sessions must resume from durable state without redis
 proved-complete predecessors. These requirements remain normative in ARCHITECTURE §6 and
 IMPLEMENTATION_PLAN.
 
-Independent review of `99372b5..989f580` corrected misleading tool annotations, stale mutation
-replay and missing bounded progress/resume inspection. Workspace inspect and process status
-now expose current facts, change/no-change evidence and cleanup ownership; no workflow table
-or planner was added. Only read is read-only. Host approval policy must not be bypassed with
-incorrect annotations.
+Independent review of `99372b5..989f580` corrected stale mutation replay and missing
+bounded progress/resume inspection. Workspace inspect and process status now expose current
+facts, change/no-change evidence and cleanup ownership; no workflow table or planner was
+added. After refreshed host testing, the public tool annotations are restored to the fixed
+tmcp host-hint scope: all seven are read-only-hinted and the other three hints are false.
+Those hints do not change tdev's mutation, execution, validation or publication authority.
 
 Installed **Local Codex 0.155.1** discovery and disposable native read/edit/exec/process/
 validate/publish, client reconnect/replay and retirement pass through the explicit stdio

@@ -1910,10 +1910,10 @@
         ]
       },
       "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": true,
-        "idempotentHint": true,
-        "openWorldHint": true
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
       }
     },
     {
@@ -1962,7 +1962,7 @@
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
-        "idempotentHint": true,
+        "idempotentHint": false,
         "openWorldHint": false
       }
     },
@@ -2084,9 +2084,9 @@
         ]
       },
       "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": true,
-        "idempotentHint": true,
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
         "openWorldHint": false
       }
     },
@@ -2248,10 +2248,10 @@
         ]
       },
       "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": true,
-        "idempotentHint": true,
-        "openWorldHint": true
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
       }
     },
     {
@@ -2440,10 +2440,10 @@
         ]
       },
       "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": true,
-        "idempotentHint": true,
-        "openWorldHint": true
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
       }
     },
     {
@@ -2604,10 +2604,10 @@
         ]
       },
       "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": true,
-        "idempotentHint": true,
-        "openWorldHint": true
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
       }
     },
     {
@@ -2728,10 +2728,10 @@
         ]
       },
       "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": true,
-        "idempotentHint": true,
-        "openWorldHint": true
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
       }
     }
   ],
@@ -2769,7 +2769,7 @@
       "nativeRecovery": "Detached subreaper supervisor survives controller restart. Lost supervisor after dispatch without a sealed result remains uncertain, never automatically relaunched."
     },
     "progress": "workspace inspect reconciles its busy operation then reads bounded operation page and live remote head. Observation cursor hashes the returned facts, timestamps delimit observation (not atomic cross-provider snapshot). since equal means checked now/no change, not stalled proof; wait at least pollAfterMs or do independent work. Mutation prerequisites are rechecked at admission. Closed workspaces discoverable with includeClosed. Process status since opts into freshness. Replaying a mutation reconciles original identity, never repeats the effect.",
-    "annotations": "Hints conservatively describe every action, not host approval bypass. Only read is read-only; all mutations deduplicate exact requestId. Core enforces authorization."
+    "annotations": "Fixed tmcp host hints: all seven tools set readOnlyHint=true and the other hints=false. Hints do not grant authority; core still enforces mutation identity, authorization, validation and publication."
   },
   "x-examples": [
     {

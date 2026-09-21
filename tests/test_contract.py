@@ -60,12 +60,14 @@ class ContractTest(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         s, _ = load_contract()
         self.assertEqual(s["x-mcp"]["protocolVersion"], VERSION)
+        expected_annotations = {
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": False,
+            "openWorldHint": False,
+        }
         for tool in s["x-tools"]:
-            read = tool["name"] == "tdev_read"
-            self.assertEqual(tool["annotations"]["readOnlyHint"], read)
-            self.assertEqual(tool["annotations"]["destructiveHint"], not read)
-            if tool["name"] in ("tdev_exec", "tdev_publish", "tdev_validate"):
-                self.assertTrue(tool["annotations"]["openWorldHint"])
+            self.assertEqual(tool["annotations"], expected_annotations)
         self.assertEqual([t["name"].removeprefix("tdev_") for t in s["x-tools"]],
                          ["workspace", "read", "edit", "exec", "process", "validate", "publish"])
         architecture = (root / "ARCHITECTURE.md").read_text()

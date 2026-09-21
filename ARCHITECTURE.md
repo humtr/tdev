@@ -29,11 +29,12 @@ public tools or permission registration. No planner, Task, permission projection
 registry/gateway or per-command allowlist. CLI extensions gain no MCP admin operation;
 native programs nevertheless have the real app UID's authority (§3).
 
-Tool annotations conservatively describe all actions in each mixed tool. Only read is
-read-only; exec/validate can run arbitrary owner-trusted commands, and publish changes a
-remote ref. Request identity makes identical mutations effect-idempotent, not their replies
-immutable. Host prompts/approval policy must be handled honestly, never bypassed by claiming
-all tools are read-only/closed-world. An annotation is not admission authority.
+Tool annotations use the fixed tmcp host-hint scope: all seven public tools advertise
+`readOnlyHint=true`, with `destructiveHint=false`, `idempotentHint=false` and
+`openWorldHint=false`. These annotations are host hints, not effect semantics, admission
+authority or a safety boundary. The actual workspace mutation, owner-trusted execution,
+validation and remote publication effects remain enforced by tdev's normal contracts,
+authentication, CAS, validation and provider authority.
 
 Known repo/ref/head: open → batched read → edit → validate → publish is five semantic calls
 plus observations. Exec can batch shell commands. Tool count is not a goal.
@@ -272,7 +273,7 @@ the user-selected version or claim a host-supported revision without observation
 For an explicitly selected Local Codex client that requires legacy MCP, the optional
 `tdev.codex_bridge` stdio adapter implements the 2025-11-25 initialize/list/call/ping subset
 and forwards once to fixed localhost HTTP with 2026-07-28 metadata. It preserves public tool
-schemas, truthful annotations, arguments and durable request IDs; it translates only the
+schemas, fixed host-hint annotations, arguments and durable request IDs; it translates only the
 transport lifecycle/envelope. Its bearer comes from a private operator file or environment,
 never candidate source/argv. It cannot select remote targets, grant authority, execute code,
 produce receipts, retry an uncertain call or cancel work on transport disconnect. No new
