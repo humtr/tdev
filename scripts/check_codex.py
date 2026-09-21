@@ -108,7 +108,7 @@ def main():
                     plugin = "discovered and read-only list called"
             if "--direct" in sys.argv:
                 client.call("task", {"action": "list"})
-            assert len(names) == 9, names
+            assert len(names) == 10, names
             listing = client.call("task", {"action": "list"})
             assert listing["repositories"][0]["head"] == repo.head
             space = client.call("workspace", {"action": "create", "requestId": "codex-space", "name": "Client qualification", "projects": ["test"]})["result"]

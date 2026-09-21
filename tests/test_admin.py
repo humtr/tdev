@@ -25,6 +25,29 @@ class AdminTest(unittest.TestCase):
                 delegate_projects(root, 'owner', 'local', github_owner='different', validation='true')
             self.assertEqual(json.loads((root / 'config.json').read_bytes()), changed)
 
+    def test_deployment_delegation_preserves_auth_and_refuses_target_replacement(self):
+        import contextlib
+        import io
+        import sys
+        from unittest.mock import patch
+        from tdev.admin import main
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'install'
+            init_config(root)
+            before = json.loads((root / 'config.json').read_bytes())
+            argv = ['tdev.admin', 'delegate-deployments', '--root', str(root)]
+            with patch.object(sys, 'argv', argv), contextlib.redirect_stdout(io.StringIO()):
+                main()
+                main()
+            after = json.loads((root / 'config.json').read_bytes())
+            self.assertEqual(after['principals']['owner']['tokenHash'], before['principals']['owner']['tokenHash'])
+            self.assertEqual(after['repositories'], before['repositories'])
+            self.assertEqual(after['principals']['owner']['deploymentTargets'], ['termux'])
+            self.assertEqual(after['deploymentTargets']['termux'], {'kind': 'termux', 'servicePrefix': 'tdev-app-'})
+            with patch.object(sys, 'argv', argv + ['--service-prefix', 'tdev-app-other-']), self.assertRaises(Fault):
+                main()
+            self.assertEqual(json.loads((root / 'config.json').read_bytes()), after)
+
     def test_inactive_install_exact_rollback_and_tamper(self):
         with tempfile.TemporaryDirectory() as tmp:
             source, root = Path(tmp) / "source", Path(tmp) / "installation"

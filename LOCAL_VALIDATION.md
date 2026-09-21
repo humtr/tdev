@@ -580,3 +580,84 @@ and post-documentation `git diff --check` also passed. No canonical push was per
   bundle identity and successful control-plane polling. Outstanding running/unknown operations:
   zero; probe dependency directory and maintenance fence absent. Local canonical source HEAD
   remains `e7124860dfb6e014b4943ee0614a350987393a47`; changes remain uncommitted/unpublished.
+
+## Native project deployment — 2026-09-21
+
+- The user explicitly authorized source commit/push and continuation into deployment. The
+  accumulated 0.1.4 work was committed as `1f3edb690ab93db3f5e22b34cf2b453353c118e3` and
+  pushed without force to origin refs/heads/tdev. Remote readback matched that exact commit.
+- The next executable revision is 0.1.5, still inside the authorized 0.1 line. tdev_deploy adds
+  the tenth tool: delegated native Termux source-release deploy/inspect/log/start/stop/update/
+  rollback/remove. Artifact/dependency packaging and other runtime adapters are not claimed.
+- Initial deployment/contract/HTTP/admin focused run: 26 tests PASS, 60.375s, exit 0.
+- Official MCP SDK probe PASS on 2026-07-28 with ten tools. Installed Codex adapter probe PASS
+  for ten-tool discovery and existing native coding/reconnect/publication/composition/cleanup.
+  Its installed Tunnel plugin was discovered and only its read-only runtime list was called.
+- Real isolated runit rehearsal passed validated release and HTTP release-header identity,
+  supervisor crash recovery, controller reconnect, update/rollback, deliberate DOWN across
+  shared-root recovery, readiness failure restoration and data-preserving removal. No live
+  shared-service graph was touched by that rehearsal. Initial runs exposed transient supervisor
+  control timeouts and an early PID-file read during root recovery. The rehearsal now waits
+  for a new healthy graph and, when recovery remains unknown, observes the original operation
+  to finish restoration instead of reissuing the release. Unproved recovery is never success.
+- An initial full 137-test run failed only the CLI adapter's obsolete nine-tool assertion.
+  It was updated for ten tools, and its focused test passed (5.135s). Further cleanup tests
+  verify that changed source cannot start but does not prevent stopping/removing owned services.
+- Final focused deployment/contract/admin/adapter run: **23 tests PASS**, 27.379s, exit 0.
+  The final isolated runit rehearsal again reported every acceptance dimension above as true.
+  A subsequent full-check attempt was interrupted before a terminal test summary; it is not
+  counted as a pass and was rerun after resuming the session.
+- Resumed full run: 139 tests in 355.691s, one failure in the existing unrelated-operation
+  concurrency test. Its first status read assumed `true` had already exited. The fixture now
+  waits for terminal executor receipts without reconciling the controller, then still proves
+  the second reconciliation completes while the first is blocked. Focused test PASS, 3.723s.
+- Final `sh scripts/check.sh`: **139 tests PASS**, 411.615s, exit 0, including diff whitespace
+  validation. No runtime code was changed to make the concurrency fixture pass.
+- Authorized `bash install.sh` updated the owned resident installation, exit 0, to bundle
+  `c375fa9707d83ff9c210c1eb07442b71a7b5266a47a5ff77193f6eec98378102`.
+  Controller 0.1.5 PID 16551 and native-CGO tunnel PID 16565 were UP; controlPlanePoll=true
+  and recoveryMonitor=true. Existing configuration, state and Tunnel identity were retained.
+  The operator CLI delegated target `termux` with the `tdev-app-` prefix to existing principal
+  `owner`; it starts no service and changes no project/provider credential grants.
+- First installed acceptance reached the inherited fixed 300-second validation deadline
+  before the full tdev suite completed. It correctly failed with timedOut=true/stopped=true;
+  no deployment was admitted. Validation was retired, task closed, environment reset and
+  absent owned ref cleaned. Outstanding operations returned to zero.
+  `tdev_validate` now accepts the same bounded timeout range as command execution (1–3600s,
+  default 300); existing launch machinery already binds it into the immutable execution intent.
+  Adopted validation command/source checks are unchanged. Explicit timeout/failed validation
+  plus contract checks: **4 tests PASS**, 7.315s, exit 0.
+- Deadline contract was installed through the same owned update path, exit 0; active bundle
+  `56d6c26b4672bd5f6054256d60f115c7a551760afa0997fe7be1fbfbb7b1797f`.
+  Controller 0.1.5 PID 7454 and native-CGO tunnel PID 7703 were UP with controlPlanePoll=true
+  and recoveryMonitor=true. Final official MCP SDK probe again passed ten-tool discovery/call.
+- Final `sh scripts/check.sh` including the deadline contract: **140 tests PASS**, 402.384s,
+  exit 0. This supersedes the earlier 139-test qualification for the final source tree.
+- The next installed validation completed the old 123-test suite in 334.613s without a
+  timeout, but failed its aggregate-environment-budget fixture: one sparse 2GiB file exceeded
+  the outer native runner's 128MiB per-file limit. No release was admitted; task/environment/
+  validation cleanup completed. The fixture now uses sixteen sparse 128MiB files plus one
+  byte, preserving the real 2GiB aggregate-limit check. Focused test PASS, 3.096s, exit 0.
+  Final installed acceptance imports the complete current implementation diff before running
+  the adopted `sh scripts/check.sh`, rather than validating the older published implementation.
+- An intermediate nested run correctly stopped with DISK_LIMIT because the budget fixture
+  also exceeded its outer operation's aggregate allowance. The fixture executor now uses an
+  independent, automatically cleaned host temporary spool, while retaining native per-file
+  and aggregate checks. Product resource limits were not relaxed. The affected environment
+  suite passed **11 tests**, 48.743s; stopped validation/task/environment cleanup completed.
+- Final installed authenticated MCP acceptance, exit 0: imported the complete current
+  runtime/contract/test diff and a disposable HTTP app, then ran the adopted `sh scripts/check.sh`
+  with timeout=1200. **140 tests PASS**, 306.231s, plus app compilation and diff checks;
+  validation `a597e42b4e0e40afb2373b740291e9ba` exited 0 for exact candidate
+  `773403428b4752962390bc8f3d7ef900f0959239`.
+  Deployment `005c4ca6cab54dbf354e30e58e908227` released
+  `7806cfc2cfcadf12f22e169c187951b08f335d84e2338a254424ef55deddd3f3`.
+  Actual HTTP release-header/body identity, stop, restart, renewed readiness and removal passed.
+  Final deployment revision is 4/removed; its service directory is absent. Validation retired,
+  task closed, dependency storage reset and absent owned-ref cleanup completed. Releases, logs,
+  data and operation receipts remain intentionally retained. No probe source was published.
+- Final `bash install.sh --check` PASS, exit 0: 0.1.5 controller and native-CGO tunnel UP,
+  controlPlanePoll=true. The active bundle's full file digest equals the current repository
+  runtime/contract/dependency bundle. Outstanding running/unknown operations: zero; maintenance
+  fence absent. This is installed loopback MCP acceptance and Tunnel health, not a claim of
+  a new invocation from the ChatGPT host.

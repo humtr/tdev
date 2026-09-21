@@ -1,8 +1,11 @@
 import base64
 import json
+import os
 import shlex
+import tempfile
 import time
 import urllib.request
+from pathlib import Path
 from unittest.mock import patch
 
 from test_core import Base
@@ -18,9 +21,9 @@ class EnvironmentTest(Base):
 
     def tearDown(self):
         # A failed assertion must not leave fixture servers behind.
-        backend = NativeExecutor(self.root / 'state/native')
         for row in self.c.store.all("SELECT id,intent FROM operation WHERE kind IN ('exec','validate') AND status IN ('running','unknown')"):
             if 'execution' in json.loads(row['intent']):
+                backend = self.c.backend(json.loads(row['intent']))
                 backend.control(row['id'], {'action': 'cancel'}, 'f' * 32)
                 deadline = time.monotonic() + 10
                 while not backend.observe(row['id']).get('terminal') and time.monotonic() < deadline:
@@ -248,11 +251,20 @@ class EnvironmentTest(Base):
 
     def test_environment_budget_is_sampled_and_blocks_capture(self):
         w = self.open()
-        # Sparse fixture crosses the size budget without consuming 2 GiB of storage.
-        root = self.environment(w)
+        # This executor must own an independent budget even when an outer tdev
+        # validation runs the suite. Keep its disposable spool outside outer TMPDIR.
+        host_tmp = Path(os.environ.get('PREFIX', '/')) / 'tmp'
+        fixture = tempfile.TemporaryDirectory(prefix='tdev-budget-test-', dir=host_tmp)
+        self.addCleanup(fixture.cleanup)
+        backend = NativeExecutor(Path(fixture.name))
+        self.c.executor_override = backend
+        # Cross the aggregate budget without allocating 2 GiB or exceeding the
+        # native runner's per-file limit when this suite itself runs in validation.
+        root = backend.root / 'environments' / w['taskId']
         root.mkdir(parents=True, mode=0o700)
-        with open(root / 'large', 'wb') as stream:
-            stream.truncate(2147483649)
+        for index in range(17):
+            with open(root / ('large-' + str(index)), 'wb') as stream:
+                stream.truncate(128 * 1024 * 1024 if index < 16 else 1)
         result = self.wait(self.execute(w, 'detect-environment-limit', 'sleep 1')['id'])
         self.assertEqual(result['result']['captureError'], 'ENVIRONMENT_DISK_LIMIT')
         self.assertEqual(self.c.task('alice', w['taskId'])['checkpoint'], w['checkpoint'])

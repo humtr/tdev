@@ -86,7 +86,7 @@ print(s.server_port,flush=True); s.serve_forever()
                     status, data = request("tools/list", {}, secret)
                     assert status == expected, status
                     if expected == 200:
-                        assert len(data["result"]["tools"]) == 9
+                        assert len(data["result"]["tools"]) == 10
                 if iteration == 0:
                     w = call("task", {"action": "open", "requestId": "open", "repo": "test", "ref": "refs/heads/main", "expectedHead": repo.head})["result"]
                     e = call("edit", {"requestId": "edit", "taskId": w["taskId"], "expected": w["checkpoint"], "edits": [{"action": "replace", "path": "a.txt", "old": "hello", "text": "packaged"}]})["result"]
@@ -108,7 +108,7 @@ print(s.server_port,flush=True); s.serve_forever()
                     assert git("--git-dir=" + str(repo.remote), "show", "refs/heads/main:a.txt") == "packaged\nonce"
                     for completed in (op, v):
                         call("operation", {"action": "retire", "requestId": "retire-" + completed["id"], "operationId": completed["id"]})
-                observations.append({"restart": iteration, "wrongBearer": 401, "authorizedTools": 9})
+                observations.append({"restart": iteration, "wrongBearer": 401, "authorizedTools": 10})
             finally:
                 if proc.poll() is None:
                     os.kill(proc.pid, signal.SIGKILL)

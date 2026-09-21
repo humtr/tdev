@@ -1,2 +1,2 @@
 """Command-first, exact-source MCP controller."""
-__version__ = "0.1.4"
+__version__ = "0.1.5"

@@ -34,10 +34,10 @@ credentials and in-flight effects still require deliberate handling.
 
 ## Implementation status
 
-Nine MCP tools separate composition (`tdev_workspace`), source tasks (`tdev_task`), projects
+Ten MCP tools separate composition (`tdev_workspace`), source tasks (`tdev_task`), projects
 (`tdev_project`), source read/edit, execution, general operation observation/control
-(`tdev_operation`), validation and publication. Git holds checkpoints; SQLite holds workspace
-composition, source tasks, enrolled projects and accepted operations. These interfaces replace
+(`tdev_operation`), validation, publication and project deployment (`tdev_deploy`). Git holds
+checkpoints; SQLite holds workspace composition, source tasks, enrolled projects and accepted operations. These interfaces replace
 the experimental source-workspace/process names without aliases.
 
 Core HTTP MCP is pinned to **2026-07-28**. Local Codex has an explicitly selected legacy stdio
@@ -50,6 +50,16 @@ clean environment and API grants are useful safeguards, not hostile-code or cred
 isolation. See the [trust boundary](ARCHITECTURE.md#3-native-trust-and-containment).
 
 ## Current work
+
+Native project deployment is implemented for delegated Termux HTTP services. `tdev_deploy`
+releases an exact validated source candidate, verifies process and HTTP release identity, and
+supports inspection/logs, start/stop, update, rollback and data-preserving removal. Interrupted
+switches retain recovery evidence. See [deployment usage](OPERATIONS.md#deploy-a-validated-project-on-termux).
+This first adapter packages source; dependencies/build outputs, remote/container deployment and
+public ingress remain future work. See [deployment evidence](LOCAL_VALIDATION.md#native-project-deployment--2026-09-21).
+The owned installation runs this adapter; installed MCP acceptance passed the full 140-test
+suite, live release identity, stop/restart and removal. The `owner` principal has the delegated
+Termux target, so routine project-service deployment needs no per-service config edits.
 
 Persistent task dependencies and development processes are implemented in the **0.1** line.
 Native exec/validation reuse task-owned dependency/cache storage while keeping source and HOME
@@ -89,11 +99,12 @@ source-task API. `tdev_edit` modifies source; `tdev_task` manages its lifecycle.
 observes all accepted effects; process controls apply only to exec/validation operations.
 See [usage](OPERATIONS.md#workspace-composition-and-source-tasks).
 
-Qualification: **123 deterministic tests pass**. New coverage includes dependency reuse, a live
-HTTP development server during edits/validation, reconnects, writer independence, process limits
-and interrupted environment cleanup. Official MCP SDK and installed Local Codex checks also pass
-with the same nine-tool surface. Prior resident installation/recovery evidence remains separate.
-Exact results are recorded in [LOCAL_VALIDATION.md](LOCAL_VALIDATION.md#persistent-environments-and-processes--2026-09-21).
+Qualification: **140 deterministic tests pass**. Coverage includes native deployment authority,
+exact source/readiness identity, failure recovery, dependencies, development processes and
+workspace composition. Official MCP SDK and installed Local Codex checks pass with the same
+ten-tool surface. A real isolated runit graph also passed project-service crash recovery,
+update/rollback and removal. Exact results and installed acceptance are recorded in
+[LOCAL_VALIDATION.md](LOCAL_VALIDATION.md#native-project-deployment--2026-09-21).
 
 The new internal state format uses the existing fresh schema-3 development state. The
 installation now runs through owned runit services on localhost:8765, with the same Tunnel
@@ -104,10 +115,11 @@ now delivered on the canonical tdev branch under the user-authorized 0.1 pre-rel
 this resident installation is not a product v1 release.
 See [resident evidence](LOCAL_VALIDATION.md#resident-service-installation--2026-09-21).
 
-The next development work connects concrete execution/provider resources and deployment of
-authored projects. Persistent task dependencies and snapshot processes cover the initial native
-path; hot reload, PTY debugging and cross-task environment sharing are not implemented.
-Installing tdev itself does not implement arbitrary project deployment. Blender/MCP/device/
+The next development work packages deployable dependencies/build artifacts and qualifies the
+complete multi-project development/deployment journey, then additional concrete resource
+adapters. Persistent task dependencies and snapshot processes cover the initial native path;
+hot reload, PTY debugging and cross-task environment sharing are not implemented.
+The native project-service adapter is separate from installation of tdev itself. Blender/MCP/device/
 computer-use/model connections remain future integrations. See
 [implementation order](IMPLEMENTATION_PLAN.md#next-implementation-sequence).
 

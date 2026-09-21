@@ -19,7 +19,7 @@ owns execution order. AGENTS is navigation. Superseded designs live in Git histo
 ### Target composition model
 
 Workspace/project/source-task composition is implemented. Tool/runtime connections and
-broader deployment below remain design requirements. Product goals and version policy belong
+broader deployment below remain design requirements; the native Termux project-service path is implemented in §8. Product goals and version policy belong
 in README; wire types live in the contract.
 
 | Concept | Responsibility |
@@ -91,11 +91,11 @@ registry or planner before there is a usable development loop.
 
 The source surface is task/read/edit/exec/operation/validate/publish; workspace supplies
 composition and project supplies delegated local/GitHub enrollment. CLI adapters need no
-additional permission registration. General tool/runtime connection lifecycle remains future
-work. CLI extensions gain no MCP admin operation;
+additional permission registration. tdev_deploy manages validated native project services on delegated Termux targets. General
+tool/runtime connection lifecycle remains future work. CLI extensions gain no MCP admin operation;
 native programs nevertheless have the real app UID's authority (§3).
 
-Tool annotations use the fixed tmcp host-hint scope: all nine public tools advertise
+Tool annotations use the fixed tmcp host-hint scope: all ten public tools advertise
 `readOnlyHint=true`, with `destructiveHint=false`, `idempotentHint=false` and
 `openWorldHint=false`. These annotations are host hints, not effect semantics, admission
 authority or a safety boundary. The actual task mutation, owner-trusted execution,
@@ -179,6 +179,7 @@ provisioning. Android can kill the whole app UID, including runit and supervisor
 | task | workspace identity, owner, enrolled repo/ref identity, source base, checkpoint, busy operation, closed state; managed ref ownership and last published OID |
 | project | delegated repository identity/path/default source branch and creating principal/policy; no credentials or copied executable policy |
 | operation | principal/request digest, exact intent/backend/policy, result and effect certainty |
+| deployment | owner, enrolled project and delegated target identity, service identity, desired release/revision and busy operation |
 
 Operator config owns credentials, static repo/ref enrollment, delegated project scope, adopted
 validation and optional executor selection. Project rows record enrollment within that scope;
@@ -500,6 +501,63 @@ services. A persisted DOWN marker survives shared-supervisor recovery. termux-se
 root recovery; tdev does not duplicate it or silently install shared infrastructure.
 Production activation needs user authority. Bundle verification is not protection from
 hostile same-UID code. Native runner is included without extra executor enrollment.
+
+### Native project deployment
+
+`tdev_deploy` adds a concrete target adapter rather than treating Git publication or development
+processes as deployment. An operator delegates a Termux target with a `tdev-app-` service prefix
+once per principal. Project authority and current target identity gate admissions, inspection
+and replay. Targets cannot address arbitrary service names or replace tdev/tdev-tunnel. A named
+principal/target deployment owns one generated service name and a persistent deployment row;
+source tasks can close while that service continues independently. Deployment mutations are
+retained operations, with per-deployment writer ownership and revision CAS. `targets`, paged
+`list`, and `inspect` require no source task. A sole delegated target resolves automatically.
+
+Release selects a succeeded validation and its exact frozen candidate, rechecks the adopted
+validation policy, and materializes only that source tree into a content-identified release.
+The manifest binds candidate, validation ID, source paths/bytes/modes, launch command, adopted
+non-secret environment and readiness probe. This first adapter is a **source release**: it does
+not freeze dependencies, compiler outputs or the mutable task venv, and does not infer that
+validation tested the separate launch command. Applications must run from the source release
+with installed host tooling/adopted dependency paths. Build-artifact packaging is future work.
+Publication of source is independent and is not required to deploy a validated candidate.
+
+The runit service uses a pinned controller-bundle runtime path, verifies source at each start,
+and records supervisor/child PID start identities plus release identity. The child receives a
+clean environment, private persistent HOME/TMP, TDEV_DATA_DIR for writable data and TDEV_RELEASE.
+Source additions, deletion, byte/mode changes reject subsequent verification; persistent data
+must live outside the release. The child is a foreground service, not a daemonizing script;
+TERM gets a bounded grace period, followed by descendant cleanup. Runit restarts natural/crash
+exits. On supervisor loss, recorded session members are cleaned before relaunch; a launch gap
+without recorded child identity fails closed instead of starting a possible duplicate. This
+is owner-trusted same-UID process management, not hostile-code isolation or arbitrary daemon
+recovery. Android killing the entire app remains outside a service's control.
+
+Readiness requires the selected supervisor/child identity, source verification, HTTP 200 on
+explicit loopback port/path and `X-Tdev-Release` equal to TDEV_RELEASE. A different listener
+returning 200 does not suffice. The app must supply that header. There is no public ingress,
+TLS, credential provisioning or arbitrary network probe in this adapter. Inspect distinguishes
+running from healthy and returns bounded logs with inode generation/offset/size; rotation
+requires restarting the byte cursor for the new generation. Logs use runit's bounded retention.
+
+Before changing a service, ownership markers bind deployment ID, state root and exact run/log
+scripts. Foreign/tampered directories are preserved. A durable journal precedes stop/switch/start;
+failed activation restores the previous desired release, including intentional DOWN. An
+interruption before a committed journal receipt also restores the previous state on observation;
+a committed journal is reconciled into SQLite without restarting the service. Recovery failure
+retains an unknown operation and deployment writer. Observe that original operation to retry
+restoration; never submit a second release or fabricate successful readiness. External data
+writes and other application effects cannot be rolled back by switching source directories.
+
+Release updates retain the previous release for explicit rollback. Start/rollback verify the
+retained source and current validation policy before activation; stop/remove can still manage
+owned resources after policy or source changes. Remove stops the service and moves only its owned service
+directory outside the live graph. Releases, data, logs and receipts are preserved; it is not a
+purge. The additive deployment table uses the existing development state schema; older bundles
+cannot manage this new surface and must not be chosen as a runtime downgrade while it is needed.
+Project services pin their runner bundle, so tdev controller updates do not rewrite or restart
+them; keep those bundles while their services exist. New release deployment is stop/start with
+possible downtime, not a zero-downtime or multi-project transaction.
 
 ## 9. Evidence and acceptance
 

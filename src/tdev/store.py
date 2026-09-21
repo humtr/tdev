@@ -62,6 +62,10 @@ class Store:
           id TEXT PRIMARY KEY, owner TEXT NOT NULL, policy TEXT NOT NULL,
           authority TEXT NOT NULL, identity TEXT NOT NULL, config TEXT NOT NULL,
           UNIQUE(owner,identity));
+        CREATE TABLE IF NOT EXISTS deployment (
+          id TEXT PRIMARY KEY, owner TEXT NOT NULL, repo TEXT NOT NULL, ref TEXT NOT NULL,
+          identity TEXT NOT NULL, target TEXT NOT NULL, target_digest TEXT NOT NULL,
+          record TEXT NOT NULL, busy TEXT);
         """)
         with self.tx() as db:
             db.execute("PRAGMA user_version=3")
@@ -74,6 +78,7 @@ class Store:
                 db.execute("UPDATE operation SET status='failed',error=? WHERE id=?",
                            (canonical({"code": "INTERRUPTED", "message": "No dispatch or local pointer committed", "effect": "none"}).decode(), row[0]))
                 db.execute("UPDATE task SET busy=NULL WHERE busy=?", (row[0],))
+                db.execute("UPDATE deployment SET busy=NULL WHERE busy=?", (row[0],))
             db.execute("UPDATE operation SET status='unknown',effect='unknown' WHERE status='running'")
             local = db.execute("SELECT id FROM operation WHERE status='unknown' AND kind IN ('edit','task') AND json_extract(intent,'$.refMutation') IS NULL AND json_extract(intent,'$.environmentReset') IS NULL").fetchall()
             for row in local:

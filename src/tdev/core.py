@@ -18,6 +18,7 @@ from .projects import Projects, apply_projects, validate_policies, authority
 from .workspaces import Workspaces
 from .checkout import Checkout
 from .integration import integrate
+from .deployments import Deployments
 
 
 class Controller:
@@ -29,6 +30,7 @@ class Controller:
         self.config = self.load_config()
         self.projects = Projects(self)
         self.workspaces = Workspaces(self)
+        self.deployments = Deployments(self)
         self.gits = {}
         # Tests may inject fixtures; normal installations use the native runner.
         self.executor_override = executor
@@ -100,6 +102,8 @@ class Controller:
     def operation(self, principal, ident):
         row = self.store.one("SELECT * FROM operation WHERE id=?", (ident,))
         require(row and row["owner"] == principal, "OPERATION_NOT_FOUND")
+        if row['kind'] == 'deploy':
+            self.deployments.get(principal, json.loads(row['intent'])['deploymentId'])
         if row['kind'] == 'workspace':
             self.workspaces.get(principal, json.loads(row['intent'])['workspaceId'])
             return row
@@ -128,9 +132,12 @@ class Controller:
             require(not errors, "SCHEMA", "Input does not match the public contract")
             require(len(canonical(args)) <= 2 * 1024 * 1024, "INPUT_LIMIT")
             kind = tool.removeprefix("tdev_")
-            read_only = kind == 'read' or (kind in ('workspace', 'task', 'project') and args.get('action') in ('list', 'inspect')) or (kind == 'operation' and args.get('action') == 'status')
+            read_only = kind == 'read' or (kind in ('workspace', 'task', 'project', 'deploy') and args.get('action') in ('list', 'inspect', 'targets')) or (kind == 'operation' and args.get('action') == 'status')
             require(read_only or not (self.store.root / 'maintenance.json').exists(),
                     'MAINTENANCE', 'Installation update in progress; inspect existing operations and retry later')
+            if kind == 'deploy':
+                result = (self.deployments.read(principal, args) if read_only else self.deployments.change(principal, args))
+                return {'ok': True, 'result': result}
             if kind == 'workspace':
                 if args['action'] == 'list':
                     result = self.workspaces.list(principal, args)
@@ -725,6 +732,8 @@ class Controller:
             try:
                 if row['kind'] == 'project':
                     self.projects.reconcile(row)
+                elif row['kind'] == 'deploy':
+                    self.deployments.advance(row)
                 elif intent.get('environmentReset'):
                     self.reset_environment(row['id'], intent['task'])
                 elif intent.get('refMutation') == 'delete':

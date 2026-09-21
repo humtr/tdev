@@ -24,6 +24,6 @@ class AdapterTest(Base):
         self.repo.config["repositories"]["test"]["validation"] = "exit 9"
         v = self.call("validate", {"requestId": "v", "taskId": w["taskId"], "expected": result["result"]["checkpoint"], "message": "adapter"})
         self.assertEqual(self.wait(v["id"])["status"], "failed")
-        self.assertEqual(len(self.c.schema["x-tools"]), 9)
+        self.assertEqual(len(self.c.schema["x-tools"]), 10)
         for completed in (op, v):
             self.call("operation", {"action": "retire", "requestId": "retire-" + completed["id"], "operationId": completed["id"]})

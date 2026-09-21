@@ -2,6 +2,7 @@ import base64
 import copy
 import json
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 from unittest.mock import patch
 
@@ -169,6 +170,14 @@ class RecoveryTest(Base):
                for i, w in enumerate((w1, w2))]
         entered, release = threading.Event(), threading.Event()
         original = self.executor.observe
+        # Admission does not mean the subprocess has already finished. Keep the
+        # controller rows unreconciled, but establish terminal backend receipts
+        # before testing independence of the two reconciliation locks.
+        deadline = time.monotonic() + 5
+        for op in ops:
+            while not original(op['id']).get('terminal'):
+                self.assertLess(time.monotonic(), deadline, 'Executor did not finish the fixture')
+                time.sleep(.01)
         def observe(ident):
             if ident == ops[0]["id"]:
                 entered.set()

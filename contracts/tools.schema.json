@@ -64,6 +64,15 @@
                 },
                 {
                   "$ref": "#/$defs/WorkspaceInspection"
+                },
+                {
+                  "$ref": "#/$defs/DeploymentList"
+                },
+                {
+                  "$ref": "#/$defs/DeploymentTargets"
+                },
+                {
+                  "$ref": "#/$defs/DeploymentInspection"
                 }
               ]
             }
@@ -1088,6 +1097,12 @@
             "fresh"
           ],
           "description": "Native default task reuses private dependency/cache storage; fresh uses only this operation. Remote supports fresh only. HOME and source remain per-operation."
+        },
+        "timeout": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3600,
+          "description": "Validation deadline in seconds; default 300. Increase for a longer adopted test suite, up to 3600."
         }
       },
       "required": [
@@ -1151,7 +1166,8 @@
             "operation",
             "validate",
             "publish",
-            "project"
+            "project",
+            "deploy"
           ]
         },
         "task": {
@@ -1711,6 +1727,43 @@
             "environmentReset"
           ],
           "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "deploymentId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "revision": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "release": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "desired": {
+              "enum": [
+                "up",
+                "down",
+                "removed"
+              ]
+            },
+            "rolledBack": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "deploymentId",
+            "revision",
+            "release",
+            "desired",
+            "rolledBack"
+          ],
+          "additionalProperties": false
         }
       ]
     },
@@ -1802,7 +1855,8 @@
                   "operation",
                   "validate",
                   "publish",
-                  "project"
+                  "project",
+                  "deploy"
                 ]
               },
               "task": {
@@ -2883,6 +2937,381 @@
         "conflictsTruncated"
       ],
       "additionalProperties": false
+    },
+    "deployInput": {
+      "type": "object",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "targets"
+            }
+          },
+          "required": [
+            "action"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "list"
+            },
+            "after": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          },
+          "required": [
+            "action"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "inspect"
+            },
+            "deploymentId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "offset": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65536
+            },
+            "since": {
+              "type": "string",
+              "maxLength": 64
+            }
+          },
+          "required": [
+            "action",
+            "deploymentId"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "release"
+            },
+            "requestId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "validationId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "target": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "name": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,62}$"
+            },
+            "expectedRevision": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Supply the inspected revision for an update. Omitted resolves the current revision during admission; concurrent changes are still checked."
+            },
+            "command": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 65536,
+              "description": "Foreground command in the exact source release; use TDEV_DATA_DIR for persistent writable data. Task venv/cache and build outputs are not packaged."
+            },
+            "health": {
+              "type": "object",
+              "properties": {
+                "port": {
+                  "type": "integer",
+                  "minimum": 1024,
+                  "maximum": 65535
+                },
+                "path": {
+                  "type": "string",
+                  "pattern": "^/[^\\r\\n ]*$",
+                  "maxLength": 2048
+                }
+              },
+              "required": [
+                "port",
+                "path"
+              ],
+              "additionalProperties": false,
+              "description": "Readiness requires HTTP 200 from 127.0.0.1:port/path with X-Tdev-Release equal to the process TDEV_RELEASE environment value."
+            }
+          },
+          "required": [
+            "action",
+            "requestId",
+            "validationId",
+            "name",
+            "command",
+            "health"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "enum": [
+                "start",
+                "stop",
+                "rollback",
+                "remove"
+              ]
+            },
+            "requestId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "deploymentId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "expectedRevision": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "action",
+            "requestId",
+            "deploymentId",
+            "expectedRevision"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "Deployment": {
+      "type": "object",
+      "properties": {
+        "deploymentId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "target": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "repo": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "service": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "desired": {
+          "enum": [
+            "up",
+            "down",
+            "removed"
+          ]
+        },
+        "release": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "previous": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "deploymentId",
+        "name",
+        "target",
+        "repo",
+        "service",
+        "revision",
+        "desired",
+        "release",
+        "previous"
+      ],
+      "additionalProperties": false
+    },
+    "DeploymentList": {
+      "type": "object",
+      "properties": {
+        "deployments": {
+          "type": "array",
+          "maxItems": 50,
+          "items": {
+            "$ref": "#/$defs/Deployment"
+          }
+        },
+        "nextAfter": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "deployments",
+        "nextAfter"
+      ],
+      "additionalProperties": false
+    },
+    "DeploymentTargets": {
+      "type": "object",
+      "properties": {
+        "targets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+              },
+              "kind": {
+                "const": "termux"
+              },
+              "servicePrefix": {
+                "type": "string",
+                "pattern": "^tdev-app-[a-z0-9-]*$",
+                "maxLength": 40
+              }
+            },
+            "required": [
+              "name",
+              "kind",
+              "servicePrefix"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "targets"
+      ],
+      "additionalProperties": false
+    },
+    "DeploymentInspection": {
+      "type": "object",
+      "properties": {
+        "deployment": {
+          "$ref": "#/$defs/Deployment"
+        },
+        "busy": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "runtime": {
+          "type": "object",
+          "properties": {
+            "running": {
+              "type": "boolean"
+            },
+            "healthy": {
+              "type": "boolean"
+            },
+            "pid": {
+              "type": "integer"
+            },
+            "childPid": {
+              "type": "integer"
+            },
+            "release": {
+              "type": "string"
+            },
+            "healthStatus": {
+              "type": "integer"
+            },
+            "error": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "running",
+            "healthy"
+          ],
+          "additionalProperties": false
+        },
+        "logs": {
+          "type": "object",
+          "properties": {
+            "data": {
+              "type": "string"
+            },
+            "encoding": {
+              "const": "base64"
+            },
+            "offset": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "nextOffset": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "generation": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "size": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "data",
+            "encoding",
+            "offset",
+            "nextOffset",
+            "generation",
+            "size"
+          ],
+          "additionalProperties": false
+        },
+        "observation": {
+          "$ref": "#/$defs/Observation"
+        }
+      },
+      "required": [
+        "deployment",
+        "busy",
+        "runtime",
+        "logs",
+        "observation"
+      ],
+      "additionalProperties": false
     }
   },
   "oneOf": [
@@ -3022,6 +3451,22 @@
         },
         "input": {
           "$ref": "#/$defs/workspaceInput"
+        }
+      },
+      "required": [
+        "tool",
+        "input"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "tool": {
+          "const": "tdev_deploy"
+        },
+        "input": {
+          "$ref": "#/$defs/deployInput"
         }
       },
       "required": [
@@ -3511,6 +3956,69 @@
         "idempotentHint": false,
         "openWorldHint": false
       }
+    },
+    {
+      "name": "tdev_deploy",
+      "description": "Deploy a successfully validated native source candidate to a delegated Termux runit target. Release creates/updates a named owned service and checks process identity plus configured loopback HTTP readiness. Inspect returns current state and rotating logs; start/stop/rollback/remove require revision CAS. Remove preserves data/releases/logs. Observe interrupted effects through tdev_operation status before retrying. Source publication is separate; task dependency directories are not bundled. The app must return HTTP 200 with X-Tdev-Release equal to TDEV_RELEASE; writable state belongs in TDEV_DATA_DIR. Services must stay in the foreground.",
+      "inputSchema": {
+        "$ref": "#/$defs/deployInput"
+      },
+      "outputSchema": {
+        "type": "object",
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "ok": {
+                "const": true
+              },
+              "result": {
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/Operation"
+                  },
+                  {
+                    "$ref": "#/$defs/DeploymentList"
+                  },
+                  {
+                    "$ref": "#/$defs/DeploymentTargets"
+                  },
+                  {
+                    "$ref": "#/$defs/DeploymentInspection"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "ok",
+              "result"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "ok": {
+                "const": false
+              },
+              "error": {
+                "$ref": "#/$defs/Error"
+              }
+            },
+            "required": [
+              "ok",
+              "error"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
     }
   ],
   "x-semantics": {
@@ -3650,6 +4158,12 @@
         "requestId": "reset",
         "taskId": "task",
         "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    {
+      "tool": "tdev_deploy",
+      "input": {
+        "action": "targets"
       }
     }
   ],

@@ -190,6 +190,67 @@ servers at their recorded checkpoints afterward. Environment storage is under pe
 state, outside bundles, so it survives service updates. Native-only features are rejected by
 an explicit remote executor instead of silently changing execution backend.
 
+## Deploy a validated project on Termux
+
+Delegate the local project-service target once (this does not start any service or grant
+repository access):
+
+```sh
+PYTHONPATH=src:.tdev-deps python -m tdev.admin delegate-deployments \
+  --root /absolute/private/installation --principal owner --target termux
+```
+
+ChatGPT can then call `tdev_deploy targets` and `list`.
+
+Validation defaults to 300 seconds. For longer test suites, pass `timeout` (1–3600 seconds)
+to `tdev_validate`; this changes only the deadline, not the adopted validation command or
+exact-source checks. A timeout remains a failed validation and cannot authorize deployment.
+
+After a successful `tdev_validate`, call:
+
+```json
+{
+  "action": "release",
+  "requestId": "demo-release-1",
+  "name": "demo",
+  "validationId": "RETURNED_VALIDATION_ID",
+  "command": "exec python -u app.py",
+  "health": {"port": 8080, "path": "/healthz"}
+}
+```
+
+With one target, omit target; otherwise select its listed name. The app must bind the selected
+local port and return HTTP 200 with `X-Tdev-Release` set to its `TDEV_RELEASE` environment value.
+Persist application data in `TDEV_DATA_DIR`. Use a foreground command; no nohup, shell detachment
+or service-directory edits are required. This initial deployment adapter packages the validated
+source tree, not task caches/venv or build outputs. Use installed tooling or adopted dependency
+paths; a task's development environment is not a deployable dependency bundle.
+
+`inspect` with deploymentId returns current desired/release/revision, supervised process and
+readiness evidence, bounded logs, and a freshness cursor. Logs identify their current inode
+`generation`; reset offset to zero when it changes. `list` has after/limit pagination. A failed
+health check is distinct from a stopped process. Runit continues supervising after controller
+reconnect and restarts crashes; intentional stop persists across shared-root recovery.
+
+Update with `release` using the same name/target, new successful validationId and the observed
+expectedRevision. `start`, `stop`, `rollback`, and `remove` take deploymentId, expectedRevision
+and a new requestId. Rollback selects the retained previous release and checks its current
+validation policy. Remove retains data/releases/logs and never removes foreign services.
+Source-task/workspace close or branch cleanup does not remove a deployment.
+
+An interrupted or failed switch restores the prior desired release. If recovery is temporarily
+unavailable, the operation stays unknown: inspect it using `tdev_operation status` or inspect
+the deployment to reconcile that same effect. Do not submit another release while busy.
+Readiness failure does not mean application data or external effects were rolled back. This
+adapter uses stop/start and may incur downtime. A launch interrupted before child identity is
+recorded needs explicit operator reconciliation instead of automatic duplicate launch.
+
+`PYTHONPATH=src:.tdev-deps python scripts/rehearse_deployments.py` tests the path in a private
+real runit graph, including live HTTP identity, crash/reconnect, updates/rollback, failed
+readiness recovery, deliberate DOWN after root recovery and data-preserving removal. It does
+not use the live shared service graph or a remote provider. Remote/container deployment,
+build-artifact/dependency packaging, secret injection and public ingress remain future adapters.
+
 ## Project management from ChatGPT
 
 Configure each trusted local root or GitHub owner once. These operator commands preserve existing

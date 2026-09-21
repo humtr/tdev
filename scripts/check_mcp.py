@@ -23,7 +23,7 @@ try {
   await client.connect(transport);
   assert.equal(client.getProtocolEra(), 'modern');
   const listed = await client.listTools();
-  assert.equal(listed.tools.length, 9);
+  assert.equal(listed.tools.length, 10);
   const execSchema = listed.tools.find(t => t.name === 'tdev_exec').inputSchema;
   assert(execSchema.properties.mode.enum.includes('process'));
   assert(execSchema.properties.environment.enum.includes('task'));

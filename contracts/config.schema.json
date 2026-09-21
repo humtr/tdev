@@ -55,6 +55,13 @@
           },
           "defaultRepo": {
             "type": "string"
+          },
+          "deploymentTargets": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            }
           }
         },
         "additionalProperties": false
@@ -432,6 +439,30 @@
               ]
             }
           }
+        ],
+        "additionalProperties": false
+      }
+    },
+    "deploymentTargets": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[A-Za-z0-9_.-]+$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "const": "termux"
+          },
+          "servicePrefix": {
+            "type": "string",
+            "pattern": "^tdev-app-[a-z0-9-]*$",
+            "maxLength": 40
+          }
+        },
+        "required": [
+          "kind",
+          "servicePrefix"
         ],
         "additionalProperties": false
       }

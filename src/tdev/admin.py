@@ -272,7 +272,7 @@ def delegate_projects(root, principal, name, local_root=None, github_owner=None,
 
 def main():
     parser = argparse.ArgumentParser(description="Local-only operator actions; stage never starts services")
-    parser.add_argument("action", choices=("stage", "point", "rollback", "check", "init", "prepare-tunnel", "delegate-projects"))
+    parser.add_argument("action", choices=("stage", "point", "rollback", "check", "init", "prepare-tunnel", "delegate-projects", "delegate-deployments"))
     parser.add_argument("--root", required=True)
     parser.add_argument("--source", default=str(Path(__file__).resolve().parents[2]))
     parser.add_argument("--bundle")
@@ -283,6 +283,8 @@ def main():
     parser.add_argument('--validation')
     parser.add_argument('--allow-create', action='store_true')
     parser.add_argument('--namespace', default='refs/heads/tdev-work/')
+    parser.add_argument('--target', default='termux')
+    parser.add_argument('--service-prefix', default='tdev-app-')
     args = parser.parse_args()
     if args.action == "stage":
         result = stage(args.root, args.source)
@@ -298,6 +300,24 @@ def main():
         require(args.policy, 'PROJECT_POLICY_REQUIRED')
         result = delegate_projects(args.root, args.principal, args.policy, args.local_root, args.github_owner,
                                    args.validation, args.allow_create, args.namespace)
+    elif args.action == 'delegate-deployments':
+        from jsonschema import Draft202012Validator
+        filename = Path(args.root) / 'config.json'
+        with open(Path(args.root) / 'config.lock', 'a+b') as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)
+            value = json.loads(private_file(filename))
+            require(args.principal in value['principals'], 'PRINCIPAL_NOT_FOUND')
+            target = {'kind': 'termux', 'servicePrefix': args.service_prefix}
+            previous = value.setdefault('deploymentTargets', {}).get(args.target)
+            require(previous is None or previous == target, 'DEPLOYMENT_TARGET_CHANGED')
+            value['deploymentTargets'][args.target] = target
+            grants = value['principals'][args.principal].setdefault('deploymentTargets', [])
+            if args.target not in grants:
+                grants.append(args.target)
+            schema = json.loads((Path(__file__).resolve().parents[2] / 'contracts/config.schema.json').read_bytes())
+            require(Draft202012Validator(schema).is_valid(value), 'CONFIG')
+            atomic_write(filename, canonical(value))
+        result = {'target': args.target, 'principal': args.principal, 'servicePrefix': args.service_prefix, 'started': False}
     else:
         result = check(args.root)
     print(canonical(result).decode())

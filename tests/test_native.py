@@ -37,6 +37,19 @@ class NativeTest(Base):
         retired = self.call("operation", {"action": "retire", "requestId": "retire", "operationId": op["id"]})
         self.assertEqual(retired["result"], {"retired": True})
 
+    def test_validation_explicit_deadline_stops_without_success(self):
+        self.repo.config['repositories']['test']['validation'] = 'sleep 5'
+        w = self.open()
+        op = self.call('validate', {'requestId': 'deadline', 'taskId': w['taskId'],
+                                  'expected': w['checkpoint'], 'message': 'deadline', 'timeout': 1})
+        done = self.wait(op['id'])
+        self.assertEqual(done['status'], 'failed', done)
+        self.assertTrue(done['result']['timedOut'])
+        self.assertTrue(done['result']['stopped'])
+        self.assertEqual(self.c.task('alice', w['taskId'])['checkpoint'], w['checkpoint'])
+        self.assertEqual(self.call('validate', {'requestId': 'deadline', 'taskId': w['taskId'],
+                         'expected': w['checkpoint'], 'message': 'deadline', 'timeout': 1})['id'], op['id'])
+
     def test_operator_tooling_environment_reused_and_policy_bound(self):
         tooling = self.root / "operator-tooling"
         tooling.mkdir()

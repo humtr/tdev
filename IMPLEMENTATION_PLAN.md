@@ -98,8 +98,7 @@ this does not declare arbitrary project deployment or the complete coding journe
    require manual IDs/OIDs or per-project private configuration changes. Task dependency storage
    and snapshot development processes use existing execution/operation ownership; qualify
    cross-task environment reuse, hot reload or PTY debugging only for a concrete next use case.
-   Support multiple
-   project targets without implying atomic multi-repository publication.
+   Support multiple project targets without implying atomic multi-repository publication.
 3. **Connect the resources needed for that path.** Establish concrete connection/runtime
    identity, delegated authority and lifecycle using the native and Git provider paths first.
    Keep provider effects available through authenticated connections without distributing
@@ -109,6 +108,9 @@ this does not declare arbitrary project deployment or the complete coding journe
    targets and implement deploy/status/log/stop/update/recover/remove semantics. Finish the
    tdev Termux service installation requirements in OPERATIONS as the first concrete resident
    deployment. Distinguish source publication, installation, readiness and actual live behaviour.
+   The first project adapter is delegated Termux runit source releases with explicit HTTP
+   release identity, stopped-service updates, rollback and data-preserving removal. Follow with
+   reproducible dependency/build-artifact packaging before claiming arbitrary app deployment.
    Tests and inactive preparation do not authorize production activation.
 5. **Qualify the whole user journey.** From ChatGPT, start a new local project, develop/debug,
    validate, integrate/publish, deploy to an authorized test target, verify identity/health,
