@@ -192,6 +192,9 @@ an explicit remote executor instead of silently changing execution backend.
 
 ## Deploy a validated project on Termux
 
+The existing source-release path below is independent of the packaging recipe inspection
+described later; inspecting a recipe does not create a deployable artifact.
+
 Delegate the local project-service target once (this does not start any service or grant
 repository access):
 
@@ -558,3 +561,183 @@ and bring up controller/Tunnel independently. Preserve old service/config state.
 rollback refuses an active controller, unknown/running operations or incompatible schema.
 Rollback selects the previous verified bundle; it does not start services or rewrite Git.
 Same-UID hostile code can tamper with installations: verification is not OS isolation.
+
+## Inspect a packaging recipe
+
+The source checkout exposes `tdev_artifact` action `inspectRecipe`. Add `tdev-package.json`
+to the project, validate that source through `tdev_validate`, then use its returned validation
+handle. `path` is optional and defaults to that filename:
+
+```json
+{"action":"inspectRecipe","validationId":"RETURNED_VALIDATION_ID"}
+```
+
+The model passes returned handles; the user need not copy IDs or digests. Recipe fields and
+bounds are defined by `ArtifactRecipe` in `contracts/tools.schema.json`. A recipe declares
+explicit source input files, content-pinned public HTTPS dependencies (an empty list is valid),
+build command/platform/tool digests, exported relative roots, output kind and target platform.
+Only service recipes add a launch command/cwd, runtime requirements and non-secret environment.
+The build command runs from the frozen source root. Pin `sh` plus the declared build executables
+by SHA-256. Preparation checks the native host OS/architecture/ABI and those executable bytes;
+inspection alone does not check installed tools. This is not a complete host/toolchain attestation.
+
+Inspection returns the exact candidate, source tree, recipe/input identities, current policy
+digests and a binding digest, with `buildExecuted=false`. It continues to inspect that frozen
+source after task edits or close. Pending/unknown validation must first be observed using its
+original operation; recipe inspection never runs recovery. No target or additional project
+permission grant is needed beyond access to the source validation. It also works while new
+mutations are fenced for an installation update.
+
+Neither recipes nor callers can replace the adopted verification command. Optional operator
+`artifactValidation` on a repository or delegated project policy selects the artifact
+check; otherwise the existing `validation` command is used against the artifact layout.
+That layout must contain what the command needs; missing checks do not become an implicit PASS.
+Changing this policy changes the binding; it does not change captured source bytes.
+
+To build and retain the declared exports:
+
+```json
+{"action":"prepare","requestId":"package-attempt-1","validationId":"RETURNED_VALIDATION_ID","timeout":300}
+```
+
+Reuse that request after a lost reply. The returned operation ID is also the artifact handle.
+Observe it with `tdev_operation status`; use its output for build failures and `cancel` to stop.
+Task edits and close do not change the accepted build. `tdev_artifact list` shows recent and
+outstanding builds; an optional `taskId` filters them. `inspect` with `artifactId` rechecks the
+retained manifest/files/distributions. `artifactValidated` is derived from a successful artifact
+check under current policy/runtime; its `artifactValidationId` identifies that receipt when valid.
+Build success and byte integrity alone do not substitute for the artifact verification command.
+
+Commands receive content-checked public dependencies as `$TDEV_INPUT_DIR/<dependency-name>`.
+Use `$TDEV_BUILD_DIR` for intermediates and declared source-relative exports for final outputs.
+The task venv/cache and toolingEnvironment are not inherited. Source mutations and undeclared
+new files fail capture. HTTPS redirects are refused: use a final content-pinned URL. This first
+acquirer neither resolves transitive dependencies nor supports private credentials; enumerate
+the needed distributions. Native host network access is not disabled or sandboxed.
+
+Initial limits: 64 MiB output, 64 MiB distributions, 4,096 output files, 1 MiB manifest,
+128 MiB sampled aggregate build working storage and eight outstanding builds per principal.
+These are small-fixture limits, not a claim of full Android toolchain qualification. After
+completion, `tdev_operation retire` removes operation scratch while retaining artifact bytes.
+Unknown operations without stopped evidence cannot be retired; observe their original identity.
+Retained artifacts have no automatic GC. Use explicit preview/prune below to release storage.
+
+Signing transformations remain a later extension. Export/prune and packaging budgets are available below.
+For the qualified relocatable pure-Python layout, see [the example](examples/python-package/README.md).
+Service `inspect` also returns `runtimeCompatibility`; incompatibility does not erase byte-integrity
+evidence or rebuild anything. Optional `service.runtime.files` pins required absolute host-library
+file hashes. Missing/changed host requirements must be restored or an artifact explicitly rebuilt
+and revalidated for the new runtime. Artifact verification/start/rollback repeat these checks.
+The resident installation continues to expose its installed
+contract until a separately verified update. Refreshing the connector alone cannot load code
+that has only changed in the development checkout.
+
+## Validate and deploy a retained artifact
+
+After a successful build, call `tdev_validate` with its artifact handle. For a file/archive
+artifact, omit `health`; no HTTP service or deployment target is required:
+
+```json
+{"subject":"artifact","requestId":"package-check-1","artifactId":"RETURNED_ARTIFACT_ID","timeout":300}
+```
+
+For a service, supply a free loopback test port and the intended health path:
+
+```json
+{"subject":"artifact","requestId":"service-check-1","artifactId":"RETURNED_ARTIFACT_ID","health":{"port":18881,"path":"/healthz"},"timeout":300}
+```
+
+The service must use `TDEV_PORT`, run in the foreground and answer HTTP 200 with
+`X-Tdev-Release: <TDEV_RELEASE>`. Verification launches the actual recipe command and executes
+the mandatory project check in its service cwd. File checks run at the exported-files root.
+`TDEV_ARTIFACT_DIR` points to exported files; HOME/TMP/`TDEV_DATA_DIR` are external scratch.
+Include any required check script in the package. A missing check or early service exit fails;
+verification must not modify sealed files. Use a test port distinct from a serving deployment.
+
+Observe the returned validation with `tdev_operation status`. After success, release a service
+with `tdev_deploy` using the validation operation ID, a stable application name and target port:
+
+```json
+{"action":"release","subject":"artifact","requestId":"service-release-1","validationId":"RETURNED_ARTIFACT_VALIDATION_ID","name":"my-app","health":{"port":18880,"path":"/healthz"}}
+```
+
+Use the existing delegated target/default. Command overrides are rejected; the health path must
+match validation. Update, inspection/logs, start/stop, rollback and removal use the existing
+deployment actions and revision checks. Retiring source/build/validation scratch before release
+is supported. Source publication still needs source validation, never an artifact receipt.
+
+Start/rollback check retained content, current policy and host compatibility before stopping
+the existing service; they never install dependencies to repair an incompatible package.
+Removal preserves application data. If recovery cannot safely restore an earlier release,
+observe the original unknown operation; do not launch a replacement attempt blindly.
+
+Artifact admission now advances private state to internal schema 5. Source-only state stays at 3;
+existing schema-4 metadata is preserved. Bundles supporting only schema 3/4 cannot subsequently
+activate against schema-5 state. This does not change the authorized 0.1 product line.
+Installed runtime acceptance remains outstanding.
+
+## Export, inspect usage and prune retained artifacts
+
+`tdev_artifact export` reads a declared output file, including a recipe-produced archive/package.
+It does not create an archive or write to a supplied host path:
+
+```json
+{"action":"export","artifactId":"RETURNED_ARTIFACT_ID","path":"dist/output.zip","offset":0,"limit":49152}
+```
+
+Decode `data` as base64 and continue at `nextOffset` until `eof`. Verify the assembled file
+against the returned whole-file `sha256`. The maximum page is 65,536 raw bytes; retained integrity
+is rechecked for every page. This initial API trades throughput for bounded responses and current
+verification; it is not a streaming download endpoint. It needs no service or deployment grant.
+
+`usage` accepts `limit` (up to 50) and `before`, returning `nextBefore`. Counts/bytes cover this
+page of authorized retained references, deduplicated within the page. Shared content can recur
+on another page, so do not sum pages as a unique physical-disk total. Unmeasured older records
+are counted explicitly. Deployment release copies, native scratch and sealing temporaries are
+outside these totals. `list` and original operation status also report `artifactStorage`.
+
+Before deletion, obtain a current preview:
+
+```json
+{"action":"prunePreview","artifactId":"RETURNED_ARTIFACT_ID"}
+```
+
+If `canPrune` is true, submit its token:
+
+```json
+{"action":"prune","requestId":"prune-package-1","artifactId":"RETURNED_ARTIFACT_ID","expectedPreview":"RETURNED_PREVIEW_TOKEN"}
+```
+
+Pins and policy are checked again, so a concurrent release invalidates eligibility. Current and
+previous deployment versions, including stopped deployments, are protected. In-flight/unknown
+validation and deployment effects are protected. Unknown builds retain their own capture and
+capacity reservation; they do not block cleanup of unrelated completed builds.
+`sharedObject=true` means another build reference retains the same content. Pruning one reference
+does not remove those shared bytes. No caller path or wildcard is accepted.
+
+An interrupted prune is an ordinary unknown operation. Observe/replay that same operation/request
+to finish its owned tombstone cleanup; do not guess a filesystem cleanup command. Historical build
+success remains recorded, while its storage state becomes `pruned`. Inspect returns the prune
+operation handle and retained identity; a previous validation cannot reactivate that reference.
+This state means the build reference is retired; physical cleanup is complete only when the
+referenced prune operation succeeds. An unknown prune may still have owned bytes awaiting cleanup.
+Task close and operation scratch retirement remain independent. Deployment remove preserves app
+data and historical release copies; artifact prune does not delete those copies or user data.
+
+Optional top-level operator `artifactLimits` controls packaging resources. Defaults are:
+
+| Field | Default | Meaning |
+|---|---|---|
+| `outputBytes` | 67,108,864 | Sealed exported files; operator can lower this ceiling |
+| `inputBytes` | 67,108,864 | Downloaded distributions; operator can lower this ceiling |
+| `files` | 4,096 | Exported file count; operator can lower this ceiling |
+| `workingBytes` | 134,217,728 | Sampled operation source/HOME/TMP/input/build/test storage; configurable up to 2 GiB |
+| `timeoutSeconds` | 3,600 | Maximum requested build/verification timeout; default request remains at most 300s |
+| `retainedBytes` | 2,147,483,648 | Retained-object admission budget, including build reservations and unfinished pruning |
+| `retentionSeconds` | 0 | Minimum build retention age before explicit prune; never enables automatic GC |
+
+New builds reserve maximum output+input+1 MiB manifest capacity. If capacity is exhausted, prune
+eligible artifacts explicitly or adjust operator policy. Unknown builds keep their reservations;
+lowering a budget does not cancel already accepted work. Existing source-copy/task dependency
+limits remain separate. These are sampled/managed resource budgets, not an OS disk quota, and do
+not qualify large APK/AAB/native toolchains. The resident installation is unchanged until delivery.

@@ -297,3 +297,22 @@ class ProjectTest(Base):
             self.assertEqual(self.c.call('alice', 'tdev_project', {'action': 'create', 'requestId': 'bad', 'policy': 'dev', 'name': 'bad', key: value})['error']['code'], 'SCHEMA')
         self.repo.config['principals']['alice']['defaultRepo'] = 'test'
         self.assertEqual(self.start()['repo'], 'test')
+
+    def test_artifact_validation_policy_is_current_and_removal_does_not_stick(self):
+        from tdev.artifacts import artifact_policy
+        policy = self.policy()
+        policy['artifactValidation'] = 'python verify_package.py'
+        created = self.call('project', {'action': 'create', 'requestId': 'package-project',
+                                       'policy': 'dev', 'name': 'package-project'})['result']
+        repo = created['repo']
+        first = self.c.load_config()['repositories'][repo]
+        self.assertEqual(first['artifactValidation'], policy['artifactValidation'])
+        first_digest = artifact_policy(self.c, first)
+        policy['artifactValidation'] = 'python other_check.py'
+        changed = self.c.load_config()['repositories'][repo]
+        self.assertNotEqual(artifact_policy(self.c, changed), first_digest)
+        del policy['artifactValidation']
+        current = self.c.load_config()['repositories'][repo]
+        self.assertNotIn('artifactValidation', current)
+        explicit_default = {**current, 'artifactValidation': current['validation']}
+        self.assertEqual(artifact_policy(self.c, current), artifact_policy(self.c, explicit_default))

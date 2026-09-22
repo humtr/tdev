@@ -20,6 +20,11 @@ def verify_release(directory):
     require(not directory.is_symlink(), 'RELEASE_IDENTITY')
     manifest = json.loads((directory / 'manifest.json').read_bytes())
     require(digest(manifest) == directory.name, 'RELEASE_IDENTITY')
+    if 'artifact' in manifest:
+        from tdev.artifact_build import verify_storage
+        artifact = verify_storage(directory / 'artifact', manifest['artifact']['contentDigest'])
+        require(artifact['recipe']['kind'] == 'service' and manifest['command'] == artifact['recipe']['service']['command'], 'RELEASE_CHANGED')
+        return manifest
     source = directory / 'source'
     require(not source.is_symlink() and source.is_dir(), 'RELEASE_CHANGED')
     actual = set()
@@ -36,6 +41,16 @@ def verify_release(directory):
         else:
             require(not file.is_symlink() and file.is_file() and digest(file.read_bytes()) == entry['digest'], 'RELEASE_CHANGED')
             require(bool(file.stat().st_mode & 0o111) == (entry['mode'] == '100755'), 'RELEASE_CHANGED')
+    return manifest
+
+
+def check_release_runtime(directory):
+    manifest = verify_release(directory)
+    if 'artifact' in manifest:
+        from tdev.artifact_build import verify_storage
+        from tdev.artifact_runtime import verify_runtime
+        artifact = verify_storage(directory / 'artifact', manifest['artifact']['contentDigest'])
+        verify_runtime(artifact['recipe']['service'], environment(directory)['PATH'])
     return manifest
 
 
@@ -80,13 +95,21 @@ def serve(root):
     stop_previous(root)
     directory = (root / 'active').resolve(strict=True)
     require(directory.parent == root / 'releases', 'RELEASE_SCOPE')
-    manifest = verify_release(directory)
+    manifest = check_release_runtime(directory)
     libc = ctypes.CDLL(None, use_errno=True)
     require(libc.prctl(36, 1, 0, 0, 0) == 0 and libc.prctl(38, 1, 0, 0, 0) == 0, 'SUBREAPER_UNAVAILABLE')
     for name in ('home', 'tmp', 'data'):
         (root / name).mkdir(mode=0o700, exist_ok=True)
     env = environment(root)
-    env.update(manifest['environment'])
+    if 'artifact' in manifest:
+        from tdev.artifact_runtime import service_launch
+        launch = service_launch(directory / 'artifact', manifest['artifact']['contentDigest'], root / 'artifact-runtime')
+        env = launch['env']
+        argv, cwd = launch['argv'], launch['cwd']
+        env['TDEV_PORT'] = str(manifest['health']['port'])
+    else:
+        env.update(manifest['environment'])
+        argv, cwd = [shutil.which('sh'), '-c', manifest['command']], directory / 'source'
     env.update(TDEV_RELEASE=directory.name, TDEV_DATA_DIR=str(root / 'data'), PYTHONDONTWRITEBYTECODE='1')
     stopped = False
     def stop(*_):
@@ -98,7 +121,7 @@ def serve(root):
     atomic_write(root / 'runtime.json', canonical(receipt))
     child = None
     try:
-        child = subprocess.Popen([shutil.which('sh'), '-c', manifest['command']], cwd=directory / 'source',
+        child = subprocess.Popen(argv, cwd=cwd,
                                  env=env, stdin=subprocess.DEVNULL, start_new_session=True, close_fds=True)
         receipt.update(child=identity(child.pid), phase='running')
         require(receipt['child'], 'DEPLOYMENT_LAUNCH_UNKNOWN')

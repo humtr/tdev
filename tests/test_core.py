@@ -42,7 +42,8 @@ class Base(unittest.TestCase):
         return result["result"]
 
     def wait(self, ident):
-        for _ in range(100):
+        deadline = time.monotonic() + 20
+        while time.monotonic() < deadline:
             result = self.call("operation", {"action": "status", "operationId": ident})
             if result["status"] not in ("running", "unknown"):
                 return result

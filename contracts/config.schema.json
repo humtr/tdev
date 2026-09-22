@@ -245,6 +245,13 @@
           "checkoutIdentity": {
             "type": "string",
             "pattern": "^local:[0-9]+:[0-9]+$"
+          },
+          "artifactValidation": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096,
+            "pattern": "^[^\\u0000]+$",
+            "description": "Adopted command for later sealed-artifact verification. Defaults to validation, executed against the artifact layout. Recipes cannot replace this policy. Not executed by inspectRecipe."
           }
         },
         "additionalProperties": false,
@@ -401,6 +408,13 @@
           "managedRefNamespace": {
             "type": "string",
             "pattern": "^refs/heads/[A-Za-z0-9_./-]+/$"
+          },
+          "artifactValidation": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096,
+            "pattern": "^[^\\u0000]+$",
+            "description": "Adopted command for later sealed-artifact verification. Defaults to validation, executed against the artifact layout. Recipes cannot replace this policy. Not executed by inspectRecipe."
           }
         },
         "required": [
@@ -466,10 +480,53 @@
         ],
         "additionalProperties": false
       }
+    },
+    "artifactLimits": {
+      "type": "object",
+      "properties": {
+        "outputBytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 67108864
+        },
+        "inputBytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 67108864
+        },
+        "files": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4096
+        },
+        "workingBytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483648
+        },
+        "timeoutSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3600
+        },
+        "retainedBytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 68719476736
+        },
+        "retentionSeconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 31536000
+        }
+      },
+      "additionalProperties": false
     }
   },
   "additionalProperties": false,
   "x-stateVersions": [
-    3
+    3,
+    4,
+    5
   ]
 }

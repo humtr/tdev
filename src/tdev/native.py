@@ -158,9 +158,9 @@ def scan(root, initial, extras, ignore, validation=False):
     return sorted(files, key=lambda f: f["path"])
 
 
-def disk_usage(job, dependency_root=None):
+def disk_usage(job, dependency_root=None, max_bytes=None):
     total, count = 0, 0
-    for root in ((dependency_root,) if dependency_root else (job / "work", job / "home", job / "tmp")):
+    for root in ((dependency_root,) if dependency_root else (job / "work", job / "home", job / "tmp", job / "inputs", job / "build", job / "artifact-input", job / "data", job / "service-runtime")):
         for base, dirs, names in os.walk(root, followlinks=False):
             for name in names:
                 try:
@@ -168,20 +168,23 @@ def disk_usage(job, dependency_root=None):
                     count += 1
                 except FileNotFoundError:
                     pass
-                if total > (ENVIRONMENT_LIMIT if dependency_root else DISK_LIMIT) or count > 100000:
+                if total > (ENVIRONMENT_LIMIT if dependency_root else (max_bytes or DISK_LIMIT)) or count > 100000:
                     return True
     return False
 
 
 def child(job):
     payload = json.loads((job / "request.json").read_bytes())
-    limits = [(resource.RLIMIT_CORE, 0), (resource.RLIMIT_FSIZE, DISK_LIMIT), (resource.RLIMIT_NOFILE, 256)]
+    limits = [(resource.RLIMIT_CORE, 0), (resource.RLIMIT_FSIZE, payload.get('artifactLimits', {}).get('workingBytes', DISK_LIMIT)), (resource.RLIMIT_NOFILE, 256)]
     if payload['timeout'] is not None:
         limits.append((resource.RLIMIT_CPU, payload['timeout'] + 1))
     for limit, amount in limits:
         _, hard = resource.getrlimit(limit)
         value = amount if hard == resource.RLIM_INFINITY else min(amount, hard)
         resource.setrlimit(limit, (value, value))
+    if payload.get('artifactValidation'):
+        from tdev.artifact_validation import run_check
+        raise SystemExit(run_check(job, payload))
     env = environment(job)
     # Keep the private default credential lookup locations, even when callers add env.
     require(not set(payload["env"]) & {"HOME", "TMPDIR", "XDG_CONFIG_HOME", "GIT_CONFIG_GLOBAL", "GIT_CONFIG_SYSTEM", "SSH_AUTH_SOCK", "TDEV_ENV_DIR"}, "RESERVED_ENV")
@@ -190,6 +193,9 @@ def child(job):
     if payload.get('environmentId'):
         root = environment_path(job.parent, payload['environmentId'])
         env['PATH'] = os.pathsep.join((str(root / 'venv/bin'), str(root / 'bin'), env['PATH']))
+    if payload.get('artifactBinding'):
+        from tdev.artifact_build import prepare_child
+        prepare_child(job, payload['artifactBinding'], env, payload.get('artifactLimits'))
     root = job / "work"
     cwd = (root / path(payload["cwd"], dot=True)).resolve(strict=True)
     require(cwd == root or root in cwd.parents, "CWD_SCOPE")
@@ -223,16 +229,23 @@ def worker(job):
                 dependency_root.mkdir(mode=0o700, exist_ok=True)
             for name in ("home", "tmp"):
                 (job / name).mkdir(mode=0o700)
-            source = job / "work"
-            materialize(payload["files"], source)
-            prepare_git(source, payload)
-            ignore = job / "ignore"
-            run(["git", "init", "--template=", str(ignore)], env=environment(job))
-            for entry in payload["files"]:
-                if entry["path"].split("/")[-1] == ".gitignore" and entry["mode"] != "120000":
-                    filename = ignore / entry["path"]
-                    filename.parent.mkdir(parents=True, exist_ok=True)
-                    filename.write_bytes(base64.b64decode(entry["data"]))
+            if payload.get('artifactValidation'):
+                from tdev.artifact_build import verify_storage
+                selected = payload['artifactValidation']
+                verify_storage(Path(selected['directory']), selected['contentDigest'])
+                shutil.copytree(selected['directory'], job / 'artifact-input', symlinks=True)
+                verify_storage(job / 'artifact-input', selected['contentDigest'])
+            else:
+                source = job / "work"
+                materialize(payload["files"], source)
+                prepare_git(source, payload)
+                ignore = job / "ignore"
+                run(["git", "init", "--template=", str(ignore)], env=environment(job))
+                for entry in payload["files"]:
+                    if entry["path"].split("/")[-1] == ".gitignore" and entry["mode"] != "120000":
+                        filename = ignore / entry["path"]
+                        filename.parent.mkdir(parents=True, exist_ok=True)
+                        filename.write_bytes(base64.b64decode(entry["data"]))
             if (job / "cancel.json").exists():
                 result["cancelled"] = True
             else:
@@ -240,6 +253,7 @@ def worker(job):
                 proc = subprocess.Popen([sys.executable, "-I", str(Path(__file__).resolve()), "child", str(job)],
                                         env=environment(job), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                         stderr=subprocess.STDOUT, close_fds=True)
+                save(job / 'child.json', identity(proc.pid))
                 os.set_blocking(proc.stdin.fileno(), False)
                 os.set_blocking(proc.stdout.fileno(), False)
                 pump = InputPump(job, payload["stdin"])
@@ -252,7 +266,7 @@ def worker(job):
                         result["cancelled"] = (job / "cancel.json").exists()
                         result["timedOut"] = now >= deadline
                         if now >= next_scan:
-                            if disk_usage(job):
+                            if disk_usage(job, max_bytes=payload.get('artifactLimits', {}).get('workingBytes')):
                                 result["captureError"] = "DISK_LIMIT"
                             next_scan = now + .25
                         if dependency_root and now >= next_dependency_scan:
@@ -291,12 +305,28 @@ def worker(job):
                 result["discardedBytes"] = discarded
             require(stop_children(proc), "STOP_UNCERTAIN")
             result["stopped"] = True
-            if payload.get('mode') != 'process':
+            if payload.get('artifactLimits'):
+                require(not disk_usage(job, max_bytes=payload['artifactLimits']['workingBytes']), 'DISK_LIMIT')
+            if payload.get('artifactValidation'):
+                selected = payload['artifactValidation']
+                verify_storage(job / 'artifact-input', selected['contentDigest'])
+                verify_storage(Path(selected['directory']), selected['contentDigest'])
+                if result.get('exitCode') == 0 and not any(result.get(k) for k in ('captureError', 'cancelled', 'timedOut')):
+                    proof = json.loads((job / 'artifact-check.json').read_bytes())
+                    require(proof.get('id') == payload['id'] and proof.get('contentDigest') == selected['contentDigest']
+                            and type(proof.get('exitCode')) is int and proof['exitCode'] == 0
+                            and proof.get('serviceChecked') == bool(selected.get('health')), 'ARTIFACT_CHECK_RECEIPT')
+                    result['artifactChecked'] = True
+            elif payload.get('mode') != 'process':
                 captured = scan(source, payload["files"], payload["capturePaths"], ignore, payload["readonly"])
                 if payload["readonly"]:
                     require(captured == sorted(payload["files"], key=lambda f: f["path"]), "VALIDATION_SOURCE_CHANGED")
                 elif not result.get("captureError"):
                     result["files"] = captured
+            if payload.get('artifactBinding') and result.get('exitCode') == 0 and not any(result.get(k) for k in ('cancelled', 'timedOut', 'captureError')):
+                from tdev.artifact_build import capture
+                require(not disk_usage(job, max_bytes=payload.get('artifactLimits', {}).get('workingBytes')), 'DISK_LIMIT')
+                result['artifactDigest'] = capture(job, payload['artifactBinding'], payload['files'], payload.get('artifactLimits'))
             if dependency_root and disk_usage(job, dependency_root):
                 result.pop('files', None)
                 result['captureError'] = 'ENVIRONMENT_DISK_LIMIT'
@@ -377,7 +407,10 @@ class NativeExecutor:
         return {"terminal": False}
 
     def logs(self, ident, offset, limit):
-        return rpc(str(self.root), "", {"action": "logs", "id": ident, "offset": offset, "limit": limit})
+        result = rpc(str(self.root), "", {"action": "logs", "id": ident, "offset": offset, "limit": limit})
+        if 'error' in result:
+            raise Fault(result['error'], effect=result.get('effect', 'unknown'))
+        return result
 
     def control(self, ident, args, control_id):
         if args["action"] == "stdin":
@@ -400,7 +433,7 @@ class NativeExecutor:
                 save(job / "retired.json", {"inputDigest": result["inputDigest"]})
                 result.pop("files", None)
                 save(job / "result.json", result)
-                for name in ("work", "home", "tmp", "ignore"):
+                for name in ("work", "home", "tmp", "ignore", "inputs", "build", "artifact-staging", "artifact", "artifact-input", "data", "service-runtime"):
                     directory = job / name
                     require(not directory.is_symlink(), "SPOOL_SYMLINK")
                     if directory.exists():

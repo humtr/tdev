@@ -32,7 +32,7 @@ class Store:
         self.db.execute("PRAGMA synchronous=FULL")
         self.db.execute("PRAGMA foreign_keys=ON")
         version = self.db.execute("PRAGMA user_version").fetchone()[0]
-        if version not in (0, 3):
+        if version not in (0, 3, 4, 5):
             self.close()
             raise Fault("SCHEMA_VERSION", "This pre-release requires a fresh state directory; existing state was not migrated or deleted")
         self.db.executescript("""
@@ -58,6 +58,9 @@ class Store:
           status TEXT NOT NULL, effect TEXT NOT NULL, intent TEXT NOT NULL,
           result TEXT, error TEXT, publication TEXT UNIQUE,
           UNIQUE(owner,request));
+        CREATE TABLE IF NOT EXISTS artifact (
+          operation TEXT PRIMARY KEY REFERENCES operation(id), digest TEXT NOT NULL,
+          bytes INTEGER, retained_ns INTEGER NOT NULL DEFAULT 0, pruned TEXT);
         CREATE TABLE IF NOT EXISTS project (
           id TEXT PRIMARY KEY, owner TEXT NOT NULL, policy TEXT NOT NULL,
           authority TEXT NOT NULL, identity TEXT NOT NULL, config TEXT NOT NULL,
@@ -67,8 +70,14 @@ class Store:
           identity TEXT NOT NULL, target TEXT NOT NULL, target_digest TEXT NOT NULL,
           record TEXT NOT NULL, busy TEXT);
         """)
+        columns = {r['name'] for r in self.db.execute('PRAGMA table_info(artifact)')}
         with self.tx() as db:
-            db.execute("PRAGMA user_version=3")
+            for name, declaration in [('bytes', 'INTEGER'), ('retained_ns', 'INTEGER NOT NULL DEFAULT 0'), ('pruned', 'TEXT')]:
+                if name not in columns:
+                    db.execute('ALTER TABLE artifact ADD COLUMN ' + name + ' ' + declaration)
+            import time
+            db.execute('UPDATE artifact SET retained_ns=? WHERE retained_ns=0', (time.time_ns(),))
+            db.execute("PRAGMA user_version=" + str(5 if version == 5 else 4 if version == 4 or db.execute("SELECT 1 FROM operation WHERE kind='artifact' LIMIT 1").fetchone() else 3))
         os.chmod(self.root / "state.sqlite", 0o600)
         # A local pointer and its result were one transaction. Interrupted local work
         # cannot have committed. External work must be observed, never relaunched.

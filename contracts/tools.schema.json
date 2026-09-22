@@ -73,6 +73,27 @@
                 },
                 {
                   "$ref": "#/$defs/DeploymentInspection"
+                },
+                {
+                  "$ref": "#/$defs/ArtifactRecipeInspection"
+                },
+                {
+                  "$ref": "#/$defs/ArtifactInspection"
+                },
+                {
+                  "$ref": "#/$defs/ArtifactList"
+                },
+                {
+                  "$ref": "#/$defs/ArtifactUsage"
+                },
+                {
+                  "$ref": "#/$defs/ArtifactExport"
+                },
+                {
+                  "$ref": "#/$defs/ArtifactPrunePreview"
+                },
+                {
+                  "$ref": "#/$defs/ArtifactPrunedInspection"
                 }
               ]
             }
@@ -1073,45 +1094,99 @@
     },
     "validateInput": {
       "type": "object",
-      "properties": {
-        "requestId": {
-          "type": "string",
-          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
-        },
-        "taskId": {
-          "type": "string",
-          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
-        },
-        "expected": {
-          "type": "string",
-          "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
-        },
-        "message": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 4096
-        },
-        "environment": {
-          "enum": [
-            "task",
-            "fresh"
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "requestId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "taskId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "expected": {
+              "type": "string",
+              "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+            },
+            "message": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096
+            },
+            "environment": {
+              "enum": [
+                "task",
+                "fresh"
+              ],
+              "description": "Native default task reuses private dependency/cache storage; fresh uses only this operation. Remote supports fresh only. HOME and source remain per-operation."
+            },
+            "timeout": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3600,
+              "description": "Validation deadline in seconds; default 300. Increase for a longer adopted test suite, up to 3600."
+            }
+          },
+          "required": [
+            "requestId",
+            "taskId",
+            "expected",
+            "message"
           ],
-          "description": "Native default task reuses private dependency/cache storage; fresh uses only this operation. Remote supports fresh only. HOME and source remain per-operation."
+          "additionalProperties": false
         },
-        "timeout": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 3600,
-          "description": "Validation deadline in seconds; default 300. Increase for a longer adopted test suite, up to 3600."
+        {
+          "type": "object",
+          "properties": {
+            "subject": {
+              "const": "artifact"
+            },
+            "requestId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "artifactId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "health": {
+              "type": "object",
+              "properties": {
+                "port": {
+                  "type": "integer",
+                  "minimum": 1024,
+                  "maximum": 65535
+                },
+                "path": {
+                  "type": "string",
+                  "pattern": "^/[^\\r\\n ]*$",
+                  "maxLength": 2048
+                }
+              },
+              "required": [
+                "port",
+                "path"
+              ],
+              "additionalProperties": false,
+              "description": "Readiness requires HTTP 200 from 127.0.0.1:port/path with X-Tdev-Release equal to the process TDEV_RELEASE environment value."
+            },
+            "timeout": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3600,
+              "description": "Validation deadline in seconds; default 300. Increase for a longer adopted test suite, up to 3600."
+            }
+          },
+          "required": [
+            "subject",
+            "requestId",
+            "artifactId"
+          ],
+          "additionalProperties": false
         }
-      },
-      "required": [
-        "requestId",
-        "taskId",
-        "expected",
-        "message"
-      ],
-      "additionalProperties": false
+      ]
     },
     "publishInput": {
       "type": "object",
@@ -1167,7 +1242,8 @@
             "validate",
             "publish",
             "project",
-            "deploy"
+            "deploy",
+            "artifact"
           ]
         },
         "task": {
@@ -1319,6 +1395,29 @@
             "checkpoint",
             "environment",
             "timeout"
+          ],
+          "additionalProperties": false
+        },
+        "artifactStorage": {
+          "type": "object",
+          "properties": {
+            "state": {
+              "enum": [
+                "unretained",
+                "retained",
+                "pruned"
+              ]
+            },
+            "pruneOperationId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "state",
+            "pruneOperationId"
           ],
           "additionalProperties": false
         }
@@ -1764,6 +1863,15 @@
             "rolledBack"
           ],
           "additionalProperties": false
+        },
+        {
+          "$ref": "#/$defs/ArtifactBuildResult"
+        },
+        {
+          "$ref": "#/$defs/ArtifactValidationResult"
+        },
+        {
+          "$ref": "#/$defs/ArtifactPruneResult"
         }
       ]
     },
@@ -1856,7 +1964,8 @@
                   "validate",
                   "publish",
                   "project",
-                  "deploy"
+                  "deploy",
+                  "artifact"
                 ]
               },
               "task": {
@@ -2048,6 +2157,13 @@
             "present"
           ],
           "additionalProperties": false
+        },
+        "builds": {
+          "type": "array",
+          "maxItems": 24,
+          "items": {
+            "$ref": "#/$defs/Operation"
+          }
         }
       },
       "required": [
@@ -3073,6 +3189,68 @@
           "type": "object",
           "properties": {
             "action": {
+              "const": "release"
+            },
+            "requestId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "validationId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "target": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "name": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,62}$"
+            },
+            "expectedRevision": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Supply the inspected revision for an update. Omitted resolves the current revision during admission; concurrent changes are still checked."
+            },
+            "health": {
+              "type": "object",
+              "properties": {
+                "port": {
+                  "type": "integer",
+                  "minimum": 1024,
+                  "maximum": 65535
+                },
+                "path": {
+                  "type": "string",
+                  "pattern": "^/[^\\r\\n ]*$",
+                  "maxLength": 2048
+                }
+              },
+              "required": [
+                "port",
+                "path"
+              ],
+              "additionalProperties": false,
+              "description": "Readiness requires HTTP 200 from 127.0.0.1:port/path with X-Tdev-Release equal to the process TDEV_RELEASE environment value."
+            },
+            "subject": {
+              "const": "artifact"
+            }
+          },
+          "required": [
+            "action",
+            "requestId",
+            "validationId",
+            "name",
+            "health",
+            "subject"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
               "enum": [
                 "start",
                 "stop",
@@ -3312,6 +3490,1105 @@
         "observation"
       ],
       "additionalProperties": false
+    },
+    "ArtifactPath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024,
+      "description": "Canonical relative path; no traversal, backslashes, control characters or .git components. Additional path/overlap checks are enforced by the controller."
+    },
+    "ArtifactPlatform": {
+      "type": "object",
+      "properties": {
+        "os": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.+-]{0,63}$"
+        },
+        "arch": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.+-]{0,63}$"
+        },
+        "abi": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.+-]{0,63}$"
+        }
+      },
+      "required": [
+        "os",
+        "arch",
+        "abi"
+      ],
+      "additionalProperties": false
+    },
+    "ArtifactTool": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.+-]{0,63}$"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "name",
+        "sha256"
+      ],
+      "additionalProperties": false
+    },
+    "ArtifactBuild": {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "pattern": "^[^\\u0000]+$"
+        },
+        "platform": {
+          "$ref": "#/$defs/ArtifactPlatform"
+        },
+        "tools": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ArtifactTool"
+          },
+          "minItems": 1,
+          "maxItems": 32,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "command",
+        "platform",
+        "tools"
+      ],
+      "additionalProperties": false
+    },
+    "ArtifactDependency": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.+-]{0,127}$"
+        },
+        "url": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "name",
+        "url",
+        "sha256"
+      ],
+      "additionalProperties": false
+    },
+    "ArtifactService": {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "pattern": "^[^\\u0000]+$"
+        },
+        "cwd": {
+          "$ref": "#/$defs/ArtifactPath"
+        },
+        "runtime": {
+          "type": "object",
+          "properties": {
+            "platform": {
+              "$ref": "#/$defs/ArtifactPlatform"
+            },
+            "tools": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/ArtifactTool"
+              },
+              "minItems": 1,
+              "maxItems": 32,
+              "uniqueItems": true
+            },
+            "files": {
+              "type": "array",
+              "maxItems": 64,
+              "uniqueItems": true,
+              "items": {
+                "$ref": "#/$defs/ArtifactRuntimeFile"
+              }
+            }
+          },
+          "required": [
+            "platform",
+            "tools"
+          ],
+          "additionalProperties": false
+        },
+        "environment": {
+          "type": "object",
+          "maxProperties": 32,
+          "propertyNames": {
+            "pattern": "^[A-Z_][A-Z0-9_]{0,63}$"
+          },
+          "additionalProperties": {
+            "type": "string",
+            "maxLength": 4096,
+            "pattern": "^[^\\u0000]*$"
+          }
+        }
+      },
+      "required": [
+        "command",
+        "cwd",
+        "runtime",
+        "environment"
+      ],
+      "additionalProperties": false
+    },
+    "ArtifactRecipe": {
+      "type": "object",
+      "properties": {
+        "format": {
+          "const": 1
+        },
+        "kind": {
+          "enum": [
+            "files",
+            "archive",
+            "binary",
+            "service",
+            "apk",
+            "aab"
+          ]
+        },
+        "inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ArtifactPath"
+          },
+          "minItems": 1,
+          "maxItems": 256,
+          "uniqueItems": true
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ArtifactDependency"
+          },
+          "minItems": 0,
+          "maxItems": 128,
+          "uniqueItems": true
+        },
+        "build": {
+          "$ref": "#/$defs/ArtifactBuild"
+        },
+        "exports": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ArtifactPath"
+          },
+          "minItems": 1,
+          "maxItems": 64,
+          "uniqueItems": true
+        },
+        "target": {
+          "$ref": "#/$defs/ArtifactPlatform"
+        },
+        "service": {
+          "$ref": "#/$defs/ArtifactService"
+        }
+      },
+      "required": [
+        "format",
+        "kind",
+        "inputs",
+        "dependencies",
+        "build",
+        "exports",
+        "target"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "service"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "service"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "service"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "ArtifactFile": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "enum": [
+            "100644",
+            "100755"
+          ]
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "mode",
+        "sha256",
+        "size"
+      ],
+      "additionalProperties": false
+    },
+    "ArtifactSourceBinding": {
+      "type": "object",
+      "properties": {
+        "repositoryIdentity": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "pattern": "^[^\\u0000]+$"
+        },
+        "tree": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+        },
+        "recipePath": {
+          "$ref": "#/$defs/ArtifactPath"
+        },
+        "recipeDigest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "inputs": {
+          "type": "object",
+          "minProperties": 1,
+          "maxProperties": 256,
+          "propertyNames": {
+            "$ref": "#/$defs/ArtifactPath"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/ArtifactFile"
+          }
+        }
+      },
+      "required": [
+        "repositoryIdentity",
+        "tree",
+        "recipePath",
+        "recipeDigest",
+        "inputs"
+      ],
+      "additionalProperties": false
+    },
+    "ArtifactRecipeInspection": {
+      "type": "object",
+      "properties": {
+        "validationId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "candidate": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+        },
+        "sourcePolicy": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "artifactPolicy": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "source": {
+          "$ref": "#/$defs/ArtifactSourceBinding"
+        },
+        "recipe": {
+          "$ref": "#/$defs/ArtifactRecipe"
+        },
+        "bindingDigest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "buildExecuted": {
+          "const": false
+        }
+      },
+      "required": [
+        "validationId",
+        "candidate",
+        "sourcePolicy",
+        "artifactPolicy",
+        "source",
+        "recipe",
+        "bindingDigest",
+        "buildExecuted"
+      ],
+      "additionalProperties": false
+    },
+    "ArtifactManifest": {
+      "type": "object",
+      "properties": {
+        "format": {
+          "const": 1
+        },
+        "source": {
+          "$ref": "#/$defs/ArtifactSourceBinding"
+        },
+        "recipe": {
+          "$ref": "#/$defs/ArtifactRecipe"
+        },
+        "files": {
+          "type": "object",
+          "minProperties": 1,
+          "maxProperties": 100000,
+          "propertyNames": {
+            "$ref": "#/$defs/ArtifactPath"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/ArtifactFile"
+          }
+        }
+      },
+      "required": [
+        "format",
+        "source",
+        "recipe",
+        "files"
+      ],
+      "additionalProperties": false
+    },
+    "artifactInput": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "inspectRecipe"
+            },
+            "validationId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "path": {
+              "$ref": "#/$defs/ArtifactPath"
+            }
+          },
+          "required": [
+            "action",
+            "validationId"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "prepare"
+            },
+            "validationId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "path": {
+              "$ref": "#/$defs/ArtifactPath"
+            },
+            "requestId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "timeout": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3600
+            }
+          },
+          "required": [
+            "action",
+            "validationId",
+            "requestId"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "inspect"
+            },
+            "artifactId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            }
+          },
+          "required": [
+            "action",
+            "artifactId"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "list"
+            },
+            "taskId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "before": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          },
+          "required": [
+            "action"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "usage"
+            },
+            "before": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          },
+          "required": [
+            "action"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "export"
+            },
+            "artifactId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "path": {
+              "$ref": "#/$defs/ArtifactPath"
+            },
+            "offset": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65536
+            }
+          },
+          "required": [
+            "action",
+            "artifactId",
+            "path"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "prunePreview"
+            },
+            "artifactId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            }
+          },
+          "required": [
+            "action",
+            "artifactId"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "prune"
+            },
+            "artifactId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "requestId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "expectedPreview": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "required": [
+            "action",
+            "artifactId",
+            "requestId",
+            "expectedPreview"
+          ],
+          "additionalProperties": false
+        }
+      ],
+      "type": "object"
+    },
+    "ArtifactBuildResult": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "terminal": {
+          "const": true
+        },
+        "stopped": {
+          "const": true
+        },
+        "exitCode": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "cancelled": {
+          "type": "boolean"
+        },
+        "timedOut": {
+          "type": "boolean"
+        },
+        "captureError": {
+          "type": "string"
+        },
+        "discardedBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "validationId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "artifactId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "contentDigest": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "terminal",
+        "stopped",
+        "exitCode",
+        "validationId",
+        "artifactId",
+        "contentDigest"
+      ],
+      "additionalProperties": false
+    },
+    "ArtifactInspection": {
+      "type": "object",
+      "properties": {
+        "artifactId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "contentDigest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "manifest": {
+          "$ref": "#/$defs/ArtifactManifest"
+        },
+        "validationId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "verifiedBytes": {
+          "const": true
+        },
+        "artifactValidated": {
+          "type": "boolean"
+        },
+        "runtimeCompatibility": {
+          "$ref": "#/$defs/ArtifactRuntimeCompatibility"
+        },
+        "artifactValidationId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "artifactId",
+        "contentDigest",
+        "manifest",
+        "validationId",
+        "verifiedBytes",
+        "artifactValidated"
+      ],
+      "additionalProperties": false
+    },
+    "ArtifactList": {
+      "type": "object",
+      "properties": {
+        "artifacts": {
+          "type": "array",
+          "maxItems": 50,
+          "items": {
+            "$ref": "#/$defs/Operation"
+          }
+        },
+        "outstanding": {
+          "type": "array",
+          "maxItems": 24,
+          "items": {
+            "$ref": "#/$defs/Operation"
+          }
+        },
+        "nextBefore": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      },
+      "required": [
+        "artifacts",
+        "outstanding",
+        "nextBefore"
+      ],
+      "additionalProperties": false
+    },
+    "ArtifactRuntimeFile": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 1024,
+          "pattern": "^/[^\\u0000]+$"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "additionalProperties": false
+    },
+    "ArtifactRuntimeCompatibility": {
+      "type": "object",
+      "properties": {
+        "compatible": {
+          "type": "boolean"
+        },
+        "platform": {
+          "$ref": "#/$defs/ArtifactPlatform"
+        },
+        "error": {
+          "$ref": "#/$defs/Error"
+        }
+      },
+      "required": [
+        "compatible",
+        "platform"
+      ],
+      "additionalProperties": false
+    },
+    "ArtifactValidationResult": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "terminal": {
+          "const": true
+        },
+        "stopped": {
+          "const": true
+        },
+        "exitCode": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "cancelled": {
+          "type": "boolean"
+        },
+        "timedOut": {
+          "type": "boolean"
+        },
+        "captureError": {
+          "type": "string"
+        },
+        "discardedBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "artifactId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "contentDigest": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sourceValidationId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "artifactChecked": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "terminal",
+        "stopped",
+        "exitCode",
+        "artifactId",
+        "contentDigest",
+        "sourceValidationId",
+        "artifactChecked"
+      ],
+      "additionalProperties": false
+    },
+    "ArtifactUsage": {
+      "type": "object",
+      "properties": {
+        "retainedArtifacts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "retainedObjects": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "retainedBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unmeasuredArtifacts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "limits": {
+          "type": "object",
+          "properties": {
+            "outputBytes": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 67108864
+            },
+            "inputBytes": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 67108864
+            },
+            "files": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 4096
+            },
+            "workingBytes": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2147483648
+            },
+            "timeoutSeconds": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3600
+            },
+            "retainedBytes": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 68719476736
+            },
+            "retentionSeconds": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 31536000
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "outputBytes",
+            "inputBytes",
+            "files",
+            "workingBytes",
+            "timeoutSeconds",
+            "retainedBytes",
+            "retentionSeconds"
+          ]
+        },
+        "scope": {
+          "type": "string"
+        },
+        "nextBefore": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      },
+      "required": [
+        "retainedArtifacts",
+        "retainedObjects",
+        "retainedBytes",
+        "unmeasuredArtifacts",
+        "limits",
+        "scope",
+        "nextBefore"
+      ],
+      "additionalProperties": false
+    },
+    "ArtifactExport": {
+      "type": "object",
+      "properties": {
+        "artifactId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "contentDigest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "path": {
+          "$ref": "#/$defs/ArtifactPath"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "nextOffset": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "eof": {
+          "type": "boolean"
+        },
+        "encoding": {
+          "const": "base64"
+        },
+        "data": {
+          "type": "string",
+          "maxLength": 87384
+        }
+      },
+      "required": [
+        "artifactId",
+        "contentDigest",
+        "path",
+        "sha256",
+        "size",
+        "offset",
+        "nextOffset",
+        "eof",
+        "encoding",
+        "data"
+      ],
+      "additionalProperties": false
+    },
+    "ArtifactPrunePreview": {
+      "type": "object",
+      "properties": {
+        "artifactId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "contentDigest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "canPrune": {
+          "type": "boolean"
+        },
+        "pins": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "enum": [
+              "validation_in_flight",
+              "deployment_in_flight",
+              "deployment_release",
+              "deployment_previous",
+              "already_pruned",
+              "retention_period"
+            ]
+          }
+        },
+        "sharedObject": {
+          "type": "boolean"
+        },
+        "retentionUntilNs": {
+          "type": "string"
+        },
+        "reclaimableBytes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "previewToken": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "artifactId",
+        "contentDigest",
+        "canPrune",
+        "pins",
+        "sharedObject",
+        "retentionUntilNs",
+        "reclaimableBytes",
+        "previewToken"
+      ],
+      "additionalProperties": false
+    },
+    "ArtifactPrunedInspection": {
+      "type": "object",
+      "properties": {
+        "artifactId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "contentDigest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "retained": {
+          "const": false
+        },
+        "pruneOperationId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        }
+      },
+      "required": [
+        "artifactId",
+        "contentDigest",
+        "retained",
+        "pruneOperationId"
+      ],
+      "additionalProperties": false
+    },
+    "ArtifactPruneResult": {
+      "type": "object",
+      "properties": {
+        "artifactId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "contentDigest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "pruned": {
+          "const": true
+        },
+        "sharedObject": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "artifactId",
+        "contentDigest",
+        "pruned",
+        "sharedObject"
+      ],
+      "additionalProperties": false
     }
   },
   "oneOf": [
@@ -3467,6 +4744,22 @@
         },
         "input": {
           "$ref": "#/$defs/deployInput"
+        }
+      },
+      "required": [
+        "tool",
+        "input"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "tool": {
+          "const": "tdev_artifact"
+        },
+        "input": {
+          "$ref": "#/$defs/artifactInput"
         }
       },
       "required": [
@@ -3799,7 +5092,7 @@
     },
     {
       "name": "tdev_validate",
-      "description": "Freeze an exact candidate commit and run the operator's mandatory command through trusted outer execution.",
+      "description": "Freeze an exact candidate commit and run the operator's mandatory command through trusted outer execution. With subject=artifact and artifactId, verifies retained bytes using adopted artifactValidation policy in fresh scratch; never alters source. Service packages additionally require a free loopback health port/path and exercise the manifest entrypoint with TDEV_PORT and X-Tdev-Release. Observe/log/cancel/retire through tdev_operation. Artifact validation cannot authorize source publication.",
       "inputSchema": {
         "$ref": "#/$defs/validateInput"
       },
@@ -3959,7 +5252,7 @@
     },
     {
       "name": "tdev_deploy",
-      "description": "Deploy a successfully validated native source candidate to a delegated Termux runit target. Release creates/updates a named owned service and checks process identity plus configured loopback HTTP readiness. Inspect returns current state and rotating logs; start/stop/rollback/remove require revision CAS. Remove preserves data/releases/logs. Observe interrupted effects through tdev_operation status before retrying. Source publication is separate; task dependency directories are not bundled. The app must return HTTP 200 with X-Tdev-Release equal to TDEV_RELEASE; writable state belongs in TDEV_DATA_DIR. Services must stay in the foreground.",
+      "description": "Deploy a successfully validated native source candidate to a delegated Termux runit target. Release creates/updates a named owned service and checks process identity plus configured loopback HTTP readiness. Inspect returns current state and rotating logs; start/stop/rollback/remove require revision CAS. Remove preserves data/releases/logs. Observe interrupted effects through tdev_operation status before retrying. Source publication is separate; task dependency directories are not bundled. The app must return HTTP 200 with X-Tdev-Release equal to TDEV_RELEASE; writable state belongs in TDEV_DATA_DIR. Services must stay in the foreground. release subject=artifact uses a successful artifact validationId and manifest launch settings; command override is forbidden. health.port is the deployment port supplied as TDEV_PORT; health.path must match validation. Current artifact/runtime/policy checks precede stopping the previous service.",
       "inputSchema": {
         "$ref": "#/$defs/deployInput"
       },
@@ -3985,6 +5278,81 @@
                   },
                   {
                     "$ref": "#/$defs/DeploymentInspection"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "ok",
+              "result"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "ok": {
+                "const": false
+              },
+              "error": {
+                "$ref": "#/$defs/Error"
+              }
+            },
+            "required": [
+              "ok",
+              "error"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_artifact",
+      "description": "Inspect a recipe from successful source validation, prepare a retained native build, list builds or inspect sealed bytes. Default recipe path: tdev-package.json. prepare requires requestId and validationId; reuse the request after a lost reply. Uses fresh source, pinned public HTTPS dependencies and declared exports, independent of task caches and deployment targets. Observe/log/cancel/retire through tdev_operation; artifactId is the build operation id. list exposes outstanding builds regardless of history page. Build success is not artifact validation or deployment. Use tdev_validate subject=artifact for verification. Service inspect reports current declared runtime compatibility separately from retained-byte integrity; it never installs or starts a service. Export reads verified file bytes in bounded base64 pages, never writes caller paths. usage returns paged authorized retained-object counts, excluding scratch and deployment copies; shared digests can recur across pages. prunePreview reports live pins and retention policy; explicit prune requires its token and rechecks pins, journals retirement and preserves historical receipts. Active/previous deployments and unknown work cannot be pruned. No automatic GC.",
+      "inputSchema": {
+        "$ref": "#/$defs/artifactInput"
+      },
+      "outputSchema": {
+        "type": "object",
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "ok": {
+                "const": true
+              },
+              "result": {
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/Operation"
+                  },
+                  {
+                    "$ref": "#/$defs/ArtifactRecipeInspection"
+                  },
+                  {
+                    "$ref": "#/$defs/ArtifactInspection"
+                  },
+                  {
+                    "$ref": "#/$defs/ArtifactList"
+                  },
+                  {
+                    "$ref": "#/$defs/ArtifactUsage"
+                  },
+                  {
+                    "$ref": "#/$defs/ArtifactExport"
+                  },
+                  {
+                    "$ref": "#/$defs/ArtifactPrunePreview"
+                  },
+                  {
+                    "$ref": "#/$defs/ArtifactPrunedInspection"
                   }
                 ]
               }
@@ -4164,6 +5532,13 @@
       "tool": "tdev_deploy",
       "input": {
         "action": "targets"
+      }
+    },
+    {
+      "tool": "tdev_artifact",
+      "input": {
+        "action": "inspectRecipe",
+        "validationId": "validation"
       }
     }
   ],

@@ -23,7 +23,21 @@ try {
   await client.connect(transport);
   assert.equal(client.getProtocolEra(), 'modern');
   const listed = await client.listTools();
-  assert.equal(listed.tools.length, 10);
+  assert.equal(listed.tools.length, 11);
+  const artifactSchema = listed.tools.find(t => t.name === 'tdev_artifact').inputSchema;
+  assert.deepEqual(artifactSchema.oneOf.map(s => s.properties.action.const), ['inspectRecipe','prepare','inspect','list','usage','export','prunePreview','prune']);
+  const artifact = await client.callTool({name:'tdev_artifact',
+    arguments:{action:'inspectRecipe',validationId:'not-a-validation'}});
+  assert.equal(artifact.isError, true);
+  assert.equal(artifact.structuredContent.error.code, 'OPERATION_NOT_FOUND');
+  const validateSchema = listed.tools.find(t => t.name === 'tdev_validate').inputSchema;
+  assert(validateSchema.oneOf.some(s => s.properties.subject?.const === 'artifact'));
+  const check = await client.callTool({name:'tdev_validate', arguments:{subject:'artifact',requestId:'missing-artifact',artifactId:'missing'}});
+  assert.equal(check.isError, true);
+  assert.equal(check.structuredContent.error.code, 'OPERATION_NOT_FOUND');
+  const usage = await client.callTool({name:'tdev_artifact',arguments:{action:'usage'}});
+  assert.equal(usage.isError, false);
+  assert.equal(usage.structuredContent.result.retainedArtifacts, 0);
   const execSchema = listed.tools.find(t => t.name === 'tdev_exec').inputSchema;
   assert(execSchema.properties.mode.enum.includes('process'));
   assert(execSchema.properties.environment.enum.includes('task'));

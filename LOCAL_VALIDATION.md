@@ -661,3 +661,497 @@ and post-documentation `git diff --check` also passed. No canonical push was per
   runtime/contract/dependency bundle. Outstanding running/unknown operations: zero; maintenance
   fence absent. This is installed loopback MCP acceptance and Tunnel health, not a claim of
   a new invocation from the ChatGPT host.
+
+## Continuity and Android feasibility review — 2026-09-22
+
+Investigation and documentation only. No product code, wire schema, installed runtime, provider,
+credentials or device permissions changed. This section records evidence and design reasoning;
+selected semantics belong in ARCHITECTURE, execution order in IMPLEMENTATION_PLAN. The user
+explicitly requested documentation updates in addition to reviewing the supplied hypotheses.
+
+### Current authoritative state and actual gaps
+
+Fresh local branch `tdev`, HEAD and remote `refs/heads/tdev` readback both
+`758ef37eaa164370d94486b247f1bd8bdbd1cb62` in `humtr/tdev`. Entry WIP was the previously
+requested packaging plan in IMPLEMENTATION_PLAN.md; untracked `.artifacts/` and `node_modules/`
+were preserved. AGENTS/README navigation, relevant ARCHITECTURE and plan, tool schemas,
+server ingress and workspace/task/operation/deployment implementations were reread. The
+canonical source implements ten tools; no note/artifact/resource tool is currently advertised.
+
+| Capability | Finding in current source |
+|---|---|
+| Workspace/project/task/checkpoint | Implemented in `store.py`, `workspaces.py`, `core.py` and Git; workspace membership/defaults and isolated source tasks are durable. |
+| Intent/result/effect certainty | Implemented operation IDs, request replay, retained intent/result and unknown-effect handling; `operation` observation/control is independent of transport reconnect. |
+| Validation/publication/deployment | Implemented exact source validation/publication and native HTTP-service deployment/recovery. Dependency/build packages remain planned. |
+| Processes/dependencies/cleanup | Implemented supervisor identities, outstanding process discovery, task environment reuse and cleanup after close. A retained environment is mutable, not an attested dependency artifact. |
+| Current external state | Partial bounded observations; provider errors/uncertainty are explicit. Workspace inspect is not a complete atomic view of every deployment/process/provider. |
+| Semantic meaning | Project purpose/design/plan survive in repository documents. Public/store state has no general current objective, objective-change history, decision rationale, blocker or cross-conversation capsule. |
+| Host/resource access without a task | Workspace/deployment listing is source-free, but arbitrary native filesystem/process/toolchain inspection has no source-free public adapter. Native exec already has app-UID power but requires source-task context. |
+
+`server.py` requires protocol/capability `_meta`, verifies matching HTTP method/name/version
+headers, and authenticates a Bearer principal. Extra metadata can be present, but tools dispatch
+passes only principal, name and arguments to `controller.call`; `openai/subject` and
+`openai/session` are not preserved. Request logging is suppressed. No current request metadata
+capture proves those fields are present or absent in today's ChatGPT requests. Transport
+`MCP-Session-Id` is not a semantic identity owner in this implementation.
+
+`store.py` has workspace, workspace_project, task, operation, project and deployment tables,
+not semantic history. Task inspect reconciles busy work/processes and reads remote state;
+deployment inspect can restore an interrupted release. Therefore calling all existing inspect
+actions is not a safe substitute for a strictly observational resume envelope. This review
+read source rather than invoking those recovery-bearing production paths.
+
+The plan's fresh-session requirement is implemented for bounded material task recovery, not
+for reconstructing lost intentions or a whole multi-project objective. The review corrects the
+plan's overbroad one-frontier wording; it does not infer a new planner from “next admissible
+action.” Exact problem: a fresh model can discover what happened but often must ask/research
+again to learn why, which objective is current and which next work is useful.
+
+### Local Codex: observed persistence and public implementation
+
+Installed `codex-cli 0.155.1`, native Android arm64 executable; selected profile
+`.codex-profiles/wrlab`. Read-only SQLite connections used `mode=ro` plus `query_only`; output
+was limited to schema, counts and JSON key/type/array-size metadata. No auth files, token/key
+values, prompt text or raw tool output were printed. No Codex resume/compaction was triggered.
+
+- `thread_history_1.sqlite` contained 91 `contextCompaction` items at observation. Recent item
+  objects had `type` and `id`; this UI/history item alone is not the compaction payload.
+- Projection state tracks rollout byte offsets/ordinals. This supports treating this DB as a
+  history projection/index, not assuming it is the sole resume authority.
+- Two recent tdev rollout files were inspected by event shape. One contained five `compacted`
+  events; the other none. Recent compacted records included `replacement_history`,
+  `guardian_history`, `retained_context`, window identities/number, compaction response identity
+  and latest token-usage metadata. Replacement-history lengths were 33, 40 and 44 items in
+  the three sampled checkpoints; raw history still existed in the rollout. These are observed
+  structures, not an attempt to decode private model reasoning or encrypted content.
+
+The matching public version tag's [compaction code](https://github.com/openai/codex/blob/rust-v0.155.1/codex-rs/core/src/compact.rs)
+builds a replacement model history from bounded user messages and a summary and installs
+persisted compaction metadata. This is model-context compaction, not SQLite VACUUM or deletion
+of all original history. Its [rollout reconstruction](https://github.com/openai/codex/blob/rust-v0.155.1/codex-rs/core/src/session/rollout_reconstruction.rs)
+selects a surviving replacement-history checkpoint and replays its suffix, accounting for
+rolled-back segments. The [context manager](https://github.com/openai/codex/blob/rust-v0.155.1/codex-rs/core/src/context_manager/history.rs)
+separates working history and retained context/review history and tracks history revisions.
+These are version-tag source observations, not proof that the installed executable has an
+identical build hash or that every session uses the same compaction path.
+
+Conclusion: worktree/Git is source truth; rollout plus installed compact checkpoints and
+subsequent events reconstruct model history; DBs support durable session/history discovery
+and indexing; current tools/OS/providers still determine current effects. Neither Git alone,
+a `contextCompaction` DB row alone nor a summary alone recreates complete continuity. Reusable
+principles are bounded working context separate from retained evidence, atomic revision-bound
+replacement and suffix preservation. Codex's private formats/guardian/window internals are not
+requirements for tdev. MCP cannot own the host's turn scheduler, full transcript, compaction
+trigger or next model input in the way the Codex client does.
+
+### tmcp: evidence, not reference architecture
+
+Local tmcp HEAD `ce3f2a78c98853fba06e4ec1a3b21955283ca4b9` was read without modification or
+live probes. Its current `docs/REFACTORING_EXECUTION.md`, relevant plan and `src/mcp.ts` are
+historical evidence, not tdev authority. `sharedIdentityDigest` reads bounded subject/session
+metadata and hashes the pair; deterministic `tests/shared-mcp.test.ts` supply fabricated values.
+
+| Evidence class | What the records establish | What they do not establish |
+|---|---|---|
+| Recorded direct ChatGPT call | T-OTP-4 ledger explicitly records a real ChatGPT caller unable to complete elicitation; no grant was created. | Successful post-repair conversation reuse, or today's tdev metadata values. |
+| Scripted live public/local probes | T-OTP-6 ledger reports fixed-ngrok/local session bootstrap, consumption, same-conversation reuse and cross-conversation rejection. | That those successful probes originated in ChatGPT rather than the scripted client. |
+| Deterministic tests | Metadata parsing/digesting and grant behaviour for constructed inputs. | Host delivery, actual conversation semantics or live user experience. |
+| Explicit open acceptance | Ledger still lists foreground clipboard proof and direct ChatGPT retry as remaining. Later Bearer restoration reports local/public auth probes, not closure of that acceptance. | A completed direct ChatGPT OTP/session lifecycle. |
+
+No retained raw direct-host metadata trace was established by this bounded review. The evidence
+does not justify “ChatGPT always sends these keys.” Nor does an old implementation justify
+copying OTP/conversation grants or root tasks. The tmcp ledger's numerous task/gate/authority
+layers are a warning: extracting the failure cases is useful; importing its workflow is not.
+
+### Candidate comparison and selected minimum
+
+| Approach | Benefit | Cost/failure | Verdict |
+|---|---|---|---|
+| No new subsystem; docs + current task/operation inspection | Already works for durable shared design; zero new state. | Ephemeral intent across conversations requires repeated reconstruction or repository handoff edits. | Keep as baseline/fallback, insufficient alone for the requested UX. |
+| First-call bootstrap | One early intent snapshot. | Server cannot see the user prompt; first call may precede understanding; later goal changes are missed. | Optional model contribution, never a gate or automatic inferred intent. |
+| Semantic payload on every tool call | Frequent capture. | Repetition, stale claims, tokens, schema pollution, writes and additional failure coupling. | Reject. |
+| Explicit semantic sync tool | Clear boundary and optional failure. | Extra public concept if all state already belongs to workspace context. | Keep sync semantics, use workspace actions initially. |
+| Existing workspace action with compact state | Few concepts, multi-project context, revisioned selection. | Requires the model to remember useful boundaries; uncaptured meaning cannot be recovered. | Selected initial design. |
+| Hybrid event journal plus compaction | Recover intermediate decisions and compact long histories. | More storage, replay/retention/suffix rules and summary risk before benefit is measured. | Defer; add only if note/revision trials expose a real loss. |
+| Full transcript/local-attached mode/private Codex DB dependency | Superficial similarity to another client. | MCP lacks full host context; doubles workflow/truth and couples private formats. | Reject. |
+
+The selected design is [ARCHITECTURE's optional semantic continuity](ARCHITECTURE.md#optional-semantic-continuity):
+workspace resume notes, a separate two-table sidecar, bounded revisioned model-authored state,
+typed references and targeted fresh observations. It deliberately omits a distinct logical
+thread owner/event taxonomy at first. Content is lossy working context, not an audit transcript;
+decisions that must be normative still belong in their existing repository owner.
+
+### Capability comparison and practical ceiling
+
+| Capability | Local Codex pattern | ChatGPT + proposed tdev notes |
+|---|---|---|
+| Same-conversation continuation | Client retains model history and schedules calls. | ChatGPT owns this; tdev provides current tool results and optional recalled intent. |
+| Context-window compaction | Client installs replacement history and resumes after its boundary. | Cannot replace ChatGPT's window; model can write/read a bounded note at useful boundaries. |
+| Fresh-session recovery | Durable rollout/checkpoint reconstruction plus fresh tool state. | Candidate discovery + chosen note + relevant current material reads; no full transcript recovery. |
+| Multiple conversations | Client-specific thread/resume/fork behaviour. | Workspace note identity is independent of conversations; concurrent updates require CAS. |
+| Tool/effect recovery | Tool-specific current evidence still matters. | Existing tdev operation/supervisor/deployment recovery remains the owner. |
+| Material reconciliation | History does not make current files/processes immutable. | Rebind references, observe unknowns, enforce current grants/CAS/policy as before. |
+
+Meaningful cross-conversation recovery is feasible without full history, but equivalent recall,
+host-controlled compaction and guaranteed automatic bootstrap are not established. The upper
+bound is the quality of information the model actually records and later retrieves. No measured
+token savings or fresh-ChatGPT success rate is claimed yet; the plan includes paired baseline
+and note-enabled trials including update/rebind overhead and model variance.
+
+### Failure and tmcp-regression audit
+
+| Risk | Minimum prevention selected |
+|---|---|
+| Authority pollution / semantic permission | Prose is recollection; existing current authentication/admission/validation owns effects. |
+| Duplicate HEAD/PASS/deployment truth | Typed references only; current evidence remains in its owner and is returned separately. |
+| Workflow creep / recursive planner growth | No mandatory note, campaign, root task, semantic gate, decision owner or second development mode. |
+| Context pollution / stale assumptions | Current objective replaces old one; dated assumptions, brief evidence-linked rationale, rebind relevant changed facts. |
+| Per-call model overhead | Meaningful-boundary updates only; ordinary tool contracts/results remain unchanged. |
+| Excessive storage | Bounded capsule/revisions, no transcript/stdout duplication; explicit limits/forget. |
+| Wrong attach / authorization leak | Candidate discovery then model selection within current grants; metadata cannot authenticate or force attachment. |
+| Host dependence | No session keys required; names/defaults/handles work on any supported client. |
+| Compaction hallucination | No current-fact authority in summaries; revision CAS, source references and limited optional history, no silent loss of later updates. |
+| Sidecar failure | Lazy isolated semantic storage; core does not open it; deleting it leaves product state/cleanup intact. |
+| Too many durable owners | Two semantic tables own recorded text/replay only, not tasks, effects, decisions or permissions. |
+
+Residual risk remains model omission/misinterpretation and host failure to invoke resume. It is
+addressed by real-host acceptance and concise tool guidance, not another enforcing workflow.
+Implementation placement, proposed actions/fields and falsification matrix are in the existing
+architecture/plan owners, not a new review authority.
+
+### Android inventory, feasibility and limits
+
+Read-only local inventory: Android **16**, API **36**, `arm64-v8a`; current native process
+UID **10379**, SELinux domain `untrusted_app_27`. This is ordinary Termux app authority, not
+system/root or ADB shell. JDK **21.0.12** is installed. `aapt`, `aapt2` (**16.0.0.4-1**) and
+`zipalign` are installed Android arm64 ELF tools. `termux-api` CLI package **0.59.1-1** is
+installed; this alone does not prove the compatible Android add-on or its grants are usable.
+`gradle`, `sdkmanager`, `d8`, `apksigner` and `adb` were not on PATH. Standard checked SDK
+locations (`$PREFIX/opt/android-sdk`, `$HOME/Android/Sdk`) and `$HOME/.gradle` were absent.
+This bounded check does not rule out project wrappers or tools in other locations. No toolchain,
+APK, private key or companion was installed/created and no screen/sensor/clipboard was read.
+
+On-device Android building is **plausible and practical to qualify**, not already verified for
+arbitrary projects. Existing native resource tools and JDK remove obvious prerequisites, while
+a compatible Gradle/AGP/platform/D8/signing chain and its host executable requirements still
+need qualification. The official [Termux apksigner recipe](https://github.com/termux/termux-packages/blob/master/packages/apksigner/build.sh)
+provides a Java-based signing route. A bounded future build must pin exact tools and record any
+Termux-native replacement; incompatible native/NDK tooling may require an explicitly selected
+other host. Neither “all Android projects build here” nor “a remote host is always required”
+is supported by this inventory.
+
+Android's [command-line build documentation](https://developer.android.com/build/building-cmdline)
+distinguishes APK signing with apksigner from AAB signing with jarsigner/Gradle and generating
+installable APKs from bundles with bundletool. Thus APK/AAB is a concrete requirement for generic
+artifact production, not a reason to make every artifact a service or installable file. Preserve
+final-byte validation, signing provenance and build-host/target separation now; qualify actual
+APK/AAB production without waiting for UI control.
+
+| Android interaction | Feasibility and boundary |
+|---|---|
+| Termux alone | Its permitted filesystem/process/network and exposed Android interfaces; no generic cross-app private-data or arbitrary UI authority. Android applies its [app sandbox](https://source.android.com/docs/security/app-sandbox) to native processes too. |
+| Termux:API | Selected device APIs through the add-on and CLI, with required permissions and compatible signing. The [official app](https://github.com/termux/termux-api) requires matching Termux signatures; package presence is not live permission proof. |
+| Optional companion | User-enabled [AccessibilityService](https://developer.android.com/reference/android/accessibilityservice/AccessibilityService) can expose window content/actions/gestures subject to capabilities and app support. Secure windows can reject screenshots. This is a feasible observe/act/observe substrate, not universal control. |
+| Screen / notification / clipboard | Separate Android capabilities, not implied by Accessibility. [MediaProjection](https://developer.android.com/media/grow/media-projection) requires consent per capture session; [clipboard access](https://developer.android.com/about/versions/10/privacy/changes#clipboard-data) has foreground/default-IME restrictions. [Notification access](https://developer.android.com/reference/android/service/notification/NotificationListenerService) also requires its own user-enabled service. |
+| Beyond ordinary apps | Companion alone does not read other apps' private data, override protected UI or provide root-only system management. [Shizuku](https://github.com/RikkaApps/Shizuku) delegates an explicitly started ADB/root service and documents limits of ADB authority; [Device Owner](https://developer.android.com/work/dpc/dedicated-devices) is a separately provisioned management role. These are optional future adapters, not substitutes for existing grants. |
+
+No IPC/API architecture or Android-use implementation is warranted now. Preserve authenticated
+optional adapter boundaries and independent core failures. Runtime/resource control shares
+identity, freshness, provenance and recovery vocabulary with continuity, but needs neither its
+DB nor its summaries. The important packaging omissions were artifact export, non-service
+outputs, build-vs-target platform and final signed-byte identity; speculative device frameworks
+would not resolve them more cheaply.
+
+### Review verdict and next work
+
+There is sufficient value to implement a small **optional resume-note trial**, not evidence to
+implement the entire proposed history/compaction subsystem. Use meaningful-boundary model sync
+through workspace actions, not a new continuity tool or per-call metadata. Full history is not
+needed; current-note rewriting is the initial compaction mechanism. Session keys are optional
+provenance only. Multiple source tasks can reference one workspace note; no second work mode.
+Independent storage permits the entire context feature to disappear without losing material
+state. tmcp-style expansion remains a risk only if these explicit boundaries are relaxed.
+
+The best value/complexity scope is bounded notes, revision CAS, candidate discovery, targeted
+fresh state and real-host recovery measurement. Codex-like useful resumption is a testable goal;
+Codex-equivalent context control is not an MCP-server capability. Android APK/AAB requirements
+are explicit; current on-device feasibility is conditional, generic Android-use is insufficient
+with Termux alone, and a separately authorized companion is a realistic later option. Core
+development needs none of these optional Android components.
+
+Proceed with generalized packaging, then minimum notes, then the complete journey qualification;
+source-free resource inspection and demanded Android/external adapters follow. Only a concrete
+blocking prerequisite may move earlier. Detailed slices/acceptance are recorded in
+[IMPLEMENTATION_PLAN](IMPLEMENTATION_PLAN.md#current-priority-after-the-continuity-review).
+
+### Checks for the documentation review
+
+- Focused `test_contract.py`: **3 tests PASS**, 1.811s, exit 0.
+- `sh scripts/check.sh`: **140 tests PASS**, 237.316s, exit 0; diff whitespace check passed.
+- Local documentation link targets exist. Only README, ARCHITECTURE, IMPLEMENTATION_PLAN and
+  this evidence file changed; existing packaging WIP and unrelated untracked state were preserved.
+- These checks verify existing regressions/document consistency, not implementation or measured
+  acceptance of the proposed notes, artifact packaging, Android builds or companion. No new
+  direct ChatGPT metadata/resume acceptance, Android build or production activation was run.
+
+## Packaging recipe and identity foundation — 2026-09-22
+
+Implemented the first packaging slice in the development checkout after the approved review;
+product patch version is 0.1.6. Canonical base remains `758ef37eaa164370d94486b247f1bd8bdbd1cb62`
+until publication. Prior review/packaging document edits and unrelated untracked state remain
+preserved. This slice is recipe inspection and identity validation, not a completed package builder.
+
+- Added `tdev_artifact inspectRecipe` as the eleventh tool. It reads an exact successful source
+  candidate and current adopted policy without dispatch/recovery, downloading dependencies,
+  requiring a service target or creating an operation. Native/HTTP tests prove frozen-source
+  inspection survives later edits, task close and controller restart; maintenance permits it.
+- Recipe/manifest checks cover strict JSON, bounded relative inputs/exports, content pins,
+  public HTTPS input descriptions, build-vs-target requirements and conditional service launch
+  metadata. APK/AAB kind acceptance is descriptive only, not Android toolchain qualification.
+  The eventual sealer must verify real bytes; caller-provided manifest hashes do not prove builds.
+- Source-only receipt checks are shared with publication and source deployment/start/rollback.
+  Artifact-subject receipts and inconsistent candidate/stop/exit identities are rejected;
+  earlier retained source receipts without an explicit subject remain usable. The adopted
+  artifact-check policy defaults to source validation and can be overridden once in project
+  policy; changing/removing the override changes the binding without stale policy inheritance.
+- Initial focused run found three fixture errors (unknown principal expectation, omitted close
+  checkpoint and aliased platform dictionaries). Corrected fixtures: **16 tests PASS**, 33.171s.
+  Affected artifact/contract/deployment/project/HTTP/bridge/CLI suite: **53 tests PASS**, 139.448s.
+- Pinned official `@modelcontextprotocol/client@2.0.0` probe PASS, exit 0: modern 2026-07-28,
+  eleven tools, expanded inspectRecipe schema and genuine error call. No direct ChatGPT claim.
+- Inactive bundle rehearsal first exposed stale pre-resident template assertions. Updated it to
+  inspect the resident launcher and exercise staged `run_service` with synthetic settings and a
+  mocked exec boundary. Final `scripts/rehearse.py` PASS, exit 0: bundle
+  `df54e6d79a6e852ccdec4b2d38e2ac7fe874f7ce0a796c9f15e8d02d2407c2f1`, wrong-Bearer rejection,
+  eleven tools before/after restart, native SIGKILL recovery, exact source publication and
+  synthetic native tunnel argv/profile/health settings. No real tunnel or shared service started.
+- One full regression run was interrupted before completion during the session transition;
+  its partial log is not PASS. The complete final rerun is recorded below.
+- Final `sh scripts/check.sh`: **152 tests PASS**, 400.740s, exit 0, including the source
+  receipt compatibility assertion added after the affected run. Final diff whitespace check
+  passed. This validates the recipe/identity slice and existing paths, not retained builds.
+
+Remaining: supervised retained builds/sealing/recovery, artifact verification and export/prune,
+Python dependency layout and packaged release integration. Public prepare/validate-artifact/
+export actions are intentionally absent until their implementation. The resident installation
+still exposes its previous bundle; no production activation, commit or push occurred in this slice.
+
+## Retained native builds — 2026-09-22
+
+Extended the same unactivated 0.1.6 checkout with `tdev_artifact prepare/list/inspect`.
+Existing operation intent/result/request identity owns builds; one artifact pin table joins
+completed build operations to retained content digests. No new planning/workflow owner.
+
+- Actual native fixtures build declared file outputs from frozen validated source, while edits
+  and task close proceed independently. Reconnect and lost-dispatch replies reuse the original
+  process; operation retirement removes scratch and leaves independently verified retained bytes.
+  HTTP and staged-bundle fixtures exercise prepare/inspect/retire without deployment targets.
+- Negative cases cover source mutation, undeclared output, symlinks, hardlink rejection, missing
+  exports, case aliases, size limits, dependency hash mismatch, stored-byte tampering, changed
+  authority/policy/tool/platform, cancellation/deadline and forged stdout. On this Android domain
+  actual hardlink creation is denied by the OS; the file-reader's link-count rejection is also
+  exercised with a deterministic stat fixture. Do not infer kernel isolation from these tests.
+- Deterministic HTTPS response fixtures cover pinned public acquisition and redirect refusal;
+  retained distribution capture/recheck is separately exercised. No real third-party dependency
+  download or whole transitive package-manager build is claimed here. Build tools/host network
+  are not hermetic; dynamic libraries and SDK data are not fully attested.
+- Injected copy failure (ENOSPC-shaped OSError) and lost SQLite completion after object rename
+  recover by verification/sealing without another build. A pre-reservation dispatch failure
+  remains unknown, visible outside paged history, cannot be retired without proof, and counts
+  against the eight-build bound. This is not an exhaustive SIGKILL test at every seal instruction.
+- Initial focused runs exposed unnormalized symlink errors and native missing-job log errors
+  leaking into the output-success schema. Fixed both. A fixture now distinguishes Android's
+  hardlink syscall denial from capture rejection. Final affected artifact/build/HTTP/contract
+  suite: **30 tests PASS**, 104.866s, exit 0.
+- Official MCP SDK 2.0.0 probe: PASS, exit 0; modern 2026-07-28, eleven tools, all four artifact
+  action schemas and an actual error call. No direct ChatGPT acceptance claim.
+- Inactive bundle rehearsal: PASS, exit 0, bundle
+  `4b68f03f856dbfca839ff84f592372365b4a6ec2b0173cc18828d33dde6d19e1`.
+  Staged HTTP server passes authorization, native SIGKILL/restart and exact source publication,
+  then builds retained output after task publication/close and rechecks it after scratch retirement.
+  Controller/tunnel service-template checks remain synthetic; no shared service/provider changed.
+
+Next is slice 3's concrete relocatable dependency/runtime fixture, then artifact validation and
+release integration. Export/prune, operator-configurable artifact budgets, signed outputs,
+APK/AAB qualification and installed build acceptance remain outstanding. No commit, push or
+resident activation is included in this slice. Full regression outcome is recorded below after
+completion; partial progress is not a PASS.
+
+Final `sh scripts/check.sh`: **162 tests PASS**, 428.011s, exit 0; diff whitespace check
+passed. The full suite includes existing deployment/recovery/resident-installation/source/
+workspace regressions. Local documentation targets also resolve. These are checkout and isolated
+fixture results, not activation or direct ChatGPT acceptance of the new installed tool surface.
+
+## Pure-Python layout and runtime compatibility — 2026-09-22
+
+Implemented packaging slice 3 in the same unactivated 0.1.6 checkout. The project-owned
+`examples/python-package` recipe installs fixed wheel inputs into a new artifact-local layout;
+there is no copied live venv or new Python package-manager authority. The shared internal runtime
+helper verifies retained bytes and declared host requirements and returns launch inputs for the
+existing supervisor architecture. It does not activate services or add a second process lifecycle.
+
+- Service `inspect` now reports current runtime compatibility separately from retained-byte
+  integrity. Optional `service.runtime.files` pins explicit host files such as shared libraries.
+  Missing/changed platform, executable or file requirements never trigger install/rebuild;
+  inspection, historical success and scratch retirement remain usable. Scratch inside retained
+  storage and overrides of runner-owned HOME/cache/environment paths are rejected.
+- The example uses no-index/no-deps/hash-checked binary installation from selected inputs,
+  disables bytecode, and invokes an artifact-relative launcher with Python `-I -S -B`. It does
+  not process `.pth` files or inherit host site-packages/PYTHONPATH. Generated pip wrappers are
+  discarded; deterministic fixtures exercise console-entrypoint metadata, package data, a
+  generated asset, relocated paths, external data writes and missing dependency failure.
+- Four deterministic runtime tests use a source-pinned synthetic wheel and real native pip/
+  build/runtime execution without registry access. The fixture wheel remains a frozen source
+  input; the independent live rehearsal below exercises the public dependency acquisition path.
+- An initial fixture omitted the existing `resetEnvironment.expected` field; corrected the
+  fixture, not the product's checkpoint semantics. Also removed an imported test class from
+  module discovery to avoid duplicate test execution. Final affected artifact/runtime/build/
+  contract suite: **28 tests PASS**, 56.590s, exit 0. Added scratch-scope and reserved-environment
+  assertions then ran the two affected tests: **2 PASS**, 5.340s, exit 0.
+- Opt-in `scripts/rehearse_python_package.py`: PASS, exit 0. Actual public distribution
+  `packaging-25.0-py3-none-any.whl`, SHA-256
+  `29572ef2b1f17581046b3a2227d5c611fb25ec70ca1ba8554b24b0e69331a484`, was fetched through the
+  production acquirer. Two independent builds produced identical artifact digest
+  `1ad2e8138b167f0a8bb892c0c74fa608457d1bd4ad0865dce5b95f05c9ea194b` in that fixture.
+  After task/environment cleanup, removal of development/native build directories and package
+  relocation, the app imported retained packaging 25.0, read its generated asset and wrote
+  only external data. Post-run retained-byte verification passed; 11 selected host-library
+  requirements were checked. No runit service, deployment target or resident runtime changed.
+- This measured equality applies to the selected fixture and host. It is not a universal
+  reproducible-build claim. Native extensions, editable/.pth-based layouts, entire stdlib/pip
+  implementation, unlisted system libraries/future dlopen inputs and OS state remain outside
+  this qualification. Actual network isolation was not asserted; launch uses no acquirer or
+  package manager, but native commands retain host network authority.
+- Official MCP SDK 2.0.0 probe: PASS, exit 0, modern protocol 2026-07-28 and eleven tools.
+  Documentation link targets and diff whitespace checks passed. No direct ChatGPT acceptance,
+  commit/push or installed activation was performed.
+
+The next slice is artifact validation and packaged release integration, reusing the checked
+runtime helper before each verification/start/rollback. The pure-Python example is a finite
+launch probe; it does not itself prove HTTP readiness or service recovery.
+
+Final regression log from `sh scripts/check.sh`: **166 tests PASS**, 299.200s, ending in `OK`.
+The process handle was unavailable after the profile/session transition, so its shell exit code
+was not independently recovered. A fresh final `git diff --check` passed with exit 0; no test
+failure or incomplete test run is being promoted to PASS.
+
+Implementation references: [pip install flags](https://pip.pypa.io/en/stable/cli/pip_install/)
+and [Python isolated/no-site invocation](https://docs.python.org/3/using/cmdline.html). These
+explain the selected invocation; executed fixtures, not documentation alone, establish the
+local qualification above.
+
+## Artifact validation and packaged deployment — 2026-09-22
+
+Implemented packaging slice 4 in the unactivated 0.1.6 checkout, continuing the accumulated
+packaging changes on canonical checkout HEAD `758ef37eaa164370d94486b247f1bd8bdbd1cb62`.
+No commit/push or production service/provider change was performed for this slice.
+
+- Added artifact-subject validation through the existing tool/operation lifecycle. File artifacts
+  run the adopted policy without a service target. Service artifacts execute their manifest
+  entrypoint on a separate test port, prove HTTP release identity, run the adopted check, stop
+  descendants and recheck disposable and retained bytes. Neither exit zero nor stdout is a PASS
+  receipt. Source publication continues to reject artifact validation.
+- Packaged release uses the existing deployment controller, ownership, revision CAS and switch
+  recovery. It forbids command overrides and rechecks current source/artifact policy, content
+  and runtime before taking down an existing service. Build/validation retirement and task close
+  preserve deployability; changed runtime/content does not prevent stopping/removing an owned
+  service. Writable application data stays outside the package.
+- Artifact admission advances internal storage to schema 4; source-only state stays at 3. A
+  dedicated regression rejects selecting a schema-3-only bundle after artifacts exist and then
+  reopens the retained state successfully. This is not a product version change.
+- Seven new tests exercise file validation after source close, current policy and receipt
+  mismatch, forbidden command override, output mutation, deadline, early service exit, lost
+  dispatch response/reconnect without resubmission, failed/interrupted deployment recovery,
+  runtime/content preflight and old-bundle rejection. HTTP coverage executes a real native
+  build → artifact validation → inspection → scratch retirement and preserves source publication.
+- Final affected artifact-validation/runtime/deployment/HTTP/contract/admin suite: **39 tests
+  PASS**, 134.312s, log ends in `OK`. The earlier profile's process handle is no longer available,
+  so its shell exit code was not recovered. An initial fixture used a disallowed service prefix;
+  corrected to the required `tdev-app-` namespace. One earlier concurrent runtime test exceeded
+  its iteration-based polling budget; the shared fixture now uses a bounded 20-second monotonic
+  deadline. Product deadlines were not relaxed.
+- `scripts/rehearse_artifact_deployments.py` completed all assertions and printed its success
+  record. It uses real native validation, the public pinned `packaging==25.0` wheel, generated
+  app data and an isolated real runit graph: update while the old version serves, controller
+  reconnect/rollback, supervisor SIGKILL recovery, failed activation restoring the old version,
+  and stop/start/removal preserving application data. Source/build/validation scratch was retired
+  before release. Rollback ran with the acquirer patched to reject any call; this proves no
+  hidden reacquisition, not OS-enforced network isolation. The shared live graph was untouched.
+  The earlier process handle was unavailable after the profile change; shell exit code was not
+  independently recovered. This does not qualify shared runsvdir-root recovery or ChatGPT calls.
+- Official MCP SDK 2.0.0: PASS, exit 0, protocol 2026-07-28, eleven tools and the advertised
+  artifact validation variant. `scripts/rehearse.py`: PASS, exit 0, inactive bundle
+  `0722a890de95bf836febd366ac939d9f410b8453ac92c1879185ff99c656ebb0`. Its authenticated HTTP
+  path executes native crash/reconnect/exact publication, retained build, artifact validation
+  and scratch retirement. Service/tunnel template checks remain synthetic; the resident
+  installation was not changed.
+
+Next is explicit retention/export/prune and configurable budgets (slice 5), then remaining
+qualification/delivery. Android build/signing, native extensions, other package managers,
+remote/container targets and installed artifact acceptance are not claimed by this fixture.
+Final `sh scripts/check.sh`: **173 tests PASS**, 228.474s, **exit 0** (also captured in a durable
+exit marker). Documentation file/heading links and final `git diff --check` passed. These results
+qualify the checkout and isolated fixtures, not installed activation or direct ChatGPT acceptance.
+
+## Artifact retention, bounded export and pruning — 2026-09-22
+
+Implemented packaging slice 5 on the same uncommitted, unactivated 0.1.6 checkout. The separate
+ChatGPT monitoring investigation remains deferred; no bounded-wait or host orchestration change
+was included. No resident service, project provider, credential or operator config was changed.
+
+- Added `tdev_artifact usage/export/prunePreview/prune` to the existing eleven-tool surface.
+  Export returns bounded verified file pages and whole-file identity; it needs no HTTP service
+  or destination-path grant. Usage is a bounded authorized metadata page with explicit unknown
+  historical sizes; it does not claim total installation disk consumption.
+- Current/previous deployment versions (including stopped services), pending verification and
+  ambiguous switches prevent pruning. Pending builds retain their own capture and capacity
+  reservation without blocking unrelated cleanup. Preview tokens
+  are rechecked under the same lifecycle serialization as deployment admission/reconciliation.
+  Source tasks remain independently editable. Historical success receipts now disclose their
+  retained/pruned storage state; pruned receipts cannot reactivate the artifact.
+- Retirement is journaled before an operation-owned rename/delete. Tests interrupt both rename
+  and deletion, reconnect, preserve a newly built identical shared object, reject an untrusted
+  tombstone symlink, and race release against prune. Removed service data and historical release
+  copies remain untouched. There is no automatic GC or arbitrary-path deletion API.
+- Operator packaging limits separately bound acquired bytes, output bytes/files, sampled working
+  storage, deadlines, retained admission capacity and minimum retention age. Build reservations
+  survive unknown dispatch and pending prune retains conservative capacity. No source-copy or
+  task-dependency ceiling was disabled. Output/input/file ceilings remain the conservative format
+  bounds; native budgets are not OS quotas or hostile-code isolation.
+- Storage accepts schema 3/4/5, preserving old source and artifact rows. New artifact admissions
+  mark schema 5; schema-3/4-only bundles are refused. A temporary legacy-schema fixture verifies
+  additive metadata upgrade, explicit unmeasured bytes, subsequent verified accounting and
+  unchanged retained content. Product line remains 0.1; no new major/minor release was declared.
+- Initial affected build/validation/contract checks: **20 PASS**, 55.142s. Initial new retention
+  suite had one test expectation failure: an undelegated principal correctly returned
+  `PERMISSION_DENIED`, while the fixture expected `OPERATION_NOT_FOUND`. The fixture was corrected;
+  product authorization was not relaxed. Subsequent affected suite: **41 PASS**, 242.925s,
+  exit 0. Final retention/HTTP/contract suite: **20 PASS**, 100.501s, log ends in `OK`; its process
+  handle did not survive session resume, so no independent shell exit code is asserted for it.
+  Final metadata-upgrade/shared-page checks: **2 PASS**, 11.765s, exit 0. Final review then
+  removed an overly broad pending-build deletion fence: it could prevent freeing disk space
+  needed to recover a pending seal. A targeted lost-receipt/equal-content test checks cleanup
+  followed by reconciliation from the independent native capture without rebuild. Those final
+  pending-seal/protection checks: **2 PASS**, 10.595s, exit 0. Full regression was restarted for
+  that final source revision; the earlier in-progress run is not its qualification evidence.
+- Official MCP SDK 2.0.0 probe: PASS, exit 0, protocol 2026-07-28, eleven tools, new action schemas
+  and usage call. Inactive `scripts/rehearse.py`: PASS, exit 0; tested bundle
+  `8ba5e6a29cce4f409cb4dd8023cef5cca034f141bf0417077a488258c98c3edc` exercised authenticated
+  HTTP/reconnect/exact source publication, artifact validation, export and explicit prune.
+  Subsequent edits moved historical size measurement outside its SQLite transaction and clarified
+  action descriptions. After the pending-build cleanup correction, the inactive rehearsal passed
+  again with final bundle `80e92599b2c11459425569a4b8f4a2df605407132ba406a208a2c78a2164010d`,
+  exit 0 (durable marker), including the same export/prune and HTTP/reconnect assertions.
+- Real isolated `scripts/rehearse_artifact_deployments.py`: PASS, exit 0 (durable exit marker).
+  Actual public `packaging==25.0` acquisition, artifact verification, update, reconnect/rollback,
+  supervisor crash recovery, failed activation restoring the old release, and data-preserving
+  stop/start/remove all passed. New assertions reject pruning an active package and export/prune
+  it after removal while preserving app data. Its temporary runit graph was independent of the
+  shared live graph. This is not direct ChatGPT or installed-runtime acceptance.
+
+Remaining packaging work is slice 6 delivery/installed acceptance and final journey qualification.
+Large-file transfer throughput, historical deployment-copy pruning, signed transformations,
+APK/AAB/native-extension/other package-manager qualification remain outside this slice.
+Final `sh scripts/check.sh`: **186 tests PASS**, 599.780s, **exit 0**, including
+`git diff --check`. Both the completed process result and durable exit marker confirm success.
+This run includes the final pending-seal cleanup correction and all 13 retention tests.

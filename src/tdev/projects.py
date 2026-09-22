@@ -30,7 +30,8 @@ def apply_projects(config, store):
             continue
         require(row['id'] not in config['repositories'], 'CONFIG', 'Static repository shadows a delegated project')
         repo = json.loads(row['config'])
-        repo.update({k: copy.deepcopy(policy[k]) for k in ('validation', 'executor', 'toolingEnvironment', 'networks') if k in policy})
+        repo.pop('artifactValidation', None)
+        repo.update({k: copy.deepcopy(policy[k]) for k in ('validation', 'artifactValidation', 'executor', 'toolingEnvironment', 'networks') if k in policy})
         repo['managedRefNamespaces'] = [policy['managedRefNamespace']]
         repo['_projectPolicy'] = row['policy']
         config['repositories'][row['id']] = repo
@@ -195,7 +196,7 @@ class Projects:
         expected = intent.get('createdIdentity')
         require(expected is None or cfg['identity'] == expected, 'REPOSITORY_IDENTITY')
         repo = 'p-' + digest([row['owner'], cfg['identity']])[:24]
-        effective = {**cfg, **{k: copy.deepcopy(policy[k]) for k in ('validation', 'executor', 'toolingEnvironment', 'networks') if k in policy},
+        effective = {**cfg, **{k: copy.deepcopy(policy[k]) for k in ('validation', 'artifactValidation', 'executor', 'toolingEnvironment', 'networks') if k in policy},
                      'managedRefNamespaces': [policy['managedRefNamespace']]}
         Git(self.c.store.root / 'objects' / (repo + '.git'), effective).head(cfg['defaultRef'])
         with self.c.store.tx() as db:

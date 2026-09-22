@@ -13,11 +13,12 @@ import uuid
 from pathlib import Path
 
 from .common import Fault, atomic_write, canonical, digest, private_file, require
-from .deployment_runtime import verify_release, stop_previous
+from .deployment_runtime import verify_release, stop_previous, check_release_runtime
 from .executor import materialize
 from .native import identity
 from .resident import Runit, sync
 from .store import Store
+from .artifacts import source_validation
 
 
 class NativeDeployment:
@@ -54,7 +55,18 @@ class NativeDeployment:
         if not target.exists():
             with tempfile.TemporaryDirectory(prefix='.stage-', dir=releases) as tmp:
                 directory = Path(tmp)
-                materialize(files, directory / 'source')
+                if 'artifact' in manifest:
+                    from .artifact_build import verify_storage, sync_tree
+                    verify_storage(files, manifest['artifact']['contentDigest'])
+                    shutil.copytree(files, directory / 'artifact', symlinks=True)
+                    verify_storage(directory / 'artifact', manifest['artifact']['contentDigest'])
+                    for base, _, names in os.walk(directory / 'artifact'):
+                        for name in names:
+                            with open(Path(base) / name, 'rb') as stream:
+                                os.fsync(stream.fileno())
+                    sync_tree(directory)
+                else:
+                    materialize(files, directory / 'source')
                 atomic_write(directory / 'manifest.json', canonical(manifest))
                 os.rename(directory, target)
                 sync(releases)
@@ -105,6 +117,8 @@ class NativeDeployment:
     def apply(self, record, operation_id):
         self.backend.preflight()
         directory = self.service(record)
+        if record['desired'] == 'up':
+            check_release_runtime(self.root(record) / 'releases' / record['release'])
         if directory.exists() or directory.is_symlink():
             self.down(record)
         self.point(record)
@@ -248,10 +262,16 @@ class Deployments:
         intent = {'input': args}
         if args['action'] == 'release':
             validation = self.c.operation(principal, args['validationId'])
-            require(validation['kind'] == 'validate' and validation['status'] == 'succeeded', 'VALIDATION_REQUIRED')
-            vi, vr = json.loads(validation['intent']), json.loads(validation['result'])
+            packaged = args.get('subject') == 'artifact'
+            if packaged:
+                validation, vi, artifact_directory, artifact_manifest = self.c.artifacts.validated(principal, validation['id'])
+                require(artifact_manifest['recipe']['kind'] == 'service', 'ARTIFACT_SERVICE_REQUIRED')
+                require(args['health']['path'] == vi['input']['health']['path'], 'ARTIFACT_HEALTH_MISMATCH')
+                vr = json.loads(validation['result'])
+            else:
+                vi, vr = source_validation(validation)
             cfg = self.c.config['repositories'][validation['repo']]
-            require(vr.get('stopped') and vr.get('exitCode') == 0 and vi['policy'] == self.c.validation_policy(cfg), 'VALIDATION_POLICY_CHANGED')
+            require(vr.get('stopped') and vr.get('exitCode') == 0 and (packaged or vi['policy'] == self.c.validation_policy(cfg)), 'VALIDATION_POLICY_CHANGED')
             require(self.c.executor_config(cfg).get('kind') == 'native', 'NATIVE_FEATURE_REQUIRED')
             target_name, target = self.target(principal, args.get('target'))
             ident = digest({'owner': principal, 'target': target_name, 'name': args['name']})[:32]
@@ -263,11 +283,17 @@ class Deployments:
                        'service': target['servicePrefix'] + ident, 'revision': 0, 'desired': 'removed', 'release': None,
                        'previous': None, 'runner': str(Path(__file__).with_name('deployment_runtime.py').resolve())}
             old_record = json.loads(row['record']) if row else initial
-            files = self.c.git(validation['repo']).export(vi['candidate'])
-            manifest = {'validationId': validation['id'], 'candidate': vi['candidate'], 'command': args['command'],
-                        'health': args['health'], 'environment': vi['execution']['env'],
-                        'files': {f['path']: {'mode': f['mode'], 'digest': digest(base64.b64decode(f['data']))} for f in files}}
-            require(all('\0' not in v for v in (manifest['command'], *manifest['environment'].values())), 'ENV')
+            if packaged:
+                manifest = {'validationId': validation['id'], 'candidate': vi['candidate'],
+                            'command': artifact_manifest['recipe']['service']['command'], 'health': args['health'],
+                            'artifact': {'artifactId': vi['artifactId'], 'contentDigest': vi['contentDigest'],
+                                         'sourceValidationId': vi['sourceValidationId']}}
+            else:
+                files = self.c.git(validation['repo']).export(vi['candidate'])
+                manifest = {'validationId': validation['id'], 'candidate': vi['candidate'], 'command': args['command'],
+                            'health': args['health'], 'environment': vi['execution']['env'],
+                            'files': {f['path']: {'mode': f['mode'], 'digest': digest(base64.b64decode(f['data']))} for f in files}}
+                require(all('\0' not in v for v in (manifest['command'], *manifest['environment'].values())), 'ENV')
             intent.update(manifest=manifest, repositoryIdentity=cfg['identity'])
             record = {**old_record, 'previous': old_record['release'], 'release': digest(manifest), 'desired': 'up'}
             repo, ref, repository_identity = validation['repo'], validation['ref'], cfg['identity']
@@ -286,8 +312,8 @@ class Deployments:
                 require(record['release'] or args['action'] == 'remove', 'DEPLOYMENT_NO_RELEASE')
             if record['desired'] == 'up':
                 manifest = verify_release(self.backend.root(record) / 'releases' / record['release'])
-                validation = self.c.operation(principal, manifest['validationId'])
-                require(json.loads(validation['intent'])['policy'] == self.c.validation_policy(self.c.config['repositories'][repo]), 'VALIDATION_POLICY_CHANGED')
+                self.check_validation(principal, manifest)
+                check_release_runtime(self.backend.root(record) / 'releases' / record['release'])
         record['revision'] += 1
         intent.update(deploymentId=ident, repositoryIdentity=repository_identity, old=old_record, new=record)
         with self.store.tx() as db:
@@ -307,6 +333,18 @@ class Deployments:
             db.execute('UPDATE deployment SET busy=? WHERE id=?', (opid, ident))
         self.advance(self.store.one('SELECT * FROM operation WHERE id=?', (opid,)))
         return Store.public(self.store.one('SELECT * FROM operation WHERE id=?', (opid,)))
+
+    def check_validation(self, principal, manifest):
+        if 'artifact' in manifest:
+            _, intent, _, artifact = self.c.artifacts.validated(principal, manifest['validationId'])
+            require(manifest['artifact'] == {k: intent[k] for k in ('artifactId', 'contentDigest', 'sourceValidationId')}
+                    and manifest['candidate'] == intent['candidate']
+                    and manifest['command'] == artifact['recipe']['service']['command']
+                    and manifest['health']['path'] == intent['input']['health']['path'], 'ARTIFACT_RELEASE_MISMATCH')
+        else:
+            validation = self.c.operation(principal, manifest['validationId'])
+            intent, _ = source_validation(validation)
+            require(intent['policy'] == self.c.validation_policy(self.c.config['repositories'][validation['repo']]), 'VALIDATION_POLICY_CHANGED')
 
     def finish(self, row, record, failure=None):
         with self.store.tx() as db:
@@ -344,13 +382,17 @@ class Deployments:
                     service = self.backend.service(intent['new'])
                     if service.exists() or service.is_symlink():
                         self.backend.owned(intent['old'])
-                    # A pre-dispatch reconciliation must still use current adopted
-                    # validation policy, even after controller restart/config change.
                     if 'manifest' in intent:
-                        validation = self.c.operation(row['owner'], intent['manifest']['validationId'])
-                        require(json.loads(validation['intent'])['policy'] == self.c.validation_policy(self.c.config['repositories'][row['repo']]), 'VALIDATION_POLICY_CHANGED')
-                    if 'manifest' in intent:
-                        self.backend.prepare(intent['new'], intent['manifest'], self.c.git(row['repo']).export(intent['manifest']['candidate']))
+                        manifest = intent['manifest']
+                        self.check_validation(row['owner'], manifest)
+                        if 'artifact' in manifest:
+                            _, _, source, _ = self.c.artifacts.validated(row['owner'], manifest['validationId'])
+                        else:
+                            source = self.c.git(row['repo']).export(manifest['candidate'])
+                        self.backend.prepare(intent['new'], manifest, source)
+                    if intent['new']['desired'] == 'up':
+                        manifest = check_release_runtime(root / 'releases' / intent['new']['release'])
+                        self.check_validation(row['owner'], manifest)
                 except Fault as error:
                     self.c.fail(row['id'], error)
                     with self.store.tx() as db:
@@ -367,6 +409,9 @@ class Deployments:
                     failure = (error.value if isinstance(error, Fault) else Fault('DEPLOYMENT_FAILED', type(error).__name__).value)
                     failure = {**failure, 'effect': 'committed'}
             try:
+                if intent['old']['desired'] == 'up':
+                    previous = check_release_runtime(root / 'releases' / intent['old']['release'])
+                    self.check_validation(row['owner'], previous)
                 self.backend.apply(intent['old'], row['id'] + '-rollback')
                 atomic_write(journal, canonical({'phase': 'committed', 'record': intent['old'], 'failure': failure}))
                 self.finish(row, intent['old'], failure)

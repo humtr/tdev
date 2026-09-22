@@ -19,6 +19,7 @@ from .workspaces import Workspaces
 from .checkout import Checkout
 from .integration import integrate
 from .deployments import Deployments
+from .artifacts import Artifacts, source_validation
 
 
 class Controller:
@@ -31,6 +32,7 @@ class Controller:
         self.projects = Projects(self)
         self.workspaces = Workspaces(self)
         self.deployments = Deployments(self)
+        self.artifacts = Artifacts(self)
         self.gits = {}
         # Tests may inject fixtures; normal installations use the native runner.
         self.executor_override = executor
@@ -122,7 +124,10 @@ class Controller:
         # Installation fences admissions; observations/reconciliation remain usable.
         with open(self.store.root / 'admission.lock', 'a+b') as lock:
             fcntl.flock(lock, fcntl.LOCK_SH)
-            return self._call(principal, tool, args)
+            from contextlib import nullcontext
+            guarded = tool in ('tdev_artifact', 'tdev_deploy') or (tool == 'tdev_validate' and args.get('subject') == 'artifact')
+            with self.artifacts.lock if guarded else nullcontext():
+                return self._call(principal, tool, args)
 
     def _call(self, principal, tool, args):
         try:
@@ -132,9 +137,19 @@ class Controller:
             require(not errors, "SCHEMA", "Input does not match the public contract")
             require(len(canonical(args)) <= 2 * 1024 * 1024, "INPUT_LIMIT")
             kind = tool.removeprefix("tdev_")
-            read_only = kind == 'read' or (kind in ('workspace', 'task', 'project', 'deploy') and args.get('action') in ('list', 'inspect', 'targets')) or (kind == 'operation' and args.get('action') == 'status')
+            read_only = kind == 'read' or (kind == 'artifact' and args.get('action') in ('inspectRecipe', 'inspect', 'list', 'usage', 'export', 'prunePreview')) or (kind in ('workspace', 'task', 'project', 'deploy') and args.get('action') in ('list', 'inspect', 'targets')) or (kind == 'operation' and args.get('action') == 'status')
             require(read_only or not (self.store.root / 'maintenance.json').exists(),
                     'MAINTENANCE', 'Installation update in progress; inspect existing operations and retry later')
+            if kind == 'validate' and args.get('subject') == 'artifact':
+                return {'ok': True, 'result': self.artifacts.validate(principal, args)}
+            if kind == 'artifact':
+                if read_only:
+                    result = self.artifacts.read(principal, args)
+                elif args['action'] == 'prune':
+                    result = self.artifacts.retention.prune(principal, args)
+                else:
+                    result = self.artifacts.prepare(principal, args)
+                return {'ok': True, 'result': result}
             if kind == 'deploy':
                 result = (self.deployments.read(principal, args) if read_only else self.deployments.change(principal, args))
                 return {'ok': True, 'result': result}
@@ -207,6 +222,8 @@ class Controller:
         processes = [self.status(principal, {"operationId": row['id'], "limit": 1})
                      for row in self.store.all("SELECT id FROM operation WHERE task=? AND kind='exec' "
                          "AND status IN ('running','unknown') AND json_extract(intent,'$.input.mode')='process' ORDER BY rowid LIMIT 8", (w['id'],))]
+        builds = [self.status(principal, {'operationId': r['id'], 'limit': 1}) for r in
+                  self.store.all("SELECT id FROM operation WHERE task=? AND (kind='artifact' OR json_extract(intent,'$.validationSubject')='artifact' OR json_extract(intent,'$.artifactPrune') IS NOT NULL) AND status IN ('running','unknown') ORDER BY rowid LIMIT 24", (w['id'],))]
         # Descending rowid pagination includes closed tasks and old cleanup owners.
         before, limit = args.get("before", 9007199254740991), args.get("limit", 20)
         rows = self.store.all("SELECT rowid AS cursor,* FROM operation WHERE owner=? AND (task=? OR json_extract(intent,'$.targetOperation') IN (SELECT id FROM operation WHERE task=?)) AND rowid<? ORDER BY rowid DESC LIMIT ?",
@@ -216,7 +233,7 @@ class Controller:
             item = Store.public(row)
             item["requestId"] = row["request"]
             item["cleanup"] = "none"
-            if row["kind"] in ("exec", "validate"):
+            if row["kind"] in ("exec", "validate", "artifact"):
                 retired = self.store.one("SELECT id FROM operation WHERE owner=? AND kind='operation' AND status='succeeded' AND json_extract(intent,'$.targetOperation')=? AND json_extract(intent,'$.input.action')='retire' LIMIT 1", (principal, row["id"]))
                 item["cleanup"] = "retired" if retired else "retire" if (item["result"] or {}).get("stopped") else "observe"
             operations.append(item)
@@ -227,6 +244,7 @@ class Controller:
             remote = {"error": error.value}
         result = {"task": w, "remote": remote, "operations": operations,
                   "processes": processes,
+                  "builds": builds,
                   "environment": {"path": str(self.store.root.resolve() / 'native/environments' / w['id']),
                                   "present": (self.store.root / 'native/environments' / w['id']).exists()},
                   "active": busy if busy and w["busy"] == busy["id"] else None,
@@ -394,11 +412,12 @@ class Controller:
         elif kind == "publish":
             validation = self.operation(principal, args["validationId"])
             require(validation["kind"] == "validate", "VALIDATION_REQUIRED")
+            require(json.loads(validation['intent']).get('validationSubject', 'source') == 'source', 'SOURCE_VALIDATION_REQUIRED')
             w = self.task(principal, validation["task"])
             repo, ref = w["repo"], w["ref"]
         elif kind == "operation":
             target = self.operation(principal, args["operationId"])
-            require(target["kind"] in ("exec", "validate"), "PROCESS_REQUIRED")
+            require(target["kind"] in ("exec", "validate", "artifact"), "PROCESS_REQUIRED")
             repo, ref = target["repo"], target["ref"]
         else:
             w = self.task(principal, args["taskId"])
@@ -501,7 +520,7 @@ class Controller:
             row = db.execute("SELECT task,status,kind,intent FROM operation WHERE id=?", (opid,)).fetchone()
             if row["status"] in ("succeeded", "failed", "cancelled"):
                 return
-            process = row['kind'] == 'exec' and json.loads(row['intent'])['input'].get('mode') == 'process'
+            process = (row['kind'] == 'exec' and json.loads(row['intent'])['input'].get('mode') == 'process') or json.loads(row['intent']).get('validationSubject') == 'artifact'
             if row["task"] and not process:
                 current = db.execute("SELECT busy FROM task WHERE id=?", (row["task"],)).fetchone()
                 require(current and current[0] == opid, "WRITER_CHANGED")
@@ -682,13 +701,12 @@ class Controller:
         # Keep bytes in Git; exact execution input can be reconstructed for auditing.
         execution = {k: v for k, v in payload.items() if k not in ("files", "gitPack")}
         intent = self.save_intent(opid, execution=execution, inputDigest=digest(payload),
-                                  executor=executor, policy=self.validation_policy(config), candidate=candidate)
+                                  executor=executor, policy=self.validation_policy(config), candidate=candidate,
+                                  **({'validationSubject': 'source'} if kind == 'validate' else {}))
         self.backend(intent).submit(payload)
 
     def publish(self, opid, w, args, validation):
-        require(validation["status"] == "succeeded" and validation["result"], "VALIDATION_REQUIRED")
-        vi = json.loads(validation["intent"])
-        vr = json.loads(validation["result"])
+        vi, vr = source_validation(validation)
         c = self.config["repositories"][w["repo"]]
         require(w['managed'] or not c.get('managedOnly', False), 'MANAGED_TASK_REQUIRED',
                 'Start a managed task for this project; its base branch is a source, not a publication target')
@@ -717,6 +735,13 @@ class Controller:
                     published=vi['candidate'] if w['managed'] else None)
 
     def reconcile(self, row):
+        from contextlib import nullcontext
+        intent = json.loads(row['intent'])
+        guarded = row['kind'] in ('artifact', 'deploy') or intent.get('validationSubject') == 'artifact' or intent.get('artifactPrune')
+        with self.artifacts.lock if guarded else nullcontext():
+            return self._reconcile(row)
+
+    def _reconcile(self, row):
         if row["status"] not in ("running", "unknown"):
             return
         with self.reconcile_locks_guard:
@@ -730,8 +755,12 @@ class Controller:
                 return
             intent = json.loads(row["intent"])
             try:
-                if row['kind'] == 'project':
+                if intent.get('artifactPrune'):
+                    self.artifacts.retention.reconcile(row)
+                elif row['kind'] == 'project':
                     self.projects.reconcile(row)
+                elif row['kind'] == 'artifact':
+                    self.artifacts.reconcile(row)
                 elif row['kind'] == 'deploy':
                     self.deployments.advance(row)
                 elif intent.get('environmentReset'):
@@ -747,6 +776,8 @@ class Controller:
                     if head == intent['new'] or (not managed and g.contains(head, intent['new'])):
                         self.finish(row['id'], {'commit': intent['new'], 'validationId': intent['input']['validationId']},
                                     closed=True, published=intent['new'] if managed else None)
+                elif row['kind'] == 'validate' and intent.get('validationSubject') == 'artifact':
+                    self.artifacts.reconcile_validation(row)
                 elif row["kind"] in ("exec", "validate") and "execution" in intent:
                     result = self.backend(intent).observe(row["id"])
                     require(isinstance(result, dict), "RECEIPT_FORMAT")
@@ -774,6 +805,8 @@ class Controller:
                     result = self.backend(intent).control_status(intent["targetOperation"], row["id"])
                     if result.get("known"):
                         self.finish(row["id"], result["result"])
+            except OSError:
+                self.fail(row['id'], Fault('RECONCILIATION_IO', 'Retained evidence is incomplete; retry observation, never rebuild', 'unknown'))
             except Fault as e:
                 # Invalid/missing receipt is never promoted to terminal proof.
                 self.fail(row["id"], Fault(e.value["code"], e.value["message"], "unknown"))
@@ -792,13 +825,15 @@ class Controller:
         self.reconcile(row)
         row = self.operation(principal, row["id"])
         result = Store.public(row)
+        if row['kind'] == 'artifact':
+            result['artifactStorage'] = self.artifacts.retention.description(row['id'])
         intent = json.loads(row['intent'])
-        if row['kind'] in ('exec', 'validate') and 'execution' in intent:
+        if row['kind'] in ('exec', 'validate', 'artifact') and 'execution' in intent:
             execution = intent['execution']
             result['execution'] = {'mode': execution.get('mode', 'command'), 'checkpoint': execution['checkpoint'],
                                    'environment': 'task' if execution.get('environmentId') else 'fresh',
                                    'timeout': execution['timeout']}
-        if row["kind"] in ("exec", "validate") and "execution" in json.loads(row["intent"]):
+        if row["kind"] in ("exec", "validate", "artifact") and "execution" in json.loads(row["intent"]):
             try:
                 result["output"] = self.backend(json.loads(row["intent"])).logs(row["id"], args.get("offset", 0), args.get("limit", 24000))
             except Fault as e:

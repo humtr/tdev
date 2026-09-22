@@ -69,7 +69,7 @@ class ContractTest(unittest.TestCase):
         for tool in s["x-tools"]:
             self.assertEqual(tool["annotations"], expected_annotations)
         self.assertEqual([t["name"].removeprefix("tdev_") for t in s["x-tools"]],
-                         ["workspace", "task", "read", "edit", "exec", "operation", "validate", "publish", "project", "deploy"])
+                         ["workspace", "task", "read", "edit", "exec", "operation", "validate", "publish", "project", "deploy", "artifact"])
         architecture = (root / "ARCHITECTURE.md").read_text()
         self.assertIn("task/read/edit/exec/operation/validate/publish", architecture)
         plan = (root / "IMPLEMENTATION_PLAN.md").read_text()

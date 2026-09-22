@@ -95,7 +95,10 @@ additional permission registration. tdev_deploy manages validated native project
 tool/runtime connection lifecycle remains future work. CLI extensions gain no MCP admin operation;
 native programs nevertheless have the real app UID's authority (§3).
 
-Tool annotations use the fixed tmcp host-hint scope: all ten public tools advertise
+`tdev_artifact inspectRecipe` supplies the first packaging surface described in §8; it reads
+validated source metadata and does not produce or release an artifact.
+
+Tool annotations use the fixed tmcp host-hint scope: all eleven public tools advertise
 `readOnlyHint=true`, with `destructiveHint=false`, `idempotentHint=false` and
 `openWorldHint=false`. These annotations are host hints, not effect semantics, admission
 authority or a safety boundary. The actual task mutation, owner-trusted execution,
@@ -320,6 +323,12 @@ SQLite schema 3 separates workspace composition and source tasks. Earlier experi
 is rejected before table changes; this redesign uses a fresh private state directory and
 provides no automatic migration or deletion of old state. Activation/rollback rejects bundles
 unable to read the actual schema. Storage revisions are independent of product versions.
+The artifact-retention bundle reads schema 3, 4 and 5. Source-only state stays at 3; new artifact
+build/validation/prune admission sets 5 in its transaction. Schema-4 artifact metadata gains
+size/retention-time/retirement fields without deleting records; original bytes remain intact.
+Missing historical sizes are explicitly unmeasured until verified accounting backfills them,
+and historical minimum retention starts on upgrade. Bundles supporting only schema 3/4 cannot
+be selected after schema-5 admission, even after all objects are pruned.
 
 ## 6. Process, concurrency and recovery
 
@@ -410,6 +419,129 @@ completion does not prevent management. Unknown jobs cannot be retired by timer.
 Same-ref work stays independent. Compose applies base→source changes only where target
 is unchanged or already equal, rejecting conflicts. The model decides when to merge/rebase
 or compose, and validates the combined checkpoint.
+
+### Optional semantic continuity
+
+This is the selected design, not an implemented contract. Existing task/operation recovery
+above reconstructs material progress; it cannot reconstruct an unrecorded user objective or
+why a model rejected an alternative. Repository purpose/design/plan documents already retain
+shared project meaning. A resume note fills the smaller gap: temporary working intent spanning
+tasks, projects and conversations. It does not replace those documents.
+
+Start with a **bounded, revisioned resume note in an existing workspace**. Several named notes
+may coexist for unrelated objectives; one note may reference several projects/tasks. There is
+no root task, campaign, planner, semantic gate or new execution lifecycle. Closing a task does
+not close its note. A conversation and a note are many-to-many; selecting a note is context
+selection, not an attachment grant. There is no required durable conversation-binding table.
+
+| Information | Authoritative owner | Note's role |
+|---|---|---|
+| User intent and constraints | Current user instructions; applicable repository instructions/design | Model-authored recollection with provenance, not a new permission or normative document. |
+| Semantic working state | Model supplies meaning; note store owns only recorded content/revision | Objective, brief rationale, unresolved question/blocker, next intent. |
+| Conversation provenance | Observed request metadata, scoped by authenticated principal | Optional unverified routing hint, never identity proof. |
+| Git source/ref | Git and current provider readback | Reference to project/task/source evidence. |
+| Task checkpoint | Existing task row and immutable Git checkpoint | Task reference, no second current-checkpoint pointer. |
+| Operation and process | Existing intent/result; supervisor and current observation | Operation reference, no copied success/process truth. |
+| Validation/publication | Existing exact candidate/policy receipt and Git readback | Validation/operation reference, never model-authored PASS. |
+| Deployment | Deployment record, switch journal, retained release and target observation | Deployment reference, no desired release in a note. |
+| Runtime/resource | Actual selected executor/provider/device observations | Timestamped evidence reference; refresh before reliance. |
+| Authorization | Current authenticated principal, delegated config and actual OS/provider grants | None. A remembered decision cannot authorize an effect. |
+
+Use explicit semantic updates at meaningful boundaries: objective established/changed, a costly
+decision, first-order blocker found/resolved, or useful handoff. Bootstrap when enough meaning
+is known, not mechanically on the first tool call. No payload on every edit/exec/status call,
+no mandatory end-of-turn ceremony, no hidden chain-of-thought collection. Keep one current
+objective, relevant constraints, a few decisions with one/two-sentence reasons, current
+blockers/questions and next intent. Retain a rejected alternative only if it prevents costly
+repetition; link durable design decisions to their repository owner instead of copying them.
+Assumptions are explicitly unverified or evidence-linked, and invalidated when their dependencies
+change. Objective changes replace the current objective; old revisions are historical only.
+
+#### Minimal state and proposed surface
+
+Prefer three actions on `tdev_workspace`: `remember`, `resume`, `forget`. These are proposed
+names, not advertised tools. `remember` creates/replaces/archives a named note with expected
+note revision and request identity; `resume` discovers candidates or reads a selected note;
+`forget` removes only that note's semantic records. Existing workspace revision and lifecycle
+are not changed by note updates. Contract changes ship only with implementation/tests.
+
+Use a separately opened optional local `continuity.sqlite`, with two tables: note identity/
+workspace/principal/current revision, and bounded immutable note revisions holding content,
+typed references, timestamp, format revision and request digest/result for replay. No separate
+objective, decision, conversation, event, plan or task-link tables initially. No foreign keys,
+attached database or write transaction spanning the product store and this sidecar. References
+are resolved through current product authority; they may be unavailable or retired. Note IDs
+must never be reused after deletion, so an old expected revision cannot overwrite a new note.
+
+Initial bounds to qualify: 8 KiB UTF-8 per capsule, at most 32 typed references, five candidate
+titles per discovery page, one capsule per response. These are byte limits, not token promises.
+Keep the current revision and up to eight previous revisions; discard historical revisions
+older than 30 days. Active current content survives age alone but is visibly dated; archive/
+forget is explicit. Apply configurable total storage limits and bounded pagination; refuse only
+semantic writes when full. Retained request identities replay exactly; an older unavailable
+receipt returns stale/expired rather than accepting an old write. Hash/content mismatch on a
+retained request conflicts. Atomic revision CAS prevents concurrent conversations losing updates.
+
+Store no complete user prompts, assistant transcripts, raw tool stdout, auth headers, secrets,
+private keys or opaque Codex compaction payloads. A concise user-intent gist is sufficient for
+the default path. Optional external-agent provenance is a bounded provider/session reference,
+not a profile scan or session import. Privacy filtering is not a claim that arbitrary model text
+can be perfectly sanitized; user-selected content remains private and explicitly deletable.
+Forget covers semantic revisions/provenance; document any external backup retention separately.
+
+#### Resume and host boundary
+
+Discover within current principal/workspace/project authority using names and returned handles.
+Return candidate titles before loading unrelated prose; the model chooses a relevant note or
+starts fresh. No implicit hard attach and no internal-ID copying by the user. Without a known
+workspace, use the existing workspace listing/defaults. Normal tools keep their existing outputs;
+host instructions/tool descriptions teach the model to call resume when continuing work.
+This requires an actual host tool interaction: tdev cannot inject into an unopened ChatGPT
+conversation, force the host to call a tool, or replace its context window.
+
+Return semantic content separately from bounded, newly read observations of referenced material
+state. Do not scan every workspace/resource or claim an atomic global frontier. Mark observation
+time, owner, truncation, unavailable references and unknown effects. Read-only resume must not
+invoke recovery-bearing task/deployment inspection implicitly: pending reconciliation is shown
+as such and handled through the existing operation path. Before an effect, rebind the relevant
+source, grants, policy and runtime via existing admission checks; a note's next intent is advice.
+Conflicting current instructions or evidence supersede a note. Referenced project revocation
+must not leak its facts; if project-sensitive prose cannot be safely separated, withhold the
+whole note until authorized access returns. Workspace membership is not a grant.
+
+`openai/subject` and `openai/session`, if actually supplied, are optional, size-bounded ingress
+provenance. Do not equate them with transport `MCP-Session-Id`, a source task or authentication.
+Bearer/principal checks precede discovery; caller-supplied metadata cannot expand scope or prove
+the caller is ChatGPT. If later retained, prefer principal-scoped digests over raw identifiers;
+neither provenance nor missing metadata affects core request identity/replay. Current ingress
+does not propagate these fields. Add preservation only after a redacted direct-host probe proves
+value; deterministic fixtures cannot prove current ChatGPT behaviour. Metadata is unnecessary
+for the first note implementation, including use from Local Codex and other MCP clients.
+
+#### Compaction and failure isolation
+
+Initially the active model rewrites the bounded current note: this is enough context reduction
+without a full semantic journal, background model, token-window detector or additional LLM bill.
+When a note approaches its byte budget, compress before its next optional update. Keep brief
+evidence references and uncertainties; format validation cannot certify summary truth. Concurrent
+revision changes reject replacement for re-read/merge, never silently lose the other writer.
+
+Only measured loss of useful decision history justifies an optional bounded semantic journal.
+Then record meaningful changes, not every tool event; compact a named revision/event prefix and
+preserve later events as a suffix. Install a capsule atomically against the covered revision.
+Do not copy Codex private formats, guardian machinery or transcript retention. No summary is
+allowed to replace current source/runtime authority or turn a model claim into permission.
+
+Core startup, authentication, read/edit/exec/operation/validate/publish/deploy and existing
+workspace/project/task actions must never require the sidecar. Missing, corrupt, full, locked,
+disabled or incompatible continuity storage affects only semantic actions; bound its I/O time
+and isolate its exceptions. Enforce its own storage budget before writes and never hold core
+locks while accessing it. This does not promise immunity to host-wide disk/OS failure shared by
+all local software. Do not turn corrupt history into a successful empty-context claim
+or silently repair by destroying evidence. A failed optional update cannot swallow or change an
+already completed core result. Removing the entire sidecar loses notes only: Git, tasks,
+operations, deployments, cleanup ownership and core authorization remain usable and unchanged.
+This is failure isolation for optional context, not fail-open authorization.
 
 ## 7. Validation and publication
 
@@ -519,7 +651,8 @@ The manifest binds candidate, validation ID, source paths/bytes/modes, launch co
 non-secret environment and readiness probe. This first adapter is a **source release**: it does
 not freeze dependencies, compiler outputs or the mutable task venv, and does not infer that
 validation tested the separate launch command. Applications must run from the source release
-with installed host tooling/adopted dependency paths. Build-artifact packaging is future work.
+with installed host tooling/adopted dependency paths. Retained build-artifact deployment is the
+separate explicit variant described below.
 Publication of source is independent and is not required to deploy a validated candidate.
 
 The runit service uses a pinned controller-bundle runtime path, verifies source at each start,
@@ -558,6 +691,255 @@ cannot manage this new surface and must not be chosen as a runtime downgrade whi
 Project services pin their runner bundle, so tdev controller updates do not rewrite or restart
 them; keep those bundles while their services exist. New release deployment is stop/start with
 possible downtime, not a zero-downtime or multi-project transaction.
+
+### General build artifacts and optional Android capabilities
+
+The recipe/identity, retained native build, artifact validation and Termux service integration
+below are implemented, including explicit export/prune. Python runtime qualification covers the
+selected layout; other runtime/target adapters remain planned. An artifact is a retained build output independent
+of any deployment target; separate validation proves its adopted checks. It may be a file set, archive, binary,
+service package, APK or AAB, with no foreground command or HTTP probe. Target adapters add
+launch/install/readiness requirements; the existing Termux HTTP adapter keeps its exact checks.
+Distinguish build executor/toolchain identity, artifact target platform/ABI and deployment target.
+Termux-compatible host tools may produce Android artifacts; another explicitly selected build
+runtime may be needed for unsupported toolchains. Never silently substitute a remote runtime.
+
+Preserve source → dependencies/toolchain → build → test/validate → artifact → optional signing/
+packaging → verify final bytes → optional install/deploy → live verification. Build and signing
+can be combined by a recipe, but the final digest and verification must cover the signed output;
+a later signature or package transform creates a new artifact linked to its input. Signing keys
+and passwords remain outside source, artifacts, notes and receipts. Public certificate identity
+and an authorized signer reference are provenance, not embedded secret material. Build success,
+signature verification, install success and live behaviour are separate claims. Android AAB is
+not directly installed as an APK. No Android-specific packaging framework is required now.
+
+#### Implemented recipe and identity foundation
+
+`inspectRecipe` selects an existing successful source validation and reads `tdev-package.json`
+(or an explicit project-relative path) from its immutable candidate. It requires current
+principal/repository authority, exact repository identity, current source-validation policy
+and a matching terminal/stopped successful receipt. It does not reconcile an unknown operation,
+run recipe commands, fetch dependencies, inspect live toolchains or require a deployment grant.
+Later task edits/close do not change the selected candidate. It is an observation during an
+installation admission fence, with no operation row or replay identity of its own.
+
+Strict bounded recipe/schema checks reject duplicate JSON keys, extra authority/policy fields,
+traversal, overlapping/case-colliding paths, symlink inputs, unpinned dependency entries and
+credential/query-bearing dependency URLs. The initial acquisition description supports public
+HTTPS inputs only. Inspection reports build/runtime tool and platform requirements; preparation
+checks the native build host and declared executables, not eventual runtime compatibility. Service launch metadata is conditional; archive,
+APK/AAB and other non-service descriptions need no entrypoint or readiness endpoint. Merely
+accepting a kind is not qualification of its toolchain. Source/input manifests initially cover
+regular files only; unsupported symlinks fail rather than acquiring undocumented semantics.
+
+The inspection binds the source tree, repository identity, raw recipe digest and declared input
+path/mode/size/content hashes. The whole source tree remains bound even if the explicit input
+list omits a source file. Candidate/validation identity and current source/artifact policy
+digests live in the inspection binding, not in artifact content identity. Internal manifest
+validation binds source/recipe and exact exported file metadata; receipt IDs, timestamps and
+current policy do not change retained content identity. A manifest/hash alone is not evidence
+of captured bytes or successful execution. The trusted sealer captures/verifies bytes, and build admission rederives the binding from
+current owners rather than trusting a supplied inspection/hash. No public API accepts a caller-authored manifest or PASS result.
+
+The adopted artifact check command is the repository/project policy's `artifactValidation`,
+defaulting to `validation`; recipes cannot select or waive it. Its digest has an artifact
+subject and includes the executor/tooling environment. Changing only this policy does not
+invalidate source validation; it changes the artifact inspection binding. Delegated policies
+are reread on each call, including removal of an override.
+New source validation intents explicitly identify their subject; retained earlier source
+receipts remain usable. Source publication and source-release activation/start/rollback reject
+an artifact-subject receipt. Only the explicit artifact release variant consumes artifact validation.
+
+#### Retained native builds
+
+`prepare` accepts a source validation and request identity, rechecks current authority/policy,
+and creates one ordinary artifact operation. It never locks or advances the source task.
+The native supervisor owns dispatch, process identity, deadlines/cancellation, bounded logs and
+stop proof. Accepted unknown work is observed, never relaunched. A principal can have at most
+eight outstanding builds; task inspection and artifact listing expose them independently of
+history pagination. Closed tasks retain inspection/control access under current project grants.
+A dispatch reservation gap or lost supervisor remains unknown; an operator investigation is
+required when stop proof cannot be recovered. No synthetic success or automatic rebuild repairs it.
+
+Builds use fresh source/HOME/scratch and no task environment or adopted toolingEnvironment.
+The recipe must pin `sh` and its declared executables. Platform is OS/architecture/ABI;
+executable digests are checked before admission and again in the child. This does not attest
+shared libraries, SDK data, every subprocess or the whole host image. Native execution remains
+same-UID with host network: a recipe can use undeclared host/network resources, so retained-byte
+integrity is guaranteed, not hermeticity or reproducible independent builds. Runtime compatibility
+qualification is a separate slice. Private dependency acquisition is not supported yet.
+
+Public HTTPS distributions are fetched without ambient proxy/auth/cookie configuration;
+redirects fail explicitly. Each digest is checked before the command and again after it.
+Named files are supplied through `TDEV_INPUT_DIR`; `TDEV_BUILD_DIR` holds disposable intermediates.
+After stopped successful execution, source content/modes must be unchanged; only declared exports
+are captured. New files outside exports fail. Symlinks, special files, hardlinks, aliases, missing
+exports and oversized outputs fail. Outputs and selected distributions are retained together;
+there is no resolver or implicit transitive download. Recipes must enumerate their acquisition
+closure and invoke their package manager against those selected inputs.
+
+Operator `artifactLimits` independently bounds exported bytes, acquired bytes, output files,
+working storage and build/verification deadlines. Defaults preserve 64 MiB output, 64 MiB input,
+4,096 files and 128 MiB sampled working storage; manifest size remains capped at 1 MiB.
+Output/input/file settings can lower these format ceilings; working storage can be raised within
+its contract bound. Source-copy limits are unchanged. Sealing temporarily uses additional copies.
+These conservative limits do not qualify large Android toolchains or hostile-process containment.
+
+The worker fsyncs a private staged capture and atomically renames it. Reconciliation verifies
+that capture, copies/verifies/fsyncs an independently retained content-addressed object, then
+commits its build pin and terminal operation receipt together. The artifact table stores
+operation identity, digest, measured retained size, retention start and optional prune operation;
+operation already owns principal, repository identity and
+source-validation provenance. A crash after object rename but before receipt commit can finish
+that transaction by observation. Unreferenced objects alone never prove successful execution.
+A copy/disk failure preserves unknown evidence and can retry sealing without another build.
+`inspect` checks bytes and manifest anew. Its derived `artifactValidated` and validation handle
+require a successful check under current policy, valid source provenance and compatible service
+runtime; byte integrity alone is insufficient. No caller-supplied manifest is trusted.
+
+Operation `retire` requires reconciled stop proof and removes build scratch/capture, preserving
+the retained object and receipt. Task close/reset does not delete it. There is no automatic GC;
+only explicit previewed pruning can release retained references. Signed transformations remain
+planned work.
+
+#### Python layout and runtime compatibility
+
+The reference `examples/python-package` project installs a content-pinned pure-Python wheel
+into a fresh artifact-local `dist/python` using no-index/no-deps/hash-checked pip installation.
+Its project-owned launcher uses `python -I -S -B`, inserts only the artifact's dependency/app
+paths alongside the selected interpreter's standard library, and never processes `.pth` files.
+This qualifies that concrete layout, not every arbitrary Python recipe. Generated pip console
+wrappers are discarded; module/metadata entrypoints run through the artifact-relative launcher.
+No live venv, development cache, host site-packages or build-root path is a runtime dependency.
+Package data/entrypoints, missing dependency failure, external writable data and absence of
+bytecode/source mutations are exercised after relocation and build/development root removal.
+
+Service runtime requirements can additionally list exact host files (not exported files),
+including shared libraries. `inspect` rechecks platform, declared tool digests and these file
+hashes and reports compatibility separately from retained-byte integrity. A changed/missing
+runtime does not erase build success or prevent inspection/retirement. Requirements are
+recipe-bound, not an instruction to install/repair the host. Runtime inspection performs no
+rebuild, installation or process activation. Restore the pinned runtime or explicitly prepare
+and validate a new artifact; application rollback alone cannot undo host changes.
+
+The internal service-launch helper rechecks retained bytes and runtime requirements, derives
+argv/cwd/environment from the manifest, and requires HOME/TMP/data outside retained storage.
+It returns launch inputs to a supervisor; it introduces no second execution lifecycle or public
+run tool. Artifact verification/start/rollback call it afresh. Existing source-only deployments
+retain their separate source receipt path. Generic shell commands do not
+receive automatic Python import isolation; the tested project's explicit launcher provides it.
+
+Attestation is intentionally bounded: executable files, OS/architecture/ABI and listed library
+files are checked. Python standard-library content, pip modules used during build, unlisted
+libraries/future dlopen inputs and the OS image remain external assumptions. Native extensions
+and other Python layouts require separate qualification; do not infer portability from this
+pure-Python example. Hash equality in two measured independent builds is fixture evidence,
+not a universal reproducibility guarantee or permission to weaken content checks.
+
+#### Artifact validation and packaged release
+
+`tdev_validate subject=artifact` creates an ordinary validation operation tied to a retained
+build, original source receipt, candidate, content digest and current adopted artifact policy.
+It neither reserves the source writer nor requires the source task to remain open. A principal
+may have eight outstanding artifact validations in addition to eight builds; bounded task and
+artifact inspection expose both. Existing operation observation/cancel/retire controls apply.
+
+The native worker verifies retained storage, copies it into disposable validation storage and
+rechecks both copies after all descendants stop. The mandatory check runs in the artifact layout
+with writable HOME/TMP/data outside those bytes, without task dependencies or toolingEnvironment.
+File artifacts need no service/HTTP target. Service artifacts launch the manifest command and
+must remain alive through the check; readiness requires HTTP 200 and the validation operation's
+`X-Tdev-Release`. A separate loopback health port becomes `TDEV_PORT`, allowing verification while
+the previous deployment serves. This is sampled native execution, not hostile-code containment.
+Exit zero alone cannot produce a successful receipt: identity, stop proof, unchanged content,
+service readiness where applicable and the worker's artifact-check result must agree.
+
+`tdev_deploy release subject=artifact` consumes that receipt and copies verified retained bytes
+into the existing immutable release layout. It permits no command override. The health path must
+match verification; the target port may differ and is passed as `TDEV_PORT`. Artifact content
+identity and deployment release identity remain separate; `TDEV_RELEASE` and the HTTP header
+identify the deployment release. Writable application data stays outside releases and survives
+update/rollback/removal. Start/rollback do not acquire dependencies or rebuild packages.
+
+Admission and pre-dispatch recovery recheck receipt/source/policy joins, bytes and host runtime
+before stopping an existing service. The native supervisor rechecks bytes/runtime on every launch.
+Failed or interrupted switching restores the previous desired release through the existing
+deployment journal. If its current policy/runtime can no longer be satisfied, recovery remains
+explicitly unknown; it does not fabricate a successful rollback. Stop/remove still work after
+package damage. Validation/build scratch retirement cannot delete retained or deployed bytes.
+
+#### Retention, export and explicit pruning
+
+The build handle owns a retained reference, not necessarily an exclusive physical object.
+Identical content can have multiple build references. `export` returns bounded base64 pages
+from one declared exported file after checking retained integrity, with its expected whole-file
+hash and offsets. It writes no caller-selected destination, creates no archive implicitly and
+needs no service target. Large downloads incur repeated integrity checks; this initial path
+is not a bulk-transfer or public-download service. Clients verify the assembled file hash.
+
+`usage` pages authorized retained metadata, deduplicating content within each page only. Its
+size excludes native scratch, sealing temporaries and deployment release copies; it does not
+claim global physical disk usage. `list` and original build status expose retained/pruned state
+without changing historical execution success. Inspecting a pruned build returns its content
+identity and prune-operation reference; old validation cannot activate missing/retired storage.
+
+`prunePreview` reports current/previous deployment references, in-flight validation/switch
+references, shared content and the operator minimum retention period. Stopped deployments retain
+their pins. Removed deployments no longer need activation pins, but remove itself never prunes
+bytes or user data. Pending/unknown builds retain their own native capture and capacity reservation; their
+uncompleted handles cannot be pruned. They do not block cleanup of unrelated completed builds.
+If an identical retained object is pruned before a pending seal commits, reconciliation restores
+it from that build's independently owned capture without re-executing the build. The preview token is not deletion authority; `prune` requires current
+principal/project authority and rechecks every pin and current policy at admission.
+
+Artifact admissions, exports, reconciliation and deployment switches share a controller-local
+reentrant mutex; the existing process lock still ensures one controller. This serializes artifact
+lifecycle changes, not ordinary source editing/execution. The mutex precedes per-operation
+reconciliation locks. Native workers write their own scratch captures and never the retained store.
+No SQLite transaction spans copying, deletion or service health waits.
+
+Prune acceptance atomically records an ordinary operation and retires the selected build reference.
+If no other retained reference needs the object, reconciliation renames it to an operation-owned
+tombstone, fsyncs, removes it and commits completion. Interruptions retain unknown evidence and
+resume through the original operation; no new deletion request is required. A newly built equal
+object/reference must survive tombstone cleanup. Symlink roots/conflicting tombstones fail closed.
+Other build references keep shared content alive. Eight pending prunes per principal plus eight
+builds/eight artifact validations bound outstanding discovery to 24 entries. There is no automatic GC.
+
+The default retained-object admission budget is 2 GiB. Builds reserve their maximum output/input
+plus manifest bytes before dispatch; accepted unknown builds keep that reservation. Retained
+objects count once by digest; unfinished prunes retain conservative capacity reservations.
+Exhaustion rejects a new build without evicting data. Lowering a policy affects future admissions,
+not the resource promise already persisted for an accepted execution. Per-operation native working
+storage remains sampled; byte reservations do not replace available filesystem capacity checks.
+Default minimum retention is zero (explicit pruning only); operators may require a longer age.
+
+Source-task-independent host access belongs to a concrete resource adapter, not continuity.
+The first useful surface should provide bounded native filesystem/process/toolchain observations
+within delegated host roots, without a dummy Git task. Existing same-UID exec is powerful but
+does not provide source-free targeting, bounded discovery or a stable resource observation
+contract. Establish those only for selected use cases; do not add `host`, `resource` and
+`connection` tool families at once. Prefer a narrow `tdev_resource` proposal for native inspection
+when implemented; a connection describes how that resource is reached and authorized, not a
+second owner of its state. Shared identity/provenance/freshness conventions do not require a
+universal gateway or a joint context/resource database.
+
+Termux's native authority covers its app-UID filesystem/process scope and available permitted
+Android interfaces, not system/root privileges, other apps' private data or arbitrary UI control.
+Termux:API supplies selected Android APIs only with its compatible app and required grants.
+A future optional Android companion is feasible for user-enabled Accessibility tree/gestures,
+app intents, notification access and permitted screen observation. MediaProjection has its own
+user-consent/session requirements; clipboard/background access and secure UI remain restricted.
+Use authenticated, revocable local control and bounded observe → act → observe operations;
+dispatch success alone is not proof of the intended UI effect. No IPC design is fixed here.
+
+ADB/delegated shell (including Shizuku), Device Owner and root are separate optional authority
+adapters if a real task requires them; none grants every capability or follows from installing
+a companion. Android app building/signing does not require Android-use. Missing companion,
+Accessibility, Termux:API, ADB, Shizuku, root or continuity must leave the core development path
+usable. Only the selected unsupported/unavailable/unauthorized Android operation fails. Adapter
+revocation must preserve observation/cleanup evidence without silently rerouting an accepted
+effect. Implement no Android-use subsystem before the complete development path is qualified.
 
 ## 9. Evidence and acceptance
 

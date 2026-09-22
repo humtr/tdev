@@ -61,7 +61,7 @@ class HTTPTest(unittest.TestCase):
         self.assertEqual(self.request(headers={"Host": "evil.example"})[0], 403)
         code, value = self.request()
         self.assertEqual(code, 200)
-        self.assertEqual(len(value["result"]["tools"]), 10)
+        self.assertEqual(len(value["result"]["tools"]), 11)
         self.assertNotIn("$ref", json.dumps(value["result"]))
 
     def test_oauth_well_known_is_optional_public_404(self):
@@ -120,9 +120,42 @@ class HTTPTest(unittest.TestCase):
                 time.sleep(.03)
             self.fail(result)
         w = call("task", {"action": "open", "requestId": "open", "repo": "test", "ref": "refs/heads/main", "expectedHead": self.repo.head})["result"]
-        e = call("edit", {"requestId": "edit", "taskId": w["taskId"], "expected": w["checkpoint"], "edits": [{"action": "replace", "path": "a.txt", "old": "hello", "text": "http"}]})["result"]
+        import shutil
+        from tdev.artifact_build import host_platform
+        from tdev.common import digest
+        platform = host_platform()
+        recipe = {'format': 1, 'kind': 'archive', 'inputs': ['a.txt'], 'dependencies': [],
+                  'build': {'command': 'mkdir dist; cp a.txt dist/output.txt', 'platform': platform,
+                            'tools': [{'name': 'sh', 'sha256': digest(Path(shutil.which('sh')).resolve().read_bytes())}]},
+                  'target': platform, 'exports': ['dist']}
+        e = call("edit", {"requestId": "edit", "taskId": w["taskId"], "expected": w["checkpoint"], "edits": [
+            {"action": "replace", "path": "a.txt", "old": "hello", "text": "http"},
+            {'action': 'put', 'path': 'tdev-package.json', 'before': None, 'content': json.dumps(recipe)}]})["result"]
         executed = wait(call("exec", {"requestId": "exec", "taskId": w["taskId"], "expected": e["checkpoint"], "command": "printf native >> a.txt"}))
         v = wait(call("validate", {"requestId": "validate", "taskId": w["taskId"], "expected": executed["result"]["checkpoint"], "message": "native HTTP"}))
+        inspected = call('artifact', {'action': 'inspectRecipe', 'validationId': v['id']})
+        self.assertEqual(inspected['candidate'], v['result']['candidate'])
+        self.assertEqual(inspected['recipe'], recipe)
+        self.assertFalse(inspected['buildExecuted'])
+        built = wait(call('artifact', {'action': 'prepare', 'requestId': 'build', 'validationId': v['id']}))
+        package = call('artifact', {'action': 'inspect', 'artifactId': built['id']})
+        self.assertTrue(package['verifiedBytes'])
+        self.repo.config['repositories']['test']['artifactValidation'] = 'test -s dist/output.txt'
+        artifact_check = wait(call('validate', {'subject': 'artifact', 'requestId': 'artifact-check', 'artifactId': built['id']}))
+        self.assertTrue(artifact_check['result']['artifactChecked'])
+        package = call('artifact', {'action': 'inspect', 'artifactId': built['id']})
+        self.assertTrue(package['artifactValidated'])
+        call('operation', {'action': 'retire', 'requestId': 'retire-artifact-check', 'operationId': artifact_check['id']})
+        self.assertEqual(package['manifest']['files']['dist/output.txt']['sha256'], digest(b'http\nnative'))
+        call('operation', {'action': 'retire', 'requestId': 'retire-build', 'operationId': built['id']})
+        self.assertEqual(call('artifact', {'action': 'inspect', 'artifactId': built['id']}), package)
+        exported = call('artifact', {'action': 'export', 'artifactId': built['id'], 'path': 'dist/output.txt'})
+        self.assertEqual(exported['sha256'], package['manifest']['files']['dist/output.txt']['sha256'])
+        preview = call('artifact', {'action': 'prunePreview', 'artifactId': built['id']})
+        pruned = call('artifact', {'action': 'prune', 'artifactId': built['id'], 'requestId': 'prune-build',
+                                   'expectedPreview': preview['previewToken']})
+        self.assertEqual(pruned['status'], 'succeeded')
+        self.assertFalse(call('artifact', {'action': 'inspect', 'artifactId': built['id']})['retained'])
         p = call("publish", {"requestId": "publish", "validationId": v["id"], "expectedHead": self.repo.head})
         self.assertEqual(p["status"], "succeeded", p)
         self.assertEqual(p["result"]["commit"], v["result"]["candidate"])

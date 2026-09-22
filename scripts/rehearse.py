@@ -3,6 +3,7 @@ import http.client
 import json
 import os
 import signal
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -10,7 +11,8 @@ import time
 from pathlib import Path
 
 from tdev.admin import check, init_config, point, stage
-from tdev.common import atomic_write, canonical
+from tdev.common import atomic_write, canonical, digest
+from tdev.artifact_build import host_platform
 from tdev.server import META, VERSION
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tests"))
@@ -31,6 +33,7 @@ def main():
         repo = Repository(root)
         config = json.loads((root / "config.json").read_bytes())
         config["repositories"] = repo.config["repositories"]
+        config['repositories']['test']['artifactValidation'] = 'test -s dist/output.txt'
         for principal in config["principals"].values():
             principal["repos"] = {"test": ["refs/heads/main"]}
         atomic_write(root / "config.json", canonical(config))
@@ -86,10 +89,16 @@ print(s.server_port,flush=True); s.serve_forever()
                     status, data = request("tools/list", {}, secret)
                     assert status == expected, status
                     if expected == 200:
-                        assert len(data["result"]["tools"]) == 10
+                        assert len(data["result"]["tools"]) == 11
                 if iteration == 0:
                     w = call("task", {"action": "open", "requestId": "open", "repo": "test", "ref": "refs/heads/main", "expectedHead": repo.head})["result"]
-                    e = call("edit", {"requestId": "edit", "taskId": w["taskId"], "expected": w["checkpoint"], "edits": [{"action": "replace", "path": "a.txt", "old": "hello", "text": "packaged"}]})["result"]
+                    recipe = {'format': 1, 'kind': 'files', 'inputs': ['a.txt'], 'dependencies': [],
+                              'build': {'command': 'mkdir dist; cp a.txt dist/output.txt', 'platform': host_platform(),
+                                        'tools': [{'name': 'sh', 'sha256': digest(Path(shutil.which('sh')).resolve().read_bytes())}]},
+                              'target': host_platform(), 'exports': ['dist']}
+                    e = call("edit", {"requestId": "edit", "taskId": w["taskId"], "expected": w["checkpoint"], "edits": [
+                        {"action": "replace", "path": "a.txt", "old": "hello", "text": "packaged"},
+                        {'action': 'put', 'path': 'tdev-package.json', 'before': None, 'content': json.dumps(recipe)}]})["result"]
                     exec_args = {"requestId": "exec", "taskId": w["taskId"], "expected": e["checkpoint"], "command": "printf ready; read value; printf '%s' \"$value\" >> a.txt", "timeout": 30}
                     op = call("exec", exec_args)
                     deadline = time.monotonic() + 10
@@ -106,9 +115,24 @@ print(s.server_port,flush=True); s.serve_forever()
                     assert pub["status"] == "succeeded", pub
                     assert git("--git-dir=" + str(repo.remote), "rev-parse", "refs/heads/main") == v["result"]["candidate"]
                     assert git("--git-dir=" + str(repo.remote), "show", "refs/heads/main:a.txt") == "packaged\nonce"
-                    for completed in (op, v):
+                    built = wait(call('artifact', {'action': 'prepare', 'requestId': 'package', 'validationId': v['id']}))
+                    retained = call('artifact', {'action': 'inspect', 'artifactId': built['id']})
+                    assert retained['manifest']['files']['dist/output.txt']['sha256'] == digest(b'packaged\nonce')
+                    verified = wait(call('validate', {'subject': 'artifact', 'requestId': 'package-check', 'artifactId': built['id']}))
+                    assert verified['result']['artifactChecked'] is True
+                    retained = call('artifact', {'action': 'inspect', 'artifactId': built['id']})
+                    assert retained['artifactValidated'] and retained['artifactValidationId'] == verified['id']
+                    for completed in (op, v, built, verified):
                         call("operation", {"action": "retire", "requestId": "retire-" + completed["id"], "operationId": completed["id"]})
-                observations.append({"restart": iteration, "wrongBearer": 401, "authorizedTools": 10})
+                    assert call('artifact', {'action': 'inspect', 'artifactId': built['id']}) == retained
+                    exported = call('artifact', {'action': 'export', 'artifactId': built['id'], 'path': 'dist/output.txt'})
+                    assert exported['sha256'] == digest(b'packaged\nonce') and exported['eof']
+                    preview = call('artifact', {'action': 'prunePreview', 'artifactId': built['id']})
+                    pruned = call('artifact', {'action': 'prune', 'artifactId': built['id'], 'requestId': 'prune-package',
+                                               'expectedPreview': preview['previewToken']})
+                    assert pruned['status'] == 'succeeded'
+                    assert call('operation', {'action': 'status', 'operationId': built['id']})['artifactStorage']['state'] == 'pruned'
+                observations.append({"restart": iteration, "wrongBearer": 401, "authorizedTools": 11})
             finally:
                 if proc.poll() is None:
                     os.kill(proc.pid, signal.SIGKILL)
@@ -121,17 +145,39 @@ print(s.server_port,flush=True); s.serve_forever()
                 subprocess.run(["sh", "-n", str(root / "services" / service / filename)], check=True)
         tunnel_run = (root / "services/tdev-tunnel/run").read_text()
         assert "envdir" not in tunnel_run
-        assert "CONTROL_PLANE_API_KEY" in tunnel_run
-        assert "--health.listen-addr 127.0.0.1:0" in tunnel_run
-        assert "--health.url-file " + str(root / "tunnel-health.url") in tunnel_run
-        assert str(native_tunnel) in tunnel_run
-        assert "termux-chroot" not in tunnel_run
-        assert "proot -b" not in tunnel_run
+        assert "tdev.resident" in tunnel_run and "--role tunnel" in tunnel_run
+        # Templates now delegate argv/profile handling to the verified resident launcher.
+        # Exercise that installed code with synthetic settings; never launch a real tunnel.
+        profile = b'fixture: true\n'
+        atomic_write(root / 'tunnel-profiles/tdev.yaml', profile)
+        atomic_write(root / 'resident.json', canonical({
+            'home': str(root), 'port': 18080, 'profileDigest': digest(profile),
+            'runtime': {'binary': str(native_tunnel), 'digest': digest(native_tunnel.read_bytes()),
+                        'mode': 'native-cgo'}}))
+        launcher_probe = """import sys
+from pathlib import Path
+from unittest.mock import patch
+from tdev.resident import run_service
+root = Path(sys.argv[1])
+with patch('tdev.resident.get_health', return_value={'bundle': root.joinpath('active').resolve().name}), \\
+     patch('tdev.resident.os.execve') as execute:
+    run_service(root, 'tunnel')
+    execute.assert_called_once()
+    binary, argv, env = execute.call_args.args
+    assert binary == str(root / 'bin/tunnel-client')
+    assert argv == [binary, 'run', '--profile-dir', str(root / 'tunnel-profiles'), '--profile', 'tdev',
+                    '--health.listen-addr', '127.0.0.1:0', '--health.url-file', str(root / 'tunnel-health.url')]
+    assert env['HOME'] == str(root)
+"""
+        subprocess.run([sys.executable, '-c', launcher_probe, str(root)], env=env, check=True, timeout=20)
         assert (root / "tunnel-env").stat().st_mode & 0o777 == 0o700
-        assert "prepare-tunnel" in (source / "install.sh").read_text()
+        assert "tdev.installer" in (source / "install.sh").read_text()
         print(json.dumps({"bundle": checked["bundle"], "source": str(source),
                           "inactiveInstall": True, "productionServicesTouched": False,
                           "protocol": VERSION, "nativeSigkillRecoveryAndExactPublication": True,
+                          "retainedNativeArtifactAfterScratchRetirement": True,
+                          "artifactValidationAfterInstalledBuild": True,
+                          "artifactExportAndExplicitPrune": True,
                           "bundleHttpAndRestart": observations}, indent=2))
 
 

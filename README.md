@@ -6,8 +6,10 @@ delegated authority. **Android + Termux is the default development and operating
 not just a controller for another machine.
 
 The first development goal is complete Git/local development, validation and deployment:
-create/connect projects → inspect/edit/debug → test → commit/integrate/publish → deploy →
+create/connect projects → inspect/edit/debug → test → build/package → commit/integrate/publish → deploy →
 verify live behaviour → recover and clean up. A successful Git push is not deployment.
+Build outputs include binaries, web/service artifacts, archives and Android APK/AAB packages;
+building, signing and verifying an Android app must not depend on Android UI automation.
 Routine work should not require the user to manage internal IDs, HEAD OIDs, branch grants or
 private config files by hand. Long-running processes and reconnects must preserve usable progress.
 
@@ -34,9 +36,10 @@ credentials and in-flight effects still require deliberate handling.
 
 ## Implementation status
 
-Ten MCP tools separate composition (`tdev_workspace`), source tasks (`tdev_task`), projects
+Eleven MCP tools separate composition (`tdev_workspace`), source tasks (`tdev_task`), projects
 (`tdev_project`), source read/edit, execution, general operation observation/control
-(`tdev_operation`), validation, publication and project deployment (`tdev_deploy`). Git holds
+(`tdev_operation`), validation, publication, project deployment (`tdev_deploy`) and artifact
+recipe inspection and retained builds (`tdev_artifact`). Git holds
 checkpoints; SQLite holds workspace composition, source tasks, enrolled projects and accepted operations. These interfaces replace
 the experimental source-workspace/process names without aliases.
 
@@ -51,12 +54,43 @@ isolation. See the [trust boundary](ARCHITECTURE.md#3-native-trust-and-containme
 
 ## Current work
 
+Packaging recipe inspection and retained native builds are implemented in this checkout.
+`tdev_artifact prepare` builds a successful source validation's frozen candidate with pinned
+public HTTPS inputs, a fresh environment and declared exports. `list` exposes outstanding
+builds; `inspect` rechecks retained bytes. Existing operation controls provide logs, cancellation
+and scratch cleanup without deleting retained artifacts. Source edits/close can proceed during
+builds. A pure-Python reference package now runs after relocation and removal of development/build
+roots. Service inspection checks declared host runtime compatibility separately from retained bytes.
+Artifact validation now runs the adopted check against retained bytes; service checks exercise
+the actual entrypoint and release identity before packaged deployment. Packaged services reuse
+the existing update/rollback/recovery path after build scratch and source tasks are retired.
+Bounded file export, explicit prune with deployment/in-flight protection, paged storage usage
+and operator-controlled packaging budgets are now implemented. Historical operation receipts
+survive pruning; automatic GC is not enabled. See the
+[Python example](examples/python-package/README.md), [verification/release usage](OPERATIONS.md#validate-and-deploy-a-retained-artifact)
+and [export/prune usage](OPERATIONS.md#export-inspect-usage-and-prune-retained-artifacts).
+The retention slice passed all **186 tests**, official MCP SDK and inactive-bundle checks.
+A real isolated runit rehearsal covers packaged activation, failure recovery and export/prune;
+exact results are recorded in [LOCAL_VALIDATION.md](LOCAL_VALIDATION.md#artifact-retention-bounded-export-and-pruning--2026-09-22).
+The resident installation has not been updated for this tool. See
+[recipe/build usage](OPERATIONS.md#inspect-a-packaging-recipe).
+
+Artifact production remains separate from service activation. The continuity review selects
+optional workspace resume notes
+and fresh material-state observations, not a transcript store or another workflow hierarchy.
+These notes, source-task-independent host access and Android control are **not implemented**.
+Existing task/operation recovery is implemented; automatic semantic recovery across ChatGPT
+conversations is not. See the [design](ARCHITECTURE.md#optional-semantic-continuity),
+[delivery order](IMPLEMENTATION_PLAN.md#current-priority-after-the-continuity-review) and
+[review evidence](LOCAL_VALIDATION.md#continuity-and-android-feasibility-review--2026-09-22).
+
 Native project deployment is implemented for delegated Termux HTTP services. `tdev_deploy`
 releases an exact validated source candidate, verifies process and HTTP release identity, and
 supports inspection/logs, start/stop, update, rollback and data-preserving removal. Interrupted
 switches retain recovery evidence. See [deployment usage](OPERATIONS.md#deploy-a-validated-project-on-termux).
-This first adapter packages source; dependencies/build outputs, remote/container deployment and
-public ingress remain future work. See [deployment evidence](LOCAL_VALIDATION.md#native-project-deployment--2026-09-21).
+The installed adapter packages source; this checkout additionally supports retained dependencies
+and build outputs. Remote/container deployment and public ingress remain future work.
+See [deployment evidence](LOCAL_VALIDATION.md#native-project-deployment--2026-09-21).
 The owned installation runs this adapter; installed MCP acceptance passed the full 140-test
 suite, live release identity, stop/restart and removal. The `owner` principal has the delegated
 Termux target, so routine project-service deployment needs no per-service config edits.
@@ -96,7 +130,7 @@ never grants project permissions, and close/detach never delete owned refs or pr
 Delegated local/GitHub project connect/create, automatic source-base/managed-branch selection,
 exact validation/publication and owned branch cleanup remain available through the renamed
 source-task API. `tdev_edit` modifies source; `tdev_task` manages its lifecycle. `tdev_operation`
-observes all accepted effects; process controls apply only to exec/validation operations.
+observes all accepted effects; process controls apply to exec/validation/build operations.
 See [usage](OPERATIONS.md#workspace-composition-and-source-tasks).
 
 Qualification: **140 deterministic tests pass**. Coverage includes native deployment authority,
@@ -106,7 +140,11 @@ ten-tool surface. A real isolated runit graph also passed project-service crash 
 update/rollback and removal. Exact results and installed acceptance are recorded in
 [LOCAL_VALIDATION.md](LOCAL_VALIDATION.md#native-project-deployment--2026-09-21).
 
-The new internal state format uses the existing fresh schema-3 development state. The
+Source-only state remains schema 3; this artifact-retention implementation accepts schema 3/4/5
+and advances artifact admissions to schema 5 without discarding source/task/deployment records.
+Bundles that do not support schema 5
+cannot subsequently activate against it. This is an internal storage revision, not a product version.
+The resident installation still uses its existing schema-3 state. The
 installation now runs through owned runit services on localhost:8765, with the same Tunnel
 identity, credentials and project enrollments. The old manual runtime and experimental tdev
 service/helper/agent registrations have been retired from the live graph. Historical private
@@ -115,8 +153,8 @@ now delivered on the canonical tdev branch under the user-authorized 0.1 pre-rel
 this resident installation is not a product v1 release.
 See [resident evidence](LOCAL_VALIDATION.md#resident-service-installation--2026-09-21).
 
-The next development work packages deployable dependencies/build artifacts and qualifies the
-complete multi-project development/deployment journey, then additional concrete resource
+The next development work completes packaging delivery qualification, then optional resume notes
+and the complete multi-project development/deployment journey, then additional concrete resource
 adapters. Persistent task dependencies and snapshot processes cover the initial native path;
 hot reload, PTY debugging and cross-task environment sharing are not implemented.
 The native project-service adapter is separate from installation of tdev itself. Blender/MCP/device/
