@@ -1,7 +1,11 @@
 import argparse
 import base64
+import itertools
 import json
 import os
+import sys
+import threading
+import time
 from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -12,6 +16,17 @@ from .core import Controller
 VERSION = "2026-07-28"
 META = "io.modelcontextprotocol/"
 SOURCE_ROOT = Path(__file__).resolve().parents[2]
+_DIAGNOSTIC_SEQUENCE = itertools.count(1)
+_DIAGNOSTIC_LOCK = threading.Lock()
+
+
+def _diagnostic_event(event, sequence, method, **fields):
+    value = {"event": event, "timeNs": time.time_ns(), "monotonicNs": time.monotonic_ns(),
+             "pid": os.getpid(), "sequence": sequence, "method": method}
+    value.update(fields)
+    with _DIAGNOSTIC_LOCK:
+        sys.stderr.write(json.dumps(value, separators=(",", ":"), sort_keys=True) + "\n")
+        sys.stderr.flush()
 
 
 def expanded(schema, value):
@@ -54,8 +69,24 @@ def make_server(controller, port=0):
             self.end_headers()
             try:
                 self.wfile.write(data)
-            except (BrokenPipeError, ConnectionResetError):
+                self.wfile.flush()
+            except BrokenPipeError:
+                if getattr(self, "_diagnostic_sequence", None) is not None:
+                    _diagnostic_event("response_write_failed", self._diagnostic_sequence,
+                                      getattr(self, "_diagnostic_method", None), status=status,
+                                      responseBytes=len(data), writeOutcome="broken_pipe")
                 pass  # Durable operation outlives HTTP response.
+            except ConnectionResetError:
+                if getattr(self, "_diagnostic_sequence", None) is not None:
+                    _diagnostic_event("response_write_failed", self._diagnostic_sequence,
+                                      getattr(self, "_diagnostic_method", None), status=status,
+                                      responseBytes=len(data), writeOutcome="connection_reset")
+                pass  # Durable operation outlives HTTP response.
+            else:
+                if getattr(self, "_diagnostic_sequence", None) is not None:
+                    _diagnostic_event("response_written", self._diagnostic_sequence,
+                                      getattr(self, "_diagnostic_method", None), status=status,
+                                      responseBytes=len(data), writeOutcome="success")
             self.close_connection = True
 
         def ingress(self):
@@ -133,6 +164,12 @@ def make_server(controller, port=0):
             if not isinstance(params, dict):
                 self.rpc_error(400, ident, -32602, "Invalid params")
                 return
+            known_tools = {t["name"] for t in controller.schema["x-tools"]}
+            tool = params.get("name") if method == "tools/call" and params.get("name") in known_tools else None
+            self._diagnostic_sequence = next(_DIAGNOSTIC_SEQUENCE)
+            self._diagnostic_method = method
+            self._diagnostic_tool = tool
+            _diagnostic_event("request_received", self._diagnostic_sequence, method, **({"tool": tool} if tool else {}))
             meta = params.get("_meta", {})
             version = self.headers.get("MCP-Protocol-Version")
             if not version or not self.headers.get("Mcp-Method"):
@@ -172,7 +209,14 @@ def make_server(controller, port=0):
                     if params.get("name") not in {t["name"] for t in controller.schema["x-tools"]} or not isinstance(params.get("arguments", {}), dict):
                         self.rpc_error(400, ident, -32602, "Unknown tool or invalid arguments")
                         return
-                    value = controller.call(principal, params.get("name", ""), params.get("arguments", {}))
+                    dispatch_started = time.monotonic_ns()
+                    _diagnostic_event("dispatch_started", self._diagnostic_sequence, method, **({"tool": tool} if tool else {}))
+                    try:
+                        value = controller.call(principal, params.get("name", ""), params.get("arguments", {}))
+                    finally:
+                        _diagnostic_event("dispatch_finished", self._diagnostic_sequence, method,
+                                          **({"tool": tool, "durationNs": time.monotonic_ns() - dispatch_started}
+                                             if tool else {"durationNs": time.monotonic_ns() - dispatch_started}))
                     result = {"content": [{"type": "text", "text": canonical(value).decode()}],
                               "structuredContent": value, "isError": not value["ok"]}
                 else:

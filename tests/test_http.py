@@ -1,4 +1,6 @@
+import contextlib
 import http.client
+import io
 import json
 import tempfile
 import threading
@@ -103,6 +105,38 @@ class HTTPTest(unittest.TestCase):
         self.assertEqual(code, 200)
         self.assertTrue(value["result"]["structuredContent"]["ok"])
         self.assertEqual(self.request(headers={"Accept": "application/json"})[0], 406)
+
+    def test_diagnostic_http_lifecycle_is_correlated_and_redacted(self):
+        log = io.StringIO()
+        with contextlib.redirect_stderr(log):
+            status, response = self.request(
+                "tools/call",
+                {"name": "tdev_task", "arguments": {"action": "list"}},
+                {"X-Diagnostic-Marker": "sensitive-header-marker"},
+            )
+        self.assertEqual(status, 200)
+        self.assertTrue(response["result"]["structuredContent"]["ok"])
+        deadline = time.monotonic() + 1
+        events = []
+        while time.monotonic() < deadline:
+            events = [json.loads(line) for line in log.getvalue().splitlines() if line]
+            if [event["event"] for event in events] == [
+                "request_received", "dispatch_started", "dispatch_finished", "response_written"]:
+                break
+            time.sleep(.01)
+        self.assertEqual([event["event"] for event in events], [
+            "request_received", "dispatch_started", "dispatch_finished", "response_written"])
+        self.assertEqual({event["sequence"] for event in events}, {events[0]["sequence"]})
+        self.assertNotIn("Authorization", log.getvalue())
+        self.assertNotIn("alice-secret", log.getvalue())
+        self.assertNotIn("sensitive-header-marker", log.getvalue())
+        self.assertEqual(events[0]["tool"], "tdev_task")
+        self.assertEqual(events[1]["tool"], "tdev_task")
+        self.assertEqual(events[2]["tool"], "tdev_task")
+        self.assertGreaterEqual(events[2]["durationNs"], 0)
+        self.assertEqual(events[3]["status"], 200)
+        self.assertGreater(events[3]["responseBytes"], 0)
+        self.assertEqual(events[3]["writeOutcome"], "success")
 
     def test_native_full_coding_path_over_http_without_executor_config(self):
         def call(tool, args):
