@@ -2,6 +2,9 @@ import argparse
 import base64
 import json
 import os
+import sys
+import threading
+import time
 from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -33,6 +36,18 @@ def make_server(controller, port=0):
         def log_message(self, *args):
             pass  # Never log auth headers, arguments or candidate output.
 
+        def diagnostic(self, event, **fields):
+            record = {
+                "component": "tdev-http",
+                "event": event,
+                "pid": os.getpid(),
+                "requestSequence": getattr(self, "_diagnostic_sequence", None),
+                "timeNs": time.time_ns(),
+                "monotonicNs": time.monotonic_ns(),
+            }
+            record.update(fields)
+            print(json.dumps(record, separators=(",", ":"), sort_keys=True), file=sys.stderr, flush=True)
+
         def rpc_error(self, status, ident, code, message, data=None):
             error = {"code": code, "message": message}
             if data is not None:
@@ -52,10 +67,20 @@ def make_server(controller, port=0):
                 self.send_header("Allow", "POST")
             self.send_header("Connection", "close")
             self.end_headers()
+            outcome = "written"
             try:
                 self.wfile.write(data)
-            except (BrokenPipeError, ConnectionResetError):
-                pass  # Durable operation outlives HTTP response.
+                self.wfile.flush()
+            except BrokenPipeError:
+                outcome = "broken_pipe"
+            except ConnectionResetError:
+                outcome = "connection_reset"
+            self.diagnostic(
+                "response_written" if outcome == "written" else "response_write_failed",
+                status=status,
+                responseBytes=len(data),
+                outcome=outcome,
+            )
             self.close_connection = True
 
         def ingress(self):
@@ -95,6 +120,10 @@ def make_server(controller, port=0):
                 self.send(405)
 
         def do_POST(self):
+            with self.server.diagnostic_lock:
+                self.server.diagnostic_sequence += 1
+                self._diagnostic_sequence = self.server.diagnostic_sequence
+            self.diagnostic("request_received")
             self.connection.settimeout(10)
             principal = self.ingress()
             if principal is None:
@@ -163,6 +192,9 @@ def make_server(controller, port=0):
                 self.rpc_error(400, ident, -32022, "Unsupported protocol version", {"supported": [VERSION], "requested": version})
                 return
             error = None
+            tool = params.get("name") if method == "tools/call" and params.get("name") in {t["name"] for t in controller.schema["x-tools"]} else None
+            dispatch_started_ns = time.monotonic_ns()
+            self.diagnostic("dispatch_started", rpcMethod=method, **({"tool": tool} if tool else {}))
             try:
                 if method == "server/discover":
                     result = {"supportedVersions": [VERSION], "capabilities": {"tools": {}}, "ttlMs": 0, "cacheScope": "private"}
@@ -180,12 +212,21 @@ def make_server(controller, port=0):
                     return
             except Exception:
                 error = {"code": -32603, "message": "Internal error; observe retained request identity before retry"}
+            self.diagnostic(
+                "dispatch_finished",
+                rpcMethod=method,
+                **({"tool": tool} if tool else {}),
+                success=not bool(error),
+                dispatchDurationMs=round((time.monotonic_ns() - dispatch_started_ns) / 1_000_000, 3),
+            )
             if not error:
                 result.update({"resultType": "complete", "_meta": {META + "serverInfo": {"name": "tdev", "version": __version__}}})
             self.send(200, {"jsonrpc": "2.0", "id": ident, **({"error": error} if error else {"result": result})})
 
     server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     server.daemon_threads = True
+    server.diagnostic_lock = threading.Lock()
+    server.diagnostic_sequence = 0
     return server
 
 

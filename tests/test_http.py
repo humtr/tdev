@@ -1,9 +1,11 @@
 import http.client
+import io
 import json
 import tempfile
 import threading
 import time
 import unittest
+from contextlib import redirect_stderr
 from pathlib import Path
 
 from support import Repository
@@ -63,6 +65,34 @@ class HTTPTest(unittest.TestCase):
         self.assertEqual(code, 200)
         self.assertEqual(len(value["result"]["tools"]), 10)
         self.assertNotIn("$ref", json.dumps(value["result"]))
+
+    def test_safe_http_diagnostics_cover_request_dispatch_and_response(self):
+        log = io.StringIO()
+        marker = "do-not-log-this-header-value"
+        with redirect_stderr(log):
+            code, value = self.request(
+                "tools/call",
+                {"name": "tdev_task", "arguments": {"action": "list"}},
+                {"X-Diagnostic-Marker": marker},
+            )
+        self.assertEqual(code, 200)
+        self.assertTrue(value["result"]["structuredContent"]["ok"])
+        deadline = time.monotonic() + 1
+        while '"event":"response_written"' not in log.getvalue() and time.monotonic() < deadline:
+            time.sleep(.01)
+        raw = log.getvalue()
+        self.assertNotIn("alice-secret", raw)
+        self.assertNotIn(marker, raw)
+        records = [json.loads(line) for line in raw.splitlines() if line.startswith("{")]
+        events = [record["event"] for record in records]
+        self.assertEqual(events, ["request_received", "dispatch_started", "dispatch_finished", "response_written"])
+        self.assertEqual({record["requestSequence"] for record in records}, {1})
+        self.assertEqual(records[1]["rpcMethod"], "tools/call")
+        self.assertEqual(records[1]["tool"], "tdev_task")
+        self.assertTrue(records[2]["success"])
+        self.assertEqual(records[3]["status"], 200)
+        self.assertEqual(records[3]["outcome"], "written")
+        self.assertGreater(records[3]["responseBytes"], 0)
 
     def test_oauth_well_known_is_optional_public_404(self):
         for path in (
