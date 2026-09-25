@@ -818,3 +818,5 @@ is bounded to 32 entries (acknowledged first, then oldest), with small evidence 
 is counted. Restart preserves pending/acknowledged incidents and marks active captures interrupted.
 Corrupt/incompatible incident bytes are preserved and persistence disabled with an error count.
 These are best-effort diagnostics, not an audit ledger or ChatGPT visible-liveness qualification.
+
+The 2026-09-25 installed-runtime acceptance was continued from ChatGPT after Local Codex completed source qualification and publication. Through the refreshed authenticated connector, ChatGPT verified `tdev_diagnostics` discovery/inspection, a bounded activation, one subsequent-response incident offer, same-principal acknowledgement, automatic expiry, and return to `watch`. The evidence is retained at `.artifacts/diagnostic-activation-20260925/chatgpt-connector-acceptance.json`; it is intentionally untracked operator evidence. This acceptance does not claim visible ChatGPT UI rendering or unsolicited wake/push behaviour. See `LOCAL_VALIDATION.md` for the exact source/bundle identity and acceptance boundary.

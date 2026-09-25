@@ -1238,3 +1238,15 @@ Final `bash scripts/check.sh`: **216 tests**, **664.561 s**, **PASS**, exit 0;
 `git diff --check` passed. Log: `final/full-check.log`. The exact staged source above includes
 both automatic diagnostic behavior and serialized config update/recovery. Production acceptance
 is recorded separately after the authorized transition.
+
+### Authenticated ChatGPT connector continuation acceptance — 2026-09-25
+
+After Local Codex completed source qualification, commit `794129df1a82ba0672782dfcc40f033bbd9d3591`, push, and the installed-runtime transition, ChatGPT continued the explicitly authorized acceptance through the refreshed authenticated connector. This continuation changed no product source or tracked runtime configuration.
+
+- Installed identity was rebound before acceptance: source commit `794129df1a82ba0672782dfcc40f033bbd9d3591`, bundle `54453e39389dedab29a945490110a53ff986173f52ac97de2e9628173113c399`, version `0.1.7`, diagnostic base mode `watch`.
+- Fresh connector discovery exposed `tdev_diagnostics`; authenticated `inspect` succeeded from ChatGPT.
+- ChatGPT activated a bounded 2-second manual capture. Incident `a7d9271c582e3fa6bb9478b80d1eaac7` was offered on an ordinary subsequent connector response (`offers=1`), then acknowledged by the same authenticated principal.
+- A later fresh `tdev_diagnostics inspect` observed `capture=expired`, `delivery=acknowledged`, `offers=1`, base `mode=watch`, `storageErrors=0`, and `storagePending=false`. This proves request/response offer, principal-scoped acknowledgement, expiry and return to watch for this connector path; it does not claim ChatGPT UI rendering or unsolicited wake/push behaviour.
+- Durable evidence: `.artifacts/diagnostic-activation-20260925/chatgpt-connector-acceptance.json`. That artifact is operator evidence and remains untracked by design.
+
+The implementation/source qualification remains the Local Codex work recorded above. This section records only the subsequent ChatGPT-operated acceptance so a later independent reviewer can distinguish authorship and re-evaluate the evidence without trusting the conversational handoff.
