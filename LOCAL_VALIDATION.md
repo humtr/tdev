@@ -1386,6 +1386,32 @@ Evidence under `.artifacts/diagnostic-observation-20260925/`:
 The first `full-check.log` stopped without a completion result across session interruption; it is
 preserved and is not counted as PASS. The resumed `bash scripts/check.sh` completed **226 tests**
 in **735.971 s**, PASS, exit 0; `git diff --check` passed. Log: `resumed-full-check.log`.
-Installed acceptance is appended after execution. Actual ChatGPT discovery of the
+Actual ChatGPT discovery of the
 new report/summary contract and a real visible-divergence/control experiment remain separate host
 acceptance. Do not manufacture client error reports in production merely to claim that acceptance.
+
+### Installed 0.1.8 acceptance
+
+Implementation commit `dcaaf10` was pushed to `origin/tdev` before the authorized resident update.
+The first installation attempt returned `OUTSTANDING_EFFECT`, effect none: a newly running exec
+appeared after the preflight snapshot. Existing controller PID 13744 remained healthy on 0.1.7.
+The operation was not cancelled, retried or force-terminalized. A later read-only SQLite check
+found no outstanding operations; the supported installer retry succeeded and verified the services.
+Both attempt logs remain in the evidence directory.
+
+- `install-live-retry.json` and `resident-after-check.json`: controller **0.1.8**, PID 28483,
+  bundle `8d57b4da3ac0010dfe06db322b51fa1000a0d5e3563f3ce9ac7753927722dec9`; owned native-cgo
+  Tunnel PID 28509 with control-plane polling. Health reports watch.
+- `live-acceptance.json`: installed manifest files equal the tested checkout; private config digest
+  is unchanged. All **five** prior incidents remain, existing acknowledgments/times and accumulated
+  offers are preserved, correlation key is unchanged and process instance changed. Incident storage
+  advanced to revision 2 with no storage error. No production client-error report was fabricated.
+- `after-export/` preserves a new live snapshot and retained log/incidents. Missing higher rotated
+  segments are reported as absent/rotated rather than silently presented as complete history.
+- `live-observer/`: the installed observer recorded **four** snapshots over **two seconds** with
+  zero unavailable samples, bounded bytes and a verified file hash. This qualifies the local installed
+  observation path, not ChatGPT UI continuity or the ability to interrupt old host continuations.
+
+The remaining roadmap work is real ChatGPT discovery/report/summary acceptance and first-visible-
+divergence correlation, followed by paired workload and separate control-ownership qualification.
+No host-private success claim is substituted from the direct MCP or Codex Bridge evidence.
