@@ -60,6 +60,12 @@ local evidence and principal-scoped alerts through `tdev_diagnostics`. New insta
 to off; the diagnostic operating configuration selects watch. Operators may activate a bounded
 trace, inspect incidents and acknowledge receipt without changing development work. Alerts are
 offered in subsequent tool responses; they cannot wake a stopped ChatGPT turn or prove UI delivery.
+The owned resident installation runs **0.1.7** with watch enabled. Authenticated ChatGPT
+connector acceptance covered activation, alert receipt/acknowledgment and expiry; independent
+readback confirmed the same bundle and preserved configuration. Visible-liveness qualification
+remains open. Follow-up priorities are bounded alert repetition and a correlated first-divergence
+capture, with separate server, host-return and user-visible evidence. See the
+[follow-up review](LOCAL_VALIDATION.md#post-chatgpt-independent-review--2026-09-25).
 See [operator usage](OPERATIONS.md#capture-lifecycle-diagnostics) and the
 [diagnostic boundary](ARCHITECTURE.md#local-lifecycle-diagnostics).
 
@@ -81,7 +87,8 @@ and [export/prune usage](OPERATIONS.md#export-inspect-usage-and-prune-retained-a
 The retention slice passed all **186 tests**, official MCP SDK and inactive-bundle checks.
 A real isolated runit rehearsal covers packaged activation, failure recovery and export/prune;
 exact results are recorded in [LOCAL_VALIDATION.md](LOCAL_VALIDATION.md#artifact-retention-bounded-export-and-pruning--2026-09-22).
-The resident installation has not been updated for this tool. See
+The resident bundle now includes this tool; installed artifact build/validate/release journey
+acceptance remains outstanding. See
 [recipe/build usage](OPERATIONS.md#inspect-a-packaging-recipe).
 
 Artifact production remains separate from service activation. The continuity review selects
@@ -97,8 +104,8 @@ Native project deployment is implemented for delegated Termux HTTP services. `td
 releases an exact validated source candidate, verifies process and HTTP release identity, and
 supports inspection/logs, start/stop, update, rollback and data-preserving removal. Interrupted
 switches retain recovery evidence. See [deployment usage](OPERATIONS.md#deploy-a-validated-project-on-termux).
-The installed adapter packages source; this checkout additionally supports retained dependencies
-and build outputs. Remote/container deployment and public ingress remain future work.
+The installed adapter supports source releases and retained dependencies/build outputs; the latter
+still needs installed journey acceptance. Remote/container deployment and public ingress remain future work.
 See [deployment evidence](LOCAL_VALIDATION.md#native-project-deployment--2026-09-21).
 The owned installation runs this adapter; installed MCP acceptance passed the full 140-test
 suite, live release identity, stop/restart and removal. The `owner` principal has the delegated
@@ -142,10 +149,11 @@ source-task API. `tdev_edit` modifies source; `tdev_task` manages its lifecycle.
 observes all accepted effects; process controls apply to exec/validation/build operations.
 See [usage](OPERATIONS.md#workspace-composition-and-source-tasks).
 
-Qualification: **140 deterministic tests pass**. Coverage includes native deployment authority,
+Historical deployment qualification: **140 deterministic tests passed**. Coverage included native deployment authority,
 exact source/readiness identity, failure recovery, dependencies, development processes and
 workspace composition. Official MCP SDK and installed Local Codex checks pass with the same
-ten-tool surface. A real isolated runit graph also passed project-service crash recovery,
+then-current ten-tool surface. The current diagnostic release has a twelve-tool surface and
+separate qualification above. A real isolated runit graph also passed project-service crash recovery,
 update/rollback and removal. Exact results and installed acceptance are recorded in
 [LOCAL_VALIDATION.md](LOCAL_VALIDATION.md#native-project-deployment--2026-09-21).
 

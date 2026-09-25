@@ -1,3 +1,4 @@
+import http.client
 import json
 from pathlib import Path
 import tempfile
@@ -209,6 +210,119 @@ class DiagnosticHTTPTest(unittest.TestCase):
     def call(self, args, token='alice-secret'):
         return self.fixture.request('tools/call', {'name':'tdev_diagnostics','arguments':args},
                                     headers={'Authorization':'Bearer '+token})[1]['result']
+
+    def start_watch(self):
+        self.fixture.repo.config['principals']['alice']['diagnostics'] = True
+        self.call({'action':'activate','requestId':'boundary-init'})
+        policy = self.policies[0]
+        incident = policy.inspect('alice')['incidents'][0]['id']
+        self.call({'action':'acknowledge','incidentId':incident})
+        policy.tool('alice', {'action':'stop'})
+        policy._silence_until = 0
+        return policy
+
+    def test_blocked_dispatch_is_observable_and_capture_expires_before_http_returns(self):
+        p = self.start_watch()
+        now = [100.0]
+        p.clock = lambda: now[0]
+        entered, release, completed = threading.Event(), threading.Event(), threading.Event()
+        replies, failures = [], []
+        original = self.fixture.controller.call
+
+        def blocked(*args):
+            entered.set()
+            if not release.wait(5):
+                raise AssertionError('test did not release dispatch')
+            return original(*args)
+
+        def request():
+            try:
+                replies.append(self.fixture.request('tools/call',
+                    {'name':'tdev_task','arguments':{'action':'list'}}))
+            except Exception as error:
+                failures.append(error)
+            finally:
+                completed.set()
+
+        with patch.object(self.fixture.controller, 'call', blocked):
+            client = threading.Thread(target=request)
+            client.start()
+            try:
+                self.assertTrue(entered.wait(2))
+                now[0] += 1.1
+                until(lambda: p.mode == 'trace')
+                active = control(p.directory, {'action':'snapshot'})
+                self.assertTrue(any(r['event'] == 'dispatch_started' for r in active['active']))
+                incident = next(r for r in active['incidents'] if r['reason'] == 'slow_dispatch')
+                self.assertEqual(('active', 'queued'), (incident['capture'], incident['delivery']))
+                self.assertFalse(completed.is_set())
+                now[0] += 3
+                until(lambda: p.mode == 'watch')
+                expired = control(p.directory, {'action':'snapshot'})
+                row = next(r for r in expired['incidents'] if r['id'] == incident['id'])
+                self.assertEqual(('expired', 'queued'), (row['capture'], row['delivery']))
+                self.assertFalse(completed.is_set())  # No HTTP poll or response was needed.
+            finally:
+                release.set()
+                client.join(5)
+        self.assertFalse(client.is_alive())
+        self.assertEqual([], failures)
+        code, response = replies[0]
+        self.assertEqual(200, code)
+        self.assertTrue(response['result']['structuredContent']['ok'])
+        offered = response['result']['_meta']['io.tdev/diagnostics'][0]
+        self.assertEqual((incident['id'], 'expired', 'offered'),
+                         (offered['id'], offered['capture'], offered['delivery']))
+
+    def test_lost_response_after_commit_triggers_capture_without_repeating_effect(self):
+        p = self.start_watch()
+        args = {'name':'tdev_task','arguments':{'action':'open','requestId':'lost-response',
+                'repo':'test','ref':'refs/heads/main','expectedHead':self.fixture.repo.head}}
+        committed = []
+        original_call = self.fixture.controller.call
+        handler = self.server.RequestHandlerClass
+        original_headers = handler.end_headers
+
+        def remember(*values):
+            result = original_call(*values)
+            committed.append(result)
+            return result
+
+        class BrokenBody:
+            def __init__(self, stream):
+                self.stream = stream
+            def write(self, data):
+                raise BrokenPipeError('injected private disconnect')
+            def __getattr__(self, name):
+                return getattr(self.stream, name)
+
+        def disconnect_after_headers(request):
+            original_headers(request)
+            request.wfile = BrokenBody(request.wfile)
+
+        with patch.object(self.fixture.controller, 'call', remember), \
+             patch.object(handler, 'end_headers', disconnect_after_headers):
+            with self.assertRaises(http.client.IncompleteRead):
+                self.fixture.request('tools/call', args)
+            until(lambda: any(r['event'] == 'response_failed'
+                              for r in p.recorder.snapshot()['recent']))
+        self.assertEqual(1, len(committed))
+        self.assertTrue(committed[0]['ok'])
+        row = next(r for r in p.inspect('alice')['incidents'] if r['reason'] == 'response_failed')
+        self.assertEqual(('trace', 'queued'), (p.mode, row['delivery']))
+        events = p.recorder.snapshot()['recent']
+        failure = next(r for r in events if r['event'] == 'response_failed')
+        dispatch = next(r for r in events if r['event'] == 'dispatch_finished'
+                        and r['request'] == failure['request'])
+        self.assertTrue(dispatch['ok'])
+        self.assertLess(dispatch['eventId'], failure['eventId'])
+        self.assertEqual(('body', 'broken_pipe'), (failure['stage'], failure['failureClass']))
+        _, replay = self.fixture.request('tools/call', args)
+        self.assertEqual(committed[0], replay['result']['structuredContent'])
+        offer = replay['result']['_meta']['io.tdev/diagnostics'][0]
+        self.assertEqual((row['id'], 'offered'), (offer['id'], offer['delivery']))
+        self.assertIsNone(offer['acknowledgedAt'])
+        self.assertNotIn('injected private disconnect', json.dumps(replay))
 
     def test_lazy_activation_grants_wire_notifications_and_principal_scope(self):
         self.assertEqual('off', self.call({'action':'inspect'})['structuredContent']['result']['mode'])

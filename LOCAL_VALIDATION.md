@@ -1250,3 +1250,81 @@ After Local Codex completed source qualification, commit `794129df1a82ba0672782d
 - Durable evidence: `.artifacts/diagnostic-activation-20260925/chatgpt-connector-acceptance.json`. That artifact is operator evidence and remains untracked by design.
 
 The implementation/source qualification remains the Local Codex work recorded above. This section records only the subsequent ChatGPT-operated acceptance so a later independent reviewer can distinguish authorship and re-evaluate the evidence without trusting the conversational handoff.
+
+### Post-ChatGPT independent review — 2026-09-25
+
+The resumed Local Codex review read current repository instructions, source and the ChatGPT
+continuation commit `9ca2c8c`; that commit changes only this file and OPERATIONS. The remote
+branch still pointed at `794129d` when reviewed. The continuation's own full-check log records
+216 tests in 721.567 s, exit 0. This is retained prior evidence, not a newly executed test result.
+
+Independent read-only installed checks:
+
+- `install.sh --check` verified owned controller PID 13744, version 0.1.7, bundle
+  `54453e39389dedab29a945490110a53ff986173f52ac97de2e9628173113c399`, and native-cgo Tunnel
+  PID 13764 with control-plane polling. Health reported watch. Installed manifest file hashes
+  matched the checkout's packaged source, and the live config matched the deployment receipt.
+- Comparing that private config with its rollback receipt showed only the selected watch mode
+  and owner diagnostic grant changed. No credentials were printed. Read-only SQLite inspection
+  reported internal schema 3; this does not qualify a schema-5 artifact journey.
+- A new same-UID snapshot/export independently found the recorded ChatGPT incident
+  `a7d9271c582e3fa6bb9478b80d1eaac7` expired and acknowledged, with one offer and matching ack time.
+  It corroborates retained server state; the ChatGPT origin/host receipt remains the continuation's
+  recorded evidence, not something the local socket independently attests.
+- At that sample there were no active observed requests, no sink drops/errors, no incident storage
+  errors or pending writes. The ring had 2,796 overwrites among 3,052 emitted events. That is expected
+  finite retention, but means this snapshot cannot reconstruct the whole intervening session.
+- Two later expired manual incidents were still unacknowledged, with **98 and 93 offers**. Source
+  `DiagnosticsPolicy.offers` bounds frequency and per-response count, but not total offers before
+  acknowledgment/eviction. This is a demonstrated notification-overhead candidate, not proof of a
+  ChatGPT stall or of user-visible delivery. Their actor/client cannot be inferred from the manual
+  reason alone. No incident was acknowledged or removed by this review.
+
+An isolated four-incident policy probe reproduced an additional selection defect. With no ack
+and one eligible response every 16 seconds, 20 responses produced offer counts **[20, 20, 20, 0]**.
+`DiagnosticsPolicy.offers` filters in insertion order then takes the first three; those three
+become eligible again before every response, so the fourth incident is starved. Serialized alert
+metadata alone totaled 12,473 bytes in this fixture, excluding the duplicate text block and normal
+response. This is a deterministic selection result for that schedule, not a universal runtime
+threshold or ChatGPT reproduction. `offer-fairness.json` records the fixture. Fair selection and
+bounded total retries are the next runtime change; this review does not alter live delivery policy.
+
+A disposable scheduling prototype then prioritized never-offered/least-recently-offered incidents,
+used 15–300 s exponential delays and capped each incident at eight offers. Over 120 responses
+spaced 16 seconds apart, the four-incident case changed from `[120,120,120,0]` to `[8,8,8,8]`;
+serialized metadata fell from 75,036 to 6,743 bytes. At the 32-incident retention bound, all 32
+received eight offers; the current policy reached only the first three. These are local simulated
+schedules, not host performance measurements or selected production defaults. The prototype still
+needs restart/clock-change tests and explicit inspection semantics for exhausted retries; bounded
+retry does not guarantee receipt. `compare_offer_policy.py` and `offer-prototype.json` remain
+isolated artifacts and are not imported, packaged or installed by tdev.
+
+The earlier `live_accept.py` local authenticated check failed because the assumed
+`connector.secret` file did not exist. Its failure log remains intact. Subsequent same-UID
+operator acceptance and the separately recorded authenticated ChatGPT acceptance cover different
+boundaries; neither turns that failed script into a pass. No credential search or replacement was
+needed for this review.
+
+Added two isolated HTTP boundary regressions in `tests/test_diagnostic_policy.py`:
+
+- Hold a real authenticated HTTP dispatch open, advance the injected diagnostic clock, and inspect
+  through the independent Unix socket. Slow dispatch activates capture; expiry returns to watch
+  while the HTTP client is still waiting. Releasing dispatch delivers its normal successful result
+  and the expired incident offer. This exercises diagnosis without another MCP poll.
+- Commit a real disposable task-open effect, inject a body-write disconnect after headers, and
+  observe client `IncompleteRead`. Evidence distinguishes successful dispatch from failed response
+  delivery. The next same-request replay returns the original receipt and offers the pending
+  incident without treating the failed write as acknowledgment. No live tasks were touched.
+
+Focused policy checks: **11 tests**, **11.261 s**, PASS. Affected diagnostic/HTTP/bridge checks:
+**38 tests**, **82.303 s**, PASS. Full `bash scripts/check.sh`: **218 tests**, **784.542 s**,
+PASS, exit 0; `git diff --check` passed. Log: `full-check.log`.
+New evidence is under `.artifacts/diagnostic-review-20260925/`, including
+`rebind.json`, a new private export and test logs. Existing diagnostic evidence remains intact.
+This review changes tests/documentation only; no runtime reinstall or provider change is required.
+
+The next implementation order is recorded in IMPLEMENTATION_PLAN: bound alert repetition, capture
+one actual first divergence with independent server/host/visible observations, compare a fixed
+workload across clients, then test ownership/Stop separately. The source can diagnose server-side
+failures, but watch cannot detect UI-only silence and response notifications cannot wake a stopped
+host. Visible continuity remains an open product requirement.

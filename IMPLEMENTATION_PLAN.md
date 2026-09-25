@@ -141,6 +141,49 @@ independence, secrets and prior evidence. Do not treat alert offers as UI delive
 investigation is the first actual ChatGPT visible divergence, correlating server stages with
 host/cell and visible observations; further density trials need a discriminating hypothesis.
 
+### Lifecycle investigation follow-up order
+
+Keep the diagnostic layer optional and fail-open; the operational core retains all effect,
+replay, cancellation and recovery decisions. The following work precedes broader packaging
+or semantic-continuity expansion while the user's visible-liveness investigation is active.
+
+1. **Bound notification overhead.** Measure the current alert envelope bytes and repetition
+   against ordinary responses. Select a bounded retry/backoff policy with fair incident selection:
+   an unacknowledged old incident must neither flood every eligible response nor starve a new
+   incident. Retain explicit inspect/ack and distinguish delivery attempts from receipt. Test
+   lost responses, absent ack, restart, multiple principals and the retention limit. Agree the
+   resulting semantics in ARCHITECTURE/contract alongside implementation; do not silently change
+   live config or acknowledge the user's incidents to make the counter look better.
+2. **Capture the first divergence with independent observations.** Use the existing same-UID
+   snapshot/export path from a separate local observer process, with an explicit duration and
+   storage cap. Record socket/process unavailability as well as returned snapshots; same-process
+   diagnostic workers cannot attest a wholly suspended or deadlocked controller process.
+   A proposed observer must have no controller dependency, operational writes or raw payload
+   logging. Before starting a ChatGPT run, record bundle/process/key identity and workload inputs.
+   Record physical cell entry/exit, nested tool return, last visible progress and actual user
+   report/stop/resume receipt separately. Missing observations remain unknown. Pin evidence at
+   the first visible divergence, including coverage/drop counters; watch-ring overwrite and
+   absent server errors cannot establish a healthy host/UI. Bound any detailed trace separately.
+3. **Compare one workload across available clients.** First replay through direct MCP and the
+   Local Codex bridge; then compare Codex Code Mode and real ChatGPT Code Mode where available.
+   Bind each client's current implementation/config before use. Compare coarse bounded observation
+   with repeated status polling while keeping backend work and visible checkpoints fixed. Count
+   physical invocations, admitted calls, response bytes, time to visible progress and control latency.
+   Do not hard-code the observed ChatGPT 20-call admission ceiling into tdev's server contract or
+   treat any Local Codex success as ChatGPT qualification. Prefer a host controller budget policy;
+   prototype aggregate observation only if measurements show redundant round trips dominate.
+4. **Qualify control ownership separately.** Use disposable delayed marker operations to test
+   report, Stop-only, successor-message plus Stop, reconnect and resume. Preserve original receipts;
+   no automatic retry of ambiguous effects. Only add server-side ownership/fencing if the evidence
+   identifies a missing enforceable boundary. A server response or diagnostic acknowledgment alone
+   is not a visible-progress or Stop acknowledgment.
+
+Release a runtime change only after focused/affected/full checks, inactive failure rehearsal and
+the authorized installed check. Qualification must report visible progress and backend terminal
+state separately, plus user control outcomes. If the host stops scheduling continuations or UI
+updates after receiving responses, tdev can preserve resumable state and reduce interaction cost,
+but cannot guarantee wake-up or same-turn visibility through the current request/response channel.
+
 The 2026-09-22 review preserves the sequence above and makes the remaining delivery order
 concrete. Architecture owns the selected boundaries; review observations are in LOCAL_VALIDATION.
 The existing packaging WIP is retained and generalized below, not discarded.

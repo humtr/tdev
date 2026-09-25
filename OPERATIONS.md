@@ -806,12 +806,25 @@ independent of MCP/controller and disk-writer locks. Local incidents are not att
 arbitrary ChatGPT principal. Export refuses an existing destination and preserves snapshot,
 incidents and available rotated logs. Keep exports outside the diagnostic directory; they are
 operator-owned and not rotated. No bearer, command, output or correlation key is exported.
+The socket worker shares the controller process. A whole-process suspension/hang can also make
+the socket unavailable; export reports that gap and can still copy readable retained files.
+Run an observer in a separate local process when investigating that boundary.
 
 At the first observed visible divergence, export immediately and separately record the last actually
 visible message/time. Compare ingress/body, dispatch, serialization and socket stages. Server write
 success is not host receipt or visible progress. The copy is bounded and non-atomic; inspect hashes,
 coverage, partial-record warnings, drop/overwrite counts and missing live snapshot before inferring
 absence of activity. Never retry an uncertain mutation merely to produce evidence.
+
+Watch alone does not preserve an entire long run: its 256-event ring overwrites old entries, and
+host/UI silence is not an automatic trigger. Use a bounded trace around a selected comparison or
+an independent local snapshot/export at the first visible divergence. Record the visible time and
+host/cell return separately; a later export cannot recover overwritten watch history.
+
+Expired captures can still have unacknowledged alerts. The current implementation continues
+offering those alerts at the interval above until acknowledgment or retention eviction; expiry is
+not delivery and does not clear them. Acknowledge a received incident once, then use inspect for
+its latest capture state. Do not auto-ack somebody else's incidents from the local operator path.
 
 Detailed log retention is four 2 MiB files; ring/active/queue capacity is 256 each. Incident storage
 is bounded to 32 entries (acknowledged first, then oldest), with small evidence excerpts; eviction
