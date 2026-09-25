@@ -41,8 +41,13 @@ class PolicyRecorder(Recorder):
         return super().payload_tag(data) if self.policy.mode == 'trace' else None
 
     def tool_result(self, request, value):
+        if value.get('ok') is False:
+            self.policy.count_request(request, 'tool_error')
         if value.get('error', {}).get('effect') == 'unknown':
             self.policy.trigger_request(request, 'uncertain_effect')
+
+    def rpc_error(self, request):
+        self.policy.count_request(request, 'protocol_error')
 
     def offers(self, principal):
         return self.policy.offers(principal)
@@ -54,6 +59,10 @@ class PolicyRecorder(Recorder):
 class DiagnosticsPolicy:
     LIMIT = 32
     OFFER_INTERVAL = 15
+    OFFER_LIMIT = 8
+    OFFER_MAX_INTERVAL = 300
+    SERVER_REASONS = ('tool_error', 'protocol_error', 'dispatch_failed', 'response_failed', 'uncertain_effect', 'slow_dispatch')
+    REPORT_REASONS = ('visible_stall', 'transport_error', 'call_limit', 'unexpected_turn_end', 'control_mismatch')
     PUBLIC = ('id', 'reason', 'createdAt', 'capture', 'delivery', 'offers',
               'lastOfferedAt', 'acknowledgedAt')
 
@@ -69,6 +78,9 @@ class DiagnosticsPolicy:
         self._base_mode = options.get('mode', 'watch')
         self._mode, self._deadline, self._expires_at = self._base_mode, 0, None
         self._incident = []
+        self._aggregate = {}
+        self._aggregate_evicted = 0
+        self._offer_due = {}
         self._requests = {}
         self._silence_until = 0
         self._revision = self._saved_revision = 0
@@ -116,7 +128,7 @@ class DiagnosticsPolicy:
         try:
             require(filename.lstat().st_size <= SEGMENT_BYTES, 'DIAGNOSTIC_STATE')
             state = json.loads(private_file(filename))
-            require(state['schema'] == 1 and state['keyId'] == self.recorder.key_id,
+            require(state['schema'] in (1, 2) and state['keyId'] == self.recorder.key_id,
                     'DIAGNOSTIC_STATE')
             rows = state['incidents']
             require(isinstance(rows, list) and len(rows) <= self.LIMIT, 'DIAGNOSTIC_STATE')
@@ -124,13 +136,27 @@ class DiagnosticsPolicy:
             schema = json.loads((Path(__file__).resolve().parents[2] / 'contracts/tools.schema.json').read_bytes())
             validator = Draft202012Validator(schema['$defs']['DiagnosticIncident'])
             for row in rows:
-                require(validator.is_valid({k: row[k] for k in self.PUBLIC}), 'DIAGNOSTIC_STATE')
+                require(validator.is_valid(self._public(row)), 'DIAGNOSTIC_STATE')
                 require(isinstance(row['owner'], str) and len(row['owner']) == 24,
                         'DIAGNOSTIC_STATE')
                 require(isinstance(row.get('evidence', []), list) and len(row.get('evidence', [])) <= 32,
                         'DIAGNOSTIC_STATE')
+                require(type(row.get('seconds')) is int and 1 <= row['seconds'] <= 300,
+                        'DIAGNOSTIC_STATE')
+                require(row.get('replay') is None or isinstance(row['replay'], str) and len(row['replay']) == 24,
+                        'DIAGNOSTIC_STATE')
                 if row['capture'] == 'active':
                     row['capture'] = 'interrupted'
+            aggregates = state.get('aggregates', {})
+            require(isinstance(aggregates, dict) and len(aggregates) <= self.LIMIT, 'DIAGNOSTIC_STATE')
+            aggregate_validator = Draft202012Validator(schema['$defs']['DiagnosticAggregate'])
+            for owner, aggregate in aggregates.items():
+                require(isinstance(owner, str) and len(owner) == 24 and aggregate_validator.is_valid(aggregate),
+                        'DIAGNOSTIC_STATE')
+            for name in ('evicted', 'aggregateEvicted'):
+                require(type(state.get(name, 0)) is int and state.get(name, 0) >= 0, 'DIAGNOSTIC_STATE')
+            self._aggregate = aggregates
+            self._aggregate_evicted = state.get('aggregateEvicted', 0)
             self._incident = rows
             self._evicted = int(state.get('evicted', 0))
             self._touch()  # Persist restart terminalization without resuming a lease.
@@ -158,6 +184,7 @@ class DiagnosticsPolicy:
                 if event in ('dispatch_finished', 'dispatch_failed'):
                     row['started'] = None
                 if event in ('dispatch_failed', 'response_failed'):
+                    self._count(row['owner'], 'server', event)
                     self._trigger(row['owner'], event)
                 if event == 'http_finished':
                     self._requests.pop(request, None)
@@ -167,7 +194,31 @@ class DiagnosticsPolicy:
         with self._lock:
             row = self._requests.get(request)
             if row:
+                self._count(row['owner'], 'server', reason)
                 self._trigger(row['owner'], reason)
+
+    def count_request(self, request, reason):
+        with self._lock:
+            row = self._requests.get(request)
+            if row:
+                self._count(row['owner'], 'server', reason)
+
+    def _count(self, owner, source, reason):
+        if source == 'server' and self.mode == 'off':
+            return
+        allowed = self.SERVER_REASONS if source == 'server' else self.REPORT_REASONS
+        require(reason in allowed, 'DIAGNOSTIC_REASON')
+        now = time.time()
+        if owner not in self._aggregate:
+            if len(self._aggregate) == self.LIMIT:
+                oldest = min(self._aggregate, key=lambda k: self._aggregate[k]['lastObservedAt'])
+                del self._aggregate[oldest]
+                self._aggregate_evicted += 1
+            self._aggregate[owner] = dict(since=now, lastObservedAt=now, server={}, reported={})
+        value = self._aggregate[owner]
+        value['lastObservedAt'] = now
+        value[source][reason] = value[source].get(reason, 0) + 1
+        self._touch()
 
     def _trigger(self, owner, reason, seconds=None, replay=None):
         self._expire()
@@ -175,7 +226,7 @@ class DiagnosticsPolicy:
         if replay is not None:
             found = next((r for r in self._incident if r['owner'] == owner and r.get('replay') == replay), None)
             if found:
-                require(found['seconds'] == seconds, 'REQUEST_CONFLICT')
+                require(found['seconds'] == seconds and found['reason'] == reason, 'REQUEST_CONFLICT')
                 return
         else:
             if self._mode == 'off' or self.clock() < self._silence_until:
@@ -191,22 +242,41 @@ class DiagnosticsPolicy:
             # Finite diagnostic history; never delete operational receipts/evidence.
             acknowledged = next((r for r in self._incident if r['delivery'] == 'acknowledged'), self._incident[0])
             self._incident.remove(acknowledged)
+            self._offer_due.pop(acknowledged['id'], None)
             self._evicted += 1
         self._incident.append(dict(id=secrets.token_hex(16), owner=owner, reason=reason,
             createdAt=time.time(), capture='active', delivery='queued', offers=0,
             lastOfferedAt=None, acknowledgedAt=None, replay=replay, seconds=seconds,
             evidence=self._evidence()))
+        if reason.startswith('reported_'):
+            self._count(owner, 'reported', reason.removeprefix('reported_'))
         self._touch()
 
-    def _public(self, row):
-        return {k: row[k] for k in self.PUBLIC}
+    def _due(self, row):
+        if row['id'] not in self._offer_due:
+            delay = min(self.OFFER_MAX_INTERVAL, self.OFFER_INTERVAL * 2 ** min(7, max(0, row['offers'] - 1)))
+            remaining = 0 if row['lastOfferedAt'] is None else min(delay, max(0, row['lastOfferedAt'] + delay - time.time()))
+            self._offer_due[row['id']] = self.clock() + remaining
+        return self._offer_due[row['id']]
 
-    def inspect(self, principal):
+    def _public(self, row):
+        retry = ('acknowledged' if row['delivery'] == 'acknowledged' else
+                 'exhausted' if row['offers'] >= self.OFFER_LIMIT else 'pending')
+        return {**{k: row[k] for k in self.PUBLIC}, 'retry': retry,
+                'nextOfferAt': time.time() + max(0, self._due(row) - self.clock()) if retry == 'pending' else None}
+
+    def inspect(self, principal, compact=False):
         owner = self.recorder.tag(principal)
         with self._lock:
             self._expire()
+            rows = [self._public(r) for r in self._incident if r['owner'] == owner]
+            summary = copy.deepcopy(self._aggregate.get(owner,
+                                dict(since=None, lastObservedAt=None, server={}, reported={})))
+            summary.update(retainedIncidents=len(rows), unacknowledged=sum(r['delivery'] != 'acknowledged' for r in rows),
+                           exhausted=sum(r['retry'] == 'exhausted' for r in rows),
+                           aggregationEvicted=self._aggregate_evicted)
             return dict(mode=self._mode, expiresAt=self._expires_at,
-                        incidents=[self._public(r) for r in self._incident if r['owner'] == owner],
+                        incidents=[] if compact else rows, summary=summary,
                         storagePending=self._saved_revision < self._revision,
                         storageErrors=self._storage_errors, evicted=self._evicted)
 
@@ -214,12 +284,16 @@ class DiagnosticsPolicy:
         owner = self.recorder.tag(principal)
         with self._lock:
             action = args['action']
-            if action == 'activate':
+            if action in ('activate', 'report'):
                 seconds = args.get('seconds', self.trace_seconds)
                 require(type(seconds) is int and 1 <= seconds <= 300, 'DIAGNOSTIC_DURATION')
                 require(isinstance(args.get('requestId'), str) and 1 <= len(args['requestId']) <= 128,
                         'DIAGNOSTIC_REQUEST')
-                self._trigger(owner, 'manual', seconds, self.recorder.tag(args['requestId']))
+                reason = 'manual'
+                if action == 'report':
+                    require(args.get('category') in self.REPORT_REASONS, 'DIAGNOSTIC_REASON')
+                    reason = 'reported_' + args['category']
+                self._trigger(owner, reason, seconds, self.recorder.tag(args['requestId']))
             elif action == 'stop':
                 if self._mode == 'trace':
                     self._expire(stopped=True)
@@ -232,18 +306,21 @@ class DiagnosticsPolicy:
                     self._touch()
             else:
                 require(action == 'inspect', 'DIAGNOSTIC_ACTION')
-            return self.inspect(principal)
+            return self.inspect(principal, args.get('view') == 'summary')
 
     def offers(self, principal):
         owner = self.recorder.tag(principal)
-        now = time.time()
         with self._lock:
             self._expire()
-            rows = [r for r in self._incident if r['owner'] == owner and r['delivery'] != 'acknowledged'
-                    and (r['lastOfferedAt'] is None or now - r['lastOfferedAt'] >= self.OFFER_INTERVAL)][:3]
+            now = time.time()
+            eligible = [r for r in self._incident if r['owner'] == owner and r['delivery'] != 'acknowledged'
+                        and r['offers'] < self.OFFER_LIMIT and self.clock() >= self._due(r)]
+            rows = sorted(eligible, key=lambda r: (r['offers'] > 0, r['offers'], r['createdAt']))[:3]
             for row in rows:
                 row['delivery'], row['lastOfferedAt'] = 'offered', now
                 row['offers'] += 1
+                delay = min(self.OFFER_MAX_INTERVAL, self.OFFER_INTERVAL * 2 ** (row['offers'] - 1))
+                self._offer_due[row['id']] = self.clock() + delay
             if rows:
                 self._touch()
             return [self._public(r) for r in rows]
@@ -255,6 +332,7 @@ class DiagnosticsPolicy:
             with self._lock:
                 result['policy'] = self.inspect('@local-operator')
                 result['incidents'] = copy.deepcopy(self._incident)
+                result['aggregates'] = copy.deepcopy(self._aggregate)
             return result
         try:
             require(isinstance(command, dict) and command.get('action') in ('activate', 'stop'), 'DIAGNOSTIC_ACTION')
@@ -271,11 +349,11 @@ class DiagnosticsPolicy:
                 for row in self._requests.values():
                     if self._mode != 'off' and row['started'] is not None and not row['reported'] and self.clock() - row['started'] >= self.slow_seconds:
                         row['reported'] = True
+                        self._count(row['owner'], 'server', 'slow_dispatch')
                         self._trigger(row['owner'], 'slow_dispatch')
                 dirty = self._revision > self._saved_revision
                 if dirty and not getattr(self, '_storage_disabled', False):
-                    state = dict(schema=1, keyId=self.recorder.key_id, revision=self._revision,
-                                 evicted=self._evicted, incidents=copy.deepcopy(self._incident))
+                    state = self._state()
                     # Replace a stale queued save. Never wait for a blocked disk writer.
                     try:
                         self._save_queue.put_nowait(state)
@@ -306,13 +384,17 @@ class DiagnosticsPolicy:
                     self._storage_errors += 1
                 self._stop.wait(.5)
 
+    def _state(self):
+        return dict(schema=2, keyId=self.recorder.key_id, revision=self._revision,
+                    evicted=self._evicted, incidents=copy.deepcopy(self._incident),
+                    aggregates=copy.deepcopy(self._aggregate), aggregateEvicted=self._aggregate_evicted)
+
     def close(self):
         # Final state is best-effort; bounded close never waits indefinitely for storage.
         with self._lock:
             self._expire(stopped=True)
             if not getattr(self, '_storage_disabled', False):
-                state = dict(schema=1, keyId=self.recorder.key_id, revision=self._revision,
-                             evicted=self._evicted, incidents=copy.deepcopy(self._incident))
+                state = self._state()
                 try:
                     self._save_queue.get_nowait()
                 except queue.Empty:

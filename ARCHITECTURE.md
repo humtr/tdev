@@ -682,9 +682,28 @@ pending/error state; a crash can lose recent offers/acknowledgments. Corrupt/inc
 files are preserved and storage is disabled rather than silently replacing evidence. Expired records
 remain available until the retention bound evicts them. Capture log rotation remains independent.
 
+Server-observed tool errors, authenticated protocol errors, dispatch/response failures, uncertain
+effects and slow dispatches also increment bounded principal-scoped aggregate counters. Counting
+precedes incident cooldown/deduplication, so repeated error responses remain measurable even when
+only one capture is started. Categories overlap (an unknown-effect tool error counts in both);
+these are observed signals, not counts of distinct operations. Successful traffic does not dirty
+the aggregate store. At most 32 principal aggregate records are retained; least-recently-updated
+eviction is counted. Counters survive incident eviction and ordinary restart, but not aggregation
+eviction, missing storage or unflushed crashes. Since/last-observed times bound each record; no
+historical counts are fabricated when upgrading existing incidents.
+
+Authorized `report` records a caller-observed category and starts a bounded capture. It stores no
+free text, error message, conversation, command or raw request identity. Reports of visible stalls,
+transport errors, host call limits, unexpected turn ends and control mismatches are unverified
+client observations and are counted separately from server signals. Receipt time is not the time
+of the original visible failure. Request replay within retained incident history neither recounts
+nor extends capture; a conflicting category/action is rejected. `inspect view=summary` returns
+counts and pending/exhausted totals without the incident list. Full inspect remains the recovery
+path to an incident ID. Reading counts does not acknowledge or reset them.
+
 #### Control, notifications and delivery boundary
 
-`tdev_diagnostics` inspects/acknowledges only the current principal's incidents. Activation/stop
+`tdev_diagnostics` inspects/acknowledges only the current principal's incidents. Reporting/activation/stop
 control runtime-wide collection and require an explicit diagnostic grant plus fresh authorization;
 installation maintenance fences these controls. Global mode/expiry/storage health are observable.
 Raw evidence is local-operator-only. A same-UID Unix socket offers snapshot, bounded activation
@@ -693,7 +712,13 @@ Local activation incidents belong to the local operator, not an inferred ChatGPT
 
 Unacknowledged alerts are offered in subsequent tools/call responses as a short extra text block
 and `io.tdev/diagnostics` result metadata, without altering structured operational receipts. At most
-three alerts are offered per response, with a 15-second per-incident repeat interval. Failed socket
+three alerts are offered per response, prioritizing never-offered then least-offered eligible
+incidents. Each incident has at most eight automatic offers; delay doubles from 15 seconds to a
+300-second cap. Eligibility uses elapsed time during a process lifetime. Restart reconstructs a
+remaining delay from stored wall time, clamped to one delay so backward clock changes cannot
+silence an incident indefinitely. Old counts exceeding eight are retained and marked exhausted.
+Exhaustion is not acknowledgment; inspection and acknowledgment remain available. Compact text
+names the ID/reason/capture while structured metadata carries delivery details. Failed socket
 writes do not acknowledge delivery. Explicit principal-scoped acknowledgment is idempotent;
 model acknowledgment is not proof that the user saw the message. Local Codex's bridge preserves
 this envelope content. Exact fields are owned by the tool contract.
@@ -709,6 +734,20 @@ The copy is non-atomic: rotation can omit/duplicate segments and partial records
 Snapshot is independent of the disk writer; copying still needs working source/destination storage.
 Same-UID access follows the existing native trust boundary, not hostile-code isolation. These are
 bounded diagnostics, not a crash-durable audit ledger or an extension of ChatGPT turn lifetime.
+
+An explicitly launched `tdev.diagnostic_observer` process samples the same-UID socket with bounded
+timeouts into a new private directory. It never starts the controller, activates capture or sends
+MCP calls. Duration, interval, byte and sample ceilings bound overhead; timeout/unavailability is
+recorded instead of inferred as a specific root cause. A whole-process suspension can block the
+in-process socket while the external observer still records that gap. Retained snapshots include
+runtime/process/key identity, counters and bounded recent records for correlation; snapshots may
+overlap and are not an atomic history. The operator records actual host/visible observations
+separately. No always-on observer is added to the resident service graph.
+
+Diagnostic storage revision 2 accepts existing revision-1 incidents and retains their IDs,
+acknowledgments and offer counts. Prior bundles do not understand revision 2: a rollback preserves
+the file and disables diagnostic persistence with an explicit storage error. Operational state
+and effects do not depend on this sidecar. Do not delete evidence to make a downgrade look healthy.
 
 Diagnostic mode/grant updates can accompany a resident update. The installer journals the old
 private config, checks its expected digest, writes the new config only after stopping owned

@@ -102,7 +102,7 @@ class PolicyTest(unittest.TestCase):
         state = restored.tool('alice', args)
         self.assertEqual('watch', state['mode'])
         self.assertEqual('interrupted', state['incidents'][0]['capture'])
-        restored.OFFER_INTERVAL = 0
+        self.now += 16
         self.assertEqual(row['id'], restored.offers('alice')[0]['id'])
         restored.tool('alice', {'action': 'acknowledge', 'incidentId': row['id']})
         until(lambda: not restored.inspect('alice')['storagePending'])
@@ -177,6 +177,95 @@ class PolicyTest(unittest.TestCase):
         p.tool('alice', {'action': 'activate', 'requestId': 'new'})
         p.close()
         self.assertEqual(b'{bad-private-state', (self.directory/'incidents.json').read_bytes())
+
+    def test_fair_offers_backoff_exhaustion_and_ack_at_retention_bound(self):
+        p = self.policy
+        for n in range(32):
+            p.tool('alice', {'action':'activate','requestId':str(n)})
+        seen = set()
+        for _ in range(12):
+            seen.update(r['id'] for r in p.offers('alice'))
+            self.now += 16
+        self.assertEqual(32, len(seen))
+        self.assertEqual([], p.offers('bob'))
+        for _ in range(100):
+            self.now += 301
+            self.assertLessEqual(len(p.offers('alice')), 3)
+        state = p.inspect('alice')
+        self.assertTrue(all(r['offers'] == 8 and r['retry'] == 'exhausted' and r['nextOfferAt'] is None
+                            for r in state['incidents']))
+        self.assertEqual(32, state['summary']['exhausted'])
+        self.assertEqual([], p.offers('alice'))
+        p.tool('alice', {'action':'acknowledge','incidentId':state['incidents'][0]['id']})
+        self.assertEqual(31, p.inspect('alice')['summary']['unacknowledged'])
+
+    def test_offer_backoff_uses_elapsed_time_and_survives_future_wall_timestamp(self):
+        p = self.policy
+        p.tool('alice', {'action':'activate','requestId':'clock'})
+        first = p.offers('alice')[0]
+        with patch('tdev.diagnostic_policy.time.time', return_value=first['lastOfferedAt']+10000):
+            self.assertEqual([], p.offers('alice'))
+        self.now += 15
+        self.assertEqual(2, p.offers('alice')[0]['offers'])
+        self.now += 15
+        self.assertEqual([], p.offers('alice'))  # Second delay is 30 seconds.
+        until(lambda: not p.inspect('alice')['storagePending'])
+        p.close(); self.policies.remove(p)
+        with patch('tdev.diagnostic_policy.time.time', return_value=first['createdAt']-10000):
+            restored = self.create()
+            self.assertEqual([], restored.offers('alice'))
+            self.now += 30
+            self.assertEqual(3, restored.offers('alice')[0]['offers'])
+
+    def test_summary_counts_suppressed_server_signals_and_report_replays_separately(self):
+        p = self.policy
+        for n in range(3):
+            p.recorder.bind(n, 'alice')
+            p.recorder.emit(n, 'dispatch_failed')
+            p.recorder.tool_result(n, {'ok':False,'error':{'effect':'unknown'}})
+            p.recorder.emit(n, 'http_finished')
+        args = {'action':'report','requestId':'private-client-id','category':'visible_stall'}
+        p.tool('alice', args); p.tool('alice', args)
+        with self.assertRaises(Fault):
+            p.tool('alice', {**args,'category':'call_limit'})
+        state = p.tool('alice', {'action':'inspect','view':'summary'})
+        self.assertEqual([], state['incidents'])
+        self.assertEqual({'dispatch_failed':3,'tool_error':3,'uncertain_effect':3}, state['summary']['server'])
+        self.assertEqual({'visible_stall':1}, state['summary']['reported'])
+        self.assertEqual(3, state['summary']['retainedIncidents'])
+        self.assertEqual({}, p.inspect('bob')['summary']['server'])
+        until(lambda: not p.inspect('alice')['storagePending'])
+        p.close(); self.policies.remove(p)
+        restored = self.create()
+        self.assertEqual(state['summary'], restored.inspect('alice')['summary'])
+        restored.tool('alice', args)
+        self.assertEqual({'visible_stall':1}, restored.inspect('alice')['summary']['reported'])
+        self.assertNotIn('private-client-id', (self.directory/'incidents.json').read_text())
+
+    def test_aggregation_is_bounded_and_old_incidents_upgrade_without_invented_counts(self):
+        p = self.policy
+        for n in range(35):
+            p.recorder.bind(n, str(n))
+            p.recorder.tool_result(n, {'ok':False})
+            p.recorder.emit(n, 'http_finished')
+        self.assertEqual(32, len(p._aggregate))
+        self.assertEqual(3, p.inspect('0')['summary']['aggregationEvicted'])
+        self.assertIsNone(p.inspect('0')['summary']['since'])
+        p.tool('alice', {'action':'activate','requestId':'old'})
+        row = p._incident[0]
+        row['offers'] = 98; row['delivery'] = 'offered'; row['lastOfferedAt'] = time.time()
+        p.close(); self.policies.remove(p)
+        saved = json.loads((self.directory/'incidents.json').read_bytes())
+        saved['schema'] = 1
+        saved.pop('aggregates'); saved.pop('aggregateEvicted')
+        atomic_write(self.directory/'incidents.json', canonical(saved))
+        restored = self.create()
+        result = restored.inspect('alice')
+        self.assertEqual(98, result['incidents'][0]['offers'])
+        self.assertEqual('exhausted', result['incidents'][0]['retry'])
+        self.assertEqual({}, result['summary']['server'])
+        self.assertEqual(0, result['storageErrors'])
+        self.assertEqual([], restored.offers('alice'))
 
 
 class DiagnosticHTTPTest(unittest.TestCase):
@@ -349,6 +438,36 @@ class DiagnosticHTTPTest(unittest.TestCase):
         self.fixture.repo.config['principals']['alice']['diagnostics'] = False
         self.assertEqual('PERMISSION_DENIED', self.call({'action':'stop'})['structuredContent']['error']['code'])
 
+    def test_client_report_summary_contract_grants_and_server_errors(self):
+        from jsonschema import Draft202012Validator
+        from tdev.server import expanded
+        schema = self.fixture.controller.schema
+        output = next(t['outputSchema'] for t in schema['x-tools'] if t['name']=='tdev_diagnostics')
+        validator = Draft202012Validator(expanded(schema, output))
+        cold = self.call({'action':'inspect','view':'summary'})
+        validator.validate(cold['structuredContent'])
+        self.assertEqual({}, cold['structuredContent']['result']['summary']['server'])
+        args = {'action':'report','requestId':'client-observation','category':'transport_error'}
+        self.assertEqual('PERMISSION_DENIED', self.call(args)['structuredContent']['error']['code'])
+        self.assertFalse((self.root/'diagnostics').exists())
+        self.fixture.repo.config['principals']['alice']['diagnostics'] = True
+        report = self.call(args)
+        validator.validate(report['structuredContent'])
+        self.assertEqual('reported_transport_error', report['_meta']['io.tdev/diagnostics'][0]['reason'])
+        self.call(args)
+        bad = self.call({**args, 'rawError':'never retain this'})
+        self.assertEqual('SCHEMA', bad['structuredContent']['error']['code'])
+        self.assertEqual(400, self.fixture.request(headers={'MCP-Protocol-Version':'invalid'})[0])
+        summary = self.call({'action':'inspect','view':'summary'})['structuredContent']
+        validator.validate(summary)
+        self.assertEqual([], summary['result']['incidents'])
+        self.assertEqual({'transport_error':1}, summary['result']['summary']['reported'])
+        self.assertEqual({'tool_error':1,'protocol_error':1}, summary['result']['summary']['server'])
+        self.assertNotIn('never retain this', json.dumps(control(self.policies[0].directory, {'action':'snapshot'})))
+        self.fixture.repo.config['principals']['alice']['diagnostics'] = False
+        denied = self.call({**args,'requestId':'new'})
+        self.assertEqual('PERMISSION_DENIED', denied['structuredContent']['error']['code'])
+
     def test_dispatch_failure_activates_and_next_response_offers_without_changing_effect(self):
         self.fixture.repo.config['principals']['alice']['diagnostics'] = True
         self.call({'action':'activate','requestId':'init'})
@@ -371,7 +490,8 @@ class DiagnosticHTTPTest(unittest.TestCase):
         self.assertNotIn('private-failure-body', json.dumps(result))
         from tdev.codex_bridge import Bridge
         bridge = Bridge(f'http://127.0.0.1:{self.server.server_port}/mcp', 'alice-secret')
-        p.OFFER_INTERVAL = 0
+        later = p.clock() + 16
+        p.clock = lambda: later
         wrapped = bridge.handle({'jsonrpc':'2.0','id':7,'method':'tools/call','params':{'name':'tdev_diagnostics','arguments':{'action':'inspect'}}})
         self.assertIn('io.tdev/diagnostics', wrapped['result']['_meta'])
         self.assertGreater(len(wrapped['result']['content']), 1)

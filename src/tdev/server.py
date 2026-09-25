@@ -32,7 +32,7 @@ def make_server(controller, port=0, diagnostics=None, diagnostic_factory=None):
 
     def diagnostic_call(principal, args):
         nonlocal trace
-        if trace is None and args['action'] == 'activate' and diagnostic_factory:
+        if trace is None and args['action'] in ('activate', 'report') and diagnostic_factory:
             with activation_lock:
                 if trace is None:
                     try:
@@ -45,7 +45,9 @@ def make_server(controller, port=0, diagnostics=None, diagnostic_factory=None):
             return policy.tool(principal, args)
         if args['action'] == 'inspect':
             return dict(mode='off', expiresAt=None, incidents=[], storagePending=False,
-                        storageErrors=0, evicted=0)
+                        storageErrors=0, evicted=0,
+                        summary=dict(since=None, lastObservedAt=None, server={}, reported={},
+                                     retainedIncidents=0, unacknowledged=0, exhausted=0, aggregationEvicted=0))
         raise Fault('DIAGNOSTICS_UNAVAILABLE')
 
     if controller is not None:
@@ -82,6 +84,8 @@ def make_server(controller, port=0, diagnostics=None, diagnostic_factory=None):
             pass  # Never log auth headers, arguments or candidate output.
 
         def rpc_error(self, status, ident, code, message, data=None):
+            if hasattr(trace, 'rpc_error'):
+                self._observe('rpc_error', self._trace_request)
             error = {"code": code, "message": message}
             if data is not None:
                 error["data"] = data
@@ -280,9 +284,9 @@ def make_server(controller, port=0, diagnostics=None, diagnostic_factory=None):
                     if alerts:
                         result['_meta']['io.tdev/diagnostics'] = alerts
                         result['content'].append({'type': 'text', 'text':
-                            'tdev diagnostic incident(s): ' + canonical(alerts).decode() +
-                            '. Use tdev_diagnostics inspect for state; acknowledge an incidentId after receipt. '
-                            'This does not prove user-visible delivery. Existing work is not cancelled or retried.'})
+                            'tdev diagnostics: ' + '; '.join(a['id'] + ' ' + a['reason'] + ' (' + a['capture'] + ')' for a in alerts) +
+                            '. Acknowledge received incidentId once; inspect view=summary for counts. '
+                            'No user-visible delivery proof; existing work continues.'})
             self.send(200, {"jsonrpc": "2.0", "id": ident, **({"error": error} if error else {"result": result})})
 
     server = ThreadingHTTPServer(("127.0.0.1", port), Handler)

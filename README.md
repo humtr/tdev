@@ -63,8 +63,14 @@ offered in subsequent tool responses; they cannot wake a stopped ChatGPT turn or
 The owned resident installation runs **0.1.7** with watch enabled. Authenticated ChatGPT
 connector acceptance covered activation, alert receipt/acknowledgment and expiry; independent
 readback confirmed the same bundle and preserved configuration. Visible-liveness qualification
-remains open. Follow-up priorities are bounded alert repetition and a correlated first-divergence
-capture, with separate server, host-return and user-visible evidence. See the
+remains open. The **0.1.8** checkout now bounds and fairly selects alert retries, aggregates
+server-observed errors separately from client reports, and supports compact diagnostic summaries.
+`tdev_diagnostics report` records a classified caller observation without raw messages or output.
+A separately launched local observer records bounded snapshots and socket/process unavailability.
+Qualification/installation results are recorded in LOCAL_VALIDATION; these additions do not
+establish ChatGPT visible continuity. The next host investigation correlates server evidence,
+host/cell return and actual user-visible progress, then qualifies report/Stop/resume separately.
+See the
 [follow-up review](LOCAL_VALIDATION.md#post-chatgpt-independent-review--2026-09-25).
 See [operator usage](OPERATIONS.md#capture-lifecycle-diagnostics) and the
 [diagnostic boundary](ARCHITECTURE.md#local-lifecycle-diagnostics).

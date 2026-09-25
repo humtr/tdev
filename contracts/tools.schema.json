@@ -4598,6 +4598,12 @@
           "properties": {
             "action": {
               "const": "inspect"
+            },
+            "view": {
+              "enum": [
+                "full",
+                "summary"
+              ]
             }
           },
           "required": [
@@ -4656,6 +4662,34 @@
             "incidentId"
           ],
           "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "report"
+            },
+            "requestId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "category": {
+              "enum": [
+                "visible_stall",
+                "transport_error",
+                "call_limit",
+                "unexpected_turn_end",
+                "control_mismatch"
+              ]
+            }
+          },
+          "required": [
+            "action",
+            "requestId",
+            "category"
+          ],
+          "additionalProperties": false
         }
       ]
     },
@@ -4672,7 +4706,12 @@
             "dispatch_failed",
             "response_failed",
             "uncertain_effect",
-            "slow_dispatch"
+            "slow_dispatch",
+            "reported_visible_stall",
+            "reported_transport_error",
+            "reported_call_limit",
+            "reported_unexpected_turn_end",
+            "reported_control_mismatch"
           ]
         },
         "createdAt": {
@@ -4708,6 +4747,20 @@
             "number",
             "null"
           ]
+        },
+        "retry": {
+          "enum": [
+            "pending",
+            "exhausted",
+            "acknowledged"
+          ]
+        },
+        "nextOfferAt": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Approximate wall time; runtime eligibility uses elapsed time. Null after acknowledgement or retry exhaustion."
         }
       },
       "required": [
@@ -4718,7 +4771,9 @@
         "delivery",
         "offers",
         "lastOfferedAt",
-        "acknowledgedAt"
+        "acknowledgedAt",
+        "retry",
+        "nextOfferAt"
       ],
       "additionalProperties": false
     },
@@ -4755,6 +4810,9 @@
         "evicted": {
           "type": "integer",
           "minimum": 0
+        },
+        "summary": {
+          "$ref": "#/$defs/DiagnosticSummary"
         }
       },
       "required": [
@@ -4763,7 +4821,189 @@
         "incidents",
         "storagePending",
         "storageErrors",
-        "evicted"
+        "evicted",
+        "summary"
+      ],
+      "additionalProperties": false
+    },
+    "DiagnosticAggregate": {
+      "type": "object",
+      "properties": {
+        "since": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "lastObservedAt": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "server": {
+          "type": "object",
+          "properties": {
+            "tool_error": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "dispatch_failed": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "response_failed": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "uncertain_effect": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "slow_dispatch": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "protocol_error": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "additionalProperties": false
+        },
+        "reported": {
+          "type": "object",
+          "properties": {
+            "visible_stall": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "transport_error": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "call_limit": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "unexpected_turn_end": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "control_mismatch": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "since",
+        "lastObservedAt",
+        "server",
+        "reported"
+      ],
+      "additionalProperties": false
+    },
+    "DiagnosticSummary": {
+      "type": "object",
+      "description": "Principal-scoped bounded counts since this aggregation record began. Server signals and unverified client reports are separate, non-exclusive categories; repeated error responses count separately. Not an operation count, UI measurement or crash-durable audit. No backfill from earlier versions. At most 32 principal aggregation records; eviction resets that principal on its next observation.",
+      "properties": {
+        "since": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "lastObservedAt": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "server": {
+          "type": "object",
+          "properties": {
+            "tool_error": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "dispatch_failed": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "response_failed": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "uncertain_effect": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "slow_dispatch": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "protocol_error": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "additionalProperties": false
+        },
+        "reported": {
+          "type": "object",
+          "properties": {
+            "visible_stall": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "transport_error": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "call_limit": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "unexpected_turn_end": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "control_mismatch": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "additionalProperties": false
+        },
+        "retainedIncidents": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unacknowledged": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "exhausted": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "aggregationEvicted": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "since",
+        "lastObservedAt",
+        "server",
+        "reported",
+        "retainedIncidents",
+        "unacknowledged",
+        "exhausted",
+        "aggregationEvicted"
       ],
       "additionalProperties": false
     }
@@ -5583,7 +5823,7 @@
     },
     {
       "name": "tdev_diagnostics",
-      "description": "Inspect your retained diagnostic incidents or acknowledge receipt by incidentId. Authorized diagnostic operators may activate bounded tracing (1–300 seconds; default 120) with requestId or stop it. Reuse requestId after a lost activation reply; replay within the 32-incident retention window does not extend expiry. Normal operation does not depend on diagnostics. Automatic watch reacts to dispatch/response failures, uncertain effects or slow dispatch candidates, never cancels/retries work. Alerts are offered in subsequent tool responses; acknowledgment does not prove user-visible delivery. No raw trace, credentials, commands or other principals’ incidents are returned. Activation and stop require the operator diagnostics grant.",
+      "description": "Observe optional runtime diagnostics. inspect view=summary returns principal-scoped server error counts, separately counted client reports, pending and retry-exhausted incidents in one bounded response; default full also includes up to 32 incidents. report with a stable requestId and a category records a client-observed visible stall, transport error, call limit, unexpected turn end or control mismatch and starts a bounded capture; this is a report, not server/UI proof. Never include raw error messages, commands, auth or conversation text. Reuse requestId after a lost report/activation reply within retained history. activate starts a bounded trace; stop ends capture, not development work. report/activate/stop require the diagnostic grant. Acknowledge a received incidentId once; inspect remains available after automatic offers are exhausted. Notifications use fair selection, exponential backoff and at most eight offers per incident; failed writes do not acknowledge delivery. Counters are best effort, bounded and restart-persisted, not a complete audit. No retry/cancel/provider mutation, host wake-up or UI-delivery guarantee.",
       "inputSchema": {
         "$ref": "#/$defs/diagnosticsInput"
       },
@@ -5841,6 +6081,7 @@
         "$ref": "#/$defs/DiagnosticIncident"
       }
     },
-    "delivery": "Offers repeat at most once per 15 seconds per incident until acknowledged; failed responses retain pending incidents. Tool acknowledgment is not UI acknowledgment. Scope is the current authenticated principal."
+    "delivery": "At most eight automatic offers per incident with 15\u2013300 second exponential delay; failed writes do not acknowledge receipt. Retry exhaustion remains inspectable and acknowledgeable. Scope is the current authenticated principal; receipt is not UI delivery.",
+    "description": "Principal-scoped incident offers in tool result metadata and a compact text notice. At most three per response, eight total per incident, 15\u2013300 second exponential elapsed-time delay. Never-offered and least-offered eligible incidents first. Exhaustion is not acknowledgement; inspect/ack remain available. No unsolicited push or proof of visible delivery."
   }
 }

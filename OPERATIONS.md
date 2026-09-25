@@ -773,12 +773,14 @@ ChatGPT can use the following `tdev_diagnostics` arguments:
 
 ```json
 {"action":"inspect"}
+{"action":"inspect","view":"summary"}
+{"action":"report","requestId":"observed-transport-error-1","category":"transport_error"}
 {"action":"activate","requestId":"investigate-freeze-1","seconds":120}
 {"action":"acknowledge","incidentId":"RETURNED_INCIDENT_ID"}
 {"action":"stop"}
 ```
 
-`activate`/`stop` require that principal's `diagnostics: true` grant. Inspection and acknowledgment
+`report`/`activate`/`stop` require that principal's `diagnostics: true` grant. Inspection and acknowledgment
 only expose its own incidents. Use a stable requestId after a lost activation reply; replay within
 the 32-incident retention window does not extend expiry. Use a new requestId for a new capture.
 Explicit stop suppresses automatic retriggering for the configured cooldown; it does not stop work.
@@ -786,8 +788,10 @@ When starting from off, capture expires back to off; the loaded adapter remains 
 incident delivery and later control. CLI `--diagnostics trace` starts a bounded capture with watch
 as its return mode. `/healthz` reports off/watch/trace or unavailable; it is not persistence proof.
 
-Alerts appear in the next tool response's text and `io.tdev/diagnostics` metadata: at most three per
-response and no more than once per 15 seconds per incident. Explicit acknowledgment means the caller
+Alerts appear in tool response text and `io.tdev/diagnostics` metadata: at most three per response,
+with never-offered/least-offered eligible incidents first. Each incident gets at most eight automatic
+offers, with exponential delays from 15 to 300 seconds. `retry=exhausted` is still unacknowledged;
+use full inspect to retrieve and acknowledge it. Explicit acknowledgment means the caller
 received the incident, not that the user saw it. No current push channel can wake a stopped ChatGPT
 turn. A transport failure leaves the incident pending for later offers/inspection. Look at
 `storagePending` and `storageErrors`; persistence is asynchronous and a crash can lose recent changes.
@@ -821,10 +825,45 @@ host/UI silence is not an automatic trigger. Use a bounded trace around a select
 an independent local snapshot/export at the first visible divergence. Record the visible time and
 host/cell return separately; a later export cannot recover overwritten watch history.
 
-Expired captures can still have unacknowledged alerts. The current implementation continues
-offering those alerts at the interval above until acknowledgment or retention eviction; expiry is
-not delivery and does not clear them. Acknowledge a received incident once, then use inspect for
+Expired captures can still have unacknowledged alerts. The implementation offers them within the
+retry budget above; expiry is not delivery and does not clear them. Acknowledge a received incident once, then use inspect for
 its latest capture state. Do not auto-ack somebody else's incidents from the local operator path.
+
+For ChatGPT error review, use `inspect view=summary` once to obtain server-observed counts and
+separate caller-reported counts. Server categories overlap; `tool_error` counts failed tool responses,
+not distinct failed operations. Counts continue through capture cooldown and incident eviction.
+An accepted command/test that exits unsuccessfully is an operation result, not automatically a
+tool/protocol error; inspect that operation for its exit/output. This summary targets interaction
+failures and lifecycle signals, not arbitrary occurrences of "error" in application output.
+`since`, `lastObservedAt`, `aggregationEvicted`, storage health and diagnostic mode bound their
+coverage. Zero counts are not proof of an error-free UI. A before/after summary comparison is useful
+only when that principal's aggregation record was retained throughout the interval.
+
+When ChatGPT regains a working tool channel after a host-visible error, submit one `report` with
+category `visible_stall`, `transport_error`, `call_limit`, `unexpected_turn_end` or `control_mismatch`.
+Reuse its requestId after a lost reply; a new ID means a new observation. Do not report repeatedly
+for the same event or send raw messages/output. Report starts a bounded capture of subsequent
+activity, not recovery of missing historical events. A report is a client claim, not independent
+confirmation that the host or tdev caused it. This cannot run while the host stops calling tools.
+
+For an independent, finite local recording, use the selected bundle's environment:
+
+```sh
+python -m tdev.diagnostic_observer --state /absolute/installation/state --output /absolute/new-observation-directory --seconds 120 --interval 5 --max-bytes 8388608
+```
+
+This process makes no MCP calls or operational changes. `samples.jsonl` contains snapshots or
+unavailability records; `observation.json` records the count, file hash, coverage gaps and stop
+reason. It refuses an existing destination. Duration is 1–3600 seconds, interval .25–60 seconds,
+record budget 1 KiB–64 MiB, and the sample ceiling is 3600. The small final manifest is additional
+to the record budget. SIGINT/SIGTERM ends the observer, not tdev. Keep a separately timestamped
+record of actual visible progress and host/cell returns; this recorder cannot see ChatGPT's UI.
+The observer is explicitly launched for an investigation and is not an always-running service.
+
+Revision-1 diagnostic incidents are preserved on upgrade. Downgrading to an older bundle after
+revision-2 storage is written leaves that evidence intact but disables its diagnostic persistence;
+inspect reports storage errors. Operational work is independent. Preserve/export evidence and
+upgrade to a compatible bundle instead of deleting it.
 
 Detailed log retention is four 2 MiB files; ring/active/queue capacity is 256 each. Incident storage
 is bounded to 32 entries (acknowledged first, then oldest), with small evidence excerpts; eviction

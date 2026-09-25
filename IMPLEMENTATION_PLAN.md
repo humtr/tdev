@@ -154,6 +154,11 @@ or semantic-continuity expansion while the user's visible-liveness investigation
    lost responses, absent ack, restart, multiple principals and the retention limit. Agree the
    resulting semantics in ARCHITECTURE/contract alongside implementation; do not silently change
    live config or acknowledge the user's incidents to make the counter look better.
+   Add a compact principal-scoped error summary: count server signals even during incident
+   cooldown, keep client-reported observations separate, and expose coverage/retention/storage
+   limits. Classified reports must deduplicate retained request IDs, reject raw payloads and
+   preserve operational independence. Do not turn repeated failed observations into a count of
+   distinct backend operations or attribute host-private failures from server silence.
 2. **Capture the first divergence with independent observations.** Use the existing same-UID
    snapshot/export path from a separate local observer process, with an explicit duration and
    storage cap. Record socket/process unavailability as well as returned snapshots; same-process

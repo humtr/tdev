@@ -33,6 +33,17 @@ try {
   const acknowledged = await client.callTool({name:'tdev_diagnostics',
     arguments:{action:'acknowledge',incidentId:alert.id}});
   assert.equal(acknowledged.structuredContent.result.incidents[0].delivery, 'acknowledged');
+  const report = await client.callTool({name:'tdev_diagnostics',
+    arguments:{action:'report',requestId:'sdk-report',category:'transport_error'}});
+  assert.equal(report.isError, false);
+  assert.equal(report.structuredContent.result.summary.reported.transport_error, 1);
+  const reportReplay = await client.callTool({name:'tdev_diagnostics',
+    arguments:{action:'report',requestId:'sdk-report',category:'transport_error'}});
+  assert.equal(reportReplay.structuredContent.result.summary.reported.transport_error, 1);
+  const summary = await client.callTool({name:'tdev_diagnostics',
+    arguments:{action:'inspect',view:'summary'}});
+  assert.deepEqual(summary.structuredContent.result.incidents, []);
+  assert.equal(summary.structuredContent.result.summary.reported.transport_error, 1);
   const artifactSchema = listed.tools.find(t => t.name === 'tdev_artifact').inputSchema;
   assert.deepEqual(artifactSchema.oneOf.map(s => s.properties.action.const), ['inspectRecipe','prepare','inspect','list','usage','export','prunePreview','prune']);
   const artifact = await client.callTool({name:'tdev_artifact',

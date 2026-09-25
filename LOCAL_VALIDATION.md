@@ -1328,3 +1328,64 @@ one actual first divergence with independent server/host/visible observations, c
 workload across clients, then test ownership/Stop separately. The source can diagnose server-side
 failures, but watch cannot detect UI-only silence and response notifications cannot wake a stopped
 host. Visible continuity remains an open product requirement.
+
+## Bounded alerts, error aggregation and independent observation — 2026-09-25
+
+The user selected implementation along the lifecycle roadmap and easier error observation during
+ChatGPT use. The 0.1.8 candidate keeps diagnostic adapters optional and adds no operational retry,
+cancellation, provider mutation or always-on observer service. Prior authority to publish/update
+the resident installation and keep its watch configuration remains applicable.
+
+Implemented and checked boundaries:
+
+- Never-offered/least-offered eligible incidents replace insertion-order selection. Three offers
+  per response, eight total per incident and 15–300 s exponential delay bound retries. Exhaustion
+  remains distinct from acknowledgment; full inspection and ack work afterward. Existing counts
+  above eight are preserved, not reset. Elapsed-time scheduling and clamped restart delays handle
+  wall-clock jumps without unlimited delay. Alert text no longer duplicates the entire metadata row.
+- Principal-scoped summaries count server tool/protocol errors and lifecycle failure signals,
+  independently of incident cooldown. Classified client reports have separate counters and no
+  free-text/raw error field. Request replay does not recount or extend capture; conflicting
+  categories/actions fail. Grant revocation, schema rejection and privacy boundaries remain live.
+- Counters survive incident eviction and ordinary restart. Aggregation has its own 32-principal
+  bound, explicit eviction count and coverage timestamps; categories overlap and are not distinct
+  operation counts. Healthy responses cause no aggregation writes. Revision-1 incidents upgrade
+  without invented historical counters. A prior bundle preserves revision-2 bytes and reports
+  diagnostic storage incompatibility rather than overwriting them.
+- An independently launched observer records bounded private snapshots or unavailability records,
+  including file hash and stop reason. It makes no MCP calls and never restarts/activates tdev.
+  A test sends SIGSTOP to a disposable diagnostic process: the separate observer records a timeout,
+  and after SIGCONT observes the same PID. Duration/byte ceilings and refusal to overwrite evidence
+  are tested. These signals do not independently identify ChatGPT UI state or a private host cause.
+
+Evidence under `.artifacts/diagnostic-observation-20260925/`:
+
+- `initial.log`: **19 tests**, **19.210 s**, PASS for the initial policy/contract slice.
+- `observer.log`: **3 tests**, **4.697 s**, PASS, including actual process suspension/recovery.
+- `affected.log`: **49 tests**, **95.735 s**, PASS across diagnostics, observer, HTTP, bridge and contract.
+- `sdk.log`: official `@modelcontextprotocol/client@2.0.0`, modern MCP 2026-07-28, 12 tools;
+  report replay and compact summary passed in addition to activation/ack.
+- `watch-rehearsal.json`: staged bundle
+  `8d57b4da3ac0010dfe06db322b51fa1000a0d5e3563f3ce9ac7753927722dec9`, real 0.1.8 entrypoint,
+  direct modern MCP and the tdev legacy Codex Bridge adapter. Both paths produced classified reports;
+  a genuine missing-operation response incremented the server error counter. Summary omitted full
+  incidents. Replayed reports, counts and ack survived restart, key identity stayed stable and process
+  instance changed. The staged external observer/export worked in both generations. No live services
+  or provider runtime were changed during this rehearsal. This is not the Local Codex agent loop or
+  ChatGPT Code Mode qualification. The inactive root's Tunnel selection was not exercised; the
+  resident native-cgo Tunnel remains separately checked at installation.
+- `resident-before.json` and `before-export/`: preserved pre-update config digest, watch grant,
+  zero outstanding operations at that sample, and bounded existing diagnostic evidence.
+- `offer-comparison.json`: the actual candidate policy produced `[8,8,8,8]` over the earlier
+  four-incident/120-response/16-second schedule, with 8,321 metadata bytes. This is an isolated
+  schedule measurement, not ChatGPT latency or visible-liveness qualification.
+- `downgrade-sidecar.json`: the actual installed 0.1.7 policy was run against a disposable copy of
+  revision-2 state. It reported one storage error and preserved the incident file byte-for-byte.
+  No live rollback or operational-state downgrade was performed.
+
+The first `full-check.log` stopped without a completion result across session interruption; it is
+preserved and is not counted as PASS. The resumed `bash scripts/check.sh` completed **226 tests**
+in **735.971 s**, PASS, exit 0; `git diff --check` passed. Log: `resumed-full-check.log`.
+Installed acceptance is appended after execution. Actual ChatGPT discovery of the
+new report/summary contract and a real visible-divergence/control experiment remain separate host
+acceptance. Do not manufacture client error reports in production merely to claim that acceptance.
