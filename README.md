@@ -36,10 +36,11 @@ credentials and in-flight effects still require deliberate handling.
 
 ## Implementation status
 
-Eleven MCP tools separate composition (`tdev_workspace`), source tasks (`tdev_task`), projects
+Twelve MCP tools separate composition (`tdev_workspace`), source tasks (`tdev_task`), projects
 (`tdev_project`), source read/edit, execution, general operation observation/control
 (`tdev_operation`), validation, publication, project deployment (`tdev_deploy`) and artifact
-recipe inspection and retained builds (`tdev_artifact`). Git holds
+recipe inspection and retained builds (`tdev_artifact`), plus runtime diagnostics
+(`tdev_diagnostics`). Git holds
 checkpoints; SQLite holds workspace composition, source tasks, enrolled projects and accepted operations. These interfaces replace
 the experimental source-workspace/process names without aliases.
 
@@ -53,6 +54,14 @@ clean environment and API grants are useful safeguards, not hostile-code or cred
 isolation. See the [trust boundary](ARCHITECTURE.md#3-native-trust-and-containment).
 
 ## Current work
+
+Optional lifecycle diagnostics now support watch-triggered capture, automatic expiry, bounded
+local evidence and principal-scoped alerts through `tdev_diagnostics`. New installations default
+to off; the diagnostic operating configuration selects watch. Operators may activate a bounded
+trace, inspect incidents and acknowledge receipt without changing development work. Alerts are
+offered in subsequent tool responses; they cannot wake a stopped ChatGPT turn or prove UI delivery.
+See [operator usage](OPERATIONS.md#capture-lifecycle-diagnostics) and the
+[diagnostic boundary](ARCHITECTURE.md#local-lifecycle-diagnostics).
 
 Packaging recipe inspection and retained native builds are implemented in this checkout.
 `tdev_artifact prepare` builds a successful source validation's frozen candidate with pinned

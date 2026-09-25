@@ -61,7 +61,7 @@ class HTTPTest(unittest.TestCase):
         self.assertEqual(self.request(headers={"Host": "evil.example"})[0], 403)
         code, value = self.request()
         self.assertEqual(code, 200)
-        self.assertEqual(len(value["result"]["tools"]), 11)
+        self.assertEqual(len(value["result"]["tools"]), 12)
         self.assertNotIn("$ref", json.dumps(value["result"]))
 
     def test_oauth_well_known_is_optional_public_404(self):

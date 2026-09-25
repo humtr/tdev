@@ -741,3 +741,80 @@ eligible artifacts explicitly or adjust operator policy. Unknown builds keep the
 lowering a budget does not cancel already accepted work. Existing source-copy/task dependency
 limits remain separate. These are sampled/managed resource budgets, not an OS disk quota, and do
 not qualify large APK/AAB/native toolchains. The resident installation is unchanged until delivery.
+
+## Capture lifecycle diagnostics
+
+Operator config selects the startup policy. New installations default to off. The current diagnostic
+installation uses watch to investigate the lifecycle problem. Example non-secret config fragment:
+
+```json
+{"diagnostics":{"mode":"watch","traceSeconds":120,"slowSeconds":30,"cooldownSeconds":300}}
+```
+
+Watch keeps bounded metadata in memory and observes authenticated dispatch timing. Dispatch/response
+exceptions, unknown-effect tool errors and slow-dispatch candidates trigger detailed capture.
+Capture expires automatically, including across device suspend, without another MCP call. It returns
+to the configured base mode. Triggers never extend a running lease. No retry/cancel/provider/code
+mutation is automatic. Startup policy is read when the adapter is constructed; use the managed
+update path to change it. Per-principal diagnostic grants are rechecked for each control call.
+
+An authorized update can select watch and grant the existing owner diagnostic controls atomically
+with the bundle transition:
+
+```sh
+bash install.sh --root /absolute/installation --diagnostics watch --diagnostic-principal owner
+```
+
+This performs a production update. It preserves credentials and journals config recovery/rollback
+with the bundle. Omit those flags to retain configuration. `--rollback` also restores a matching
+previous config receipt; concurrent edits cause an explicit conflict. Do not hand-edit launchers.
+
+ChatGPT can use the following `tdev_diagnostics` arguments:
+
+```json
+{"action":"inspect"}
+{"action":"activate","requestId":"investigate-freeze-1","seconds":120}
+{"action":"acknowledge","incidentId":"RETURNED_INCIDENT_ID"}
+{"action":"stop"}
+```
+
+`activate`/`stop` require that principal's `diagnostics: true` grant. Inspection and acknowledgment
+only expose its own incidents. Use a stable requestId after a lost activation reply; replay within
+the 32-incident retention window does not extend expiry. Use a new requestId for a new capture.
+Explicit stop suppresses automatic retriggering for the configured cooldown; it does not stop work.
+When starting from off, capture expires back to off; the loaded adapter remains available for
+incident delivery and later control. CLI `--diagnostics trace` starts a bounded capture with watch
+as its return mode. `/healthz` reports off/watch/trace or unavailable; it is not persistence proof.
+
+Alerts appear in the next tool response's text and `io.tdev/diagnostics` metadata: at most three per
+response and no more than once per 15 seconds per incident. Explicit acknowledgment means the caller
+received the incident, not that the user saw it. No current push channel can wake a stopped ChatGPT
+turn. A transport failure leaves the incident pending for later offers/inspection. Look at
+`storagePending` and `storageErrors`; persistence is asynchronous and a crash can lose recent changes.
+
+The local operator can use the selected bundle's environment with the controller's state path:
+
+```sh
+python -m tdev.diagnostics snapshot --state /absolute/installation/state
+python -m tdev.diagnostics activate --state /absolute/installation/state --seconds 120 --request-id local-freeze-1
+python -m tdev.diagnostics stop --state /absolute/installation/state
+python -m tdev.diagnostics export --state /absolute/installation/state --output /absolute/new-evidence-directory
+```
+
+The local socket exists after watch/trace startup or an authorized lazy activation. It is same-UID,
+independent of MCP/controller and disk-writer locks. Local incidents are not attributed to an
+arbitrary ChatGPT principal. Export refuses an existing destination and preserves snapshot,
+incidents and available rotated logs. Keep exports outside the diagnostic directory; they are
+operator-owned and not rotated. No bearer, command, output or correlation key is exported.
+
+At the first observed visible divergence, export immediately and separately record the last actually
+visible message/time. Compare ingress/body, dispatch, serialization and socket stages. Server write
+success is not host receipt or visible progress. The copy is bounded and non-atomic; inspect hashes,
+coverage, partial-record warnings, drop/overwrite counts and missing live snapshot before inferring
+absence of activity. Never retry an uncertain mutation merely to produce evidence.
+
+Detailed log retention is four 2 MiB files; ring/active/queue capacity is 256 each. Incident storage
+is bounded to 32 entries (acknowledged first, then oldest), with small evidence excerpts; eviction
+is counted. Restart preserves pending/acknowledged incidents and marks active captures interrupted.
+Corrupt/incompatible incident bytes are preserved and persistence disabled with an error count.
+These are best-effort diagnostics, not an audit ledger or ChatGPT visible-liveness qualification.

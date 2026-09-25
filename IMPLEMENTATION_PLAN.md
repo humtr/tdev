@@ -133,6 +133,14 @@ basic development. Follow README's version policy throughout this sequence.
 
 ## Current priority after the continuity review
 
+The user's lifecycle investigation currently selects optional diagnostic delivery:
+bounded recording → watch/automatic activation and expiry → retained principal-scoped incidents
+and response notifications → focused failure/restart checks and full validation → inactive bundle
+rehearsal → authorized commit/push and resident update with watch enabled. Preserve operational
+independence, secrets and prior evidence. Do not treat alert offers as UI delivery. The next
+investigation is the first actual ChatGPT visible divergence, correlating server stages with
+host/cell and visible observations; further density trials need a discriminating hypothesis.
+
 The 2026-09-22 review preserves the sequence above and makes the remaining delivery order
 concrete. Architecture owns the selected boundaries; review observations are in LOCAL_VALIDATION.
 The existing packaging WIP is retained and generalized below, not discarded.

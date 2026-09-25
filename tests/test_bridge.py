@@ -16,7 +16,7 @@ class BridgeTest(unittest.TestCase):
         init = call("initialize", {"protocolVersion": "2025-11-25"})
         self.assertEqual(init["result"]["protocolVersion"], "2025-11-25")
         tools = call("tools/list", {})["result"]["tools"]
-        self.assertEqual(len(tools), 11)
+        self.assertEqual(len(tools), 12)
         expected_annotations = {
             "readOnlyHint": True,
             "destructiveHint": False,

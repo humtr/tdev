@@ -9,6 +9,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tests"))
 from support import Repository
 from tdev.core import Controller
 from tdev.server import make_server
+from tdev.diagnostic_policy import DiagnosticsPolicy
 
 
 PROGRAM = r"""
@@ -23,7 +24,15 @@ try {
   await client.connect(transport);
   assert.equal(client.getProtocolEra(), 'modern');
   const listed = await client.listTools();
-  assert.equal(listed.tools.length, 11);
+  assert.equal(listed.tools.length, 12);
+  const diagnostic = await client.callTool({name:'tdev_diagnostics',
+    arguments:{action:'activate',requestId:'sdk-diagnostics',seconds:1}});
+  assert.equal(diagnostic.isError, false);
+  const alert = diagnostic._meta['io.tdev/diagnostics'][0];
+  assert(diagnostic.content.some(c => c.type === 'text' && c.text.includes(alert.id)));
+  const acknowledged = await client.callTool({name:'tdev_diagnostics',
+    arguments:{action:'acknowledge',incidentId:alert.id}});
+  assert.equal(acknowledged.structuredContent.result.incidents[0].delivery, 'acknowledged');
   const artifactSchema = listed.tools.find(t => t.name === 'tdev_artifact').inputSchema;
   assert.deepEqual(artifactSchema.oneOf.map(s => s.properties.action.const), ['inspectRecipe','prepare','inspect','list','usage','export','prunePreview','prune']);
   const artifact = await client.callTool({name:'tdev_artifact',
@@ -62,8 +71,10 @@ def main():
         raise SystemExit("Install probe dependency: npm install --prefix .tdev-mcp-client --ignore-scripts @modelcontextprotocol/client@2.0.0")
     with tempfile.TemporaryDirectory() as tmp:
         repo = Repository(tmp)
+        repo.config['principals']['alice']['diagnostics'] = True
         controller = Controller(Path(tmp) / "state", repo.config)
-        server = make_server(controller)
+        diagnostics = DiagnosticsPolicy(Path(tmp) / 'diagnostics', root)
+        server = make_server(controller, diagnostics=diagnostics.recorder)
         thread = threading.Thread(target=server.serve_forever, daemon=True)
         thread.start()
         try:
@@ -74,6 +85,7 @@ def main():
             thread.join()
             server.server_close()
             controller.close()
+            diagnostics.close()
 
 
 if __name__ == "__main__":

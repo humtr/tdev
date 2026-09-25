@@ -4589,6 +4589,183 @@
         "sharedObject"
       ],
       "additionalProperties": false
+    },
+    "diagnosticsInput": {
+      "type": "object",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "inspect"
+            }
+          },
+          "required": [
+            "action"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "activate"
+            },
+            "requestId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "seconds": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 300
+            }
+          },
+          "required": [
+            "action",
+            "requestId"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "stop"
+            }
+          },
+          "required": [
+            "action"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "acknowledge"
+            },
+            "incidentId": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{32}$"
+            }
+          },
+          "required": [
+            "action",
+            "incidentId"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "DiagnosticIncident": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{32}$"
+        },
+        "reason": {
+          "enum": [
+            "manual",
+            "dispatch_failed",
+            "response_failed",
+            "uncertain_effect",
+            "slow_dispatch"
+          ]
+        },
+        "createdAt": {
+          "type": "number"
+        },
+        "capture": {
+          "enum": [
+            "active",
+            "expired",
+            "stopped",
+            "interrupted"
+          ]
+        },
+        "delivery": {
+          "enum": [
+            "queued",
+            "offered",
+            "acknowledged"
+          ]
+        },
+        "offers": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "lastOfferedAt": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "acknowledgedAt": {
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "reason",
+        "createdAt",
+        "capture",
+        "delivery",
+        "offers",
+        "lastOfferedAt",
+        "acknowledgedAt"
+      ],
+      "additionalProperties": false
+    },
+    "DiagnosticStatus": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "enum": [
+            "off",
+            "watch",
+            "trace"
+          ]
+        },
+        "expiresAt": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "incidents": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "$ref": "#/$defs/DiagnosticIncident"
+          }
+        },
+        "storagePending": {
+          "type": "boolean"
+        },
+        "storageErrors": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "evicted": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "mode",
+        "expiresAt",
+        "incidents",
+        "storagePending",
+        "storageErrors",
+        "evicted"
+      ],
+      "additionalProperties": false
     }
   },
   "oneOf": [
@@ -4760,6 +4937,22 @@
         },
         "input": {
           "$ref": "#/$defs/artifactInput"
+        }
+      },
+      "required": [
+        "tool",
+        "input"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "tool": {
+          "const": "tdev_diagnostics"
+        },
+        "input": {
+          "$ref": "#/$defs/diagnosticsInput"
         }
       },
       "required": [
@@ -5387,6 +5580,56 @@
         "idempotentHint": false,
         "openWorldHint": false
       }
+    },
+    {
+      "name": "tdev_diagnostics",
+      "description": "Inspect your retained diagnostic incidents or acknowledge receipt by incidentId. Authorized diagnostic operators may activate bounded tracing (1–300 seconds; default 120) with requestId or stop it. Reuse requestId after a lost activation reply; replay within the 32-incident retention window does not extend expiry. Normal operation does not depend on diagnostics. Automatic watch reacts to dispatch/response failures, uncertain effects or slow dispatch candidates, never cancels/retries work. Alerts are offered in subsequent tool responses; acknowledgment does not prove user-visible delivery. No raw trace, credentials, commands or other principals’ incidents are returned. Activation and stop require the operator diagnostics grant.",
+      "inputSchema": {
+        "$ref": "#/$defs/diagnosticsInput"
+      },
+      "outputSchema": {
+        "type": "object",
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "ok": {
+                "const": true
+              },
+              "result": {
+                "$ref": "#/$defs/DiagnosticStatus"
+              }
+            },
+            "required": [
+              "ok",
+              "result"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "ok": {
+                "const": false
+              },
+              "error": {
+                "$ref": "#/$defs/Error"
+              }
+            },
+            "required": [
+              "ok",
+              "error"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
     }
   ],
   "x-semantics": {
@@ -5540,6 +5783,20 @@
         "action": "inspectRecipe",
         "validationId": "validation"
       }
+    },
+    {
+      "tool": "tdev_diagnostics",
+      "input": {
+        "action": "inspect"
+      }
+    },
+    {
+      "tool": "tdev_diagnostics",
+      "input": {
+        "action": "activate",
+        "requestId": "capture-1",
+        "seconds": 120
+      }
     }
   ],
   "x-mcp": {
@@ -5574,5 +5831,16 @@
     },
     "legacy": "Core HTTP: No initialize/initialized, session IDs, GET/DELETE streams, SSE replay or automatic downgrade. No advertised subscriptions, MRTR input requests or task extension.",
     "localCodexAdapter": "Explicit optional tdev.codex_bridge stdio endpoint: initialize 2025-11-25, tools/list, tools/call, ping. Fixed localhost HTTP upstream uses 2026-07-28. No retries, execution authority, cancellation effects or durable state. Identical tool schemas, annotations and requestId semantics; not core HTTP version negotiation."
+  },
+  "x-diagnostic-notification": {
+    "location": "tools/call result._meta[io.tdev/diagnostics] and additional text content",
+    "schema": {
+      "type": "array",
+      "maxItems": 3,
+      "items": {
+        "$ref": "#/$defs/DiagnosticIncident"
+      }
+    },
+    "delivery": "Offers repeat at most once per 15 seconds per incident until acknowledged; failed responses retain pending incidents. Tool acknowledgment is not UI acknowledgment. Scope is the current authenticated principal."
   }
 }

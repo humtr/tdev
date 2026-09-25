@@ -38,6 +38,8 @@ class Controller:
         self.executor_override = executor
         self.reconcile_locks = weakref.WeakValueDictionary()
         self.reconcile_locks_guard = threading.Lock()
+        # Optional adapter; the operational core never imports the diagnostic runtime.
+        self.diagnostic_handler = None
 
     def load_config(self):
         from jsonschema import Draft202012Validator
@@ -137,6 +139,12 @@ class Controller:
             require(not errors, "SCHEMA", "Input does not match the public contract")
             require(len(canonical(args)) <= 2 * 1024 * 1024, "INPUT_LIMIT")
             kind = tool.removeprefix("tdev_")
+            if kind == 'diagnostics':
+                if args['action'] in ('activate', 'stop'):
+                    require(self.config['principals'][principal].get('diagnostics', False), 'PERMISSION_DENIED')
+                    require(not (self.store.root / 'maintenance.json').exists(), 'MAINTENANCE')
+                require(self.diagnostic_handler is not None, 'DIAGNOSTICS_UNAVAILABLE')
+                return {'ok': True, 'result': self.diagnostic_handler(principal, args)}
             read_only = kind == 'read' or (kind == 'artifact' and args.get('action') in ('inspectRecipe', 'inspect', 'list', 'usage', 'export', 'prunePreview')) or (kind in ('workspace', 'task', 'project', 'deploy') and args.get('action') in ('list', 'inspect', 'targets')) or (kind == 'operation' and args.get('action') == 'status')
             require(read_only or not (self.store.root / 'maintenance.json').exists(),
                     'MAINTENANCE', 'Installation update in progress; inspect existing operations and retry later')

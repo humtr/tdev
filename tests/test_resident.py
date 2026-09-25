@@ -75,6 +75,62 @@ class ResidentTest(unittest.TestCase):
         (self.backend.svdir / 'tdev/run').write_text('changed')
         with self.assertRaises(Fault) as e: self.i.install(self.one)
         self.assertEqual(e.exception.value['code'], 'SERVICE_CHANGED')
+    def test_config_update_is_journaled_and_failure_or_crash_restores_credentials(self):
+        self.i.install(self.one)
+        before = (self.root / 'config.json').read_bytes()
+        config = json.loads(before)
+        config['diagnostics'] = {'mode': 'watch'}
+        config['principals']['owner']['diagnostics'] = True
+        second = self.next_bundle()
+        original = self.i.write_service
+        def crash(name, settings):
+            self.assertEqual(json.loads((self.root/'config.json').read_bytes()), config)
+            raise KeyboardInterrupt()
+        with patch.object(self.i, 'write_service', crash), self.assertRaises(KeyboardInterrupt):
+            self.i.install(second, config, digest(before))
+        with self.i.lock():
+            self.i.recover()
+        self.assertEqual(before, (self.root/'config.json').read_bytes())
+        self.assertEqual(self.one, (self.root/'active').resolve().name)
+        self.i.install(second, config, digest(before))
+        self.assertEqual(config, json.loads((self.root/'config.json').read_bytes()))
+        saved = json.loads((self.root/'previous-config.json').read_bytes())
+        self.assertEqual(self.one, saved['bundle'])
+        import base64
+        self.assertEqual(before, base64.b64decode(saved['before']))
+        self.i.install(self.one, json.loads(base64.b64decode(saved['before'])), saved['expected'])
+        self.assertEqual(json.loads(before), json.loads((self.root/'config.json').read_bytes()))
+        with self.assertRaises(Fault) as error:
+            self.i.install(second, config, 'stale-digest')
+        self.assertEqual('CONFIG_CHANGED', error.exception.value['code'])
+        self.assertFalse(self.i.journal.exists())
+
+    def test_update_preserves_concurrent_operator_config_and_keeps_recovery_evidence(self):
+        self.i.install(self.one)
+        before = (self.root/'config.json').read_bytes()
+        requested = json.loads(before)
+        requested['diagnostics'] = {'mode': 'watch'}
+        operator = json.loads(before)
+        operator['diagnostics'] = {'mode': 'off', 'slowSeconds': 99}
+        original = self.backend.down
+        changed = False
+        def concurrently_edit(directory):
+            nonlocal changed
+            original(directory)
+            if not changed:
+                changed = True
+                atomic_write(self.root/'config.json', canonical(operator))
+        with patch.object(self.backend, 'down', concurrently_edit), self.assertRaises(Fault) as error:
+            self.i.install(self.next_bundle(), requested, digest(before))
+        self.assertEqual('CONFIG_CHANGED', error.exception.value['code'])
+        self.assertEqual(operator, json.loads((self.root/'config.json').read_bytes()))
+        self.assertTrue(self.i.journal.exists())
+        atomic_write(self.root/'config.json', before)  # Resolve only this disposable fixture's conflict.
+        with self.i.lock():
+            self.i.recover()
+        self.assertEqual(self.one, (self.root/'active').resolve().name)
+        self.assertFalse(self.i.journal.exists())
+
     def test_foreign_and_stale_names_preserved(self):
         d = self.backend.svdir / 'tdev'; d.mkdir(); (d / 'run').write_text('keep')
         with self.assertRaises(Fault) as e: self.i.install(self.one)

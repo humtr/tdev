@@ -98,7 +98,7 @@ native programs nevertheless have the real app UID's authority (§3).
 `tdev_artifact inspectRecipe` supplies the first packaging surface described in §8; it reads
 validated source metadata and does not produce or release an artifact.
 
-Tool annotations use the fixed tmcp host-hint scope: all eleven public tools advertise
+Tool annotations use the fixed tmcp host-hint scope: all twelve public tools advertise
 `readOnlyHint=true`, with `destructiveHint=false`, `idempotentHint=false` and
 `openWorldHint=false`. These annotations are host hints, not effect semantics, admission
 authority or a safety boundary. The actual task mutation, owner-trusted execution,
@@ -633,6 +633,88 @@ services. A persisted DOWN marker survives shared-supervisor recovery. termux-se
 root recovery; tdev does not duplicate it or silently install shared infrastructure.
 Production activation needs user authority. Bundle verification is not protection from
 hostile same-UID code. Native runner is included without extra executor enrollment.
+
+### Local lifecycle diagnostics
+
+The operational core owns admission, effects and recovery; optional diagnostic adapters own
+observation and incidents. Cold startup with diagnostics `off` does not import the collector,
+create diagnostic files or start its workers. Observation failures are isolated from normal tool
+responses. `tdev_diagnostics` can inspect state without activating collection; authorized manual
+activation lazily loads the adapter. Once loaded, bounded workers/control remain available for
+incident delivery and later capture even when observation returns to off. No diagnostic decision
+retries, cancels, alters provider policy or edits production work.
+
+| Mode | Healthy operation | Transition |
+|---|---|---|
+| off | No collection or automatic triggers; cold startup has no diagnostic runtime | Authorized activation starts a bounded trace; expiry returns to off |
+| watch | Bounded metadata ring and authenticated dispatch timing; no response hashing or continuous event-log stream | Classified triggers start bounded trace; expiry returns to watch |
+| trace | Detailed HTTP stages, keyed identity/payload digests, four rotating 2 MiB segments | Time budget 1–300 seconds; no trigger extends an existing lease |
+
+Operator config selects startup off/watch and trace duration, slow-dispatch threshold and trigger
+cooldown. CLI mode is an explicit startup override; CLI trace returns to watch. Values/defaults
+are owned by the config contract. The currently selected diagnostic installation uses watch.
+The policy is fixed at adapter construction; changing startup policy uses the controlled update
+path. Principal activation grants are checked freshly on every tool call.
+
+Automatic triggers are authenticated dispatch exceptions, response-write/serialization failures,
+explicit unknown-effect tool errors and dispatch duration exceeding the selected threshold.
+Slow dispatch is a candidate signal, not proof of a stalled worker. Idle ChatGPT, pre-authentication
+stalls, a frozen UI and private host continuation are not inferred from missing calls. Watch
+requires an explicit policy choice. A separate timer expires tracing even if disk storage blocks;
+Linux/Android boottime includes device suspension. Explicit stop ends capture and temporarily
+suppresses automatic retriggering. Manual activation remains possible. Repeated requestId within
+retained history replays without extending expiry; changing its duration conflicts. Restart keeps
+incident history but terminalizes previously active captures as interrupted; it never resumes a lease.
+
+Request hooks update bounded memory and a nonblocking writer queue. Ring, active-request and
+queue capacities are 256. Drop/overwrite/eviction/error counters expose evidence loss. Detailed
+stages distinguish parsing, auth, body input, dispatch, serialization, headers and body writes.
+Watch has less pre-trigger detail. A private installation-local key maintains opaque correlation
+across restarts; key generation, process instance, clocks and package identity remain distinct.
+Raw arguments, output, auth, filesystem paths and exception text are excluded. Runtime identity
+is recorded at startup and detailed request entry. No tag confers ownership or authority.
+
+Incidents are principal-scoped and capped at 32 globally. Each retains its trigger, capture state,
+notification state and a bounded local evidence excerpt. Retention prefers acknowledged records;
+otherwise the oldest record is evicted and counted. No operational receipts are removed. A separate
+writer atomically replaces a private bounded incident file. Persistence is best effort: callers see
+pending/error state; a crash can lose recent offers/acknowledgments. Corrupt/incompatible incident
+files are preserved and storage is disabled rather than silently replacing evidence. Expired records
+remain available until the retention bound evicts them. Capture log rotation remains independent.
+
+#### Control, notifications and delivery boundary
+
+`tdev_diagnostics` inspects/acknowledges only the current principal's incidents. Activation/stop
+control runtime-wide collection and require an explicit diagnostic grant plus fresh authorization;
+installation maintenance fences these controls. Global mode/expiry/storage health are observable.
+Raw evidence is local-operator-only. A same-UID Unix socket offers snapshot, bounded activation
+and stop without MCP/controller locks. It accepts no commands, paths or arbitrary execution.
+Local activation incidents belong to the local operator, not an inferred ChatGPT principal.
+
+Unacknowledged alerts are offered in subsequent tools/call responses as a short extra text block
+and `io.tdev/diagnostics` result metadata, without altering structured operational receipts. At most
+three alerts are offered per response, with a 15-second per-incident repeat interval. Failed socket
+writes do not acknowledge delivery. Explicit principal-scoped acknowledgment is idempotent;
+model acknowledgment is not proof that the user saw the message. Local Codex's bridge preserves
+this envelope content. Exact fields are owned by the tool contract.
+
+Current HTTP supports responses to requests; it cannot wake a stopped ChatGPT turn or supply an
+unsolicited guaranteed push. If the channel is unavailable, local persistence and later inspection
+are the recovery path. Server socket-write completion proves neither host receipt, JS continuation
+nor visible progress. Backend completion and Local Codex success are separate qualification evidence.
+
+Operator export pins a new private directory containing a live snapshot, retained incidents and
+bounded rotated files with hashes/coverage. It never pauses work or exports the correlation key.
+The copy is non-atomic: rotation can omit/duplicate segments and partial records are reported.
+Snapshot is independent of the disk writer; copying still needs working source/destination storage.
+Same-UID access follows the existing native trust boundary, not hostile-code isolation. These are
+bounded diagnostics, not a crash-durable audit ledger or an extension of ChatGPT turn lifetime.
+
+Diagnostic mode/grant updates can accompany a resident update. The installer journals the old
+private config, checks its expected digest, writes the new config only after stopping owned
+services, and restores it before restarting the old bundle on failure. A concurrent config edit
+causes an explicit conflict. Successful updates retain a matching config rollback receipt so an
+older bundle can restart with its compatible config. No credentials or provider enrollment change.
 
 ### Native project deployment
 

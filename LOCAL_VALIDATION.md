@@ -1155,3 +1155,86 @@ APK/AAB/native-extension/other package-manager qualification remain outside this
 Final `sh scripts/check.sh`: **186 tests PASS**, 599.780s, **exit 0**, including
 `git diff --check`. Both the completed process result and durable exit marker confirm success.
 This run includes the final pending-seal cleanup correction and all 13 retention tests.
+
+## Optional HTTP lifecycle diagnostic isolation — 2026-09-24
+
+The lifecycle investigation first prototyped detailed HTTP recording, then adopted the user's
+requirement that ordinary operation must not depend on the diagnostic layer. The current source
+therefore defaults to `--diagnostics off`: no collector import, diagnostic storage, writer or
+operator socket. Explicit `trace` enables bounded collection/export. Hooks isolate observer
+exceptions from dispatch/response; failed optional startup is exposed in health without writing
+a potentially blocking stderr notice. Core MCP contracts and retained-operation semantics are
+unchanged. Automatic watch, runtime activation/expiry, incident delivery and policy mitigation
+remain proposed in ARCHITECTURE; they are not claimed as implemented capabilities.
+
+Evidence is retained under `.artifacts/lifecycle-forensics-20260924/`:
+
+- `diagnostic-optional-health-focused.log`: **25 tests**, **52.420 s**, PASS. Includes HTTP
+  compatibility, blocked/failed writer, active-stage snapshot, bad auth/body, serialization and
+  socket failures, restart correlation, bounded rotation, export gaps, private paths, optional
+  module absence, observer failures, and escaped Unicode IDs.
+- `diagnostic-conditional-delivery/rehearsal-results.json`: inactive bundle
+  `eddbb9cbe48395e609e0bb77bb022b97e2804249ac8f7c680f8c3911fa11d595` ran twice on disposable
+  state/ports. Authenticated MCP and CLI exports passed; runtime instances differed while key,
+  RPC and operation tags persisted. Exact bundle verification passed before/after execution.
+- `diagnostic-conditional-delivery/off-results.json`: actual entrypoint with the diagnostic
+  module unavailable still served health and all 11 tools in both default-off and requested-trace
+  cases. Health distinguished `off` from `unavailable`; no diagnostic directory was created.
+- `diagnostic-optional-delivery/benchmark-results.json`: pre-health-field candidate, alternating
+  240 local status calls/path with concurrent test load; p50 baseline **6.589 ms**, default off
+  **6.546 ms**, persistent trace **10.404 ms**. No sink drops/errors. This is a local smoke
+  comparison, not statistical or ChatGPT visible-liveness qualification.
+
+The bundle is inactive: no live active-pointer/service registration, config/provider replacement,
+original diagnostic evidence cleanup or Codex live-state change. Resident identity is checked
+separately. Export is bounded and non-atomic; server write success does not prove host receipt,
+continuation or visible progress. Previous prototype results do not qualify the final source.
+
+Final `bash scripts/check.sh`: **205 tests**, **622.036 s**, **PASS**, exit 0;
+`git diff --check` passed. See `diagnostic-conditional-full.log`.
+
+## Automatic diagnostics, expiry and response notifications — 2026-09-25
+
+The user authorized implementation, remote commit/push and resident delivery, then selected
+`watch` for the diagnostic operating configuration. Product version is **0.1.7**. New installations
+still default to off. The implementation adds scoped `tdev_diagnostics` control/acknowledgment,
+watch-triggered bounded capture, independent timer expiry, asynchronous bounded incident storage,
+and compact notification offers in tool response text and metadata. It never cancels/retries work.
+
+Scope and failure checks:
+
+- Automatic slow-dispatch/dispatch-failure triggers, expiry without new calls, no lease extension
+  on replay, stop cooldown, return to off/watch, private incident visibility, cross-principal ack
+  rejection, bounded retention, restart interruption and retained acknowledgments.
+- A blocked incident writer does not block expiry, inspect or ack. Persistence errors are exposed;
+  corrupt/incompatible evidence is preserved. API output excludes raw arguments, logs and secrets.
+- Lazy authorized activation from off; unauthorized activation does not create the runtime.
+  Fresh diagnostic-grant revocation is enforced. HTTP and Local Codex bridge preserve alert offers.
+- Config update/recovery uses the operator config lock plus expected-content checks. An injected
+  crash restores the old bundle/config before service restart. A concurrent operator edit is
+  preserved and leaves recovery evidence; rollback retains a compatible config receipt.
+
+Evidence under `.artifacts/diagnostic-activation-20260925/`:
+
+- `policy-final.log`: **9 tests**, **6.405 s**, PASS.
+- `resident-config-lock.log`: **14 tests**, **4.294 s**, PASS.
+- `mcp-sdk-alerts.log`: official `@modelcontextprotocol/client@2.0.0`, protocol **2026-07-28**,
+  **12 tools**, authenticated call, notification text/metadata and acknowledgment PASS.
+- `inactive-coding-rehearsal.log`: installed coding/build/validation/export/prune and restart
+  rehearsal PASS on isolated state; no production/provider service changes.
+- `final/watch-rehearsal.json`: exact staged bundle
+  `54453e39389dedab29a945490110a53ff986173f52ac97de2e9628173113c399`, real server entrypoint,
+  watch config, one-second manual capture, notification acknowledgment, automatic expiry,
+  restart-preserved acknowledgment/key identity and local export PASS. Two process generations
+  served the same verified package; no live service activation during rehearsal.
+
+Local HTTP/SDK/bridge success is not ChatGPT UI qualification. Offers mean a response was prepared,
+not received/rendered. Explicit ack records caller receipt, not visible surface delivery. There is
+no unsolicited push/wake path in this request/response server. During an unavailable host channel,
+retained incidents and subsequent response offers/inspection are the recovery path. Recent state
+can still be lost before asynchronous storage completes; counters disclose pending/error status.
+
+Final `bash scripts/check.sh`: **216 tests**, **664.561 s**, **PASS**, exit 0;
+`git diff --check` passed. Log: `final/full-check.log`. The exact staged source above includes
+both automatic diagnostic behavior and serialized config update/recovery. Production acceptance
+is recorded separately after the authorized transition.

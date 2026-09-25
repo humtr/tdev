@@ -199,6 +199,9 @@ class Runit:
         require(expected in env, 'CONTROLLER_IDENTITY')
         h = get_health(settings['port'])
         require(h.get('pid') == p['pid'] and h.get('bundle') == bundle, 'CONTROLLER_IDENTITY')
+        diagnostic_mode = json.loads(private_file(root / 'config.json')).get('diagnostics', {}).get('mode', 'off')
+        if diagnostic_mode == 'watch':
+            require(h.get('diagnostics') in ('watch', 'trace'), 'DIAGNOSTICS_UNAVAILABLE')
         matches = [q for q in processes() if 'tdev.server' in q['argv'] and option(q['argv'], '--state') == str(root / 'state')]
         require(len(matches) == 1, 'DUPLICATE_CONTROLLER')
         return {'pid': p['pid'], 'bundle': bundle, 'version': h['version']}
@@ -346,6 +349,16 @@ class Installation:
             self.backend.up(self.svdir / 'tdev-tunnel')
             retry(lambda: self.backend.tunnel_ready(self.root, settings))
 
+    def replace_config(self, data, expected):
+        # Serialize with operator delegation commands, then compare under that lock.
+        with open(self.root / 'config.lock', 'a+b') as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)
+            current = private_file(self.root / 'config.json')
+            require(digest(current) in expected, 'CONFIG_CHANGED',
+                    'Preserve a concurrent operator edit; resolve configuration before recovery')
+            if current != data:
+                atomic_write(self.root / 'config.json', data)
+
     def recover(self):
         if not self.journal.exists():
             return
@@ -373,6 +386,9 @@ class Installation:
                 point(self.root, Path(previous).name)
             elif (self.root / 'active').is_symlink():
                 (self.root / 'active').unlink()
+            if 'config' in j:
+                before = base64.b64decode(j['config']['before'])
+                self.replace_config(before, (digest(before), j['config']['afterDigest']))
             for name, old in j['services'].items():
                 if old:
                     directory = self.svdir / name
@@ -381,10 +397,14 @@ class Installation:
             if any(j['services'].values()):
                 self.start_desired({n: (s['down'] if s else True) for n, s in j['services'].items()}, Path(previous).name)
         self.unfence(j['id'])
+        if j['phase'] == 'committed' and 'config' in j and j['active']:
+            atomic_write(self.root / 'previous-config.json', canonical({
+                'bundle': Path(j['active']).name, 'before': j['config']['before'],
+                'expected': j['config']['afterDigest']}))
         self.journal.unlink()
         sync(self.root)
 
-    def install(self, bundle):
+    def install(self, bundle, config=None, expected_config=None):
         from .admin import point, verify
         with self.lock():
             infra = self.backend.preflight()
@@ -392,6 +412,13 @@ class Installation:
             settings = self.settings()
             require(not (self.svdir / 'tdev-oai-tunnel').exists(), 'STALE_SERVICE', 'Remove the stale old-name service explicitly')
             manifest = verify(self.root / 'versions' / bundle)
+            config_before = None
+            if config is not None:
+                config_before = private_file(self.root / 'config.json')
+                require(digest(config_before) == expected_config, 'CONFIG_CHANGED')
+                from jsonschema import Draft202012Validator
+                schema = json.loads((self.root / 'versions' / bundle / 'contracts/config.schema.json').read_bytes())
+                require(Draft202012Validator(schema).is_valid(config), 'CONFIG')
             require('src/tdev/resident.py' in manifest['files'], 'RESIDENT_BUNDLE_REQUIRED',
                     'Selected bundle predates resident services; keep the current services and choose a resident-capable bundle')
             snapshots = {name: self.snapshot(name, settings) for name in NAMES}
@@ -399,6 +426,9 @@ class Installation:
             require(not desired['tdev'] or desired['tdev-tunnel'], 'SERVICE_ORDER', 'Disable the tunnel while its controller is disabled')
             active = os.readlink(self.root / 'active') if (self.root / 'active').is_symlink() else None
             j = {'id': uuid.uuid4().hex, 'phase': 'prepared', 'svdir': str(self.svdir), 'active': active, 'services': snapshots}
+            if config_before is not None:
+                j['config'] = {'before': base64.b64encode(config_before).decode(),
+                               'afterDigest': digest(canonical(config))}
             atomic_write(self.journal, canonical(j))
             try:
                 self.fence(j['id'])
@@ -407,6 +437,8 @@ class Installation:
                 for name in reversed(NAMES):
                     if snapshots[name]:
                         self.backend.down(self.svdir / name)
+                if config_before is not None:
+                    self.replace_config(canonical(config), (expected_config,))
                 point(self.root, bundle)
                 for name in NAMES:
                     self.write_service(name, settings)

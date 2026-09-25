@@ -89,7 +89,7 @@ print(s.server_port,flush=True); s.serve_forever()
                     status, data = request("tools/list", {}, secret)
                     assert status == expected, status
                     if expected == 200:
-                        assert len(data["result"]["tools"]) == 11
+                        assert len(data["result"]["tools"]) == 12
                 if iteration == 0:
                     w = call("task", {"action": "open", "requestId": "open", "repo": "test", "ref": "refs/heads/main", "expectedHead": repo.head})["result"]
                     recipe = {'format': 1, 'kind': 'files', 'inputs': ['a.txt'], 'dependencies': [],
@@ -132,7 +132,7 @@ print(s.server_port,flush=True); s.serve_forever()
                                                'expectedPreview': preview['previewToken']})
                     assert pruned['status'] == 'succeeded'
                     assert call('operation', {'action': 'status', 'operationId': built['id']})['artifactStorage']['state'] == 'pruned'
-                observations.append({"restart": iteration, "wrongBearer": 401, "authorizedTools": 11})
+                observations.append({"restart": iteration, "wrongBearer": 401, "authorizedTools": 12})
             finally:
                 if proc.poll() is None:
                     os.kill(proc.pid, signal.SIGKILL)

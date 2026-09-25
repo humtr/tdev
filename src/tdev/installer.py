@@ -207,8 +207,13 @@ def main():
     parser.add_argument('--runtime-key-file')
     parser.add_argument('--profile-file')
     parser.add_argument('--takeover', action='store_true', help='Stop this installation\'s manual controller and matching managed Tunnel')
+    parser.add_argument('--diagnostics', choices=('off', 'watch'), help='Set diagnostic mode within the recoverable update transaction')
+    parser.add_argument('--diagnostic-principal', action='append', default=[],
+                        help='Grant an existing principal bounded diagnostic capture control')
     parser.add_argument('--retire-legacy', action='append', default=[], metavar='NAME:RUN_SHA256', help='Explicitly retire one verified unmanaged old service before installation')
     args = parser.parse_args()
+    require(not (args.diagnostics or args.diagnostic_principal) or not any(
+        (args.no_start, args.check, args.rollback, args.uninstall, args.recover)), 'INSTALL_OPTIONS')
     root = Path(args.root or args.directory or default_root()).absolute()
     source = Path(__file__).resolve().parents[2]
     if args.no_start:
@@ -254,8 +259,25 @@ def main():
             if args.takeover:
                 takeover(root, settings, backend)
         bundle = json.loads(private_file(root / 'previous.json'))['target'].split('/')[-1] if args.rollback else staged['bundle']
+        config_update, config_expected = None, None
+        previous_config = root / 'previous-config.json'
+        if args.rollback and previous_config.exists():
+            saved = json.loads(private_file(previous_config))
+            if saved['bundle'] == bundle:
+                require(digest(private_file(root / 'config.json')) == saved['expected'], 'CONFIG_CHANGED')
+                import base64
+                config_update = json.loads(base64.b64decode(saved['before']))
+                config_expected = saved['expected']
+        if args.diagnostics or args.diagnostic_principal:
+            original = private_file(root / 'config.json')
+            config_update, config_expected = json.loads(original), digest(original)
+            if args.diagnostics:
+                config_update.setdefault('diagnostics', {})['mode'] = args.diagnostics
+            for principal in args.diagnostic_principal:
+                require(principal in config_update['principals'], 'PRINCIPAL_NOT_FOUND')
+                config_update['principals'][principal]['diagnostics'] = True
         try:
-            result = inst.install(bundle)
+            result = inst.install(bundle, config_update, config_expected)
             result['check'] = inst.check()
         except Exception:
             if args.takeover and not inst.journal.exists():
