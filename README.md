@@ -60,7 +60,9 @@ malformed diagnostic metadata from ordinary response delivery. `mark` correlates
 with server HTTP requests when response metadata is exposed; it cannot attest ChatGPT internals
 or visible progress. Source qualification is recorded in
 [LOCAL_VALIDATION.md](LOCAL_VALIDATION.md#caller-execution-witness--2026-09-26).
-The resident remains **0.1.8**; installation/restart is explicitly outside this change's authority.
+The resident remains **0.1.8**. The subsequent user-authorized update is blocked by a completed
+validation whose controller row still needs normal status reconciliation; see the
+[installation attempt](LOCAL_VALIDATION.md#caller-witness-resident-update-attempt--2026-09-26).
 
 Optional lifecycle diagnostics now support watch-triggered capture, automatic expiry, bounded
 local evidence and principal-scoped alerts through `tdev_diagnostics`. New installations default

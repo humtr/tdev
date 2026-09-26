@@ -1544,3 +1544,41 @@ Report/Stop/resume ownership remains separately qualified. Direct MCP and the br
 reference harness; neither the actual Codex agent loop nor real ChatGPT Code Mode is qualified by
 this local rehearsal. tdev can preserve resume state and reduce round trips; it cannot guarantee
 host scheduling, wake-up or user-visible progress over a stopped request/response channel.
+
+## Caller witness resident update attempt — 2026-09-26
+
+The user subsequently authorized resident replacement and commit/push. Fresh local and remote
+`tdev` both named `6b891f884b738c6a35b9c87cbc15a8e59d51d54f`; tracked source was clean.
+Candidate verification still matches the qualified 0.1.9 bundle
+`345288b3581da6d8128805cd5312516c3fec42ab5d5e81e478f728b749817afe`.
+The prior source qualification (234 tests, SDK, affected tests and inactive rehearsal) applies;
+this installation attempt changes no executable code and does not claim a new full-suite run.
+
+`bash install.sh --check --root /data/data/com.termux/files/home/.local/share/tdev/composition-upgrade-53vwtpp8`
+passed for the existing 0.1.8 controller/tunnel. The authorized install then returned
+`OUTSTANDING_EFFECT` before the service transition. Read-only SQLite inspection identifies
+validation `ce5e5082fe69457b8b148a382ad5d0f3`, task `93ebb4d236d2416ba6386b3f64ff8b1b`,
+with status running/effect unknown. Its existing native result is terminal with exitCode 0,
+timedOut false and cancelled false. Those process facts do not replace the controller's validation
+reconciliation or prove the controller receipt is terminal. `Controller.status` normally invokes
+that reconciliation; the installer correctly refuses the unreconciled row.
+
+On resume the same blocker remained. This local session exposes no tdev MCP tools or configured
+tdev MCP registration; the installation has no conventional connector.secret file. The missing
+file prevented a local authenticated status call before any HTTP dispatch. No credential was
+created, changed or extracted from unrelated state. The user was asked to invoke the existing
+authenticated `tdev_operation status` for that operation or identify its existing bearer-file
+reference. Do not directly edit SQLite, manufacture a terminal receipt, cancel/retry validation,
+or bypass the installer's fence to finish an update.
+
+Evidence remains at `.artifacts/host-witness-install-20260926-9v4_w7we/`: before binding/check/export,
+failed install log, bounded process-result summary, and prepared `verify_installed.py`.
+That post-install verifier has **not run** because installation has not completed. Config digest
+is unchanged, no maintenance flag remains, and resident health still reports the previous bundle,
+version 0.1.8 and PID 28483. No existing incident was acknowledged or deleted.
+
+Next: reconcile through the normal authenticated status path, confirm no outstanding effects,
+rerun the already-authorized installer, then the prepared installed readback and service check.
+Record and publish actual installed acceptance afterward. The authorization persists; another
+deployment approval is not required. Real ChatGPT mark/metadata/visible-control acceptance remains
+separate and outstanding.
