@@ -351,6 +351,14 @@ updates, while unrelated source editing remains possible.
 
 ### Progress continuity within a turn and across resumes
 
+Host-specific call budgeting belongs in a caller adapter, not server admission. The optional
+ChatGPT reference runner in `examples/chatgpt/run-cell.js` bounds total nested attempts, including
+diagnostics/failures, and checks elapsed time before another call. It returns a continuation to
+the assistant, which must receive the outer result and issue a new physical cell. It cannot
+schedule that cell, extend a turn or guarantee visible delivery. Unknown operational replies
+stop for reconciliation of the original identity; diagnostic failure never retries the effect.
+This adapter imports no runtime diagnostics and adds no operational-core dependency or wire type.
+
 The controller must surface underlying completion within the same turn and after reconnect,
 including when the caller missed the completion response. Replaying a mutation reconciles
 the original operation before returning; it never starts the effect again. Process status

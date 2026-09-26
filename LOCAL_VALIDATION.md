@@ -1636,3 +1636,32 @@ refresh preceded installation), inspect the new instance, and run a short real C
 with the independent observer covering the entire workload. Verify whether the host exposes
 response metadata and collect actual visible progress/Stop/successor/resume separately. Local
 authenticated installed MCP success does not qualify ChatGPT UI continuity or its private runner.
+
+## Bounded ChatGPT caller adapter — 2026-09-26
+
+Starting local/remote `tdev` head: `a558164df7d3186cab3b11f93bc04898bf21fde8`.
+The caller-side reference function and controller instructions live in `examples/chatgpt`.
+No server code, MCP wire contract, installed runtime, observer, credentials or incident state
+was changed. No C20/C22 or live Stop experiment was run. The product runtime version remains
+0.1.9 because this change ships caller source and documentation, not a new runtime component.
+
+The reference policy counts all nested attempts before dispatch and reserves sparse closing
+witnesses within the same budget. A fresh JS realm resumes the remaining plan with a fresh
+counter. A lost operational reply stops for original-identity reconciliation; classification/
+output failures require review. Time limits apply only between awaits. The helper cannot force
+ChatGPT to receive an outer result, schedule another cell, cancel execution or update its UI.
+
+Executed focused check: `PYTHONPATH=src:.tdev-deps:tests python -m unittest test_chatgpt_cell -v`
+passed one Python wrapper and all ten Node.js controller tests (Node v24.18.0).
+Executed affected check: `PYTHONPATH=src:.tdev-deps:tests python -m unittest test_chatgpt_cell
+test_contract test_diagnostic_witness -v` passed 12 Python tests, including those ten JS cases,
+in 12.798 seconds. These use disposable fixtures, not the resident controller/observer.
+
+Full `sh scripts/check.sh` passed all 235 Python tests (including the ten Node.js cases) in
+871.671 seconds, with exit code 0 and the diff whitespace check passing. Its log and generated
+ChatGPT handoff are in `.artifacts/chatgpt-cell-controller-20260926/` (untracked local evidence).
+Standalone official SDK, installed Codex, inactive deployment rehearsal and real ChatGPT
+acceptance were not run for this caller-only change. Affected tests include the existing
+HTTP/bridge/witness/independent-observer fixture. Actual ChatGPT outer-result receipt, fresh-cell
+scheduling and visible progress must be assessed during normal authorized work, not inferred
+from the local 16/16/8 fake-tool test or from backend completion.

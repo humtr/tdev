@@ -875,6 +875,11 @@ The 2026-09-25 installed-runtime acceptance was continued from ChatGPT after Loc
 
 ## Caller execution witnesses
 
+For normal ChatGPT work, use the [bounded-cell controller](examples/chatgpt/CONTROLLER.md) and
+its executable JS helper. It counts all tool attempts and reserves optional witness overhead;
+the assistant issues the next physical cell after receiving the current result. This is caller
+policy, not a server-enforced call limit or guaranteed host wake-up. Witness mode is optional.
+
 This is opt-in investigation, not a required development workflow. `mark` adds no operational
 receipt, task mutation, incident, capture lease or acknowledgement. The exact input/receipt and
 mode/replay limits are owned by `contracts/tools.schema.json`. Read `inspect.witness.instance`

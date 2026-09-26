@@ -184,6 +184,11 @@ or semantic-continuity expansion while the user's visible-liveness investigation
    Do not hard-code the observed ChatGPT 20-call admission ceiling into tdev's server contract or
    treat any Local Codex success as ChatGPT qualification. Prefer a host controller budget policy;
    prototype aggregate observation only if measurements show redundant round trips dominate.
+   The selected bounded-cell reference adapter is in `examples/chatgpt`: qualify total-attempt
+   accounting, sparse-probe reservation, elapsed yielding and ambiguous-reply recovery locally.
+   Apply it to normal authorized work; further C20/C22 density or Stop experiments are not
+   selected. Actual outer-result receipt, fresh-cell scheduling and visible updates still need
+   real ChatGPT acceptance; local JS tests do not close that boundary.
 4. **Qualify control ownership separately.** Use disposable delayed marker operations to test
    report, Stop-only, successor-message plus Stop, reconnect and resume. Preserve original receipts;
    no automatic retry of ambiguous effects. Only add server-side ownership/fencing if the evidence

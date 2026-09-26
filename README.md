@@ -55,6 +55,11 @@ isolation. See the [trust boundary](ARCHITECTURE.md#3-native-trust-and-containme
 
 ## Current work
 
+An optional [ChatGPT caller adapter](examples/chatgpt/CONTROLLER.md) now supplies bounded physical
+cells with total-attempt accounting, sparse witness reservation and explicit reconciliation on
+lost tool replies. It is source for the assistant's cells, not a resident-installed host hook.
+Real ChatGPT rollover/visible-continuity acceptance remains open; server limits are unchanged.
+
 Source **0.1.9** adds optional caller execution witnesses to the diagnostic owner and isolates
 malformed diagnostic metadata from ordinary response delivery. `mark` correlates caller code points
 with server HTTP requests when response metadata is exposed; it cannot attest ChatGPT internals
@@ -206,6 +211,8 @@ qualification is recorded there separately; do not infer live rollout from local
 
 Run deterministic checks with `sh scripts/check.sh` after
 `python -m pip install --target .tdev-deps -r requirements.txt`.
+The caller-adapter tests also require Node.js with `node --test` support; the tdev runtime
+and the pasted Code Mode helper do not depend on Node.js.
 
 ## Navigation
 
