@@ -173,6 +173,9 @@ or semantic-continuity expansion while the user's visible-liveness investigation
    metadata for this step. Qualify replay/coverage and the independent observer locally first;
    resident replacement is separately gated. Real ChatGPT discovery, metadata visibility and
    await-ordered probes remain required before interpreting the next natural divergence.
+   The user-authorized 0.1.9 resident update is now installed; normal operation status
+   reconciliation cleared its initial update blocker. Continue with fresh ChatGPT discovery
+   and real-host qualification, not another source/runtime transition.
 3. **Compare one workload across available clients.** First replay through direct MCP and the
    Local Codex bridge; then compare Codex Code Mode and real ChatGPT Code Mode where available.
    Bind each client's current implementation/config before use. Compare coarse bounded observation

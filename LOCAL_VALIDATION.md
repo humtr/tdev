@@ -1582,3 +1582,57 @@ rerun the already-authorized installer, then the prepared installed readback and
 Record and publish actual installed acceptance afterward. The authorization persists; another
 deployment approval is not required. Real ChatGPT mark/metadata/visible-control acceptance remains
 separate and outstanding.
+
+## Caller witness installed acceptance — 2026-09-26
+
+This entry supersedes the preceding installation blocker. The user identified the existing local
+bearer location; `.local/share/tdev/connector.secret` matched the resident principal hash and was
+used in memory for authenticated loopback requests without printing, copying or changing it.
+Normal `tdev_operation status` reconciled validation `ce5e5082fe69457b8b148a382ad5d0f3` to
+succeeded/committed. Zero outstanding operations, unchanged config digest and exact candidate
+bytes were confirmed before retrying the already-authorized installer. No direct database edits,
+forced fence bypass, cancellation or execution retry were used.
+
+The installer successfully replaced the owned controller/tunnel with **0.1.9**, bundle
+`345288b3581da6d8128805cd5312516c3fec42ab5d5e81e478f728b749817afe`, executable source commit
+`6b891f884b738c6a35b9c87cbc15a8e59d51d54f`. Checkout at installation was `986e4ae`, which only
+adds documentation. Controller PID 21787, tunnel PID 21798; native-cgo tunnel control-plane polling
+and the separate `install.sh --check` pass. Watch remains enabled. Installation config digest is
+unchanged; all **seven** existing incidents, their identities and acknowledgments survive.
+Correlation key generation `7ca33a31371bbfad` is preserved; process instance changed to
+`658aa49fc2d185c2`. No diagnostic storage errors were observed.
+
+Evidence remains in `.artifacts/host-witness-install-20260926-9v4_w7we/`:
+
+- `reconciled-operation.json`, `install-retry.log`, `after-check.json`: normal terminalization,
+  successful controlled installation and service health.
+- `live-acceptance.json`, `verify-installed.log`: exact installed file verification against the
+  qualified source, config/key/incident preservation and a separate installed observer process
+  (four samples, zero unavailable). Export reports absent/unrotated segments 1–3 explicitly;
+  missing optional rotated files are not represented as complete historical coverage.
+- `live-mcp-acceptance.json`, `live-mcp-verified.log`: actual authenticated modern HTTP tool
+  discovery (12 tools including mark), inspection, ordered enter → real task-list await → return
+  with exact response request reference → exit, then identical marker replay with no new witness.
+  Final event IDs 78/87/92, referenced request 29, same process instance. No report/activate/ack
+  calls were added by the acceptance; watch remained watch.
+- `live-witness-observer-verified/`: independent installed observer recorded all three final
+  witnesses; 30 samples over 15 seconds, zero unavailable, within the 8 MiB bound.
+
+Two initial harness failures are retained: a four-second observation window ended before the
+approximately five-second live task-list call returned; its marker existed in the later server
+snapshot, but absence from those samples was a real coverage gap. The next harness read the old
+output path despite writing a new observer directory. Correcting both the window and readback
+path produced the passing run above. These are not hidden as successful tests or diagnosed as
+ChatGPT stalls. They reinforce that absence of a marker in an undersized observer window does
+not imply stalled continuation. The observed task-list latency is a workload fact for later
+round-trip comparison, not a cause assignment based on this small probe.
+
+No executable changes followed the previously passing 234-test full run, 57 affected tests,
+focused checks, official SDK check and inactive rehearsal. This turn adds installed acceptance
+and documentation only; `git diff --check` was rerun, not a redundant full suite.
+
+**Next acceptance:** refresh ChatGPT discovery after this service replacement (the user's earlier
+refresh preceded installation), inspect the new instance, and run a short real Code Mode cell
+with the independent observer covering the entire workload. Verify whether the host exposes
+response metadata and collect actual visible progress/Stop/successor/resume separately. Local
+authenticated installed MCP success does not qualify ChatGPT UI continuity or its private runner.

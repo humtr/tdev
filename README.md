@@ -60,21 +60,23 @@ malformed diagnostic metadata from ordinary response delivery. `mark` correlates
 with server HTTP requests when response metadata is exposed; it cannot attest ChatGPT internals
 or visible progress. Source qualification is recorded in
 [LOCAL_VALIDATION.md](LOCAL_VALIDATION.md#caller-execution-witness--2026-09-26).
-The resident remains **0.1.8**. The subsequent user-authorized update is blocked by a completed
-validation whose controller row still needs normal status reconciliation; see the
-[installation attempt](LOCAL_VALIDATION.md#caller-witness-resident-update-attempt--2026-09-26).
+The owned resident now runs **0.1.9** with watch enabled. Normal status reconciliation cleared
+the completed validation that initially blocked installation. Installed bundle/config/incident
+preservation and independent observer checks pass; real ChatGPT witness/visible-liveness
+acceptance remains open. See the
+[installed acceptance](LOCAL_VALIDATION.md#caller-witness-installed-acceptance--2026-09-26).
 
 Optional lifecycle diagnostics now support watch-triggered capture, automatic expiry, bounded
 local evidence and principal-scoped alerts through `tdev_diagnostics`. New installations default
 to off; the diagnostic operating configuration selects watch. Operators may activate a bounded
 trace, inspect incidents and acknowledge receipt without changing development work. Alerts are
 offered in subsequent tool responses; they cannot wake a stopped ChatGPT turn or prove UI delivery.
-The owned resident installation runs **0.1.8** with watch enabled. The earlier 0.1.7 authenticated
+The earlier 0.1.7 authenticated
 ChatGPT connector acceptance covered activation, alert receipt/acknowledgment and expiry.
 The 0.1.8 installed checks confirmed source/bundle identity, unchanged config and preservation of
-all five prior incidents and acknowledgments. **226 tests**, official SDK and staged direct MCP/
-Codex Bridge restart checks pass. Fresh ChatGPT report/summary and visible-liveness qualification
-remain open. The installed **0.1.8** implementation now bounds and fairly selects alert retries, aggregates
+all five prior incidents and acknowledgments. The current 0.1.9 source passes **234 tests**,
+official SDK and staged direct MCP/Codex Bridge witness checks. Fresh ChatGPT witness and
+visible-liveness qualification remain open. The diagnostic implementation bounds and fairly selects alert retries, aggregates
 server-observed errors separately from client reports, and supports compact diagnostic summaries.
 `tdev_diagnostics report` records a classified caller observation without raw messages or output.
 A separately launched local observer records bounded snapshots and socket/process unavailability.
