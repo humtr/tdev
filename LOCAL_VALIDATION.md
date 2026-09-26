@@ -1637,6 +1637,34 @@ with the independent observer covering the entire workload. Verify whether the h
 response metadata and collect actual visible progress/Stop/successor/resume separately. Local
 authenticated installed MCP success does not qualify ChatGPT UI continuity or its private runner.
 
+## Native working-budget propagation — 2026-09-26
+
+Starting source/remote head: `d10a2b1cec56390547a531c673ad044b6e09cc83`. The installed
+0.1.10 config selects `artifactLimits.workingBytes=536870912`, but ordinary native launch
+omitted the field. Consequently the child used the 128 MiB fallback for `RLIMIT_FSIZE` and
+sampled working storage. Source 0.1.11 passes only the selected workingBytes into new native
+command/process/source-validation payloads and retained intents. It does not change config,
+remote execution, source-capture limits, old accepted payloads or replay ownership.
+
+The regression was demonstrated before the fix: three tests failed (five subtest/failure
+reports), including all three execution modes, frozen budget and aggregate storage enforcement.
+After the fix, four focused tests passed in 17.020s. They verify the real child's rlimit and
+creation of a 173,101,495-byte regular sparse file via ftruncate, default-limit EFBIG, retained
+budget across config change/reconnect/replay, and two individually smaller files exceeding the
+aggregate budget. These fixture files are disposable; no user rollout file was accessed.
+Affected native/environment/recovery/contract checks passed **46 tests in 93.797s**.
+
+Inactive staged-bundle rehearsal passed (exit 0), including native crash/reconnect without
+relaunch, exact publication, retained artifact build/validation/export/prune, HTTP authentication
+and twelve-tool discovery across restart. Candidate bundle:
+`06023908919bafac20b372beea579c4c5fa7af146121d301727d20b0e9f3cf24`.
+Full `sh scripts/check.sh` passed **252 tests in 608.680s**, exit 0, including the diff
+whitespace check. Its log contains the previously observed unclosed SQLite ResourceWarning
+from fixture collection; no test failed. Installed acceptance is pending at this checkpoint.
+The separate official SDK check was not rerun: wire input/output shapes are unchanged, and the affected
+contract tests plus staged HTTP checks cover the changed description and native payload.
+Evidence is in `.artifacts/native-workingbytes-20260927/`.
+
 ## Bounded ChatGPT caller adapter — 2026-09-26
 
 Starting local/remote `tdev` head: `a558164df7d3186cab3b11f93bc04898bf21fde8`.

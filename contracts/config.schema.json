@@ -505,6 +505,7 @@
           "maximum": 4096
         },
         "workingBytes": {
+          "description": "Native per-operation working-storage and child file-size budget. Applies to ordinary exec (command/process), source validation and artifact execution. Frozen in the accepted payload; later config changes affect only new operations. Default 134217728. Separate source capture and task dependency limits still apply.",
           "type": "integer",
           "minimum": 1,
           "maximum": 2147483648

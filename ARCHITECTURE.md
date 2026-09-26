@@ -174,6 +174,13 @@ aggregate memory/PID/disk quota, cgroup guarantee or device-wide fork-bomb prote
 subreaper/no-new-privileges failure is reported locally, never routed to mandatory remote
 provisioning. Android can kill the whole app UID, including runit and supervisors.
 
+Every new native command, process and source-validation admission freezes the selected operator
+workingBytes budget into its execution payload and retained intent. Native child file-size limits
+and sampled/final working-storage checks use that same value (subject to inherited OS hard limits).
+Replay/reconnect observes the accepted budget; changing config never rewrites or relaunches an
+existing operation. Legacy payloads without the field retain the runner's default. Source capture,
+transfer, retained output and task dependency budgets remain separate; remote execution is unchanged.
+
 ## 4. Durable state and source
 
 | Row | Durable ownership |

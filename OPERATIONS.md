@@ -731,7 +731,7 @@ Optional top-level operator `artifactLimits` controls packaging resources. Defau
 | `outputBytes` | 67,108,864 | Sealed exported files; operator can lower this ceiling |
 | `inputBytes` | 67,108,864 | Downloaded distributions; operator can lower this ceiling |
 | `files` | 4,096 | Exported file count; operator can lower this ceiling |
-| `workingBytes` | 134,217,728 | Sampled operation source/HOME/TMP/input/build/test storage; configurable up to 2 GiB |
+| `workingBytes` | 134,217,728 | Native child file-size limit and sampled/final operation source/HOME/TMP/input/build/test storage, including ordinary exec/process/source validation; configurable up to 2 GiB |
 | `timeoutSeconds` | 3,600 | Maximum requested build/verification timeout; default request remains at most 300s |
 | `retainedBytes` | 2,147,483,648 | Retained-object admission budget, including build reservations and unfinished pruning |
 | `retentionSeconds` | 0 | Minimum build retention age before explicit prune; never enables automatic GC |

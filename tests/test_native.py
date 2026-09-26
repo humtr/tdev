@@ -1,6 +1,7 @@
 import base64
 import json
 import os
+import shlex
 import time
 from unittest.mock import patch
 
@@ -19,6 +20,84 @@ class NativeTest(Base):
     def execute(self, w, command, **extra):
         return self.call("exec", {"requestId": "exec", "taskId": w["taskId"],
                                 "expected": w["checkpoint"], "command": command, **extra})
+
+    def test_configured_working_bytes_reaches_native_commands_processes_and_validation(self):
+        selected = 512 * 1024 * 1024
+        self.repo.config['artifactLimits'] = {'workingBytes': selected}
+        script = """import os,resource
+from pathlib import Path
+assert resource.getrlimit(resource.RLIMIT_FSIZE) == (536870912,536870912)
+p=Path(os.environ['TMPDIR'])/'large-rollout'
+with p.open('wb') as f: f.truncate(173101495)
+assert p.is_file() and p.stat().st_size == 173101495
+p.unlink()
+print('large-file-ok')
+"""
+        command = 'python -c ' + shlex.quote(script)
+        self.repo.config['repositories']['test']['validation'] = command
+        for kind in ('command', 'process', 'validate'):
+            with self.subTest(kind=kind):
+                w = self.open()
+                args = {'requestId':'budget-'+kind, 'taskId':w['taskId'], 'expected':w['checkpoint']}
+                if kind == 'validate':
+                    args['message'] = 'configured native budget'
+                    op = self.call('validate', args)
+                else:
+                    args.update(command=command, mode=kind)
+                    op = self.call('exec', args)
+                done = self.wait(op['id'])
+                self.assertEqual('succeeded', done['status'], done)
+                payload = json.loads((self.root/'state/native'/op['id']/'request.json').read_bytes())
+                self.assertEqual({'workingBytes':selected}, payload['artifactLimits'])
+                intent = json.loads(self.c.operation('alice',op['id'])['intent'])
+                self.assertEqual(payload['artifactLimits'], intent['execution']['artifactLimits'])
+
+    def test_default_file_limit_is_preserved_and_over_limit_write_fails(self):
+        w = self.open()
+        script = """import errno,os,resource,signal
+from pathlib import Path
+assert resource.getrlimit(resource.RLIMIT_FSIZE) == (134217728,134217728)
+signal.signal(signal.SIGXFSZ,signal.SIG_IGN)
+p=Path(os.environ['TMPDIR'])/'too-large'
+try:
+    with p.open('wb') as f: f.truncate(173101495)
+except OSError as e:
+    assert e.errno == errno.EFBIG
+else:
+    raise AssertionError('file limit was not enforced')
+p.unlink()
+"""
+        done = self.wait(self.execute(w,'python -c '+shlex.quote(script))['id'])
+        self.assertEqual('succeeded',done['status'],done)
+
+    def test_working_budget_is_frozen_across_config_change_and_reconnect(self):
+        selected = 512 * 1024 * 1024
+        self.repo.config['artifactLimits'] = {'workingBytes': selected}
+        w = self.open()
+        command = "read value; python -c 'import resource; print(resource.getrlimit(resource.RLIMIT_FSIZE)[0])'"
+        args = {'requestId':'frozen-budget', 'taskId':w['taskId'], 'expected':w['checkpoint'], 'command':command}
+        op = self.call('exec',args)
+        self.repo.config['artifactLimits']['workingBytes'] = 128 * 1024 * 1024
+        self.c.close(); self.c = Controller(self.root/'state', self.repo.config)
+        self.assertEqual(op['id'],self.call('exec',args)['id'])
+        self.call('operation',{'action':'stdin','requestId':'release-budget','operationId':op['id'],
+                               'sequence':0,'text':'done\n','eof':True})
+        done = self.wait(op['id'])
+        self.assertEqual('succeeded',done['status'],done)
+        self.assertEqual(str(selected),base64.b64decode(done['output']['data']).decode().strip())
+
+    def test_configured_aggregate_budget_still_rejects_multiple_smaller_files(self):
+        self.repo.config['artifactLimits'] = {'workingBytes': 2 * 1024 * 1024}
+        w = self.open()
+        # Individually below RLIMIT_FSIZE, jointly above the configured working budget.
+        script = """import os
+from pathlib import Path
+for name in ('one','two'):
+    with (Path(os.environ['TMPDIR'])/name).open('wb') as f: f.truncate(1500000)
+"""
+        done = self.wait(self.execute(w,'python -c '+shlex.quote(script))['id'])
+        self.assertEqual('failed',done['status'],done)
+        self.assertEqual('DISK_LIMIT',done['result']['captureError'])
 
     def test_default_complete_path_and_clean_environment(self):
         w = self.open()

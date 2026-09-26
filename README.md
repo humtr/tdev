@@ -55,6 +55,12 @@ isolation. See the [trust boundary](ARCHITECTURE.md#3-native-trust-and-containme
 
 ## Current work
 
+Source **0.1.11** fixes ordinary native execution dropping the operator working-storage budget.
+New command/process/source-validation payloads retain `artifactLimits.workingBytes`, so both
+child file-size and working-storage checks honor the configured value. Existing operations keep
+their accepted limits; source capture/transfer limits remain separate. Qualification and installed
+acceptance are recorded in LOCAL_VALIDATION.
+
 An optional [ChatGPT caller adapter](examples/chatgpt/CONTROLLER.md) now supplies bounded physical
 cells with total-attempt accounting, sparse witness reservation and explicit reconciliation on
 lost tool replies. It is source for the assistant's cells, not a resident-installed host hook.

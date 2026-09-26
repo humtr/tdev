@@ -20,6 +20,7 @@ from .checkout import Checkout
 from .integration import integrate
 from .deployments import Deployments
 from .artifacts import Artifacts, source_validation
+from .artifact_retention import limits as artifact_limits
 
 
 class Controller:
@@ -704,7 +705,8 @@ class Controller:
                    "networkPolicyDigest": executor.get("networkPolicyDigest")}
         if native:
             payload.update(mode='process' if process else 'command',
-                           environmentId=w['id'] if environment_mode == 'task' else None)
+                           environmentId=w['id'] if environment_mode == 'task' else None,
+                           artifactLimits={'workingBytes': artifact_limits(self)['workingBytes']})
         require(len(canonical(payload)) <= 48 * 1024 * 1024, "SOURCE_LIMIT")
         # Keep bytes in Git; exact execution input can be reconstructed for auditing.
         execution = {k: v for k, v in payload.items() if k not in ("files", "gitPack")}
