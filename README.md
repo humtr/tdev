@@ -58,19 +58,22 @@ isolation. See the [trust boundary](ARCHITECTURE.md#3-native-trust-and-containme
 Source **0.1.11** fixes ordinary native execution dropping the operator working-storage budget.
 New command/process/source-validation payloads retain `artifactLimits.workingBytes`, so both
 child file-size and working-storage checks honor the configured value. Existing operations keep
-their accepted limits; source capture/transfer limits remain separate. Qualification and installed
-acceptance are recorded in LOCAL_VALIDATION.
+their accepted limits; source capture/transfer limits remain separate. The owned resident now runs
+**0.1.11 / watch** with its existing 512 MiB setting. All 252 tests and inactive rehearsal pass;
+the installed bundle successfully copied a 173,101,495-byte fixture through a symlink to a regular
+file. Config, incidents and the uninterrupted observer are preserved. See
+[qualification and installed acceptance](LOCAL_VALIDATION.md#native-working-budget-propagation--2026-09-26).
 
 An optional [ChatGPT caller adapter](examples/chatgpt/CONTROLLER.md) now supplies bounded physical
 cells with total-attempt accounting, sparse witness reservation and explicit reconciliation on
 lost tool replies. It is source for the assistant's cells, not a resident-installed host hook.
 Real ChatGPT rollover/visible-continuity acceptance remains open; server limits are unchanged.
-Source **0.1.10** carries compact caller guidance in operation-tool discovery and adds bounded
+The preceding **0.1.10** added compact caller guidance in operation-tool discovery and bounded
 local observer frontiers with historical baselines, generation/coverage counters and per-run
 witnesses. The continuous observer command is now maintained at `scripts/tdev-observe`.
-The owned resident runs **0.1.10 / watch** and the separate continuous observer runs revision 2.
-All 248 tests, official SDK, inactive bundle and installed checks pass. Config, seven prior
-incidents and existing observation evidence are preserved. See
+The separate continuous observer remains on revision 2. That release passed all 248 tests,
+official SDK, inactive bundle and installed checks, preserving config, seven prior
+incidents and existing observation evidence. See
 [installed acceptance](LOCAL_VALIDATION.md#resident-caller-guidance-and-observer-installed-acceptance--2026-09-26);
 actual ChatGPT scheduling and visible-progress acceptance remain open.
 

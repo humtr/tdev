@@ -1660,10 +1660,39 @@ and twelve-tool discovery across restart. Candidate bundle:
 `06023908919bafac20b372beea579c4c5fa7af146121d301727d20b0e9f3cf24`.
 Full `sh scripts/check.sh` passed **252 tests in 608.680s**, exit 0, including the diff
 whitespace check. Its log contains the previously observed unclosed SQLite ResourceWarning
-from fixture collection; no test failed. Installed acceptance is pending at this checkpoint.
+from fixture collection; no test failed. Installed acceptance follows below.
 The separate official SDK check was not rerun: wire input/output shapes are unchanged, and the affected
 contract tests plus staged HTTP checks cover the changed description and native payload.
 Evidence is in `.artifacts/native-workingbytes-20260927/`.
+
+Source commit `b820136f251295af1159805039cd803636043757` was pushed to `origin/tdev` before
+cutover. An unrelated existing operation `d88b210abfe44e32824af1b1356175c8` remained genuinely
+running, with recent output; installation waited. It later finished failed, exit code 1, observed
+through normal authenticated operation status. This is not a failure of the above fixture suite.
+No operation was cancelled/relaunched and no state DB rows were edited to bypass installation.
+
+The controlled installer and subsequent `--check` passed. Resident **0.1.11 / watch** runs the
+exact qualified candidate above; installed file hashes match source. Controller PID 20233,
+native-CGO tunnel PID 20251, successful control-plane polling. Config hash is unchanged, including
+workingBytes=536870912. Seven prior incidents/ack states and the correlation key are preserved;
+storage error counters are zero. Authenticated discovery still exposes twelve tools.
+New diagnostic instance `d90790a695741dcf` replaces `4a6f9860d32b9ba5`.
+Absent rotated logs remain explicit export coverage gaps.
+
+An isolated fixture using the actual installed bundle and copied workingBytes setting exercised
+ordinary native exec: it wrote 173,101,495 bytes of authored data, copied through a symlink into a
+regular file, compared SHA-256 content and removed only those fixture files. The child reported
+both RLIMIT_FSIZE values as 536870912 and completed successfully. This is installed-code/native-child
+acceptance, not a live MCP task or a copy of the user's rollout. The source-capture boundary is
+unchanged. Results are in `installed-copy.json` and `installed-acceptance.json`.
+
+The independent observer PID 19489 continued without restart, sampled the new runtime instance
+and recorded one generation change with no observed unavailable samples, storage errors or
+event gaps. Its pinned 0.1.10 sampler remains compatible; no observer source changed in this fix.
+Sampling cannot exclude an inter-sample outage or establish ChatGPT visible delivery. Details are
+in `observer-after.json`; installer/check output and before/after diagnostic exports are retained
+alongside it. Only documentation changed after qualification, so whitespace checks were rerun
+without repeating the full executable suite.
 
 ## Bounded ChatGPT caller adapter — 2026-09-26
 
