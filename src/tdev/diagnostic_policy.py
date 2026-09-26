@@ -52,12 +52,18 @@ class PolicyRecorder(Recorder):
     def offers(self, principal):
         return self.policy.offers(principal)
 
+    def receipt(self, request):
+        if self.policy.mode != 'off' and type(request) is int:
+            return dict(instance=self.instance, request=request)
+
     def mode(self):
         return self.policy.mode
 
 
 class DiagnosticsPolicy:
     LIMIT = 32
+    WITNESS_RUNS = 32
+    WITNESS_RECEIPTS = 256
     OFFER_INTERVAL = 15
     OFFER_LIMIT = 8
     OFFER_MAX_INTERVAL = 300
@@ -82,6 +88,10 @@ class DiagnosticsPolicy:
         self._aggregate_evicted = 0
         self._offer_due = {}
         self._requests = {}
+        # Process-bound watermarks never evict: forgotten retries cannot become new progress.
+        self._witness_runs = {}
+        self._witness_receipts = {}
+        self._witness_evicted = 0
         self._silence_until = 0
         self._revision = self._saved_revision = 0
         self._storage_errors = self._evicted = 0
@@ -276,6 +286,9 @@ class DiagnosticsPolicy:
                            exhausted=sum(r['retry'] == 'exhausted' for r in rows),
                            aggregationEvicted=self._aggregate_evicted)
             return dict(mode=self._mode, expiresAt=self._expires_at,
+                        witness=dict(instance=self.recorder.instance, keyId=self.recorder.key_id,
+                                     runs=len(self._witness_runs), retained=len(self._witness_receipts),
+                                     evicted=self._witness_evicted),
                         incidents=[] if compact else rows, summary=summary,
                         storagePending=self._saved_revision < self._revision,
                         storageErrors=self._storage_errors, evicted=self._evicted)
@@ -284,7 +297,9 @@ class DiagnosticsPolicy:
         owner = self.recorder.tag(principal)
         with self._lock:
             action = args['action']
-            if action in ('activate', 'report'):
+            if action == 'mark':
+                return self._mark(owner, args)
+            elif action in ('activate', 'report'):
                 seconds = args.get('seconds', self.trace_seconds)
                 require(type(seconds) is int and 1 <= seconds <= 300, 'DIAGNOSTIC_DURATION')
                 require(isinstance(args.get('requestId'), str) and 1 <= len(args['requestId']) <= 128,
@@ -307,6 +322,39 @@ class DiagnosticsPolicy:
             else:
                 require(action == 'inspect', 'DIAGNOSTIC_ACTION')
             return self.inspect(principal, args.get('view') == 'summary')
+
+    def _mark(self, owner, args):
+        # Public input is validated before dispatch. No operational state or incident writes.
+        require(self.mode != 'off', 'DIAGNOSTICS_OFF')
+        require(args['instance'] == self.recorder.instance, 'WITNESS_INSTANCE_CHANGED')
+        run = (owner, self.recorder.tag(args['runId']))
+        sequence = args['sequence']
+        key = (*run, sequence)
+        fingerprint = self.recorder.tag(canonical(args).decode())
+        if key in self._witness_receipts:
+            previous, receipt = self._witness_receipts[key]
+            require(previous == fingerprint, 'WITNESS_CONFLICT')
+            return dict(receipt)
+        require(sequence > self._witness_runs.get(run, 0), 'WITNESS_REPLAY_EXPIRED')
+        require(run in self._witness_runs or len(self._witness_runs) < self.WITNESS_RUNS,
+                'WITNESS_RUN_LIMIT')
+        fields = dict(principalTag=owner, runTag=run[1], cellTag=self.recorder.tag(args['cellId']),
+                      sequence=sequence, phase=args['phase'])
+        for name in ('callOrdinal', 'afterRequest'):
+            if name in args:
+                fields[name] = args[name]
+        # Bypass HTTP tracking and policy triggers. Watch is memory-only, trace is best effort.
+        event = Recorder.emit(self.recorder, 0, 'host_witness', **fields,
+                              _track=False, _persist=self._mode == 'trace')
+        receipt = dict(instance=self.recorder.instance, keyId=self.recorder.key_id,
+                       eventId=event['eventId'], timeNs=event['timeNs'], **fields)
+        receipt.pop('principalTag')
+        self._witness_runs[run] = sequence
+        if len(self._witness_receipts) == self.WITNESS_RECEIPTS:
+            self._witness_receipts.pop(next(iter(self._witness_receipts)))
+            self._witness_evicted += 1
+        self._witness_receipts[key] = (fingerprint, receipt)
+        return dict(receipt)
 
     def offers(self, principal):
         owner = self.recorder.tag(principal)

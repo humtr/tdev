@@ -872,3 +872,96 @@ Corrupt/incompatible incident bytes are preserved and persistence disabled with 
 These are best-effort diagnostics, not an audit ledger or ChatGPT visible-liveness qualification.
 
 The 2026-09-25 installed-runtime acceptance was continued from ChatGPT after Local Codex completed source qualification and publication. Through the refreshed authenticated connector, ChatGPT verified `tdev_diagnostics` discovery/inspection, a bounded activation, one subsequent-response incident offer, same-principal acknowledgement, automatic expiry, and return to `watch`. The evidence is retained at `.artifacts/diagnostic-activation-20260925/chatgpt-connector-acceptance.json`; it is intentionally untracked operator evidence. This acceptance does not claim visible ChatGPT UI rendering or unsolicited wake/push behaviour. See `LOCAL_VALIDATION.md` for the exact source/bundle identity and acceptance boundary.
+
+## Caller execution witnesses
+
+This is opt-in investigation, not a required development workflow. `mark` adds no operational
+receipt, task mutation, incident, capture lease or acknowledgement. The exact input/receipt and
+mode/replay limits are owned by `contracts/tools.schema.json`. Read `inspect.witness.instance`
+once before the run; off rejects mark without activating anything. Allocate a random opaque run
+ID for the investigation and a different random cell ID for each physical cell. Retain one strictly
+increasing sequence across that run. Do not encode messages, paths, commands, secrets or results
+into identifiers. A server restart requires a new generation/run; preserve the old evidence.
+Serialize probes within a run; parallel callers need separate runs. Reordered old sequences are
+rejected, not buffered and reordered into an invented execution history. The run registry is
+bounded for the process lifetime; inspect its capacity counters rather than automatically
+restarting production or silently dropping replay protection when full.
+
+Before starting, record the bundle/process/key identity, client path, saved instrumented script
+and visible progress/time separately. Launch the independent local observer using the installed
+bundle environment, with the state path of that installation. Use a fresh output directory:
+
+```sh
+python -m tdev.diagnostic_observer --state /absolute/installation/state \
+  --output /absolute/new-private-evidence --seconds 120 --interval 1
+```
+
+Watch snapshots preserve recent witnesses locally when sampled before overwrite. Trace is a
+separately authorized, bounded lease when detailed HTTP stages/file logging are needed. Mark
+never starts/extends trace. Keep the observer sampling through the visible divergence and export
+promptly using the existing snapshot/export procedure; all storage/drop/overwrite gaps matter.
+The observer is not a marker source and never invokes MCP.
+
+Example for one real Code Mode cell after fresh tool discovery (substitute the actual discovered
+tool functions and preselected identifiers). The setup inspection is outside this measured cell;
+`generation`, `runId`, `cellId` and `sequence` below are pinned setup values, not another tool lookup.
+The diagnostic grant and watch/trace must already be available. Keep the adapter-specific result
+unwrapping outside these primitives; some hosts expose structuredContent, others only text.
+
+```js
+// Paste the pinned setup values here. Continue sequence across later cells in this run.
+const generation = "INSPECT_WITNESS_INSTANCE";
+const runId = "RANDOM_32_LOWERCASE_HEX_RUN_ID";
+const cellId = "RANDOM_32_LOWERCASE_HEX_CELL_ID";
+let sequence = 0; // Next cell starts at this cell's last attempted sequence.
+async function probe(phase, fields = {}) {
+  const args = {action: "mark", instance: generation, runId, cellId,
+                sequence: ++sequence, phase, ...fields};
+  try {
+    const reply = await tools.ACTUAL_TDEV_DIAGNOSTICS(args);
+    // Preserve this reply in the host transcript. Check structured ok/error as exposed.
+    text(reply);
+  } catch {
+    text("diagnostic witness unavailable; coverage gap");
+  }
+}
+await probe("cell_enter");
+const reply = await tools.ACTUAL_TDEV_TASK({action: "list"});
+// This point follows a fulfilled target-tool await, never a finally block or deferred replay.
+const receipt = reply?._meta?.["io.tdev/diagnosticReceipt"];
+await probe("tool_return", {callOrdinal: 1,
+  ...(receipt?.instance === generation ? {afterRequest: receipt.request} : {})});
+text(reply);
+await probe("cell_exit");
+// cell_exit occurs before this outer cell's actual return to the host.
+```
+
+Use a short read-only target for acceptance, then a small representative work unit. The example
+adds three admitted calls; other instrumentation/discovery calls count too. Budget and latency
+are host-specific, not a tdev hard-coded ceiling. Avoid fire-and-forget marks, retry loops and
+replaying markers from a successor cell as if they were original execution. A lost marker reply
+may be retried with its identical tuple only when needed: retained replay returns the original
+server timestamp/event. Otherwise record a gap and advance sequence; never retry an ambiguous
+development effect because a probe failed. An awaited marker may itself block on the host's tool
+transport; exception handling is not a host timeout or wake-up guarantee. Any host timeout must
+be recorded as a coverage gap, not compensated by later synthetic progress.
+
+Check whether the real ChatGPT wrapper exposes `io.tdev/diagnosticReceipt`. A subsequent witness
+with afterRequest joins server records by instance/request. Without it, the saved sequential
+script and call ordinal provide a logical frontier only; do not claim an exact transport join.
+The marker's eventId joins the local ring/trace; repeated snapshots/replies must be deduplicated
+by instance/eventId, not counted as new executions. HTTP handler-finalization timestamps can race
+with client receipt, so do not assume every server event precedes every host witness.
+
+| Observed frontier, with adequate coverage | Candidate boundary, not proven cause |
+|---|---|
+| HTTP completion, no corresponding tool_return | Response return, probe failure/admission, or cancellation remain possible |
+| tool_return, no cell_exit | Same-cell continuation or subsequent probe failure |
+| cell_exit, no next cell_enter | Outer result delivery or scheduling; also check whether another cell was actually intended |
+| Next cell_enter while user reports unchanged UI | Host execution and visible presentation diverged |
+
+Markers are caller assertions under an audited script, not OpenAI internal telemetry, a proof of
+ChatGPT client identity, or proof the user saw progress. Match the external user timeline: last
+visible progress, Stop pressed, Stopped thinking, successor message and resumed progress. Compare
+a similarly bounded uninstrumented workload to assess observer effects. Local direct MCP/bridge
+success qualifies the tdev boundary only; actual Codex agent-loop and ChatGPT acceptance are separate.

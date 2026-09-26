@@ -703,8 +703,43 @@ path to an incident ID. Reading counts does not acknowledge or reset them.
 
 #### Control, notifications and delivery boundary
 
+Authorized `mark` adds a caller execution witness without creating an incident or activating a
+capture. It is a caller assertion, not cryptographic attestation of ChatGPT: only the actual
+ordered caller script (await the target response, then await the marker) establishes its meaning.
+It records keyed run/cell/principal tags, a run sequence, phase and optional call ordinal/request
+reference. Watch places it in the bounded memory ring; trace also queues it to the existing
+best-effort stream. Off rejects it without loading the collector. A detached witness never
+creates an active HTTP request. The local observer only samples it; the local socket cannot write it.
+
+The marker identity is principal + process instance + run + sequence, deliberately separate from
+durable operational requestId replay. Sequences strictly increase across cells of one run; gaps
+are allowed. Identical retained retries return the original timestamp/event without another
+witness; conflicting retained retries fail. Evicted older sequences fail rather than fabricate new
+progress. Process-local watermarks for at most 32 runs never evict, while receipts have a 256-entry
+cache with counted eviction. At capacity new runs fail; existing runs continue. Use one run across
+cells, not a new run per request. Restart creates a new instance and rejects old markers; neither
+disk history nor a lost reply is silently reinterpreted as a new arrival. No production restart is
+required or justified just to clear a diagnostic limit. Off rejects even retained marker retries.
+
+In watch/trace, an optional tools/call response receipt identifies its process and HTTP request.
+The caller can echo that request reference after checking the instance, enabling an exact join
+with server records when both survive. The reference remains caller-supplied, not server proof of
+receipt. If the host adapter strips metadata, phase/ordinal plus the saved script still establish
+a logical execution frontier, but cannot identify a particular concurrent transport request.
+Notification rendering/serialization and diagnostic receipt failures cannot discard the normal
+operational response. The operational core imports no diagnostic implementation.
+
+Server HTTP completion, caller execution and visible UI delivery remain separate facts. A
+tool_return witness placed after a fulfilled await narrows a response-delivery hypothesis; it
+does not prove the user saw progress. cell_exit is a point before the outer cell result, not proof
+of its delivery or next-cell scheduling. Missing markers can reflect instrumentation failure,
+admission limits, cancellation, ring overwrite or lost storage as well as continuation failure.
+Do not automatically classify a root cause from their absence. Every marker adds a round trip and
+host call-budget pressure; use sparse bounded probes and an uninstrumented comparison, never a
+production requirement to mark every tool. Marker failure must not cause operational retry/cancel.
+
 `tdev_diagnostics` inspects/acknowledges only the current principal's incidents. Reporting/activation/stop
-control runtime-wide collection and require an explicit diagnostic grant plus fresh authorization;
+control runtime-wide collection; those controls and mark require an explicit diagnostic grant plus fresh authorization;
 installation maintenance fences these controls. Global mode/expiry/storage health are observable.
 Raw evidence is local-operator-only. A same-UID Unix socket offers snapshot, bounded activation
 and stop without MCP/controller locks. It accepts no commands, paths or arbitrary execution.

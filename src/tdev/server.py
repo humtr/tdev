@@ -45,10 +45,11 @@ def make_server(controller, port=0, diagnostics=None, diagnostic_factory=None):
             return policy.tool(principal, args)
         if args['action'] == 'inspect':
             return dict(mode='off', expiresAt=None, incidents=[], storagePending=False,
+                        witness=None,
                         storageErrors=0, evicted=0,
                         summary=dict(since=None, lastObservedAt=None, server={}, reported={},
                                      retainedIncidents=0, unacknowledged=0, exhausted=0, aggregationEvicted=0))
-        raise Fault('DIAGNOSTICS_UNAVAILABLE')
+        raise Fault('DIAGNOSTICS_OFF' if args['action'] == 'mark' else 'DIAGNOSTICS_UNAVAILABLE')
 
     if controller is not None:
         controller.diagnostic_handler = diagnostic_call
@@ -275,18 +276,29 @@ def make_server(controller, port=0, diagnostics=None, diagnostic_factory=None):
                 error = {"code": -32603, "message": "Internal error; observe retained request identity before retry"}
             if not error:
                 result.update({"resultType": "complete", "_meta": {META + "serverInfo": {"name": "tdev", "version": __version__}}})
+                if method == 'tools/call' and hasattr(trace, 'receipt'):
+                    receipt = self._observe('receipt', self._trace_request)
+                    if receipt:
+                        try:
+                            canonical(receipt)
+                            result['_meta']['io.tdev/diagnosticReceipt'] = receipt
+                        except Exception:
+                            pass
                 if method == 'tools/call' and hasattr(trace, 'offers'):
                     # Offer is not a delivery acknowledgement; disconnects leave it pending.
                     try:
                         alerts = trace.offers(principal)
+                        # Validate/render before attaching optional data: a malformed observer
+                        # response must not lose an already completed operational response.
+                        notice = ('tdev diagnostics: ' + '; '.join(a['id'] + ' ' + a['reason'] + ' (' + a['capture'] + ')' for a in alerts) +
+                                  '. Acknowledge received incidentId once; inspect view=summary for counts. '
+                                  'No user-visible delivery proof; existing work continues.')
+                        canonical(alerts)
                     except Exception:
                         alerts = []
                     if alerts:
                         result['_meta']['io.tdev/diagnostics'] = alerts
-                        result['content'].append({'type': 'text', 'text':
-                            'tdev diagnostics: ' + '; '.join(a['id'] + ' ' + a['reason'] + ' (' + a['capture'] + ')' for a in alerts) +
-                            '. Acknowledge received incidentId once; inspect view=summary for counts. '
-                            'No user-visible delivery proof; existing work continues.'})
+                        result['content'].append({'type': 'text', 'text': notice})
             self.send(200, {"jsonrpc": "2.0", "id": ident, **({"error": error} if error else {"result": result})})
 
     server = ThreadingHTTPServer(("127.0.0.1", port), Handler)

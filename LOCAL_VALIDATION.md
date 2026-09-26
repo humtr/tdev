@@ -1415,3 +1415,132 @@ Both attempt logs remain in the evidence directory.
 The remaining roadmap work is real ChatGPT discovery/report/summary acceptance and first-visible-
 divergence correlation, followed by paired workload and separate control-ownership qualification.
 No host-private success claim is substituted from the direct MCP or Codex Bridge evidence.
+
+## Caller execution witness — 2026-09-26
+
+Fresh entry bound root AGENTS, README Current work/version policy, the local lifecycle diagnostic
+architecture, diagnostics wire contract and implementation-plan follow-up order. Local branch
+`tdev` and remote `origin/refs/heads/tdev` both named
+`839026fef7a99eae60b082fed1149b6566d806a5` before this change; origin is `humtr/tdev`.
+Tracked source was clean; untracked `.artifacts/` and `node_modules/` were preserved. The latest
+user instruction permits source implementation/qualification but explicitly forbids resident
+replacement/restart/config/provider changes. Earlier installation authority was not reused.
+
+**Prompt assessment and independent design decision.** Its objective is appropriate, with three
+corrections: marker presence is an assertion whose meaning depends on the actual await-ordered
+caller; marker absence does not identify the stalled boundary; every probe perturbs call budget
+and timing. A later ordinary tool call or report can already establish that *some* caller code
+continued, given its saved script. Thus it would be false to claim no existing surface can ever
+provide an external witness. The missing feature is explicit, correlated, bounded observation
+without operational mutation or activating an incident/capture. Existing report activates trace
+and counts incidents; acknowledgement concerns an incident, not arbitrary response receipt.
+Watch/trace/HTTP and the independent observer describe the server; retained operation success
+and replay describe durable effects. Local bridge evidence describes that client, not ChatGPT's
+private continuation. Task/file markers unnecessarily mutate operational state. These alternatives
+do not supply the same non-activating, correlated diagnostic contract.
+
+Selected one `mark` action under the existing owner, not another standalone MCP tool. Added optional
+response metadata to join a returned call to the existing instance/request server identity.
+Principal + instance + run + sequence replaces a second independent requestId for this ephemeral
+probe: one identity controls ordering, conflicts, deduplication and an evicted-retry rejection.
+It deliberately does not pretend to use durable operational replay. Thirty-two process-local run
+watermarks never evict; 256 receipts evict with a count. This bounded refusal policy prevents old
+retries becoming fictitious fresh progress. Reuse one run across cells; a full run registry is a
+reported diagnostic limitation, not permission to restart production. Receipt denotes memory
+acceptance, not flushed storage. Raw IDs are keyed tags in retained events; strict input excludes
+messages, outputs, commands, paths, auth, exceptions and arbitrary fields.
+
+The available environment tool catalog exposed no supported reader for private ChatGPT turn-runner
+telemetry. The official [plugin troubleshooting guide](https://developers.openai.com/plugins/deploy/troubleshooting)
+checked on this date recommends correlating server/client evidence and escalation for internal
+reproduction; it does not provide that private reader. This is a bounded availability finding,
+not a claim that no internal OpenAI interface exists. No internal telemetry is fabricated here.
+
+The retained `reported_visible_stall` incident, created at 2026-09-26 00:00:47 UTC, independently
+preserves relevant server evidence: event 1458 admitted a running exec; event 1462 reports the same
+keyed operation as succeeded/terminal; event 1463 records HTTP completion at 2026-09-25 23:48:58 UTC.
+The next retained event (1464, diagnostic inspect) is about **695.93 seconds** later at 00:00:34.
+This corroborates operation completion followed by an observed server gap, not host receipt or
+UI delivery. The exact visible phrase `Checking and Raising File Size Limits`, the user's Stop and
+resume, and the separate observer's continuity are not independently time-bound by this incident;
+those remain user observations. Watch did not retain detailed socket stages for that earlier call.
+A new **read-only** resident export confirms PID 28483, instance `4bc43da834047048`,
+key generation `7ca33a31371bbfad`, watch, no active requests at sampling, and 256 recent records
+with 2,508 ring overwrites. The current ring cannot reconstruct or falsify that earlier UI event;
+the incident's bounded excerpt is why the server frontier above survives. It was not used
+to assert that server silence means host/UI failure; no incident was acknowledged or removed.
+
+**Relevant defect found and corrected.** In `make_server.Handler.do_POST` response assembly,
+alert retrieval was protected but alert text formatting and JSON serialization
+were not. A malformed optional diagnostic record could therefore discard an otherwise completed
+operational response after dispatch. Rendering and serializability now succeed before the alert
+is attached; optional response correlation metadata is similarly isolated. Fault injection
+reproduces this failure class and verifies the ordinary response survives. This is a real failure
+window in tdev, but no evidence links it to the reported natural ChatGPT stall.
+
+**Source candidate:** 0.1.9; inactive bundle
+`345288b3581da6d8128805cd5312516c3fec42ab5d5e81e478f728b749817afe`.
+Owner changes: `src/tdev/diagnostic_policy.py` (witness policy/replay), `diagnostics.py` (detached bounded
+record), `server.py` (optional receipt/fail-open rendering), `core.py` (fresh grant/maintenance
+check only), `__init__.py` (patch version), `contracts/tools.schema.json`; qualification in
+`tests/test_diagnostic_witness.py` and `scripts/check_mcp.py`; README, ARCHITECTURE, OPERATIONS,
+IMPLEMENTATION_PLAN and this validation record. No observer implementation or production service
+graph change. Operational core still imports no diagnostic implementation.
+
+Evidence is preserved under untracked `.artifacts/host-witness-20260926/`:
+
+- Focused: **8 tests PASS**, 7.575 seconds (`focused-final.log`). Initial `focused.log` failed
+  because the test used `response_body_written` instead of the actual `socket_body_written`;
+  corrected and reran. The controlled timeline waits for server finalization explicitly: real
+  client receipt can race handler-finalization logging, so the public semantics do not assume
+  strict ordering between all client/server timestamps.
+- Affected: **57 tests PASS**, 64.029 seconds (`affected.log`), diagnostics/policy/observer/witness,
+  contract, HTTP and bridge. A later strict ID-length assertion (including trailing newline) is
+  included in the full run, after the affected run.
+- Official pinned MCP client **PASS** (`sdk.log`), protocol 2026-07-28, twelve tools, mark schema,
+  response metadata, original-receipt replay and unchanged report/ack coverage.
+- Probe overhead (`probe-overhead.json`): one isolated watch-mode task-list response used 885
+  JSON bytes, of which optional request correlation added 72. Enter/return/exit marker result
+  envelopes used 739/811/737 bytes and added three tool calls to one target call. These exclude
+  HTTP headers, host wrapping, setup and latency; they are not a ChatGPT performance measurement.
+  This supports sparse probes rather than adding markers to every production tool call.
+- Inactive package rehearsal **PASS** (`rehearsal.json`, `rehearse.py`): verified bundle bytes,
+  actual staged server processes, direct modern HTTP MCP, Codex Bridge adapter, separately spawned
+  observer, three ordered phases with exact request join, lost-reply replay without another
+  witness, watch/no incident creation, stable key and changed instance after restart, stale marker
+  rejection. No active pointer, tunnel startup, live provider change or production registration.
+- Full `scripts/check.sh`: **234 tests PASS**, 407.094 seconds, plus `git diff --check` PASS
+  (`full-check.log`).
+  The run emitted an unclosed-SQLite `ResourceWarning` during existing artifact tests; the same
+  warning is present in the prior 0.1.8 full-check logs. It is recorded rather than hidden or
+  attributed to this witness change.
+
+The focused cases also cover concurrent duplicate delivery, retained payload conflict, evicted
+replay refusal, run capacity, ring bounds, off with no lazy load, trace expiry/persistence/storage
+failure, fresh authorization, invalid/extra/raw fields, principal scope, unchanged source/database
+and operational receipt, no operational retries, detached active-request accounting, local socket
+non-writer boundary, and malformed diagnostic metadata after normal dispatch. Existing regression
+coverage retains report/incident/notification/ack semantics and recorder queue/drop accounting.
+These are local harness assertions, not observation of the private ChatGPT runner.
+
+**Resident remains unchanged:** 0.1.8, bundle
+`8d57b4da3ac0010dfe06db322b51fa1000a0d5e3563f3ce9ac7753927722dec9`, controller PID 28483,
+tunnel PID 28509, native-cgo/control-plane polling healthy (`resident-check.json`). The source
+and installation are intentionally different generations. Installation is the explicit stop point.
+After separate authorization, verify the approved checkout produces the candidate above, then use
+`bash install.sh --root /data/data/com.termux/files/home/.local/share/tdev/composition-upgrade-53vwtpp8`
+and its `--check` path as documented in OPERATIONS. No config/provider options are required for
+this already-watch installation. Outstanding effects must remain a blocking fence; do not force
+through them or copy files over the live bundle. No installation command was executed here.
+
+**Remaining acceptance/roadmap:** after a separately authorized install and fresh ChatGPT discovery,
+verify inspection generation and metadata exposure; execute a short real physical cell with
+enter → fulfilled real call → return witness → exit while the independent observer records.
+Then collect the first natural visible divergence, preserve coverage/loss and the actual script,
+and align the user-visible Stop/successor/resume timeline without inferring it from silence.
+Classify only the positive execution frontier, compare a sparse probe with an uninstrumented
+bounded workflow, then target the implicated response, continuation, scheduling or UI boundary.
+Report/Stop/resume ownership remains separately qualified. Direct MCP and the bridge are a tdev
+reference harness; neither the actual Codex agent loop nor real ChatGPT Code Mode is qualified by
+this local rehearsal. tdev can preserve resume state and reduce round trips; it cannot guarantee
+host scheduling, wake-up or user-visible progress over a stopped request/response channel.

@@ -4690,6 +4690,96 @@
             "category"
           ],
           "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "Opt-in caller witness, not host attestation or UI proof. Identity is principal + instance + runId + sequence (no operational requestId). Sequence strictly increases per run, gaps allowed. Exact retained retry returns original receipt without another event; conflicting retained identity fails WITNESS_CONFLICT, old evicted sequence fails WITNESS_REPLAY_EXPIRED, stale instance fails WITNESS_INSTANCE_CHANGED. At most 32 runs per process and 256 cached receipts globally; run watermarks never evict, further new runs fail WITNESS_RUN_LIMIT. Off rejects without activation. Watch retains ring only; trace also queues bounded persistence. Never retry development work because marking failed. afterRequest is optional caller assertion referencing diagnosticReceipt.request from a returned response of the same instance; no validation of that prior response or claim of UI delivery.",
+          "properties": {
+            "action": {
+              "const": "mark"
+            },
+            "instance": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{16}$",
+              "minLength": 16,
+              "maxLength": 16
+            },
+            "runId": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{32}$",
+              "minLength": 32,
+              "maxLength": 32
+            },
+            "cellId": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{32}$",
+              "minLength": 32,
+              "maxLength": 32
+            },
+            "sequence": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "phase": {
+              "enum": [
+                "cell_enter",
+                "tool_return",
+                "cell_exit"
+              ]
+            },
+            "callOrdinal": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "afterRequest": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "action",
+            "instance",
+            "runId",
+            "cellId",
+            "sequence",
+            "phase"
+          ],
+          "additionalProperties": false,
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "phase": {
+                    "const": "tool_return"
+                  }
+                }
+              },
+              "then": {
+                "required": [
+                  "callOrdinal"
+                ]
+              },
+              "else": {
+                "not": {
+                  "anyOf": [
+                    {
+                      "required": [
+                        "callOrdinal"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "afterRequest"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
         }
       ]
     },
@@ -4813,6 +4903,16 @@
         },
         "summary": {
           "$ref": "#/$defs/DiagnosticSummary"
+        },
+        "witness": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/DiagnosticWitnessState"
+            }
+          ]
         }
       },
       "required": [
@@ -4822,7 +4922,8 @@
         "storagePending",
         "storageErrors",
         "evicted",
-        "summary"
+        "summary",
+        "witness"
       ],
       "additionalProperties": false
     },
@@ -5004,6 +5105,116 @@
         "unacknowledged",
         "exhausted",
         "aggregationEvicted"
+      ],
+      "additionalProperties": false
+    },
+    "DiagnosticWitnessState": {
+      "type": "object",
+      "properties": {
+        "instance": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{16}$",
+          "minLength": 16,
+          "maxLength": 16
+        },
+        "keyId": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{16}$",
+          "minLength": 16,
+          "maxLength": 16
+        },
+        "runs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32
+        },
+        "retained": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 256
+        },
+        "evicted": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "instance",
+        "keyId",
+        "runs",
+        "retained",
+        "evicted"
+      ],
+      "additionalProperties": false
+    },
+    "DiagnosticWitnessReceipt": {
+      "type": "object",
+      "description": "Original server receipt, memory-ring acceptance only, not durable storage or outer cell completion. Tags are installation-keyed; timestamp is server arrival, not client time. Replay never advances these fields.",
+      "properties": {
+        "instance": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{16}$",
+          "minLength": 16,
+          "maxLength": 16
+        },
+        "keyId": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{16}$",
+          "minLength": 16,
+          "maxLength": 16
+        },
+        "eventId": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "timeNs": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "runTag": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{24}$",
+          "minLength": 24,
+          "maxLength": 24
+        },
+        "cellTag": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{24}$",
+          "minLength": 24,
+          "maxLength": 24
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "phase": {
+          "enum": [
+            "cell_enter",
+            "tool_return",
+            "cell_exit"
+          ]
+        },
+        "callOrdinal": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "afterRequest": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "instance",
+        "keyId",
+        "eventId",
+        "timeNs",
+        "runTag",
+        "cellTag",
+        "sequence",
+        "phase"
       ],
       "additionalProperties": false
     }
@@ -5823,7 +6034,7 @@
     },
     {
       "name": "tdev_diagnostics",
-      "description": "Observe optional runtime diagnostics. inspect view=summary returns principal-scoped server error counts, separately counted client reports, pending and retry-exhausted incidents in one bounded response; default full also includes up to 32 incidents. report with a stable requestId and a category records a client-observed visible stall, transport error, call limit, unexpected turn end or control mismatch and starts a bounded capture; this is a report, not server/UI proof. Never include raw error messages, commands, auth or conversation text. Reuse requestId after a lost report/activation reply within retained history. activate starts a bounded trace; stop ends capture, not development work. report/activate/stop require the diagnostic grant. Acknowledge a received incidentId once; inspect remains available after automatic offers are exhausted. Notifications use fair selection, exponential backoff and at most eight offers per incident; failed writes do not acknowledge delivery. Counters are best effort, bounded and restart-persisted, not a complete audit. No retry/cancel/provider mutation, host wake-up or UI-delivery guarantee.",
+      "description": "Observe optional runtime diagnostics. inspect view=summary returns principal-scoped server error counts, separately counted client reports, pending and retry-exhausted incidents in one bounded response; default full also includes up to 32 incidents. report with a stable requestId and a category records a client-observed visible stall, transport error, call limit, unexpected turn end or control mismatch and starts a bounded capture; this is a report, not server/UI proof. Never include raw error messages, commands, auth or conversation text. Reuse requestId after a lost report/activation reply within retained history. activate starts a bounded trace; stop ends capture, not development work. report/activate/stop require the diagnostic grant. Acknowledge a received incidentId once; inspect remains available after automatic offers are exhausted. Notifications use fair selection, exponential backoff and at most eight offers per incident; failed writes do not acknowledge delivery. Counters are best effort, bounded and restart-persisted, not a complete audit. No retry/cancel/provider mutation, host wake-up or UI-delivery guarantee. mark requires the diagnostic grant and watch/trace; it records bounded caller execution witnesses without activating capture. Read inspect.witness.instance first; use fresh opaque hex run/cell IDs and increasing run sequence. tool_return requires callOrdinal and may reference the preceding response diagnosticReceipt.request as afterRequest. Marker arrival is caller assertion, not UI proof; mark failures must not retry/cancel development work. Reuse identical instance/runId/sequence only for a lost marker reply, within bounded process-local retention.",
       "inputSchema": {
         "$ref": "#/$defs/diagnosticsInput"
       },
@@ -5837,7 +6048,14 @@
                 "const": true
               },
               "result": {
-                "$ref": "#/$defs/DiagnosticStatus"
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/DiagnosticStatus"
+                  },
+                  {
+                    "$ref": "#/$defs/DiagnosticWitnessReceipt"
+                  }
+                ]
               }
             },
             "required": [
@@ -6083,5 +6301,29 @@
     },
     "delivery": "At most eight automatic offers per incident with 15\u2013300 second exponential delay; failed writes do not acknowledge receipt. Retry exhaustion remains inspectable and acknowledgeable. Scope is the current authenticated principal; receipt is not UI delivery.",
     "description": "Principal-scoped incident offers in tool result metadata and a compact text notice. At most three per response, eight total per incident, 15\u2013300 second exponential elapsed-time delay. Never-offered and least-offered eligible incidents first. Exhaustion is not acknowledgement; inspect/ack remain available. No unsolicited push or proof of visible delivery."
+  },
+  "x-diagnostic-receipt": {
+    "description": "Optional tools/call result _meta io.tdev/diagnosticReceipt in watch/trace, forwarded by the Local Codex bridge. Instance plus request joins server HTTP events. This is server identity only, not host receipt. The caller may echo request in a subsequent mark tool_return after verifying the same instance. Absent metadata means exact request correlation unavailable. No core operational receipt changes.",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "instance": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{16}$",
+          "minLength": 16,
+          "maxLength": 16
+        },
+        "request": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "instance",
+        "request"
+      ],
+      "additionalProperties": false
+    }
   }
 }

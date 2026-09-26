@@ -169,6 +169,10 @@ or semantic-continuity expansion while the user's visible-liveness investigation
    report/stop/resume receipt separately. Missing observations remain unknown. Pin evidence at
    the first visible divergence, including coverage/drop counters; watch-ring overwrite and
    absent server errors cannot establish a healthy host/UI. Bound any detailed trace separately.
+   The 2026-09-26 source adds a non-activating caller witness and optional response correlation
+   metadata for this step. Qualify replay/coverage and the independent observer locally first;
+   resident replacement is separately gated. Real ChatGPT discovery, metadata visibility and
+   await-ordered probes remain required before interpreting the next natural divergence.
 3. **Compare one workload across available clients.** First replay through direct MCP and the
    Local Codex bridge; then compare Codex Code Mode and real ChatGPT Code Mode where available.
    Bind each client's current implementation/config before use. Compare coarse bounded observation

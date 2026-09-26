@@ -44,6 +44,18 @@ try {
     arguments:{action:'inspect',view:'summary'}});
   assert.deepEqual(summary.structuredContent.result.incidents, []);
   assert.equal(summary.structuredContent.result.summary.reported.transport_error, 1);
+  const witness = {action:'mark', instance:summary.structuredContent.result.witness.instance,
+    runId:'a'.repeat(32), cellId:'b'.repeat(32), sequence:1, phase:'cell_enter'};
+  const entered = await client.callTool({name:'tdev_diagnostics', arguments:witness});
+  assert.equal(entered.isError, false);
+  const receipt = summary._meta['io.tdev/diagnosticReceipt'];
+  assert.equal(receipt.instance, witness.instance);
+  const returned = await client.callTool({name:'tdev_diagnostics', arguments:{...witness,
+    sequence:2, phase:'tool_return', callOrdinal:1, afterRequest:receipt.request}});
+  assert.equal(returned.isError, false);
+  assert.equal(returned.structuredContent.result.afterRequest, receipt.request);
+  const markReplay = await client.callTool({name:'tdev_diagnostics', arguments:witness});
+  assert.deepEqual(markReplay.structuredContent, entered.structuredContent);
   const artifactSchema = listed.tools.find(t => t.name === 'tdev_artifact').inputSchema;
   assert.deepEqual(artifactSchema.oneOf.map(s => s.properties.action.const), ['inspectRecipe','prepare','inspect','list','usage','export','prunePreview','prune']);
   const artifact = await client.callTool({name:'tdev_artifact',

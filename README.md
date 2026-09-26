@@ -55,6 +55,13 @@ isolation. See the [trust boundary](ARCHITECTURE.md#3-native-trust-and-containme
 
 ## Current work
 
+Source **0.1.9** adds optional caller execution witnesses to the diagnostic owner and isolates
+malformed diagnostic metadata from ordinary response delivery. `mark` correlates caller code points
+with server HTTP requests when response metadata is exposed; it cannot attest ChatGPT internals
+or visible progress. Source qualification is recorded in
+[LOCAL_VALIDATION.md](LOCAL_VALIDATION.md#caller-execution-witness--2026-09-26).
+The resident remains **0.1.8**; installation/restart is explicitly outside this change's authority.
+
 Optional lifecycle diagnostics now support watch-triggered capture, automatic expiry, bounded
 local evidence and principal-scoped alerts through `tdev_diagnostics`. New installations default
 to off; the diagnostic operating configuration selects watch. Operators may activate a bounded

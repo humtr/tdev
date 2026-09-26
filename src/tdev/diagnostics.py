@@ -96,9 +96,11 @@ class Recorder:
 
     def emit(self, request, event, **fields):
         persist = fields.pop('_persist', True)
+        track = fields.pop('_track', True)
         allowed = {'rpcTag','method','tool','requestTag','lookupTag','operationTag','taskTag',
                    'ok','status','effect','terminal','errorTag','authenticated','bytes',
-                   'responseTag','httpStatus','durationNs','failureClass','stage','action'}
+                   'responseTag','httpStatus','durationNs','failureClass','stage','action',
+                   'principalTag','runTag','cellTag','sequence','phase','callOrdinal','afterRequest'}
         value = dict(instance=self.instance, pid=os.getpid(), request=request,
                      event=event, timeNs=time.time_ns(),
                      monotonicNs=time.monotonic_ns())
@@ -110,12 +112,14 @@ class Recorder:
         with self._lock:
             value['eventId'] = next(self._events)
             for name in ('rpcTag', 'method', 'tool', 'requestTag', 'lookupTag', 'operationTag', 'taskTag', 'action'):
-                if name not in value and name in self._active.get(request, {}):
+                if track and name not in value and name in self._active.get(request, {}):
                     value[name] = self._active[request][name]
             self._counts['emitted'] += 1
             self._counts['ring_overwrites'] += len(self._ring) == self._capacity
             self._ring.append(value)
-            if event == 'http_finished':
+            if not track:
+                pass  # Detached observations are not active HTTP requests.
+            elif event == 'http_finished':
                 self._active.pop(request, None)
             else:
                 if request not in self._active and len(self._active) == self._capacity:
@@ -128,6 +132,7 @@ class Recorder:
             except queue.Full:
                 with self._lock:
                     self._counts['sink_drops'] += 1
+        return value
 
     def _drain(self):
         while not self._stop.is_set() or not self._queue.empty():

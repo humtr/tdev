@@ -140,7 +140,7 @@ class Controller:
             require(len(canonical(args)) <= 2 * 1024 * 1024, "INPUT_LIMIT")
             kind = tool.removeprefix("tdev_")
             if kind == 'diagnostics':
-                if args['action'] in ('activate', 'report', 'stop'):
+                if args['action'] in ('activate', 'report', 'stop', 'mark'):
                     require(self.config['principals'][principal].get('diagnostics', False), 'PERMISSION_DENIED')
                     require(not (self.store.root / 'maintenance.json').exists(), 'MAINTENANCE')
                 require(self.diagnostic_handler is not None, 'DIAGNOSTICS_UNAVAILABLE')
