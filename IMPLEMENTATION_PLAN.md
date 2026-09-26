@@ -189,6 +189,11 @@ or semantic-continuity expansion while the user's visible-liveness investigation
    Apply it to normal authorized work; further C20/C22 density or Stop experiments are not
    selected. Actual outer-result receipt, fresh-cell scheduling and visible updates still need
    real ChatGPT acceptance; local JS tests do not close that boundary.
+   The subsequent user request authorizes resident and observer application: publish compact
+   guidance through existing tool discovery, add an independent bounded observer frontier,
+   validate source/fixtures/SDK/inactive bundle, then update owned services and the standalone
+   collector with preserved evidence/configuration and an explicit cutover record. No server
+   enforcement of a physical-cell budget or UI-stall inference is introduced.
 4. **Qualify control ownership separately.** Use disposable delayed marker operations to test
    report, Stop-only, successor-message plus Stop, reconnect and resume. Preserve original receipts;
    no automatic retry of ambiguous effects. Only add server-side ownership/fencing if the evidence

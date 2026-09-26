@@ -27,6 +27,9 @@ class ObserverTest(unittest.TestCase):
                 observe(root/'absent-state', root/'evidence', seconds=1)
             self.assertEqual(data, (root/'evidence/samples.jsonl').read_bytes())
             self.assertFalse((root/'absent-state').exists())
+            samples = [json.loads(line) for line in data.splitlines()]
+            self.assertTrue(all(not row['frontier']['available'] for row in samples))
+            self.assertEqual(len(samples), samples[-1]['frontier']['unavailableSamples'])
 
     def test_byte_limit_and_invalid_configuration(self):
         with tempfile.TemporaryDirectory() as temporary:

@@ -879,6 +879,32 @@ For normal ChatGPT work, use the [bounded-cell controller](examples/chatgpt/CONT
 its executable JS helper. It counts all tool attempts and reserves optional witness overhead;
 the assistant issues the next physical cell after receiving the current result. This is caller
 policy, not a server-enforced call limit or guaranteed host wake-up. Witness mode is optional.
+The resident advertises compact caller guidance in `tdev_operation`'s description. Refresh
+ChatGPT discovery after an authorized update; a server deployment cannot install an assistant
+policy or attest that the host follows it.
+
+The independent continuous command is maintained at `scripts/tdev-observe`. Copy it into the
+operator's private bin directory after validating the installed observer module. It discovers
+the owned installation through the runit ownership marker, or accepts `TDEV_OBSERVE_ROOT`.
+`TDEV_OBSERVE_DIR` selects a separate recording root. `start`, `status`, `keep` and `stop` operate
+coarse collection (10 seconds, hourly/64 MiB segments); `--fine` selects a separate 1-second,
+5-minute/64 MiB collector. Both continue until stopped. Retention targets 24 hours/512 MiB across
+the two modes, preserving active/KEEP segments and foreign files. Preserve significant evidence
+with `keep` before controlled changes. Do not use the production observer for retention tests.
+
+`status` shows fresh-sample age, storage/availability, generation and the latest four run
+witnesses; each sample and the local mode status file retain up to 32 run frontiers. First-sample
+history is labelled `retainedAtBaseline`, not counted as new activity. Parsed/HTTP-finished counts
+are separate observed event counts after that generation's baseline, include other clients and
+marker requests, and cannot prove Code Mode call admission or visible progress. Raw snapshots
+remain the source for exact interval joins. Missing events, regressions, invalid records and
+unavailable samples qualify the summary. No missing-witness timeout declares a ChatGPT stall.
+
+For an authorized observer upgrade, preserve the old script and significant segments, keep
+collection running through the resident switch, then gracefully close the old worker, replace
+the command and restart with its previous mode/interval/segment settings. Verify a new sample,
+script/bundle identity and the cutover gap. The collector remains separate from tdev's service
+graph; upgrading it does not register a boot service or change Android power policy.
 
 This is opt-in investigation, not a required development workflow. `mark` adds no operational
 receipt, task mutation, incident, capture lease or acknowledgement. The exact input/receipt and

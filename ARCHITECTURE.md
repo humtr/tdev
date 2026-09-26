@@ -358,6 +358,9 @@ the assistant, which must receive the outer result and issue a new physical cell
 schedule that cell, extend a turn or guarantee visible delivery. Unknown operational replies
 stop for reconciliation of the original identity; diagnostic failure never retries the effect.
 This adapter imports no runtime diagnostics and adds no operational-core dependency or wire type.
+The operation tool's discovery description carries compact ChatGPT caller guidance. These are
+adjustable orchestration defaults, not server admission limits; discovery cannot force the host
+to follow them. The full caller helper remains separate from the resident's operational core.
 
 The controller must surface underlying completion within the same turn and after reconnect,
 including when the caller missed the completion response. Replaying a mutation reconciles
@@ -786,6 +789,15 @@ in-process socket while the external observer still records that gap. Retained s
 runtime/process/key identity, counters and bounded recent records for correlation; snapshots may
 overlap and are not an atomic history. The operator records actual host/visible observations
 separately. No always-on observer is added to the resident service graph.
+
+Observer snapshots also carry a bounded derived frontier. Each process generation's first
+snapshot is a historical baseline; retained witnesses are labelled as such and request counters
+start after it. Subsequent events are deduplicated by instance/eventId, with missing events,
+regressions, invalid records and generation changes exposed. At most 32 latest run witnesses
+are retained in the summary. Parsed-request counts include markers and other clients; they do
+not identify a physical ChatGPT cell's attempts. Original snapshots remain intact. The separate
+continuous operator command uses the same reducer and records sampler bundle/script identity;
+neither observer imports into the server, calls MCP, acknowledges incidents or infers UI health.
 
 Diagnostic storage revision 2 accepts existing revision-1 incidents and retains their IDs,
 acknowledgments and offer counts. Prior bundles do not understand revision 2: a rollback preserves

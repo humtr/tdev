@@ -1,0 +1,393 @@
+#!/data/data/com.termux/files/usr/bin/python
+"""Independent local snapshot collector, continuous segments with bounded retention."""
+import argparse
+from contextlib import contextmanager
+import fcntl
+import hashlib
+import json
+import math
+import os
+from pathlib import Path
+import secrets
+import shutil
+import signal
+import subprocess
+import sys
+import time
+
+def installation_root():
+    if os.environ.get('TDEV_OBSERVE_ROOT'):
+        return Path(os.environ['TDEV_OBSERVE_ROOT'])
+    svdir = Path(os.environ.get('SVDIR', os.environ.get('PREFIX', '') + '/var/service'))
+    marker = svdir/'tdev/.tdev-owner.json'
+    if marker.is_file():
+        return Path(json.loads(marker.read_bytes())['root'])
+    return Path.home()/'.local/share/tdev'
+
+
+ROOT = installation_root()
+OBSERVER_REVISION = 2
+BASE = Path(os.environ.get('TDEV_OBSERVE_DIR', str(Path.home()/'tdev-observations'))) / 'continuous-v1'
+MAX_AGE = 24 * 3600
+MAX_TOTAL = 512 * 1024 * 1024
+FREE_RESERVE = 128 * 1024 * 1024
+OWNED = {'schema': 1, 'owner': 'tdev-observe-continuous'}
+
+
+def elapsed():
+    return time.clock_gettime(time.CLOCK_BOOTTIME) if hasattr(time, 'CLOCK_BOOTTIME') else time.monotonic()
+
+
+def encode(value):
+    return json.dumps(value, sort_keys=True, separators=(',', ':')).encode()+b'\n'
+
+
+def read(path, default=None):
+    try:
+        return json.loads(path.read_bytes())
+    except FileNotFoundError:
+        return default
+
+
+def atomic(path, value):
+    temporary = path.with_name(path.name+'.tmp')
+    fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(fd, 'wb') as stream:
+        stream.write(encode(value))
+    os.replace(temporary, path)
+
+
+def private(path):
+    path.mkdir(mode=0o700, parents=True, exist_ok=True)
+    st = path.lstat()
+    if path.is_symlink() or not path.is_dir() or st.st_uid != os.getuid() or st.st_mode & 0o077:
+        raise RuntimeError('관측 폴더는 현재 사용자의 private directory여야 합니다.')
+
+
+@contextmanager
+def lock(path, nonblock=False):
+    fd = os.open(path, os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(fd, 'a') as stream:
+        fcntl.flock(stream, fcntl.LOCK_EX | (fcntl.LOCK_NB if nonblock else 0))
+        yield
+
+
+def identity(pid):
+    try:
+        fields = Path(f'/proc/{pid}/stat').read_text().rsplit(')', 1)[1].split()
+        return None if fields[0] == 'Z' else fields[19]
+    except (OSError, IndexError):
+        return None
+
+
+def running(row):
+    if not row or row.get('start') is None or identity(row['pid']) != row['start']:
+        return False
+    try:
+        args = Path(f"/proc/{row['pid']}/cmdline").read_bytes().split(b'\0')
+        return b'_run' in args and row['script'].encode() in args
+    except OSError:
+        return False
+
+
+def inventory(base):
+    rows = []
+    for path in (base/'segments').iterdir():
+        if path.is_symlink() or not path.is_dir():
+            continue
+        if (path/'owner.json').is_symlink() or read(path/'owner.json') != OWNED:
+            continue
+        files = list(path.iterdir())
+        safe = all(f.is_file() and not f.is_symlink() and f.name in
+                   ('owner.json', 'samples.jsonl', 'observation.json', 'KEEP') for f in files)
+        if not safe:
+            continue  # Never clean foreign data, links or a partially-written manifest.
+        report = read(path/'observation.json')
+        rows.append(dict(path=path, createdNs=(path/'owner.json').stat().st_mtime_ns,
+                         bytes=sum(f.stat().st_size for f in files), report=report,
+                         kept=(path/'KEEP').exists()))
+    return rows
+
+
+def prune(base, now=None, max_age=MAX_AGE, max_total=MAX_TOTAL):
+    """Only closed, owned, unpinned segments; no legacy directories or operational state."""
+    now = time.time() if now is None else now
+    with lock(base/'retention.lock'):
+        rows = inventory(base)
+        total = sum(r['bytes'] for r in rows)
+        removed = 0
+        for row in sorted((r for r in rows if r['report'] and not r['kept']),
+                          key=lambda r: r['report']['finishedNs']):
+            if total <= max_total and now-row['report']['finishedNs']/1e9 <= max_age:
+                continue
+            # Inventory excludes any file not written by this collector.
+            shutil.rmtree(row['path'])
+            total -= row['bytes']
+            removed += 1
+        kept = sum(r['bytes'] for r in rows if r['kept'])
+        return dict(managedBytes=total, keptBytes=kept, removed=removed,
+                    overLimit=total > max_total, maxBytes=max_total, maxAgeSeconds=max_age)
+
+
+class Segment:
+    def __init__(self, base, mode):
+        self.path = base/'segments'/(time.strftime('%Y%m%d-%H%M%S-')+mode+'-'+secrets.token_hex(4))
+        self.path.mkdir(mode=0o700)
+        atomic(self.path/'owner.json', OWNED)
+        fd = os.open(self.path/'samples.jsonl', os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+        self.stream = os.fdopen(fd, 'wb')
+        self.start = elapsed()
+        self.digest = hashlib.sha256()
+        self.report = dict(schema=1, mode=mode, startedNs=time.time_ns(), samples=0, bytes=0,
+                           unavailable=0, firstSampleNs=None, lastSampleNs=None)
+
+    def write(self, data, row):
+        self.stream.write(data)
+        self.stream.flush()
+        self.digest.update(data)
+        self.report['bytes'] += len(data)
+        self.report['samples'] += 1
+        self.report['unavailable'] += 'unavailable' in row
+        self.report['firstSampleNs'] = self.report['firstSampleNs'] or row['observerTimeNs']
+        self.report['lastSampleNs'] = row['observerTimeNs']
+
+    def close(self, reason):
+        if not self.stream.closed:
+            self.stream.close()
+            self.report.update(finishedNs=time.time_ns(), stopReason=reason, sha256=self.digest.hexdigest())
+            atomic(self.path/'observation.json', self.report)
+
+
+def worker(args):
+    bundle = (ROOT/'active').resolve(strict=True)
+    sys.path[:0] = [str(bundle/'src'), str(bundle/'.tdev-deps')]
+    from tdev.diagnostics import snapshot
+    from tdev.observer_frontier import Frontier
+    statusfile = BASE/(args.mode+'.json')
+    stopping = False
+    def stop(*_):
+        nonlocal stopping
+        stopping = True
+    signal.signal(signal.SIGTERM, stop)
+    signal.signal(signal.SIGINT, stop)
+    signal.signal(signal.SIGHUP, signal.SIG_IGN)
+    with lock(BASE/(args.mode+'.run.lock'), nonblock=True):
+        # An interrupted unfinished segment is evidence. Close it as a recovery gap only
+        # after proving the previous worker no longer owns this mode's lifetime lock.
+        with lock(BASE/'retention.lock'):
+            for item in inventory(BASE):
+                if not item['report'] and ('-'+args.mode+'-') in item['path'].name:
+                    atomic(item['path']/'observation.json', dict(schema=1, mode=args.mode,
+                           finishedNs=time.time_ns(), stopReason='previous_process_interrupted',
+                           coverage='unknown; original bytes retained', sha256=None))
+        state = dict(pid=os.getpid(), start=identity(os.getpid()), script=str(Path(__file__).resolve()),
+                     mode=args.mode, startedNs=time.time_ns(), running=True, interval=args.interval,
+                     segmentSeconds=args.seconds, segmentMaxBytes=args.segment_mib*1048576,
+                     samples=0, unavailable=0, storageErrors=0, removedSegments=0,
+                     lastSampleNs=None, lastSampleElapsed=None, lastAvailable=None, segment=None,
+                     instance=None, eventGaps=0, maxSampleGapSeconds=0, fault=None)
+        state.update(observerRevision=OBSERVER_REVISION, samplerBundle=bundle.name,
+                     scriptSha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest())
+        frontier = Frontier()
+        segment = None
+        previous_event = None
+        previous_sample = None
+        last_prune = 0
+        try:
+            while not stopping:
+                try:
+                    if segment is None or elapsed()-last_prune >= 30:
+                        retention = prune(BASE)
+                        state['removedSegments'] += retention.pop('removed')
+                        state['retention'] = retention
+                        last_prune = elapsed()
+                    if shutil.disk_usage(BASE).free < FREE_RESERVE:
+                        raise OSError('low disk space')
+                    if segment is None:
+                        segment = Segment(BASE, args.mode)
+                        state['segment'] = str(segment.path)
+                    row = dict(observerTimeNs=time.time_ns(), observerElapsed=elapsed())
+                    try:
+                        row['snapshot'] = snapshot(ROOT/'state/diagnostics', timeout=2)
+                    except (OSError, ValueError) as error:
+                        row['unavailable'] = 'timeout' if isinstance(error, TimeoutError) else 'socket_or_snapshot'
+                    row['frontier'] = frontier.feed(row)
+                    data = encode(row)
+                    if len(data) > state['segmentMaxBytes']:
+                        raise OSError('snapshot exceeds segment limit')
+                    if segment.report['samples'] and (segment.report['bytes']+len(data) > state['segmentMaxBytes'] or
+                                                       elapsed()-segment.start >= args.seconds):
+                        reason = 'byte_limit' if segment.report['bytes']+len(data) > state['segmentMaxBytes'] else 'duration'
+                        segment.close(reason)
+                        segment = None
+                        retention = prune(BASE)
+                        state['removedSegments'] += retention.pop('removed')
+                        state['retention'] = retention
+                        segment = Segment(BASE, args.mode)
+                        state['segment'] = str(segment.path)
+                    segment.write(data, row)
+                    gap = 0 if previous_sample is None else row['observerElapsed']-previous_sample
+                    state['maxSampleGapSeconds'] = max(state['maxSampleGapSeconds'], gap)
+                    previous_sample = row['observerElapsed']
+                    recent = row.get('snapshot', {}).get('recent', [])
+                    instance = row.get('snapshot', {}).get('instance')
+                    ids = [e['eventId'] for e in recent if 'eventId' in e]
+                    if ids:
+                        if previous_event and previous_event[0] == instance and min(ids) > previous_event[1]+1:
+                            state['eventGaps'] += min(ids)-previous_event[1]-1
+                        previous_event = (instance, max(ids))
+                    state['frontier'] = row['frontier']
+                    state.update(lastSampleNs=row['observerTimeNs'],lastSampleElapsed=row['observerElapsed'],
+                                 lastAvailable='snapshot' in row,instance=instance, fault=None,
+                                 currentBytes=segment.report['bytes'])
+                    state['samples'] += 1
+                    state['unavailable'] += 'unavailable' in row
+                    atomic(statusfile, state)
+                    delay = args.interval
+                except OSError:
+                    state['storageErrors'] += 1
+                    state['fault'] = 'storage_or_snapshot_size; retrying after 10 seconds'
+                    if segment is not None:
+                        try:
+                            segment.close('storage_error')
+                        except OSError:
+                            pass
+                        segment = None
+                    try:
+                        atomic(statusfile, state)
+                    except OSError:
+                        pass  # status reports stale timestamps if even control storage is unavailable.
+                    delay = 10
+                deadline = elapsed()+delay
+                while not stopping and elapsed()<deadline:
+                    time.sleep(min(.2, max(0, deadline-elapsed())))
+        finally:
+            if segment is not None:
+                segment.close('stopped' if stopping else 'worker_failure')
+            state.update(running=False, stoppedNs=time.time_ns())
+            atomic(statusfile, state)
+
+
+def show(row):
+    if not row:
+        print('기록된 연속 observer가 없습니다. tdev-observe start 로 시작하세요.')
+        return
+    live = running(row)
+    print('상태:', '실행 중' if live else '종료', '| PID:', row['pid'])
+    print('최근 구간:', row.get('segment'))
+    print('간격:', row['interval'], '초 | 구간:', row['segmentSeconds'], '초 /', row['segmentMaxBytes']//1048576, 'MiB')
+    print('samples:', row['samples'], '| unavailable:', row['unavailable'], '| storage errors:', row['storageErrors'])
+    if row.get('lastSampleElapsed') is not None:
+        age = max(0, elapsed()-row['lastSampleElapsed'])
+        print('마지막 sample:', round(age,1), '초 전 | 서버 접근:', row['lastAvailable'])
+        if live and age > max(5, row['interval']*2+2):
+            print('주의: 기록이 지연되었습니다. 프로세스 생존은 관측 정상의 증명이 아닙니다.')
+    print('미수집 event 추정:',row['eventGaps'],'| 최대 sample 간격:',round(row['maxSampleGapSeconds'],2),'초')
+    frontier = row.get('frontier')
+    if frontier:
+        print('observer revision:', row.get('observerRevision'), '| generation changes:', frontier['generationChanges'])
+        print('현재 generation baseline 이후 요청:', frontier['parsedRequestsSinceBaseline'],
+              '| HTTP 종료:', frontier['httpFinishedSinceBaseline'], '| witnesses:', frontier['witnessesSinceBaseline'])
+        print('event 누락:', frontier['missingEvents'], '| 역행:', frontier['regressions'],
+              '| 잘못된 record:', frontier['invalidRecords'])
+        for witness in frontier['runs'][-4:]:
+            print('run:', witness['runTag'], '| cell:', witness['cellTag'], '|', witness['phase'],
+                  '| event:', witness['eventId'], '| sequence:', witness['sequence'],
+                  '| baseline 보존기록:', witness['retainedAtBaseline'])
+        print('서버 관측값입니다. ChatGPT 호출 시도 수/화면 전달/스톨 판정이 아닙니다.')
+    if row.get('fault'):
+        print('기록 장애:',row['fault'])
+    print('자동 정리:',row['removedSegments'],'구간 | 최근 24시간 / 완료 구간 포함 총 512 MiB 목표')
+    if row.get('retention',{}).get('overLimit'):
+        print('보존 지정/활성 구간 때문에 보존 상한을 초과했습니다. 해당 구간은 삭제하지 않습니다.')
+
+
+def main():
+    parser = argparse.ArgumentParser(description='멈출 때까지 연속 관측. 최근 24시간/512 MiB 보존, keep 구간 제외.')
+    parser.add_argument('action',choices=('start','status','stop','keep','_run'))
+    parser.add_argument('--fine',action='store_true',help='별도 fine observer (기본 1초 간격/5분 구간)')
+    parser.add_argument('--seconds',type=int,help='구간 길이 1..3600초; 전체 실행 시간 아님')
+    parser.add_argument('--interval',type=float,help='sample 간격 0.25..60초')
+    parser.add_argument('--segment-mib',type=int,default=64,help='구간 용량 1..64 MiB')
+    args = parser.parse_args()
+    if args.action not in ('start','_run') and (args.seconds is not None or args.interval is not None or args.segment_mib!=64):
+        parser.error('관측 설정은 start에만 사용합니다.')
+    args.mode = 'fine' if args.fine else 'coarse'
+    args.seconds = args.seconds if args.seconds is not None else (300 if args.fine else 3600)
+    args.interval = args.interval if args.interval is not None else (1 if args.fine else 10)
+    if not 1<=args.seconds<=3600 or not math.isfinite(args.interval) or not .25<=args.interval<=60 or not 1<=args.segment_mib<=64:
+        parser.error('설정 범위 오류')
+    os.umask(0o077)
+    private(BASE); private(BASE/'segments')
+    if args.action=='_run':
+        worker(args)
+        return
+    statusfile = BASE/(args.mode+'.json')
+    with lock(BASE/'control.lock'):
+        row = read(statusfile)
+        if args.action=='status':
+            show(row)
+        elif args.action=='keep':
+            with lock(BASE/'retention.lock'):
+                rows = [r for r in inventory(BASE) if ('-'+args.mode+'-') in r['path'].name]
+                rows.sort(key=lambda r:r['createdNs'])
+                for item in rows[-2:]:
+                    (item['path']/'KEEP').touch(mode=0o600,exist_ok=True)
+                    print('자동 정리 제외:', item['path'])
+                if not rows:
+                    print('보존할 구간이 없습니다.')
+        elif args.action=='stop':
+            if running(row):
+                # Same-UID process identity/command guard, not a host cancellation primitive.
+                if identity(row['pid'])==row['start']:
+                    try:
+                        os.kill(row['pid'],signal.SIGTERM)
+                    except ProcessLookupError:
+                        pass
+                deadline = time.monotonic()+6
+                while running(row) and time.monotonic()<deadline:
+                    time.sleep(.1)
+                if running(row):
+                    raise RuntimeError('종료 신호 후에도 실행 중입니다. 강제 종료하지 않았습니다.')
+            show(read(statusfile))
+        elif running(row):
+            print('이미 실행 중입니다. 중복 시작하지 않습니다.')
+            show(row)
+        else:
+            # Preserve old shortcut recordings; avoid running alongside its still-active worker.
+            legacy = read(BASE.parent/(args.mode+'.json'))
+            if legacy and identity(legacy['pid'])==legacy.get('start'):
+                raise RuntimeError('이전 단축명령 observer가 실행 중입니다. 먼저 해당 observer를 종료하세요.')
+            bundle=(ROOT/'active').resolve(strict=True)
+            if not (bundle/'src/tdev/diagnostics.py').is_file():
+                raise RuntimeError('설치된 진단 모듈을 찾지 못했습니다.')
+            cmd=[sys.executable,str(Path(__file__).resolve()),'_run','--seconds',str(args.seconds),
+                 '--interval',str(args.interval),'--segment-mib',str(args.segment_mib)]
+            if args.fine:cmd.append('--fine')
+            # Previous launch log retained as one bounded predecessor, not an ever-growing stream.
+            log=BASE/(args.mode+'.log')
+            if log.exists():os.replace(log,BASE/(args.mode+'.previous.log'))
+            with log.open('wb') as output:
+                child=subprocess.Popen(cmd,stdin=subprocess.DEVNULL,stdout=output,stderr=output,
+                                       start_new_session=True,close_fds=True)
+            deadline=time.monotonic()+7
+            while time.monotonic()<deadline:
+                row=read(statusfile)
+                if row and row['pid']==child.pid and row.get('lastSampleNs'):
+                    show(row)
+                    if not row['lastAvailable']:
+                        raise RuntimeError('observer는 시작됐지만 서버에 접근하지 못했습니다. unavailable 기록을 계속 수집합니다.')
+                    print('첫 sample 확인 완료. stop 전까지 순차 기록합니다.')
+                    return
+                if child.poll() is not None:
+                    raise RuntimeError('observer 시작 실패. '+str(log)+' 확인')
+                time.sleep(.1)
+            raise RuntimeError('첫 sample 확인 시간 초과. status와 '+str(log)+' 확인')
+
+
+if __name__=='__main__':
+    try:
+        main()
+    except (OSError,ValueError,KeyError,RuntimeError) as error:
+        print('tdev-observe:',str(error),file=sys.stderr)
+        sys.exit(1)

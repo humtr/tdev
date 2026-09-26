@@ -72,6 +72,18 @@ class HTTPTest(unittest.TestCase):
             self.assertEqual(self.get(path)[0], 404)
         self.assertEqual(self.get("/mcp")[0], 401)
 
+    def test_caller_guidance_survives_http_and_bridge_discovery_without_new_wire_fields(self):
+        from tdev.codex_bridge import Bridge
+        direct = self.request()[1]['result']['tools']
+        bridge = Bridge(f'http://127.0.0.1:{self.server.server_port}/mcp', 'alice-secret')
+        forwarded = bridge.handle({'jsonrpc':'2.0', 'id':1, 'method':'tools/list', 'params':{}})['result']['tools']
+        self.assertEqual(direct, forwarded)
+        operation = next(tool for tool in direct if tool['name'] == 'tdev_operation')
+        self.assertIn('not a server limit', operation['description'])
+        self.assertIn('after receiving it', operation['description'])
+        self.assertIn('including failures and diagnostics', operation['description'])
+        self.assertIn('Never retry ambiguous effects', operation['description'])
+
     def test_protocol_and_reconnect(self):
         _, discovery = self.request("server/discover")
         self.assertEqual(discovery["result"]["supportedVersions"], [VERSION])

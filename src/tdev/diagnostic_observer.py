@@ -11,6 +11,7 @@ import time
 
 from .common import atomic_write, canonical
 from .diagnostics import snapshot
+from .observer_frontier import Frontier
 
 
 def elapsed():
@@ -30,6 +31,7 @@ def observe(state, output, seconds=120, interval=5, max_bytes=8 * 1024 * 1024):
                   stopReason='duration', seconds=seconds, interval=interval, maxBytes=max_bytes,
                   meaning='local server observations; host receipt and visible progress remain separate')
     checksum = hashlib.sha256()
+    frontier = Frontier()
     start = elapsed()
     fd = os.open(output / 'samples.jsonl', os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
     try:
@@ -41,6 +43,7 @@ def observe(state, output, seconds=120, interval=5, max_bytes=8 * 1024 * 1024):
                                                  timeout=min(2, max(.05, seconds - (elapsed() - start))))
                 except (OSError, ValueError) as error:
                     sample['unavailable'] = 'timeout' if isinstance(error, (TimeoutError, socket.timeout)) else 'socket_or_snapshot'
+                sample['frontier'] = frontier.feed(sample)
                 data = canonical(sample) + b'\n'
                 if report['bytes'] + len(data) > max_bytes:
                     report['stopReason'] = 'byte_limit'

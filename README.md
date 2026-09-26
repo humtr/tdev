@@ -59,6 +59,11 @@ An optional [ChatGPT caller adapter](examples/chatgpt/CONTROLLER.md) now supplie
 cells with total-attempt accounting, sparse witness reservation and explicit reconciliation on
 lost tool replies. It is source for the assistant's cells, not a resident-installed host hook.
 Real ChatGPT rollover/visible-continuity acceptance remains open; server limits are unchanged.
+Source **0.1.10** carries compact caller guidance in operation-tool discovery and adds bounded
+local observer frontiers with historical baselines, generation/coverage counters and per-run
+witnesses. The continuous observer command is now maintained at `scripts/tdev-observe`.
+Authorized resident/observer rollout is being validated; installed acceptance is recorded in
+LOCAL_VALIDATION, separately from actual ChatGPT scheduling and visible progress.
 
 Source **0.1.9** adds optional caller execution witnesses to the diagnostic owner and isolates
 malformed diagnostic metadata from ordinary response delivery. `mark` correlates caller code points

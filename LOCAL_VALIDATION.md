@@ -1665,3 +1665,34 @@ acceptance were not run for this caller-only change. Affected tests include the 
 HTTP/bridge/witness/independent-observer fixture. Actual ChatGPT outer-result receipt, fresh-cell
 scheduling and visible progress must be assessed during normal authorized work, not inferred
 from the local 16/16/8 fake-tool test or from backend completion.
+
+## Resident caller guidance and observer frontiers — 2026-09-26
+
+Starting source/remote head: `cbabcfb5eb2b212468556ba8d466a5f6fa914cd7`. The user explicitly
+requested applying the change to the resident and observer. Source 0.1.10 advertises adjustable
+ChatGPT caller guidance through the existing operation-tool description, without imposing a
+server limit or adding wire fields. The independent observer derives bounded per-generation
+counters and latest run witnesses, labels retained baseline history, and preserves raw snapshots.
+The continuous command is now source-owned at `scripts/tdev-observe`; it remains a separate
+operator process with the existing retention settings. No private ChatGPT telemetry is claimed.
+
+Focused checks passed: observer frontier/bounded observer/HTTP (15 tests, 43.089s) and continuous
+observer fixtures (7 tests, 13.677s). The first combined affected run was interrupted with no
+completion result; its leftover disposable observer was identified by its command and temporary
+root, then stopped normally. Its files and the production observer were preserved. The resumed
+combined run passed **34 tests in 50.111s**, including the ten JS caller tests. Official MCP SDK
+and inactive staged-bundle restart/native recovery/artifact checks passed (exit 0), candidate
+bundle `2379801775c3d8f2e3619e1c3295198cf4edaf05d42afb58e8d938a1dda9950a`.
+
+Full `sh scripts/check.sh` passed **248 tests in 606.298s**, exit code 0, including the
+Node.js caller checks and diff whitespace check. Installed acceptance remains pending. Evidence is in
+`.artifacts/runtime-observer-rollover-20260926/`. The full log includes an unclosed SQLite
+ResourceWarning during fixture garbage collection; the preceding 235-test baseline log also
+contains this warning. It is not hidden as a clean warning-free run. No failed test has been
+observed in the completed run.
+
+Installer preflight found retained exec `2378f2a3f1cb47d1b0ca2f9a4e50d390` still marked running.
+A normal authenticated operation-status read reconciled it to succeeded/committed, exit code 0.
+No DB update, command relaunch or effect cancellation was used. The C20/C22 source segment
+`20260926-160813-coarse-228cd9c7` was pinned and its previously reported SHA-256 reverified before
+cutover preparation. Prior shortcut bytes and current observer settings were backed up.
