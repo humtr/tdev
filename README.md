@@ -62,15 +62,18 @@ Real ChatGPT rollover/visible-continuity acceptance remains open; server limits 
 Source **0.1.10** carries compact caller guidance in operation-tool discovery and adds bounded
 local observer frontiers with historical baselines, generation/coverage counters and per-run
 witnesses. The continuous observer command is now maintained at `scripts/tdev-observe`.
-Authorized resident/observer rollout is being validated; installed acceptance is recorded in
-LOCAL_VALIDATION, separately from actual ChatGPT scheduling and visible progress.
+The owned resident runs **0.1.10 / watch** and the separate continuous observer runs revision 2.
+All 248 tests, official SDK, inactive bundle and installed checks pass. Config, seven prior
+incidents and existing observation evidence are preserved. See
+[installed acceptance](LOCAL_VALIDATION.md#resident-caller-guidance-and-observer-installed-acceptance--2026-09-26);
+actual ChatGPT scheduling and visible-progress acceptance remain open.
 
-Source **0.1.9** adds optional caller execution witnesses to the diagnostic owner and isolates
+The preceding **0.1.9** release added optional caller execution witnesses to the diagnostic owner and isolated
 malformed diagnostic metadata from ordinary response delivery. `mark` correlates caller code points
 with server HTTP requests when response metadata is exposed; it cannot attest ChatGPT internals
 or visible progress. Source qualification is recorded in
 [LOCAL_VALIDATION.md](LOCAL_VALIDATION.md#caller-execution-witness--2026-09-26).
-The owned resident now runs **0.1.9** with watch enabled. Normal status reconciliation cleared
+The earlier 0.1.9 resident acceptance enabled watch. Normal status reconciliation cleared
 the completed validation that initially blocked installation. Installed bundle/config/incident
 preservation and independent observer checks pass; real ChatGPT witness/visible-liveness
 acceptance remains open. See the
@@ -84,7 +87,7 @@ offered in subsequent tool responses; they cannot wake a stopped ChatGPT turn or
 The earlier 0.1.7 authenticated
 ChatGPT connector acceptance covered activation, alert receipt/acknowledgment and expiry.
 The 0.1.8 installed checks confirmed source/bundle identity, unchanged config and preservation of
-all five prior incidents and acknowledgments. The current 0.1.9 source passes **234 tests**,
+all five prior incidents and acknowledgments. The 0.1.9 source passed **234 tests**,
 official SDK and staged direct MCP/Codex Bridge witness checks. Fresh ChatGPT witness and
 visible-liveness qualification remain open. The diagnostic implementation bounds and fairly selects alert retries, aggregates
 server-observed errors separately from client reports, and supports compact diagnostic summaries.

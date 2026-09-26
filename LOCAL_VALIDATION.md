@@ -1685,7 +1685,7 @@ and inactive staged-bundle restart/native recovery/artifact checks passed (exit 
 bundle `2379801775c3d8f2e3619e1c3295198cf4edaf05d42afb58e8d938a1dda9950a`.
 
 Full `sh scripts/check.sh` passed **248 tests in 606.298s**, exit code 0, including the
-Node.js caller checks and diff whitespace check. Installed acceptance remains pending. Evidence is in
+Node.js caller checks and diff whitespace check. Installed acceptance follows below. Evidence is in
 `.artifacts/runtime-observer-rollover-20260926/`. The full log includes an unclosed SQLite
 ResourceWarning during fixture garbage collection; the preceding 235-test baseline log also
 contains this warning. It is not hidden as a clean warning-free run. No failed test has been
@@ -1696,3 +1696,44 @@ A normal authenticated operation-status read reconciled it to succeeded/committe
 No DB update, command relaunch or effect cancellation was used. The C20/C22 source segment
 `20260926-160813-coarse-228cd9c7` was pinned and its previously reported SHA-256 reverified before
 cutover preparation. Prior shortcut bytes and current observer settings were backed up.
+
+## Resident caller guidance and observer installed acceptance — 2026-09-26
+
+Source commit `753c895` was pushed to `origin/tdev` before the authorized cutover. The controlled
+installer and separate `--check` passed with resident **0.1.10 / watch**, bundle
+`2379801775c3d8f2e3619e1c3295198cf4edaf05d42afb58e8d938a1dda9950a`.
+Controller PID 12847; native-CGO tunnel PID 12863 with successful control-plane polling.
+Installed files match the qualified source exactly. Config SHA-256 is unchanged, all seven
+prior incidents and acknowledgment states survive, and the correlation key is preserved.
+New process witness instance: `4a6f9860d32b9ba5` (previous `658aa49fc2d185c2`). Existing old-instance
+witness arguments must not be reused after this restart. Authenticated HTTP discovery returns
+all twelve tools and the new operation-tool caller guidance. No new marker experiment or
+incident report/ack was performed. Optional rotated logs absent before and after export remain
+explicit coverage gaps, not a claim of complete tracing. Diagnostic storage errors were zero.
+
+The existing coarse observer ran through the resident replacement and sampled the new instance
+before its own controlled update. The cutover segment contains 108 old-instance samples and six
+new-instance samples, with no unavailable sample observed (sampling cannot exclude a shorter
+inter-sample outage). Its last segment was gracefully closed and its SHA-256 checked;
+current/prior cutover segments and the historical boundary segment were pinned. The private
+command now matches `scripts/tdev-observe`, revision 2, SHA-256
+`1481c5f2dfec385d8490b3baf92d5639ca7bd6b5e0edc6203c8a804121dc1aaf`.
+New independent worker PID 15003 uses the exact installed sampler bundle. It retains 10-second
+sampling, hourly/64 MiB rollover, 24-hour/512 MiB retention with KEEP exemptions; fine mode was
+inactive and was not started. The old-last/new-first sample interval was **2.660422707 seconds**.
+First sample contained the expected frontier/instance with zero unavailable/storage errors;
+a later nine-sample readback also had zero unavailable, storage errors and event gaps.
+Observer process restart establishes a new baseline, so its generationChanges counter begins
+at zero; the cross-worker transition is documented here and in the cutover evidence packet.
+
+Evidence: `.artifacts/runtime-observer-rollover-20260926/` contains the full/affected/SDK/rehearsal
+logs, before/after diagnostic exports, installer/check output, installed-acceptance.json,
+observer-cutover.json, prior shortcut bytes and preserved-boundary-evidence.json. Existing user
+observations, credentials and unrelated files were preserved. The pre-update script backup can
+be restored independently of the resident; production rollback still uses the installer.
+
+Real ChatGPT discovery must be refreshed to receive the updated tool description. This only
+publishes caller guidance; it cannot force the assistant to use the helper, issue another cell
+or update the visible UI. Existing full controller instructions and helper remain the executable
+reference. Real ChatGPT scheduling/visible continuity remains outstanding and is to be assessed
+during normal authorized work, not another density or Stop experiment.
