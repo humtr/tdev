@@ -179,6 +179,8 @@ def point(root, ident):
     require(len(ident) == 64 and all(c in "0123456789abcdef" for c in ident), "BUNDLE_IDENTITY")
     destination = root / "versions" / ident
     manifest = verify(destination)
+    from .connection_model import compatible
+    compatible(root, destination)
     state = root / "state"
     state.mkdir(exist_ok=True, mode=0o700)
     with open(state / "controller.lock", "a+b") as lock:

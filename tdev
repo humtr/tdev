@@ -1,0 +1,5 @@
+#!/data/data/com.termux/files/usr/bin/sh
+set -eu
+cd "$(dirname "$0")"
+export PYTHONPATH="$PWD/src:$PWD/.tdev-deps"
+exec python -m tdev.cli "$@"

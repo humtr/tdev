@@ -152,6 +152,7 @@ print(s.server_port,flush=True); s.serve_forever()
         atomic_write(root / 'tunnel-profiles/tdev.yaml', profile)
         atomic_write(root / 'resident.json', canonical({
             'home': str(root), 'port': 18080, 'profileDigest': digest(profile),
+            'tunnelId': 'tunnel_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
             'runtime': {'binary': str(native_tunnel), 'digest': digest(native_tunnel.read_bytes()),
                         'mode': 'native-cgo'}}))
         launcher_probe = """import sys

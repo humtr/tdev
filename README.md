@@ -55,6 +55,16 @@ isolation. See the [trust boundary](ARCHITECTURE.md#3-native-trust-and-containme
 
 ## Current work
 
+Source **0.1.13** adds the local `tdev` CLI and installation-owned multiple Tunnel connections.
+Run `./tdev` for the menu or `./tdev link` to install the command shortcut. Connection-specific
+Bearer/no-auth mode, token copying/rotation, independent lifecycle and controller-only setup
+preserve the existing owner/task model and legacy clients. See the
+[CLI guide](OPERATIONS.md#local-cli-and-multiple-tunnel-connections).
+All **291 tests**, pinned-client forwarding, official MCP SDK and isolated rehearsals pass.
+The CLI shortcut is installed; the production resident remains **0.1.11 / watch**.
+Real multi-workspace ChatGPT acceptance remains outstanding.
+
+
 Source **0.1.12** adds interactive fresh installation and internal local authentication for
 Tunnel-authorized callers without a host Bearer field. Complete CLI/profile installs remain
 noninteractive; existing residents preserve their exact auth mode/credentials. First-install

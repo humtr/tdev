@@ -20,6 +20,7 @@ import time
 import uuid
 from pathlib import Path
 
+from . import connection_model as cm
 from .common import Fault, atomic_write, canonical, digest, private_file, require
 
 NAMES = ('tdev', 'tdev-tunnel')
@@ -75,16 +76,24 @@ def get_health(port):
         c.close()
 
 
-def templates(root):
+def templates(root, settings=None):
     """Stable launchers resolve a verified active bundle on every supervised restart."""
     import shlex
     root = Path(root)
     shell = shutil.which('sh')
-    for name, role in zip(NAMES, ('controller', 'tunnel')):
+    if settings is None and (root/'resident.json').exists():
+        settings = json.loads(private_file(root/'resident.json'))
+    settings = settings or {}
+    names = cm.services(settings) if settings else NAMES
+    by_service = {cm.service(i): i for i in cm.entries(settings)}
+    for name in names:
+        role = 'controller' if name == 'tdev' else 'tunnel'
         service = root / 'services' / name
         (service / 'log').mkdir(parents=True, exist_ok=True, mode=0o700)
         setup = 'export PYTHONPATH=' + shlex.quote(str(root / 'active/src') + ':' + str(root / 'active/.tdev-deps')) + '\n'
         argv = [sys.executable, '-m', 'tdev.resident', 'run', '--root', str(root), '--role', role]
+        if name in by_service:
+            argv += ['--connection', by_service[name]]
         atomic_write(service / 'run', ('#!' + shell + '\nset -eu\nexec 2>&1\numask 077\n' + setup + 'exec ' + shlex.join(argv) + '\n').encode(), 0o700)
         log = root / 'logs' / name
         log.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -93,13 +102,18 @@ def templates(root):
         atomic_write(service / 'down', b'')
 
 
-def run_service(root, role):
+def run_service(root, role, connection=None):
     from .admin import verify
     root = Path(root).resolve()
     settings = json.loads(private_file(root / 'resident.json'))
     active = (root / 'active').resolve()
-    require(digest(private_file(root / 'tunnel-profiles/tdev.yaml')) == settings['profileDigest'], 'TUNNEL_PROFILE_CHANGED')
     verify(active)
+    if role == 'tunnel':
+        ident = connection or 'legacy'
+        c = cm.entries(settings).get(ident)
+        require(c and c['enabled'], 'CONNECTION_DISABLED')
+        profile_dir, profile, health_file = cm.paths(root, ident)
+        require(digest(private_file(profile_dir/(profile+'.yaml'))) == c['profileDigest'], 'TUNNEL_PROFILE_CHANGED')
     env = {**os.environ, 'HOME': settings['home'],
            'PYTHONPATH': str(active / 'src') + ':' + str(active / '.tdev-deps')}
     if role == 'controller':
@@ -111,8 +125,8 @@ def run_service(root, role):
         # Supervision retries on an unavailable controller; no duplicate detached daemon.
         health = get_health(settings['port'])
         require(health.get('bundle') == active.name, 'CONTROLLER_IDENTITY')
-        argv = [runtime['binary'], 'run', '--profile-dir', str(root / 'tunnel-profiles'), '--profile', 'tdev',
-                '--health.listen-addr', '127.0.0.1:0', '--health.url-file', str(root / 'tunnel-health.url')]
+        argv = [runtime['binary'], 'run', '--profile-dir', str(profile_dir), '--profile', profile,
+                '--health.listen-addr', '127.0.0.1:0', '--health.url-file', str(health_file)]
         if runtime['mode'] == 'termux-chroot':
             argv = [runtime['wrapper'], *argv]
             env['CA_BUNDLE'] = runtime['caBundle']
@@ -206,19 +220,21 @@ class Runit:
         require(len(matches) == 1, 'DUPLICATE_CONTROLLER')
         return {'pid': p['pid'], 'bundle': bundle, 'version': h['version']}
 
-    def tunnel_ready(self, root, settings):
-        require(digest(private_file(root / 'tunnel-profiles/tdev.yaml')) == settings['profileDigest'], 'TUNNEL_PROFILE_CHANGED')
-        pid = self.pid(self.svdir / 'tdev-tunnel')
+    def tunnel_ready(self, root, settings, ident='legacy'):
+        c = cm.entries(settings)[ident]
+        profile_dir, profile, health_file = cm.paths(root, ident)
+        require(digest(private_file(profile_dir/(profile+'.yaml'))) == c['profileDigest'], 'TUNNEL_PROFILE_CHANGED')
+        pid = self.pid(self.svdir / cm.service(ident))
         p = process(pid)
         runtime = settings['runtime']
         require(p is not None, 'TUNNEL_IDENTITY')
-        matches = [q for q in processes() if option(q['argv'], '--profile-dir') == str(root / 'tunnel-profiles')
-                   and option(q['argv'], '--profile') == 'tdev' and 'run' in q['argv']]
+        matches = [q for q in processes() if option(q['argv'], '--profile-dir') == str(profile_dir)
+                   and option(q['argv'], '--profile') == profile and 'run' in q['argv']]
         require(len(matches) == 1, 'TUNNEL_IDENTITY')
         if runtime['mode'] != 'termux-chroot':
             require(matches[0]['pid'] == pid and Path(p['exe']).resolve() == Path(runtime['binary']).resolve(), 'TUNNEL_IDENTITY')
         require(digest(Path(runtime['binary']).read_bytes()) == runtime['digest'], 'TUNNEL_BINARY_CHANGED')
-        argv = [runtime['binary'], 'health', '--url-file', str(root / 'tunnel-health.url'), '--require-control-plane-poll', '--json']
+        argv = [runtime['binary'], 'health', '--url-file', str(health_file), '--require-control-plane-poll', '--json']
         if runtime['mode'] == 'termux-chroot':
             argv = [runtime['wrapper'], *argv]
         value = json.loads(command(argv).stdout)
@@ -337,17 +353,27 @@ class Installation:
             sync(self.svdir)
 
     def desired(self, snapshots):
-        return {name: old['down'] if old else False for name, old in snapshots.items()}
+        desired = {name: old['down'] if old else False for name, old in snapshots.items()}
+        settings = self.settings()
+        if 'connections' in settings:
+            for ident, c in cm.entries(settings).items():
+                desired[cm.service(ident)] = not c['enabled']
+        return desired
 
     def start_desired(self, desired, bundle):
         settings = self.settings()
         if not desired['tdev']:
             self.backend.up(self.svdir / 'tdev')
             retry(lambda: self.backend.controller_ready(self.root, settings, bundle))
-        if not desired['tdev-tunnel']:
-            require(not desired['tdev'], 'SERVICE_ORDER', 'Enable the controller before the tunnel')
-            self.backend.up(self.svdir / 'tdev-tunnel')
-            retry(lambda: self.backend.tunnel_ready(self.root, settings))
+        for ident, c in cm.entries(settings).items():
+            if not desired.get(cm.service(ident), True):
+                require(not desired['tdev'], 'SERVICE_ORDER', 'Enable the controller before the tunnel')
+                self.backend.up(self.svdir / cm.service(ident))
+                if 'connections' not in settings:
+                    retry(lambda: self.backend.tunnel_ready(self.root, settings))
+                else:
+                    # Local process start is part of update; remote availability is observed separately.
+                    retry(lambda: self.backend.pid(self.svdir / cm.service(ident)))
 
     def replace_config(self, data, expected):
         # Serialize with operator delegation commands, then compare under that lock.
@@ -361,12 +387,15 @@ class Installation:
 
     def recover(self):
         if not self.journal.exists():
+            if (self.root/'connection-transaction.json').exists():
+                from .connections import Connections
+                Connections(self.root, self.backend).recover_locked()
             return
         j = json.loads(private_file(self.journal))
         require(j['svdir'] == str(self.svdir), 'SVDIR')
         if j['phase'] not in ('prepared', 'committed'):
             settings = self.settings()
-            for name in reversed(NAMES):
+            for name in reversed(tuple(j['services'])):
                 directory = self.svdir / name
                 backup = self.root / 'service-backups' / j['id'] / name
                 if backup.exists() and j['services'][name] is not None:
@@ -412,18 +441,25 @@ class Installation:
             settings = self.settings()
             require(not (self.svdir / 'tdev-oai-tunnel').exists(), 'STALE_SERVICE', 'Remove the stale old-name service explicitly')
             manifest = verify(self.root / 'versions' / bundle)
+            cm.compatible(self.root, self.root/'versions'/bundle)
+            cm.verify_profiles(self.root, settings)
             config_before = None
             if config is not None:
                 config_before = private_file(self.root / 'config.json')
                 require(digest(config_before) == expected_config, 'CONFIG_CHANGED')
+                require(config.get('credentials', {}) == json.loads(config_before).get('credentials', {}) and
+                        config.get('connectionFormat') == json.loads(config_before).get('connectionFormat') and
+                        {p:v['tokenHash'] for p,v in config['principals'].items()} ==
+                        {p:v['tokenHash'] for p,v in json.loads(config_before)['principals'].items()},
+                        'SECURITY_STATE_CHANGED', 'Software update cannot restore credential history')
                 from jsonschema import Draft202012Validator
                 schema = json.loads((self.root / 'versions' / bundle / 'contracts/config.schema.json').read_bytes())
                 require(Draft202012Validator(schema).is_valid(config), 'CONFIG')
             require('src/tdev/resident.py' in manifest['files'], 'RESIDENT_BUNDLE_REQUIRED',
                     'Selected bundle predates resident services; keep the current services and choose a resident-capable bundle')
-            snapshots = {name: self.snapshot(name, settings) for name in NAMES}
+            snapshots = {name: self.snapshot(name, settings) for name in cm.services(settings)}
             desired = self.desired(snapshots)
-            require(not desired['tdev'] or desired['tdev-tunnel'], 'SERVICE_ORDER', 'Disable the tunnel while its controller is disabled')
+            require(not desired['tdev'] or all(d for n, d in desired.items() if n != 'tdev'), 'SERVICE_ORDER', 'Disable tunnels while controller is disabled')
             active = os.readlink(self.root / 'active') if (self.root / 'active').is_symlink() else None
             j = {'id': uuid.uuid4().hex, 'phase': 'prepared', 'svdir': str(self.svdir), 'active': active, 'services': snapshots}
             if config_before is not None:
@@ -434,13 +470,14 @@ class Installation:
                 self.fence(j['id'])
                 j['phase'] = 'changing'
                 atomic_write(self.journal, canonical(j))
-                for name in reversed(NAMES):
+                for name in reversed(tuple(snapshots)):
                     if snapshots[name]:
                         self.backend.down(self.svdir / name)
                 if config_before is not None:
                     self.replace_config(canonical(config), (expected_config,))
                 point(self.root, bundle)
-                for name in NAMES:
+                templates(self.root, settings)
+                for name in snapshots:
                     self.write_service(name, settings)
                 self.start_desired(self.desired(snapshots), bundle)
                 j['phase'] = 'committed'
@@ -449,7 +486,7 @@ class Installation:
             except Exception:
                 self.recover()
                 raise
-            return {'installed': True, 'bundle': bundle, 'services': list(NAMES), **infra}
+            return {'installed': True, 'bundle': bundle, 'services': list(snapshots), **infra}
 
     def check(self):
         from .admin import verify
@@ -458,7 +495,7 @@ class Installation:
         settings = self.settings()
         bundle = verify(self.root / 'active')['id']
         result = {'bundle': bundle, 'services': {}}
-        for name in NAMES:
+        for name in cm.services(settings):
             directory = self.svdir / name
             self.owned(directory, settings)
             down = self.backend.wanted_down(directory)
@@ -472,7 +509,15 @@ class Installation:
                 result['services'][name] = {'desired': 'down'}
             else:
                 fn = self.backend.controller_ready if name == 'tdev' else self.backend.tunnel_ready
-                value = fn(self.root, settings, bundle) if name == 'tdev' else fn(self.root, settings)
+                if name != 'tdev' and 'connections' in settings:
+                    ident = next(i for i in cm.entries(settings) if cm.service(i) == name)
+                    try:
+                        value = fn(self.root, settings, ident)
+                    except (Fault, OSError, ValueError):
+                        result['services'][name] = {'desired': 'up', 'healthy': False}
+                        continue
+                else:
+                    value = fn(self.root, settings, bundle) if name == 'tdev' else fn(self.root, settings)
                 result['services'][name] = {'desired': 'up', **value}
         return result
 
@@ -481,7 +526,7 @@ class Installation:
             self.backend.preflight()
             self.recover()
             settings = self.settings()
-            snapshots = {name: self.snapshot(name, settings) for name in NAMES}
+            snapshots = {name: self.snapshot(name, settings) for name in cm.services(settings)}
             j = {'id': uuid.uuid4().hex, 'phase': 'prepared', 'svdir': str(self.svdir),
                  'active': os.readlink(self.root / 'active'), 'services': snapshots}
             atomic_write(self.journal, canonical(j))
@@ -491,7 +536,7 @@ class Installation:
                 atomic_write(self.journal, canonical(j))
                 destination = self.root / 'service-backups' / j['id']
                 destination.mkdir(parents=True, mode=0o700)
-                for name in reversed(NAMES):
+                for name in reversed(tuple(snapshots)):
                     if snapshots[name]:
                         self.backend.remove(self.svdir / name, destination / name)
                 j['phase'] = 'committed'
@@ -508,8 +553,9 @@ def main():
     parser.add_argument('action', choices=['run'])
     parser.add_argument('--root', required=True)
     parser.add_argument('--role', choices=['controller', 'tunnel'], required=True)
+    parser.add_argument('--connection')
     args = parser.parse_args()
-    run_service(args.root, args.role)
+    run_service(args.root, args.role, args.connection)
 
 
 if __name__ == '__main__':

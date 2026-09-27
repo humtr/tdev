@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Installation-owned Tunnel connections",
+  "type": "object",
+  "propertyNames": {
+    "pattern": "^(legacy|conn_[0-9a-f]{32})$"
+  },
+  "additionalProperties": {
+    "type": "object",
+    "required": [
+      "id",
+      "name",
+      "tunnelId",
+      "enabled",
+      "authMode",
+      "credentialId",
+      "profileDigest"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "pattern": "^(legacy|conn_[0-9a-f]{32})$"
+      },
+      "name": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,47}$"
+      },
+      "tunnelId": {
+        "type": "string",
+        "pattern": "^tunnel_[a-z0-9]{32}$"
+      },
+      "enabled": {
+        "type": "boolean"
+      },
+      "authMode": {
+        "enum": [
+          "bearer",
+          "tunnel"
+        ]
+      },
+      "credentialId": {
+        "oneOf": [
+          {
+            "type": "null"
+          },
+          {
+            "type": "string",
+            "pattern": "^cred_[0-9a-f]{32}$"
+          }
+        ]
+      },
+      "profileDigest": {
+        "type": "string",
+        "pattern": "^[0-9a-f]{64}$"
+      }
+    },
+    "additionalProperties": false
+  }
+}

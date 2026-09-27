@@ -161,23 +161,37 @@ def show_connection(root, settings, show_bearer=False):
     elif show_bearer and interactive():
         secret = private_file(Path(root)/'connector.secret').strip()
         print('Connector Bearer:\n' + secret.decode() + '\nSaved privately to:\n' + str(Path(root)/'connector.secret'), file=sys.stderr)
-        copied = False
-        clipboard = shutil.which('termux-clipboard-set')
-        if clipboard:
-            try:
-                with subprocess.Popen([clipboard], stdin=subprocess.PIPE, stdout=subprocess.DEVNULL,
-                                      stderr=subprocess.DEVNULL, start_new_session=True) as proc:
-                    try:
-                        proc.communicate(input=secret, timeout=3)
-                        copied = proc.returncode == 0
-                    except subprocess.TimeoutExpired:
-                        # The Termux wrapper can spawn termux-api; bound the whole private process group.
-                        try: os.killpg(proc.pid, signal.SIGKILL)
-                        except ProcessLookupError: pass
-                        proc.communicate()
-            except (OSError, subprocess.SubprocessError):
-                pass
-        print('Copied to Android clipboard. Paste into your connector authentication field.' if copied else
-              'Clipboard unavailable. Copy the credential shown above manually.', file=sys.stderr)
+        copy_token(secret)
+
     else:
         print('Connector Bearer is preserved privately at ' + str(Path(root)/'connector.secret'), file=sys.stderr)
+
+
+def copy_token(secret):
+    copied = False
+    clipboard = shutil.which('termux-clipboard-set')
+    if clipboard:
+        try:
+            with subprocess.Popen([clipboard], stdin=subprocess.PIPE, stdout=subprocess.DEVNULL,
+                                  stderr=subprocess.DEVNULL, start_new_session=True) as proc:
+                try:
+                    proc.communicate(input=secret, timeout=3)
+                    copied = proc.returncode == 0
+                except subprocess.TimeoutExpired:
+                    # The Termux wrapper can spawn termux-api; bound the whole private process group.
+                    try: os.killpg(proc.pid, signal.SIGKILL)
+                    except ProcessLookupError: pass
+                    proc.communicate()
+        except (OSError, subprocess.SubprocessError):
+            pass
+    print('Copied to Android clipboard. Paste into your connector authentication field.' if copied else
+          'Clipboard unavailable. Copy the credential shown above manually.', file=sys.stderr)
+    return copied
+
+
+def deliver_token(secret, file):
+    copied = copy_token(secret)
+    if not copied and interactive():
+        print('Connector Bearer:\n' + secret.decode(), file=sys.stderr)
+    return {'secretFile': str(file), 'copied': copied,
+            'hint': 'Paste into the connector Bearer field' if copied else 'Read the private secret file locally; no secret is returned in JSON'}

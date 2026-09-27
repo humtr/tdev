@@ -11,7 +11,7 @@ import time
 import uuid
 from pathlib import Path
 
-from . import admin, installer_setup
+from . import admin, installer_setup, connection_model as cm
 from .common import Fault, atomic_write, canonical, digest, private_file, require
 from .resident import Installation, NAMES, Runit, command, option, process, processes
 
@@ -52,6 +52,23 @@ def discover_profile(port):
                     pass
     require(len(profiles) <= 1, 'TUNNEL_PROFILE_REQUIRED', 'Multiple matching profiles; select --profile-file')
     return profiles.pop() if profiles else None
+
+
+def configure_controller(root, port=8765):
+    root = Path(root)
+    require(1 <= port <= 65535, 'PORT')
+    if not (root/'config.json').exists(): admin.init_config(root)
+    config = json.loads(private_file(root/'config.json'))
+    config['connectionFormat'] = 1
+    config.setdefault('credentials', {})
+    atomic_write(root/'config.json', canonical(config))
+    runtime = admin._select_tunnel_runtime(root)
+    require(runtime['mode'] != 'unprepared', 'TUNNEL_CLIENT_INSTALL')
+    runtime['digest'] = digest(Path(runtime['binary']).read_bytes())
+    settings = {'installation':uuid.uuid4().hex, 'port':port, 'home':str(Path.home()),
+                'runtime':runtime, 'connections':{}}
+    atomic_write(root/'resident.json', canonical(settings))
+    return settings
 
 
 def configure(root, port=8765, tunnel_id=None, key_file=None, profile_file=None, auth_mode=None):
@@ -196,6 +213,7 @@ def main():
     parser.add_argument('--tunnel-id')
     parser.add_argument('--runtime-key-file')
     parser.add_argument('--profile-file')
+    parser.add_argument('--controller-only', action='store_true', help='Fresh local installation with no Tunnel connections')
     parser.add_argument('--connector-auth', choices=('tunnel', 'bearer'),
                         help='Fresh setup only: Tunnel authorization with internal local credential, or host-provided Bearer')
     parser.add_argument('--takeover', action='store_true', help='Stop this installation\'s manual controller and matching managed Tunnel')
@@ -207,6 +225,7 @@ def main():
     require(not (args.diagnostics or args.diagnostic_principal) or not any(
         (args.no_start, args.check, args.rollback, args.uninstall, args.recover)), 'INSTALL_OPTIONS')
     require(not args.connector_auth or not any((args.no_start, args.check, args.rollback, args.uninstall, args.recover)), 'INSTALL_OPTIONS')
+    require(not args.controller_only or not any((args.tunnel_id, args.runtime_key_file, args.profile_file, args.connector_auth, args.takeover, args.rollback, args.check, args.uninstall, args.recover, args.no_start)), 'INSTALL_OPTIONS')
     root = Path(args.root or args.directory or default_root()).absolute()
     source = Path(__file__).resolve().parents[2]
     if args.no_start:
@@ -229,11 +248,15 @@ def main():
         backend = Runit()
         backend.preflight()
         with installer_setup.setup_lock(root):
-            plan = installer_setup.select(root, args.port, args.tunnel_id, args.runtime_key_file,
-                                          args.profile_file, args.connector_auth, discover_profile)
+            if args.controller_only:
+                require(not (root/'resident.json').exists(), 'RESIDENT_CONFIG_EXISTS')
+                plan = None
+            else:
+                plan = installer_setup.select(root, args.port, args.tunnel_id, args.runtime_key_file,
+                                              args.profile_file, args.connector_auth, discover_profile)
             admin.prepare_tunnel(root)
             staged = admin.stage(root, source)
-            settings = _configure(root, plan)
+            settings = configure_controller(root, args.port) if args.controller_only else _configure(root, plan)
         inst = Installation(root, backend)
         # No live mutation until bundle/config/prerequisites and exact ownership are known.
         # Bundle schema/config are checked before retiring any previous service.
@@ -248,19 +271,23 @@ def main():
             inst.recover()
             for request in args.retire_legacy:
                 retire_legacy(inst, request)
-            for name in NAMES:
+            for name in cm.services(settings):
                 inst.snapshot(name, settings)
             if args.takeover:
                 takeover(root, settings, backend)
         bundle = json.loads(private_file(root / 'previous.json'))['target'].split('/')[-1] if args.rollback else staged['bundle']
         config_update, config_expected = None, None
         previous_config = root / 'previous-config.json'
-        if args.rollback and previous_config.exists():
+        current_security = json.loads(private_file(root/'config.json'))
+        if args.rollback and previous_config.exists() and not current_security.get('connectionFormat'):
             saved = json.loads(private_file(previous_config))
             if saved['bundle'] == bundle:
                 require(digest(private_file(root / 'config.json')) == saved['expected'], 'CONFIG_CHANGED')
                 import base64
                 config_update = json.loads(base64.b64decode(saved['before']))
+                current_security = json.loads(private_file(root/'config.json'))
+                for key in ('credentials', 'connectionFormat'):
+                    if key in current_security: config_update[key] = current_security[key]
                 config_expected = saved['expected']
         if args.diagnostics or args.diagnostic_principal:
             original = private_file(root / 'config.json')

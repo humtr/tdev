@@ -280,8 +280,8 @@ admissions/replays; it cannot revoke an already running native process's app-UID
 Private config stays outside source; MCP has no config/install/release endpoint. Actual
 provider/user permissions remain the upper bound.
 
-Fresh personal installations default to Tunnel authorization plus an internal local service
-credential. OpenAI's organization/workspace association and Tunnels Use permission govern the
+The scripted installer supports Tunnel authorization plus an internal local service
+credential. The guided CLI offers Bearer-required as its initial connection default. OpenAI's organization/workspace association and Tunnels Use permission govern the
 upstream path; the Tunnel ID is not itself a credential. The runtime API key authenticates the
 outbound client separately. The installer retains the existing connector.secret/tokenHash model:
 only a private local header-value file contains the derived Bearer header, referenced through
@@ -298,6 +298,32 @@ tunnel-client 0.0.14 resolves whole-header file references locally and applies f
 last, case-insensitively. A wrong incoming Authorization therefore fails rather than falling
 back to the internal secret. MCP headers are not control-plane headers. No authentication bypass
 or additional public HTTP endpoint is introduced.
+
+Local connection management supports zero or more independent Tunnel ingress paths for one
+installation. New connection credentials map to the existing owner principal through the
+config credential registry; they do not create new principals, grants or task ownership.
+Principal tokenHash remains the installation-wide compatibility credential, including existing
+connector.secret/Local Codex use. Registry credentials are additional, uniquely hashed credentials
+with active/disabled/revoked states. Authentication reads current config on each request;
+requests already authenticated before revocation may continue to admission. Accepted durable
+operations are not cancelled by connection lifecycle actions. Revoked credentials never become
+active through enable; rotation creates a new credential identity. Credential identity is not
+proof of the actual Tunnel path and is not a new authorization key.
+
+Each connection has a stable ID, mutable display name, auth mode, desired enabled state and
+profile digest. Exact collection shape is owned by contracts/connections.schema.json; credential
+wire shape belongs to config.schema.json. Runtime credentials are installation-owned private
+copies per connection; equal values are allowed and removal never revokes the upstream key or
+deletes the supplied source file. Fresh connections have dedicated local secrets. The migrated
+default connection preserves its original profile/mode and shared connector.secret. Disabling
+or removing that legacy connection stops its transport but does not revoke the shared token.
+Explicit rotation moves it to a dedicated token while leaving the compatibility token valid.
+
+Bearer-required mode rejects missing host authorization. No-auth-compatible mode (stored as
+tunnel) injects a local Bearer when the host supplies none, accepts valid explicit host Bearer,
+and rejects invalid explicit Bearer. It does not grant per-workspace isolation: all current
+connections use the owner's existing permissions. In compatible mode Tunnel admission is
+sufficient to use that authority; supplying Bearer voluntarily does not make it mandatory.
 
 ### Delegated projects and managed tasks
 
@@ -671,17 +697,40 @@ root recovery; tdev does not duplicate it or silently install shared infrastruct
 Production activation needs user authority. Bundle verification is not protection from
 hostile same-UID code. Native runner is included without extra executor enrollment.
 
+Connection-aware installations derive their runit service set from the registered collection,
+including a valid controller-only set. Each client has separate profile, health, process and log
+paths; executables and the controller remain shared. Local profile/binary identity is verified
+before updates. External poll failures produce per-connection degraded observations rather than
+rolling back an otherwise valid local update or declaring the controller corrupt. Common
+controller updates still use the existing maintenance/outstanding-operation fence; individual
+connection changes do not restart the controller or fence/cancel development work.
+
+Connection changes serialize with installation changes and persist a forward-recovery intent.
+Auth/config CAS is committed before stopping the selected transport; a failed stop leaves its
+dedicated credential blocked and an explicit pending recovery. Restart/enable happens after
+profile/header and desired-state persistence. Recovery finishes the same intent without minting
+another token or restoring revoked credentials. Preparation interrupted before intent may leave
+private unregistered files; they grant no access and are not destructively swept. Concurrent
+operator config changes stop recovery rather than being overwritten. Removed connection-owned
+secrets/profiles are deleted after transport removal; logs/service recovery evidence survive.
+
+Software update cannot change credential registry or compatibility token hashes. On a
+connection-aware installation, CLI rollback preserves the current operator config rather than
+restoring historical config snapshots. Bundles unable to read connection/security state are
+rejected before changing services or active pointer. These guarantees cover supported operator
+flows, not arbitrary same-UID edits/restoration of private files.
+
 Setup resolves inputs before writing credentials and prompts only on actual stdin/stderr TTYs
 when required inputs are missing. Complete CLI/profile inputs remain noninteractive. New
 resident settings persist connectorAuth; absent legacy settings retain their original profile
 and host-Bearer semantics. Adoption of preexisting config/profile defaults to Bearer, never
-silently to shared Tunnel authority. Updating a resident cannot select a different auth mode.
+silently to shared Tunnel authority. Updating software cannot select a different auth mode; the explicit local connection command can.
 A nonsecret pending setup intent plus private idempotent file writes allow first-install retry
 without credential rotation; an interrupted secret/config pair reuses its secret. Existing state
 with missing config requires restoration. Setup serialization precedes the existing service
 transaction; no partially prepared setup starts services. Service failure/recovery/uninstall
 preserves these settings and credential files for retry. Terminal disclosure is restricted to
-an explicitly selected fresh Bearer setup on a TTY after successful installation, with optional
+an explicitly selected fresh Bearer setup or explicit local token command on a TTY, with optional
 bounded clipboard delivery through stdin. Ordinary JSON output/receipts never contain secrets.
 
 ### Local lifecycle diagnostics

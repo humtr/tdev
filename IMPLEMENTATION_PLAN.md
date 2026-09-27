@@ -86,6 +86,14 @@ goal also requires the work below.
 
 ## Next implementation sequence
 
+For the explicitly requested local CLI/multiple-Tunnel work, preserve principal/task ownership
+first, qualify credential admission and legacy compatibility, then connection-local lifecycle
+and journal recovery, followed by installation-wide update/rollback and the guided CLI. Run
+focused/affected/full checks plus isolated runit and pinned-client forwarding qualification.
+Source publication and a CLI shortcut do not authorize changing the existing live connection
+mode or installing an unqualified resident; real cross-workspace acceptance remains separate.
+
+
 The user's resident-service request prioritizes tdev's own service installation and manual
 runtime replacement before the remaining development-environment work in step 2. Complete
 that concrete deployment, then return to persistent environments/dependency reuse/processes;

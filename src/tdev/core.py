@@ -50,6 +50,9 @@ class Controller:
         require(value.get("version") == 1 and isinstance(value.get("principals"), dict)
                 and isinstance(value.get("repositories"), dict), "CONFIG")
         hashes = [p["tokenHash"] for p in value["principals"].values()]
+        credentials = value.get("credentials", {})
+        require(all(c["principal"] in value["principals"] for c in credentials.values()), "CONFIG", "Unknown credential principal")
+        hashes.extend(c["tokenHash"] for c in credentials.values())
         require(len(hashes) == len(set(hashes)), "CONFIG", "One credential must identify one principal")
         for name, repo in value["repositories"].items():
             require(re.fullmatch(r"[A-Za-z0-9_.-]+", name) and repo.get("kind") in ("local", "github"), "CONFIG")
@@ -69,6 +72,9 @@ class Controller:
         for principal, entry in config["principals"].items():
             if hmac.compare_digest(hashed, entry.get("tokenHash", "")):
                 return principal
+        for credential in config.get("credentials", {}).values():
+            if credential["state"] == "active" and hmac.compare_digest(hashed, credential["tokenHash"]):
+                return credential["principal"]
         raise Fault("AUTHENTICATION_REQUIRED")
 
     def authorize(self, principal, repo=None, ref=None):

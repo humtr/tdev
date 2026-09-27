@@ -11,6 +11,8 @@ import time
 from pathlib import Path
 
 from tdev.admin import stage, init_config
+from tdev.connections import Connections
+from tdev import connection_model as cm
 from tdev.common import Fault, atomic_write, canonical, digest, require
 from tdev.installer import configure
 from tdev.resident import Installation, Runit, command, process, retry
@@ -50,8 +52,8 @@ def main():
             def preflight(self):
                 daemon_call('status')
                 return {'svdir':str(self.svdir),'recoveryMonitor':True}
-            def tunnel_ready(self, root, settings):
-                pid=self.pid(self.svdir / 'tdev-tunnel'); p=process(pid)
+            def tunnel_ready(self, root, settings, ident='legacy'):
+                pid=self.pid(self.svdir / cm.service(ident)); p=process(pid)
                 require(p and str(binary) in p['argv'], 'TUNNEL_STARTING')
                 return {'pid':pid,'mode':'fixture','controlPlanePoll':False}
         backend=FixtureRunit(svdir); i=Installation(root,backend)
@@ -88,9 +90,31 @@ def main():
             assert not (svdir / 'tdev').exists() and not (svdir / 'tdev-tunnel').exists()
             assert (root / 'config.json').exists() and (root / 'state/state.sqlite').exists()
             assert all((root/name).read_bytes()==data for name,data in auth_files.items())
-            print(json.dumps({'isolatedRealRunit':True,'installUpdate':True,'controllerCrashRecovery':True,
+            # Extend the same isolated graph to multiple independent connections.
+            i.install(bundle)
+            manager=Connections(root,backend)
+            manager.change('add','personal',tunnel_id='tunnel_'+'b'*32,key_file=key,mode='bearer')
+            manager.change('add','business',tunnel_id='tunnel_'+'c'*32,key_file=key,mode='tunnel')
+            a=cm.select(manager.settings(),'personal'); b=cm.select(manager.settings(),'business')
+            retry(lambda: backend.tunnel_ready(root,manager.settings(),a['id']))
+            retry(lambda: backend.tunnel_ready(root,manager.settings(),b['id']))
+            controller_pid=backend.pid(svdir/'tdev'); other_pid=backend.pid(svdir/cm.service(b['id']))
+            manager.change('mode','personal',mode='tunnel')
+            manager.change('disable','personal')
+            assert backend.pid(svdir/'tdev')==controller_pid
+            assert backend.pid(svdir/cm.service(b['id']))==other_pid
+            manager.change('rotate','personal'); manager.change('enable','personal')
+            retry(lambda: backend.tunnel_ready(root,manager.settings(),a['id']))
+            manager.change('remove','personal')
+            manager.change('disable','business')
+            i.install(bundle); checked=i.check()
+            assert checked['services'][cm.service(b['id'])]['desired']=='down'
+            i.uninstall()
+            assert not (svdir/cm.service(b['id'])).exists()
+            assert (root/'connector.secret').read_bytes()==auth_files['connector.secret']
+            print(json.dumps({'bundle':bundle,'isolatedRealRunit':True,'installUpdate':True,'controllerCrashRecovery':True,
                               'tunnelProcessCrashRecovery':True,'rootMonitorRecovery':True,'intentionalDownPreserved':True,
-                              'uninstall':True,'internalAuthFilesPreserved':True,
+                              'uninstall':True,'internalAuthFilesPreserved':True,'multiConnectionLifecycle':True,'otherProcessUnchanged':True,
                               'liveServicesTouched':False,'tunnelProvider':'fixture'},indent=2))
         finally:
             daemon_call('stop')

@@ -41,6 +41,99 @@ chmod 600 /absolute/private/staging-root/tunnel-env/CONTROL_PLANE_API_KEY
 
 The resident tunnel profile refers to that file; no secret is placed in argv or repository configuration.
 
+## Local CLI and multiple Tunnel connections
+
+Use `./tdev` from the source checkout for a menu; `./tdev link` installs the `tdev` shortcut in
+Termux's existing PATH directory (otherwise ~/.local/bin). It refuses to overwrite an unrelated
+command. The shortcut uses this checkout, so keep it in place. `tdev help` lists all commands;
+noninteractive `tdev` prints help. `--root PATH` or TDEV_ROOT selects another installation.
+
+```sh
+tdev status
+tdev install
+tdev connection add
+tdev connection list
+```
+
+`install` creates or updates the local resident. For a fresh root it first installs a controller
+with zero connections, then offers to add a Tunnel. No Tunnel ID/key is needed if you decline.
+Termux service and pinned runtime prerequisites still apply. `connection add` prompts for name,
+existing OpenAI Tunnel ID, hidden runtime API key, and authentication mode. Its default is
+Bearer-required; choose option 2 for No-auth compatibility. Different connections may belong
+to independent OpenAI environments, each subject to its own provider permissions. All currently
+map to the same existing owner and share its tasks/projects/permissions. No grants are added.
+
+For an existing installation, update the resident to a connection-capable version before changing
+connections. Source checkout/publication alone does not update it:
+
+```sh
+tdev update
+tdev connection token default
+tdev connection mode default no-auth
+```
+
+These are operator actions: `update` replaces the resident using the current CLI source checkout;
+it never pulls unreviewed remote source. `update /path/to/qualified/checkout` selects another
+source. The first connection change imports the existing Tunnel as `default`, preserving its
+original auth mode and secret. Explicit `connection migrate` performs only that registration.
+The token command copies the existing token to Android clipboard; it does not rotate it.
+If clipboard is unavailable, a real terminal displays it for manual copying. Non-TTY output
+contains only a private file path/status. Credentials are never passed as shell arguments.
+
+| Command | Behaviour |
+|---|---|
+| `tdev connection mode personal bearer` | Require a host Bearer; local startup probes stay authenticated |
+| `tdev connection mode personal no-auth` | Allow ChatGPT None through internal injection; valid host Bearer also works; wrong Bearer fails |
+| `tdev connection token personal` | Copy existing token for connector registration |
+| `tdev connection disable personal` | Block dedicated token admission and stop that client; preserve other clients/work |
+| `tdev connection enable personal` | Resume a disabled connection; never revive a revoked token |
+| `tdev connection rotate personal` | Revoke old dedicated token, create a new one; then use token to copy it |
+| `tdev connection revoke personal` | Revoke dedicated token and disable; rotate before enabling again |
+| `tdev connection rename personal private` | Change display name without changing service/credential identity |
+| `tdev connection remove personal` | Remove its owned transport/profile/secrets; preserve shared keys and logs |
+
+The legacy default token also serves Local Codex/other clients. Disable/remove of `default`
+does not revoke that shared token. Rotate default explicitly to assign a dedicated connection
+token; the old compatibility secret remains valid for other clients. The automatic internal
+header uses the existing secret until such explicit rotation. These credentials are not proof
+of the actual Tunnel path or verified ChatGPT account identity.
+
+`status` and `connection list` separate desired state, process and observed Tunnel health.
+`--json` returns the detailed machine-readable report. A failed external poll does not mean the
+controller is down. `tdev check` validates installed ownership; `tdev recover` finishes interrupted
+installation/connection intent. Do not delete recovery journals to unblock a change. When a
+concurrent operator edit causes CONFIG_CHANGED, preserve both records and reconcile it explicitly.
+`rollback` retains current credentials/config on connection-aware installations and refuses
+incompatible older bundles. `uninstall` preserves data/credentials for a later reinstall.
+
+Existing development and diagnostic tools are available through authenticated localhost calls:
+
+```sh
+tdev tools
+tdev workspace list
+tdev task list
+tdev project list
+tdev operation status OPERATION_ID
+tdev diagnostics inspect
+tdev schema task
+tdev call task --input arguments.json
+tdev observer status
+```
+
+`schema` shows the authoritative tool arguments; `call` accepts any existing MCP tool's JSON
+arguments (`--input -` reads stdin). Keep the same requestId when reconciling a lost reply;
+the CLI never retries or invents a second operation. Tool errors return nonzero exit status.
+`admin` exposes existing local operator delegation commands with the selected root. `observer`
+uses the separate local observer process and does not run it through MCP. No command claims
+ChatGPT UI delivery or host liveness. Observer start/stop are explicit commands only.
+
+Scripted connection creation is also available:
+
+```sh
+tdev connection add business --tunnel-id tunnel_0123456789abcdef0123456789abcdef \
+  --runtime-key-file /private/runtime.key --mode bearer
+```
+
 ## Resident installation and deployment
 
 `bash install.sh` installs or updates the owned `tdev` and `tdev-tunnel` services in the shared

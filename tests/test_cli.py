@@ -1,0 +1,116 @@
+import contextlib
+import io
+import json
+import os
+import tempfile
+import threading
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+
+from tdev import cli
+from tdev.admin import init_config
+from tdev.codex_bridge import Bridge
+from tdev.common import Fault, atomic_write, canonical, digest
+from tdev.core import Controller
+from tdev.server import make_server
+
+
+class CLITest(unittest.TestCase):
+    def setUp(self):
+        self.temp=tempfile.TemporaryDirectory(); self.addCleanup(self.temp.cleanup)
+        self.root=Path(self.temp.name); init_config(self.root)
+        self.controller=Controller(self.root/'state',self.root/'config.json')
+        self.server=make_server(self.controller)
+        self.thread=threading.Thread(target=self.server.serve_forever,daemon=True); self.thread.start()
+        self.addCleanup(self.close)
+        atomic_write(self.root/'resident.json',canonical({'installation':'cli-fixture','home':str(self.root),'port':self.server.server_port,'connections':{}}))
+        env=patch.dict(os.environ,{'SVDIR':str(self.root/'services')}); env.start(); self.addCleanup(env.stop)
+
+    def close(self):
+        self.server.shutdown(); self.thread.join(); self.server.server_close(); self.controller.close()
+
+    def run_cli(self,*args):
+        output=io.StringIO()
+        with contextlib.redirect_stdout(output):
+            code=cli.main(['--root',str(self.root),*args])
+        return code,output.getvalue()
+
+    def test_help_schema_and_read_only_tools_use_real_authenticated_http(self):
+        code,help=self.run_cli('help'); self.assertEqual(code,0); self.assertIn('connection mode',help)
+        code,output=self.run_cli('tools'); self.assertEqual(code,0)
+        self.assertEqual(len(json.loads(output)['result']['tools']),12)
+        code,output=self.run_cli('workspace','list'); self.assertEqual(code,0)
+        self.assertTrue(json.loads(output)['result']['structuredContent']['ok'])
+        code,schema=self.run_cli('schema','workspace'); self.assertEqual(code,0); self.assertIn('oneOf',json.loads(schema)); self.assertNotIn('$ref',schema)
+        self.assertNotIn((self.root/'connector.secret').read_text(),output)
+
+    def test_status_does_not_claim_an_unowned_listener_as_healthy(self):
+        code,output=self.run_cli('--json','status')
+        self.assertEqual(code,0)
+        self.assertEqual(json.loads(output)['controller']['status'],'unavailable')
+
+    def test_generic_call_preserves_request_identity_no_automatic_retry(self):
+        file=self.root/'arguments.json'; atomic_write(file,canonical({'action':'create','requestId':'cli-create','name':'from-cli'}))
+        code,first=self.run_cli('call','workspace','--input',str(file)); self.assertEqual(code,0)
+        code,second=self.run_cli('call','workspace','--input',str(file)); self.assertEqual(code,0)
+        self.assertEqual(json.loads(first),json.loads(second))
+        with patch.object(Bridge,'forward',side_effect=TimeoutError) as forward, self.assertRaises(TimeoutError):
+            self.run_cli('call','workspace','--input',str(file))
+        self.assertEqual(forward.call_count,1)
+
+    def test_multiple_credentials_http_owner_and_revocation(self):
+        cfg=json.loads((self.root/'config.json').read_bytes())
+        cfg['credentials']={'cred_'+'a'*32:{'principal':'owner','tokenHash':digest(b'fixture-a'),'state':'active'},
+                            'cred_'+'b'*32:{'principal':'owner','tokenHash':digest(b'fixture-b'),'state':'active'}}
+        atomic_write(self.root/'config.json',canonical(cfg))
+        url=f'http://127.0.0.1:{self.server.server_port}/mcp'
+        a,b=Bridge(url,'fixture-a'),Bridge(url,'fixture-b')
+        args={'name':'tdev_workspace','arguments':{'action':'create','requestId':'same-owner','name':'shared'}}
+        self.assertEqual(a.forward(1,'tools/call',args),b.forward(1,'tools/call',args))
+        cfg['credentials']['cred_'+'a'*32]['state']='revoked'; atomic_write(self.root/'config.json',canonical(cfg))
+        with self.assertRaises(Fault): a.forward(1,'tools/list',{})
+        self.assertIn('result',b.forward(1,'tools/list',{}))
+        self.assertEqual(self.run_cli('tools')[0],0)
+
+    def test_cli_errors_nonzero_and_invalid_input_never_dispatches(self):
+        code,value=self.run_cli('operation','status','missing'); self.assertEqual(code,1)
+        with patch.object(Bridge,'forward') as forward, self.assertRaises(Fault): self.run_cli('nonexistent','list')
+        forward.assert_not_called()
+        with patch('tdev.cli.interactive',return_value=False):
+            code,output=self.run_cli(); self.assertIn('interactive menu',output)
+
+    def test_token_clipboard_failure_discloses_only_on_terminal(self):
+        from tdev.installer_setup import deliver_token
+        with patch('tdev.installer_setup.copy_token',return_value=False), patch('tdev.installer_setup.interactive',return_value=False), contextlib.redirect_stderr(io.StringIO()) as stderr:
+            value=deliver_token(b'fixture-secret',self.root/'secret')
+        self.assertNotIn('fixture-secret',stderr.getvalue()+json.dumps(value))
+        with patch('tdev.installer_setup.copy_token',return_value=False), patch('tdev.installer_setup.interactive',return_value=True), contextlib.redirect_stderr(io.StringIO()) as stderr:
+            deliver_token(b'fixture-secret',self.root/'secret')
+        self.assertIn('fixture-secret',stderr.getvalue())
+
+    def test_friendly_no_auth_mode_is_normalized_without_rotating(self):
+        with patch('tdev.connections.Connections') as factory:
+            factory.return_value.change.return_value = {'connections':[]}
+            code,_ = self.run_cli('connection','mode','personal','no-auth')
+        self.assertEqual(code,0)
+        factory.return_value.change.assert_called_once_with('mode','personal',mode='tunnel')
+
+    def test_link_is_explicit_and_preserves_unrelated_command(self):
+        with patch('tdev.cli.Path.home',return_value=self.root), patch.dict(os.environ,{'PREFIX':str(self.root/'prefix')}):
+            self.run_cli('link')
+            file=self.root/'.local/bin/tdev'; self.assertEqual(file.stat().st_mode&0o777,0o700)
+            self.assertIn(' -m tdev.cli ',file.read_text())
+            self.run_cli('link')
+            file.write_text('unrelated user command')
+            with self.assertRaises(Fault): self.run_cli('link')
+            self.assertEqual(file.read_text(),'unrelated user command')
+
+    def test_install_guides_controller_only_without_tunnel_and_preserves_update_root(self):
+        other=self.root/'fresh'
+        with patch('tdev.cli.installer') as install, patch('tdev.cli.interactive',return_value=True), patch('tdev.cli.answer',return_value='n'):
+            cli.main(['--root',str(other),'install'])
+        install.assert_called_once_with(other,'install',None,controller_only=True)
+        with patch('tdev.cli.installer') as install:
+            cli.main(['--root',str(self.root),'update'])
+        install.assert_called_once_with(self.root,'update',None,controller_only=False)

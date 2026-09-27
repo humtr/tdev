@@ -1637,6 +1637,71 @@ with the independent observer covering the entire workload. Verify whether the h
 response metadata and collect actual visible progress/Stop/successor/resume separately. Local
 authenticated installed MCP success does not qualify ChatGPT UI continuity or its private runner.
 
+## Local CLI and multiple Tunnel connections — 2026-09-27
+
+Fresh source/canonical/remote head: `302c91bf57d313e071bfc2a281514ee73838e6ee`.
+README/AGENTS, authentication/resident architecture, config/tool contracts, execution order and
+installer/resident/core source were rebound. The subsequent user requirement adds a local CLI
+rather than requiring users to assemble install.sh options. Source 0.1.13 adds connection-owned
+lifecycle and additional credentials mapping to the existing owner; the original compatibility
+secret remains unchanged. No new MCP management endpoint or per-workspace RBAC is introduced.
+
+`./tdev link` installed an owned command at `$PREFIX/bin/tdev` and `tdev help`/`tdev status`
+readback succeeded. The command points at this checkout, not a replacement resident bundle.
+Read-only production status still reports 0.1.11 / watch and the existing default Bearer Tunnel.
+No production update, connection migration, mode switch, token rotation, clipboard write or
+observer restart was performed. Existing artifacts, node_modules, profiles and observations survive.
+
+Focused CLI/connection checks passed **24 tests in 37.949s** on the final executable source. Earlier affected CLI, connections,
+setup, admin, resident, HTTP and contract checks passed **63 tests in 99.385s**; subsequent focused
+coverage adds the friendly no-auth spelling, malformed profile/credential rejection, standalone
+expanded tool schemas, and status refusing to claim an unowned listener as healthy. Full
+repository validation passed **291 tests in 765.003s**, with `OK` in check-final.log. Both
+staged and unstaged `git diff --check` passed after completion. The original process handle
+was unavailable after session resume, so a separately retrieved process exit code is not claimed. Evidence is in
+`.artifacts/multi-connection-20260927/`.
+
+Coverage includes multiple credentials sharing one owner/workspace/replay, real HTTP revocation,
+compatibility token preservation, dedicated disable/revoke/rotate/remove, mode header scope and
+secret preservation, no restart of unrelated services, same shared runtime-key source preservation,
+rename identity, zero-connection install, update/uninstall, crash after revocation or rotation,
+failed stop, config CAS conflict, remote health degradation, old-bundle rollback rejection and
+security-snapshot rejection. CLI tests cover all-tool forwarding, exact request identity/no retry,
+nonzero tool errors, non-TTY help, guided installation, shortcut conflicts and explicit token
+clipboard/fallback delivery. Existing real PTY/clipboard timeout/secret-input tests remain covered.
+
+The first affected run found that old inactive bundle fixtures lack a config schema; compatibility
+validation was limited to present schemas while new connection state still requires a capable
+bundle. This failure is preserved in affected-initial.log. The initial inactive rehearsal reached
+native recovery/artifact checks but failed its synthetic launcher settings, which omitted Tunnel
+ID. The fixture now supplies the required legacy identity; no production validation was weakened.
+The successful inactive rehearsal is in rehearsal-final.log, bundle
+`ea36092b8754162777468e3d6b6cf624d1800acad8746702c5f22426de0ffd3c`. After final CLI changes,
+both inactive and real-runit rehearsals passed again against the same final bundle
+`95b3bb5e7a0748c4e29712e809f5575239e7b709eb87f937f4d07c3cd2cb96dd`
+(rehearsal-qualified.log and services-qualified-final.log).
+
+The initial full run was deliberately interrupted (exit 130) after the CLI review found two
+additional improvements: binding status to installation process identity and expanding schema
+references. It is retained as check.log, not counted as PASS. The new status fixture initially
+lacked an installation identity and inherited the live supervisor path; its corrected fixture
+now has explicit identity and a disposable SVDIR. The final focused run above passes. Full
+validation of the final source is in check-final.log. It includes the existing unclosed SQLite
+ResourceWarning from fixture collection; this is not claimed as a warning-free run.
+
+Pinned native tunnel-client 0.0.14 forwarding checks passed both profiles: no host credential
+succeeds in compatible mode and fails in Bearer-required mode; valid Bearer succeeds in both and
+invalid Bearer fails in both. Startup discovery and all twelve-tool discovery/call remain valid;
+local auth/Host/Origin and secret scoping checks pass. Official MCP SDK 2.0.0 also passed.
+These are local mock-control-plane tests, not real ChatGPT or cross-organization acceptance.
+
+Real isolated runit rehearsal passes multiple simultaneous client processes, connection mode
+change/disable/rotate/enable/remove, unrelated controller/client PID preservation, common update,
+intentional DOWN, root-monitor recovery and uninstall. Its Tunnel executable is a process fixture,
+separate from the actual pinned-client forwarding check. Production services are not involved.
+Real independent OpenAI account/workspace connections and ChatGPT connector UI acceptance remain
+outstanding; local credentials do not attest a Tunnel path or user-visible progress.
+
 ## Interactive installation and Tunnel local authentication — 2026-09-27
 
 Fresh local/canonical/remote `tdev` head: `7f62191ca40a5f24fc379a4a950737b364753d41`.
