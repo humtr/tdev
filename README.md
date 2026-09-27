@@ -55,6 +55,14 @@ isolation. See the [trust boundary](ARCHITECTURE.md#3-native-trust-and-containme
 
 ## Current work
 
+Source **0.1.12** adds interactive fresh installation and internal local authentication for
+Tunnel-authorized callers without a host Bearer field. Complete CLI/profile installs remain
+noninteractive; existing residents preserve their exact auth mode/credentials. First-install
+interruption is retryable without secret rotation. See [installation](OPERATIONS.md#resident-installation-and-deployment)
+and [qualification](LOCAL_VALIDATION.md#interactive-installation-and-tunnel-local-authentication--2026-09-27).
+All 267 tests, pinned-client forwarding, official MCP SDK and isolated rehearsals pass.
+Real ChatGPT no-custom-credential acceptance remains outstanding; the resident is still 0.1.11.
+
 Source **0.1.11** fixes ordinary native execution dropping the operator working-storage budget.
 New command/process/source-validation payloads retain `artifactLimits.workingBytes`, so both
 child file-size and working-storage checks honor the configured value. Existing operations keep

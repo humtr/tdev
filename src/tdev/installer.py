@@ -2,7 +2,6 @@
 import argparse
 import json
 import os
-import re
 import shutil
 import signal
 import sqlite3
@@ -12,7 +11,7 @@ import time
 import uuid
 from pathlib import Path
 
-from . import admin
+from . import admin, installer_setup
 from .common import Fault, atomic_write, canonical, digest, private_file, require
 from .resident import Installation, NAMES, Runit, command, option, process, processes
 
@@ -55,47 +54,38 @@ def discover_profile(port):
     return profiles.pop() if profiles else None
 
 
-def configure(root, port=8765, tunnel_id=None, key_file=None, profile_file=None):
-    root = Path(root)
-    if (root / 'resident.json').exists():
-        settings = json.loads(private_file(root / 'resident.json'))
-        require(not tunnel_id and not key_file and not profile_file, 'RESIDENT_CONFIG_EXISTS',
-                'Existing resident settings are retained; explicit operator reconfiguration is separate')
-        return settings
-    profile_file = Path(profile_file) if profile_file else discover_profile(port)
-    prior = json.loads(private_file(profile_file)) if profile_file else {}
-    cp = prior.get('control_plane', {})
-    tunnel_id = tunnel_id or cp.get('tunnel_id')
-    key_ref = cp.get('api_key', '')
-    if key_file is None and key_ref.startswith('file:'):
-        key_file = key_ref[5:]
-    require(tunnel_id and re.fullmatch(r'tunnel_[A-Za-z0-9]+', tunnel_id), 'TUNNEL_ID_REQUIRED',
-            'Provide --tunnel-id for the existing Tunnel (no remote Tunnel is created by install)')
-    require(key_file, 'TUNNEL_KEY_REQUIRED', 'Provide --runtime-key-file; never put a key value in arguments')
-    key = private_file(key_file)
-    require(key.strip(), 'TUNNEL_KEY_REQUIRED')
-    key_target = root / 'tunnel-env/CONTROL_PLANE_API_KEY'
-    if key_target.exists():
-        require(private_file(key_target) == key, 'TUNNEL_KEY_CHANGED')
-    else:
-        atomic_write(key_target, key)
+def configure(root, port=8765, tunnel_id=None, key_file=None, profile_file=None, auth_mode=None):
+    with installer_setup.setup_lock(root):
+        plan = installer_setup.select(root, port, tunnel_id, key_file, profile_file, auth_mode, discover_profile)
+        return _configure(Path(root), plan)
+
+
+def _configure(root, plan):
+    if plan is None:
+        return json.loads(private_file(root / 'resident.json'))
     runtime = admin._select_tunnel_runtime(root)
     require(runtime['mode'] != 'unprepared', 'TUNNEL_CLIENT_INSTALL')
     runtime['digest'] = digest(Path(runtime['binary']).read_bytes())
-    settings = {'installation': uuid.uuid4().hex, 'port': port, 'home': str(Path.home()),
-                'runtime': runtime, 'tunnelId': tunnel_id}
-    directory = root / 'tunnel-profiles'
-    directory.mkdir(mode=0o700, exist_ok=True)
-    profile = {'config_version': 1, 'control_plane': {'base_url': cp.get('base_url', 'https://api.openai.com'),
-               'tunnel_id': tunnel_id, 'api_key': 'file:' + str(key_target)},
+    installer_setup.write_inputs(root, plan)
+    if not (root / 'config.json').exists():
+        admin.init_config(root)
+    header = installer_setup.local_header(root, plan['connectorAuth'] == 'tunnel')
+    settings = {'installation': uuid.uuid4().hex, 'port': plan['port'], 'home': str(Path.home()),
+                'runtime': runtime, 'tunnelId': plan['tunnelId'], 'connectorAuth': plan['connectorAuth']}
+    profile = {'config_version': 1, 'control_plane': {'base_url': plan['baseUrl'],
+               'tunnel_id': plan['tunnelId'], 'api_key': 'file:' + str(root/'tunnel-env/CONTROL_PLANE_API_KEY')},
                'health': {'listen_addr': '127.0.0.1:0', 'url_file': str(root / 'tunnel-health.url')},
                'admin_ui': {'open_browser': False}, 'log': {'level': 'info', 'format': 'json'},
-               'mcp': {'server_urls': [{'channel': 'main', 'url': f'http://127.0.0.1:{port}/mcp'}]}}
-    if cp.get('url_path'):
-        profile['control_plane']['url_path'] = cp['url_path']
+               'mcp': {'server_urls': [{'channel': 'main', 'url': f"http://127.0.0.1:{plan['port']}/mcp"}]}}
+    if header:
+        field = 'extra_headers' if plan['connectorAuth'] == 'tunnel' else 'discovery_extra_headers'
+        profile['mcp'][field] = {'Authorization': header}
+    if plan['urlPath']:
+        profile['control_plane']['url_path'] = plan['urlPath']
     settings['profileDigest'] = digest(canonical(profile))
-    atomic_write(directory / 'tdev.yaml', canonical(profile))
+    atomic_write(root / 'tunnel-profiles/tdev.yaml', canonical(profile))
     atomic_write(root / 'resident.json', canonical(settings))
+    (root / 'setup-pending.json').unlink(missing_ok=True)
     return settings
 
 
@@ -206,6 +196,8 @@ def main():
     parser.add_argument('--tunnel-id')
     parser.add_argument('--runtime-key-file')
     parser.add_argument('--profile-file')
+    parser.add_argument('--connector-auth', choices=('tunnel', 'bearer'),
+                        help='Fresh setup only: Tunnel authorization with internal local credential, or host-provided Bearer')
     parser.add_argument('--takeover', action='store_true', help='Stop this installation\'s manual controller and matching managed Tunnel')
     parser.add_argument('--diagnostics', choices=('off', 'watch'), help='Set diagnostic mode within the recoverable update transaction')
     parser.add_argument('--diagnostic-principal', action='append', default=[],
@@ -214,6 +206,7 @@ def main():
     args = parser.parse_args()
     require(not (args.diagnostics or args.diagnostic_principal) or not any(
         (args.no_start, args.check, args.rollback, args.uninstall, args.recover)), 'INSTALL_OPTIONS')
+    require(not args.connector_auth or not any((args.no_start, args.check, args.rollback, args.uninstall, args.recover)), 'INSTALL_OPTIONS')
     root = Path(args.root or args.directory or default_root()).absolute()
     source = Path(__file__).resolve().parents[2]
     if args.no_start:
@@ -235,11 +228,12 @@ def main():
         root.mkdir(parents=True, exist_ok=True, mode=0o700)
         backend = Runit()
         backend.preflight()
-        admin.prepare_tunnel(root)
-        staged = admin.stage(root, source)
-        if not (root / 'config.json').exists():
-            admin.init_config(root)
-        settings = configure(root, args.port, args.tunnel_id, args.runtime_key_file, args.profile_file)
+        with installer_setup.setup_lock(root):
+            plan = installer_setup.select(root, args.port, args.tunnel_id, args.runtime_key_file,
+                                          args.profile_file, args.connector_auth, discover_profile)
+            admin.prepare_tunnel(root)
+            staged = admin.stage(root, source)
+            settings = _configure(root, plan)
         inst = Installation(root, backend)
         # No live mutation until bundle/config/prerequisites and exact ownership are known.
         # Bundle schema/config are checked before retiring any previous service.
@@ -283,6 +277,8 @@ def main():
             if args.takeover and not inst.journal.exists():
                 restore_manual(root, settings)
             raise
+        if plan is not None:
+            installer_setup.show_connection(root, settings, plan['_showBearer'])
         if args.takeover:
             receipt = json.loads(private_file(root / 'manual-takeover.json'))
             receipt['phase'] = 'committed'

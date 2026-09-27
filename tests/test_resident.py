@@ -56,12 +56,29 @@ class ResidentTest(unittest.TestCase):
         (self.source / 'requirements.txt').write_text('')
         self.one = stage(self.root, self.source)['bundle']; init_config(self.root)
         key = self.parent / 'runtime.secret'; atomic_write(key, b'fixture-private-runtime-key')
-        self.settings = configure(self.root, tunnel_id='tunnel_fixture', key_file=key)
+        self.settings = configure(self.root, tunnel_id='tunnel_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', key_file=key)
         self.backend = FakeRunit(self.parent / 'svdir')
         self.i = Installation(self.root, self.backend)
     def next_bundle(self):
         (self.source / 'src/program.py').write_text('version=2\n')
         return stage(self.root, self.source)['bundle']
+    def test_internal_auth_survives_failed_install_update_rollback_and_uninstall(self):
+        # A disposable fresh configuration selects the new mode explicitly.
+        (self.root/'resident.json').unlink()
+        self.settings = configure(self.root, tunnel_id='tunnel_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', key_file=self.parent/'runtime.secret', auth_mode='tunnel')
+        names = ('resident.json','tunnel-profiles/tdev.yaml','connector.secret','config.json',
+                 'tunnel-env/MCP_AUTHORIZATION','tunnel-env/CONTROL_PLANE_API_KEY')
+        before = {name:(self.root/name).read_bytes() for name in names}
+        with patch.object(self.backend,'tunnel_ready',side_effect=Fault('FIXTURE_NOT_READY')), self.assertRaises(Fault):
+            self.i.install(self.one)
+        self.i.install(self.one)
+        second = self.next_bundle()
+        self.i.install(second)
+        self.i.install(self.one)
+        self.i.uninstall()
+        self.i.install(second)
+        for name,data in before.items(): self.assertEqual(data,(self.root/name).read_bytes(),name)
+        self.assertEqual(configure(self.root)['connectorAuth'],'tunnel')
     def test_update_identity_and_intentional_down(self):
         self.i.install(self.one)
         self.assertEqual(self.backend.events[:4], [('up','tdev'),('health','tdev'),('up','tdev-tunnel'),('health','tdev-tunnel')])

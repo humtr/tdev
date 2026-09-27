@@ -280,6 +280,25 @@ admissions/replays; it cannot revoke an already running native process's app-UID
 Private config stays outside source; MCP has no config/install/release endpoint. Actual
 provider/user permissions remain the upper bound.
 
+Fresh personal installations default to Tunnel authorization plus an internal local service
+credential. OpenAI's organization/workspace association and Tunnels Use permission govern the
+upstream path; the Tunnel ID is not itself a credential. The runtime API key authenticates the
+outbound client separately. The installer retains the existing connector.secret/tokenHash model:
+only a private local header-value file contains the derived Bearer header, referenced through
+the pinned client's MCP static-header configuration. tdev still binds only loopback, authenticates
+every MCP admission, checks Host/Origin and applies the principal's existing grants. No grants
+are added. All users admitted through this Tunnel share that local principal unless they supply
+another configured credential; this is not per-ChatGPT-user identity. Hostile same-UID workloads
+can read these files: local auth prevents unauthenticated/direct accidental access and preserves
+the delegation boundary, not OS isolation. Per-user OAuth and Unix sockets are separate follow-ups.
+
+Connector-provided Bearer remains an explicit alternative. Its static local header is scoped
+only to discovery/startup probes; ordinary tool calls still require the host credential.
+tunnel-client 0.0.14 resolves whole-header file references locally and applies forwarded headers
+last, case-insensitively. A wrong incoming Authorization therefore fails rather than falling
+back to the internal secret. MCP headers are not control-plane headers. No authentication bypass
+or additional public HTTP endpoint is introduced.
+
 ### Delegated projects and managed tasks
 
 Project policies authorize a fixed local root or GitHub owner, optionally repository creation,
@@ -651,6 +670,19 @@ services. A persisted DOWN marker survives shared-supervisor recovery. termux-se
 root recovery; tdev does not duplicate it or silently install shared infrastructure.
 Production activation needs user authority. Bundle verification is not protection from
 hostile same-UID code. Native runner is included without extra executor enrollment.
+
+Setup resolves inputs before writing credentials and prompts only on actual stdin/stderr TTYs
+when required inputs are missing. Complete CLI/profile inputs remain noninteractive. New
+resident settings persist connectorAuth; absent legacy settings retain their original profile
+and host-Bearer semantics. Adoption of preexisting config/profile defaults to Bearer, never
+silently to shared Tunnel authority. Updating a resident cannot select a different auth mode.
+A nonsecret pending setup intent plus private idempotent file writes allow first-install retry
+without credential rotation; an interrupted secret/config pair reuses its secret. Existing state
+with missing config requires restoration. Setup serialization precedes the existing service
+transaction; no partially prepared setup starts services. Service failure/recovery/uninstall
+preserves these settings and credential files for retry. Terminal disclosure is restricted to
+an explicitly selected fresh Bearer setup on a TTY after successful installation, with optional
+bounded clipboard delivery through stdin. Ordinary JSON output/receipts never contain secrets.
 
 ### Local lifecycle diagnostics
 

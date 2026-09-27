@@ -25,7 +25,7 @@ sh install.sh --check /absolute/private/staging-root
 Stage includes the native runner and creates DOWN service templates outside live runsvdir.
 It also creates a private mode-0700 tunnel-env directory; Termux does not need an envdir
 binary. It never starts/replaces production services. Generated connector.secret is mode
-0600; enter it only in the host credential UI, not chat/tool arguments. Initial config
+0600; in Bearer mode enter it only in the host credential UI, not chat/tool arguments. Initial config
 grants no repositories. Keep config/credentials outside source.
 
 Store the Tunnel runtime key once as an owner-only file:
@@ -59,10 +59,47 @@ bash install.sh --recover
 bash install.sh --uninstall
 ```
 
-For a fresh installation, supply `--tunnel-id tunnel_... --runtime-key-file /private/key` or
-`--profile-file /private/existing-profile.yaml` (native JSON-formatted profile). The secret file
-must be private. The installer stores a file reference, never an inline credential or secret
-argument. Repository delegation remains the explicit operator profile setup documented below.
+For a fresh installation in an interactive terminal, `bash install.sh` asks for the missing
+Tunnel ID and a hidden runtime API key, then offers connector authentication: **OpenAI Tunnel
+authorization** (the fresh default) or **Connector-provided Bearer**. Create the Tunnel and runtime
+key in OpenAI first; installation does not create them. IDs must be `tunnel_` followed by 32
+lowercase letters/digits. Prerequisites above, including running termux-services, still apply.
+EOF/Ctrl-C cancels setup. The wizard never opens another terminal or reads secrets with echo on.
+
+In the default mode, choose this Tunnel in ChatGPT and select no custom authentication (`None`
+where offered). The installer generates local credentials and a private header-value file,
+then sets `mcp.extra_headers.Authorization` to a `file:` reference. You do not copy a token into
+ChatGPT. OpenAI Tunnel permissions protect the upstream path; localhost tdev still rejects
+missing/wrong credentials. All authorized Tunnel users share the configured local authority.
+Limit Tunnel associations/Use access accordingly; the installation starts with no project grants.
+See the [authentication boundary](ARCHITECTURE.md#5-admission-and-authentication).
+
+For a host supporting custom Bearer, select option 2. After a successful explicit fresh setup
+on a TTY the installer displays the generated token once and attempts Android clipboard delivery.
+Missing Termux:API, permissions, command failure or timeout only produces a manual-copy notice.
+No token goes in argv. Updates never redisplay credentials; interrupted setup retries retain
+the token at `connector.secret`. Noninteractive output contains paths only, never the token.
+This mode uses `mcp.discovery_extra_headers` for local probes while normal calls require the
+host Bearer. An incoming wrong Authorization overrides static headers and is rejected in either
+mode; do not configure a stale/custom token when using the default Tunnel mode.
+
+Scripted fresh installation remains supported without prompts:
+
+```sh
+bash install.sh --root /absolute/private/root \
+  --tunnel-id tunnel_0123456789abcdef0123456789abcdef \
+  --runtime-key-file /private/runtime-key --connector-auth tunnel
+```
+
+Use `--connector-auth bearer` for the compatibility path. With complete CLI inputs a genuinely
+fresh root defaults to `tunnel`; preexisting config or adopted profiles default to `bearer`.
+`--profile-file /private/existing-profile.yaml` accepts the existing native JSON profile form
+with a file-backed runtime key. Custom MCP headers in an imported profile are rejected rather
+than discarded; update that profile's original installation root to preserve its authentication.
+Non-TTY input missing required values fails promptly with the required options. No
+`--non-interactive` flag is needed. Existing residents retain their exact settings/profile,
+credentials and mode; `--connector-auth` cannot be used to migrate them during update.
+Repository delegation remains the explicit operator profile setup documented below.
 A matching existing managed Tunnel profile can be discovered for the first manual-to-service
 transition; `--takeover` explicitly stops this installation's manual controller and matching
 managed runtime. Subsequent `bash install.sh` runs need neither manual server startup nor
@@ -101,6 +138,12 @@ copy of the installed recovery monitor in an isolated graph: install/update, pro
 root recovery, intentional DOWN and uninstall. Its tunnel process is a local fixture; actual
 provider health requires the live service check. The shared live graph is not killed by tests.
 Installing tdev itself does not qualify arbitrary project deployment targets.
+
+`PYTHONPATH=src:.tdev-deps python scripts/check_tunnel_auth.py --binary /path/to/tunnel-client`
+checks generated profiles using the real pinned binary, a disposable tdev and a local mock
+control plane: startup discovery, tools/list/call, header precedence, local 401/Host/Origin,
+secret scoping and log absence in both modes. It does not contact OpenAI or change live services.
+Real ChatGPT connection/discovery with no custom credential remains a separate host acceptance.
 
 ## Workspace composition and source tasks
 

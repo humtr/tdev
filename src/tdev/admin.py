@@ -232,10 +232,20 @@ def check(root):
 def init_config(root):
     root = Path(root)
     root.mkdir(parents=True, exist_ok=True, mode=0o700)
-    require(not (root / "config.json").exists() and not (root / "connector.secret").exists(), "CONFIG_EXISTS")
-    secret = secrets.token_urlsafe(48)
-    atomic_write(root / "connector.secret", secret.encode())
-    atomic_write(root / "config.json", canonical({"version": 1, "principals": {"owner": {"tokenHash": digest(secret.encode()), "repos": {}}}, "repositories": {}}))
+    with open(root / 'config.lock', 'a+b') as lock:
+        os.chmod(lock.name, 0o600)
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        require(not (root / 'config.json').exists(), 'CONFIG_EXISTS')
+        require(not (root / 'state/state.sqlite').exists(), 'CONFIG_MISSING', 'Restore config for existing state; do not initialize new credentials')
+        secret_file = root / 'connector.secret'
+        if secret_file.exists():
+            import re
+            secret = private_file(secret_file)
+            require(re.fullmatch(rb'[A-Za-z0-9_-]{32,256}', secret), 'LOCAL_CREDENTIAL_FORMAT')
+        else:
+            secret = secrets.token_urlsafe(48).encode()
+            atomic_write(secret_file, secret)
+        atomic_write(root / 'config.json', canonical({'version': 1, 'principals': {'owner': {'tokenHash': digest(secret), 'repos': {}}}, 'repositories': {}}))
     return {"config": str(root / "config.json"), "secretFile": str(root / "connector.secret"), "grants": 0}
 
 

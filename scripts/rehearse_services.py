@@ -37,7 +37,10 @@ def main():
         key = parent / 'key'; atomic_write(key, b'fixture-key')
         with socket.socket() as sock:
             sock.bind(('127.0.0.1', 0)); port = sock.getsockname()[1]
-        configure(root, port, tunnel_id='tunnel_fixture', key_file=key)
+        configure(root, port, tunnel_id='tunnel_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', key_file=key, auth_mode='tunnel')
+        auth_files = {name:(root/name).read_bytes() for name in (
+            'resident.json','config.json','connector.secret','tunnel-profiles/tdev.yaml',
+            'tunnel-env/MCP_AUTHORIZATION','tunnel-env/CONTROL_PLANE_API_KEY')}
         env = {**os.environ, 'PREFIX': str(prefix), 'SVDIR': str(svdir), 'SERVICE_DAEMON_MONITOR_INTERVAL_SECONDS': '1'}
         def daemon_call(action):
             p = subprocess.run([str(daemon), action],env=env,capture_output=True,timeout=25)
@@ -84,9 +87,11 @@ def main():
             i.uninstall()
             assert not (svdir / 'tdev').exists() and not (svdir / 'tdev-tunnel').exists()
             assert (root / 'config.json').exists() and (root / 'state/state.sqlite').exists()
+            assert all((root/name).read_bytes()==data for name,data in auth_files.items())
             print(json.dumps({'isolatedRealRunit':True,'installUpdate':True,'controllerCrashRecovery':True,
                               'tunnelProcessCrashRecovery':True,'rootMonitorRecovery':True,'intentionalDownPreserved':True,
-                              'uninstall':True,'liveServicesTouched':False,'tunnelProvider':'fixture'},indent=2))
+                              'uninstall':True,'internalAuthFilesPreserved':True,
+                              'liveServicesTouched':False,'tunnelProvider':'fixture'},indent=2))
         finally:
             daemon_call('stop')
 

@@ -1637,6 +1637,83 @@ with the independent observer covering the entire workload. Verify whether the h
 response metadata and collect actual visible progress/Stop/successor/resume separately. Local
 authenticated installed MCP success does not qualify ChatGPT UI continuity or its private runner.
 
+## Interactive installation and Tunnel local authentication — 2026-09-27
+
+Fresh local/canonical/remote `tdev` head: `7f62191ca40a5f24fc379a4a950737b364753d41`.
+README/AGENTS, installer/auth/resident architecture, config and MCP contracts, implementation
+order, operations, installer/admin/resident/server source and their tests were rebound from source.
+No managed-task-only publication rule is present for this authorized local checkout work.
+Existing untracked operator artifacts and node_modules are preserved.
+
+The actual pin remains tunnel-client **0.0.14**, Go module source commit
+`0f870e50a973fa820d4c409000059e181e8d242b`. Reviewed its configuration guide, runtimeconfig
+file-reference loading, static/forwarding round-tripper order, startup probe and Unix socket
+support. [Pinned configuration](https://github.com/openai/tunnel-client/blob/v0.0.14/docs/configuration.md)
+documents local MCP/header scopes; implementation applies connector headers last, overriding
+static headers case-insensitively. Whole-header `file:` values require a private derived header
+file, while connector.secret remains the existing raw token format for other clients.
+The [current OpenAI Tunnel guide](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels)
+requires organization/workspace association and Tunnels Read/Use; the
+[connection guide](https://developers.openai.com/plugins/deploy/connect-chatgpt) describes private
+developer-mode Tunnel connections. This is documented admission policy, not a live cross-account
+penetration test or proof that every ChatGPT UI offers the same authentication controls.
+
+Source **0.1.12** implements missing-input-only TTY setup, hidden runtime-key entry, default
+Tunnel-local auth and explicit Bearer compatibility. Complete CLI inputs do not prompt.
+Preexisting config/profile adoption retains the old Bearer default; resident updates retain
+the exact profile and credentials and reject mode selection. Profiles with custom MCP headers
+are rejected for adoption rather than silently rewritten. New personal Tunnel mode shares one
+local principal and adds no grants. Direct localhost remains authenticated. Unix sockets are
+supported upstream but would require tdev server/readiness/bridge changes, so they and per-user
+OAuth are deferred. No MCP/config wire shape or state-schema migration was required; the new
+optional resident setting is installer-owned. The patch version changes for delivered installer code.
+
+Two adjacent defects were corrected: input validation now matches the pinned client's exact
+Tunnel ID format, and first initialization can finish an interrupted secret/config pair without
+rotating its secret. Missing config for an existing state DB is rejected. Pending setup metadata
+contains no credential bytes; interruption/retry preserves auth mode and file identity. Clipboard
+uses stdin and a bounded private process group; unavailable/failed/timed-out API is nonfatal.
+The installed Termux clipboard wrapper's stdin path was read directly; the real device clipboard
+was not overwritten by tests.
+
+Focused TTY/setup checks first passed 13 tests in 3.291s; the expanded setup and lifecycle run
+passed 15 in 49.520s. After final input/clipboard changes, affected setup/admin/resident/HTTP
+checks passed **40 tests in 85.206s**. Coverage includes real PTYs, hidden key input, invalid ID
+retry, EOF, echo restoration on interrupt, non-TTY behavior, main-entry install/failure/retry/update,
+credential permissions/mismatch, clipboard success/failure/absence/timeout, and auth-file preservation
+through first-install failure, update, rollback, uninstall and reinstall.
+
+`scripts/check_tunnel_auth.py` passed using the actual pinned native binary against a disposable
+real tdev server and local mock control plane. Both generated profiles complete authenticated
+startup `server/discover` (HTTP 200), tools/list (12 tools) and tools/call. No-host-Bearer requests
+succeed only in Tunnel mode; missing host Bearer in compatibility mode and wrong incoming Bearer
+in either mode return 401. Case-insensitive incoming Authorization precedence is exercised.
+Direct localhost missing/wrong credentials fail; Host/Origin and owner principal mapping remain
+correct. The internal secret is absent from upstream requests/responses and ordinary client logs;
+the separate runtime key is absent from local MCP requests. Early harness failures were fixture
+errors (invalid sample ID, metadata GET consuming queued commands, and an incomplete startup-probe
+assertion); corrected checks assert successful modern discovery rather than equating a rejected
+initial probe with the complete discovery outcome. No server protocol downgrade was introduced.
+
+Official MCP SDK 2.0.0 checks passed. Inactive bundled native recovery/artifact/HTTP rehearsal
+passed, candidate `57623fc946f6d3ed423988b59b417a7d1555d0302f5bc45c572e4162db0c3f1a`.
+Real isolated runit rehearsal passed service and root-monitor crash recovery, update, intentional
+DOWN and uninstall, preserving all internal-auth files. Its Tunnel process is a fixture;
+the separate forwarding check above uses the actual binary. No production services were touched.
+The first full `scripts/check.sh` run was interrupted before a completion result. Its log is
+preserved as `check.log` and is not counted as PASS. The resumed full `sh scripts/check.sh`
+passed **267 tests in 710.903s**, exit code 0, including the diff whitespace check. Its log is
+`check-resumed.log`. Both logs include the preexisting unclosed SQLite ResourceWarning in test
+fixture collection; this is not represented as a warning-free run. The qualified source is
+0.1.12; the existing resident remains **0.1.11 / watch**, with its profile, credentials and
+independent observer unchanged. Source publication does not constitute resident deployment.
+Evidence: `.artifacts/installer-auth-20260927/`.
+
+Real ChatGPT no-custom-credential discovery/call acceptance on a newly configured Tunnel remains
+outstanding. Local mock-control-plane success does not prove OpenAI account admission, current
+ChatGPT UI availability, same-turn liveness or per-user identity. Existing resident authentication
+must not be implicitly migrated to obtain that acceptance.
+
 ## Native working-budget propagation — 2026-09-26
 
 Starting source/remote head: `d10a2b1cec56390547a531c673ad044b6e09cc83`. The installed
