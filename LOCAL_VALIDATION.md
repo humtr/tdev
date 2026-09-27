@@ -1637,6 +1637,38 @@ with the independent observer covering the entire workload. Verify whether the h
 response metadata and collect actual visible progress/Stop/successor/resume separately. Local
 authenticated installed MCP success does not qualify ChatGPT UI continuity or its private runner.
 
+## Numbered local CLI menus — 2026-09-27
+
+Fresh local/canonical/remote head: `317b407b7691e26adda8a55662017f8f7c8043bc`.
+Source 0.1.14 adds category navigation and stable-ID connection selection over the existing
+CLI dispatch. No MCP wire, authentication or resident lifecycle behavior is changed.
+Unrelated artifacts/node_modules are preserved. Evidence: `.artifacts/cli-menus-20260927/`.
+
+- Focused: `PYTHONPATH=src:.tdev-deps python -m unittest discover -s tests -p test_cli.py -v`,
+  **18 tests, OK, 11.280s** (`focused-final.log`).
+- Affected: `PYTHONPATH=src:.tdev-deps:tests python -m unittest test_connections test_installer_setup test_observer_continuous test_contract test_bridge -v`,
+  **41 tests, OK, 29.853s**, exit 0 (`affected.log`, `affected.exit`).
+- Full: `sh scripts/check.sh`, **300 tests, OK, 754.671s**, exit 0
+  (`check.log`, `check.exit`), including the diff whitespace check. Existing SQLite
+  ResourceWarnings appeared in fixture collection; this is not a warning-free claim.
+
+Tests exercise terminal navigation/back/quit, invalid choices, EOF/interrupt without effects,
+empty connections, stable-ID selection and installation root preservation, destructive-action
+confirmation, single diagnostic/observer dispatch, non-terminal help with no calls/writes,
+and contract-valid observation arguments. The first focused run caught a project-menu prompt
+incorrectly asking for owner/repo; the wire contract instead requires a registered repository ID.
+The corrected prompt and contract check pass; the initial failure remains in `focused.log`.
+
+Real Termux PTY checks used the installed `tdev` shortcut: root menu → exit, connection menu →
+authentication action → existing default connection picker → back → quit. No mutation was
+selected. Non-terminal `tdev help` also passed. The shortcut loads this checkout, so menus are
+available immediately without service replacement. Read-only `/healthz` now reports an existing
+resident **0.1.13 / up**, differing from the prior qualification note's 0.1.11. This session did
+not perform that update, any mode/token change, clipboard write, or observer start/stop.
+No additional pinned-client, SDK or deployment rehearsal was run for this navigation-only
+change; existing connection tests cover compatibility. Real ChatGPT multi-workspace acceptance
+remains separate and outstanding.
+
 ## Local CLI and multiple Tunnel connections — 2026-09-27
 
 Fresh source/canonical/remote head: `302c91bf57d313e071bfc2a281514ee73838e6ee`.

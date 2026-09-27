@@ -55,13 +55,22 @@ isolation. See the [trust boundary](ARCHITECTURE.md#3-native-trust-and-containme
 
 ## Current work
 
+Source **0.1.14** groups the local CLI into numbered terminal menus. Enter `tdev`,
+`tdev connection`, `tdev diagnostics`, `tdev work` or `tdev maintenance`; connection actions
+also offer a registered-connection picker. Direct commands remain available for automation,
+and non-terminal category calls show usage without prompting. See the
+[CLI guide](OPERATIONS.md#local-cli-and-multiple-tunnel-connections).
+CLI-focused **18 tests**, affected **41 tests**, and full **300 tests** pass.
+The source-backed command shortcut uses the new menus without a resident restart.
+The existing resident independently reports **0.1.13**; this menu change does not update it.
+
 Source **0.1.13** adds the local `tdev` CLI and installation-owned multiple Tunnel connections.
 Run `./tdev` for the menu or `./tdev link` to install the command shortcut. Connection-specific
 Bearer/no-auth mode, token copying/rotation, independent lifecycle and controller-only setup
 preserve the existing owner/task model and legacy clients. See the
 [CLI guide](OPERATIONS.md#local-cli-and-multiple-tunnel-connections).
 All **291 tests**, pinned-client forwarding, official MCP SDK and isolated rehearsals pass.
-The CLI shortcut is installed; the production resident remains **0.1.11 / watch**.
+At that qualification point the CLI shortcut was installed and the resident remained **0.1.11 / watch**.
 Real multi-workspace ChatGPT acceptance remains outstanding.
 
 

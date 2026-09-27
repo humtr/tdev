@@ -733,6 +733,13 @@ preserves these settings and credential files for retry. Terminal disclosure is 
 an explicitly selected fresh Bearer setup or explicit local token command on a TTY, with optional
 bounded clipboard delivery through stdin. Ordinary JSON output/receipts never contain secrets.
 
+The local CLI's terminal menus are navigation over existing operator/client commands, not a
+second lifecycle or authorization layer. Bare categories and connection selection do not dispatch
+effects. Menus retain the selected installation and connection's stable identity; opening or
+cancelling navigation never changes services/credentials. Non-terminal category invocation shows
+usage without waiting for input. Explicit commands retain their scripting semantics and MCP
+request/replay behavior; a menu selection dispatches once and exits.
+
 ### Local lifecycle diagnostics
 
 The operational core owns admission, effects and recovery; optional diagnostic adapters own

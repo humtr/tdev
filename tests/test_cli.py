@@ -37,7 +37,7 @@ class CLITest(unittest.TestCase):
         return code,output.getvalue()
 
     def test_help_schema_and_read_only_tools_use_real_authenticated_http(self):
-        code,help=self.run_cli('help'); self.assertEqual(code,0); self.assertIn('connection mode',help)
+        code,help=self.run_cli('help', 'all'); self.assertEqual(code,0); self.assertIn('connection mode',help)
         code,output=self.run_cli('tools'); self.assertEqual(code,0)
         self.assertEqual(len(json.loads(output)['result']['tools']),12)
         code,output=self.run_cli('workspace','list'); self.assertEqual(code,0)
@@ -114,3 +114,82 @@ class CLITest(unittest.TestCase):
         with patch('tdev.cli.installer') as install:
             cli.main(['--root',str(self.root),'update'])
         install.assert_called_once_with(self.root,'update',None,controller_only=False)
+
+
+class MenuTest(unittest.TestCase):
+    def main(self, args, answers=()):
+        with patch.object(cli, 'interactive', return_value=True), patch.object(cli, 'answer', side_effect=answers), contextlib.redirect_stderr(io.StringIO()), contextlib.redirect_stdout(io.StringIO()):
+            return cli.main(['--root', '/unused-menu-fixture', *args])
+
+    def test_back_invalid_choice_and_quit_never_execute(self):
+        with patch.object(cli, 'bridge') as bridge, patch.object(cli, 'installer') as install, patch('tdev.connections.Connections') as connections:
+            self.assertEqual(self.main([], ['invalid', '2', '0', '3', '2', '0', '0', 'q']), 0)
+        bridge.assert_not_called(); install.assert_not_called(); connections.assert_not_called()
+
+    def test_eof_and_interrupt_have_no_effect(self):
+        for error in (Fault('SETUP_CANCELLED'), KeyboardInterrupt()):
+            with patch.object(cli, 'interactive', return_value=True), patch.object(cli, 'answer', side_effect=error), patch.object(cli, 'installer') as install, patch.object(cli, 'bridge') as bridge, contextlib.redirect_stderr(io.StringIO()):
+                with self.assertRaises(type(error)): cli.main(['maintenance'])
+            install.assert_not_called(); bridge.assert_not_called()
+
+    def test_all_bare_groups_nonterminal_are_help_only(self):
+        from tdev.cli_menu import MENUS
+        for group in MENUS:
+            with patch.object(cli, 'interactive', return_value=False), patch.object(cli, 'answer') as answer, patch.object(cli, 'bridge') as bridge, patch('tdev.connections.Connections') as connections, patch.object(cli, 'installer') as install, contextlib.redirect_stdout(io.StringIO()) as out:
+                self.assertEqual(cli.main([] if group=='main' else [group]), 0)
+            self.assertTrue(out.getvalue()); answer.assert_not_called(); bridge.assert_not_called()
+            connections.assert_not_called(); install.assert_not_called()
+
+    def test_selected_connection_id_mode_and_explicit_root_are_preserved(self):
+        settings={'tunnelId':'tunnel_fixture', 'profileDigest':'fixture'}
+        with patch('tdev.connections.Connections') as connections:
+            connections.return_value.settings.return_value=settings
+            connections.return_value.change.return_value={'connections':[]}
+            self.assertEqual(self.main(['connection'], ['3', '1', '2']), 0)
+        connections.return_value.change.assert_called_once_with('mode','legacy',mode='tunnel')
+        for call in connections.call_args_list:
+            self.assertEqual(call.args, (Path('/unused-menu-fixture'),))
+
+    def test_omitted_connection_name_opens_picker_and_cancel_does_nothing(self):
+        with patch('tdev.connections.Connections') as connections:
+            connections.return_value.settings.return_value={'tunnelId':'tunnel_fixture','profileDigest':'fixture'}
+            connections.return_value.token.return_value={}
+            self.assertEqual(self.main(['connection','token'], ['1']), 0)
+            connections.return_value.token.assert_called_once_with('legacy')
+            connections.return_value.token.reset_mock()
+            self.assertEqual(self.main(['connection','token'], ['0']), 0)
+            connections.return_value.token.assert_not_called()
+
+    def test_empty_connections_return_to_menu(self):
+        with patch('tdev.connections.Connections') as connections:
+            connections.return_value.settings.return_value={'connections':{}}
+            self.assertEqual(self.main(['connection'], ['3', '0']), 0)
+        connections.return_value.change.assert_not_called()
+
+    def test_destructive_menu_choice_requires_explicit_confirmation(self):
+        with patch.object(cli, 'installer') as install:
+            self.assertEqual(self.main(['maintenance'], ['6', '', '0']), 0)
+            install.assert_not_called()
+            self.assertEqual(self.main(['maintenance'], ['6', 'y']), 0)
+            install.assert_called_once_with(Path('/unused-menu-fixture'),'uninstall',None,controller_only=False)
+
+    def test_diagnostics_and_observer_dispatch_once(self):
+        with patch.object(cli, 'bridge') as bridge:
+            bridge.return_value.forward.return_value={'result':{}}
+            self.assertEqual(self.main(['diagnostics'], ['1']), 0)
+        bridge.return_value.forward.assert_called_once_with(1,'tools/call',{'name':'tdev_diagnostics','arguments':{'action':'inspect'}})
+        with patch.object(cli.subprocess, 'call', return_value=0) as process:
+            self.assertEqual(self.main(['observer'], ['1']), 0)
+        self.assertEqual(process.call_count,1)
+        self.assertEqual(process.call_args.args[0][-1],'status')
+        self.assertEqual(process.call_args.kwargs['env']['TDEV_OBSERVE_ROOT'],'/unused-menu-fixture')
+
+    def test_observation_menu_arguments_follow_wire_contract(self):
+        from jsonschema import Draft202012Validator
+        from tdev.cli_menu import navigate
+        for group, identity, field in [('task','a'*32,'taskId'),('workspace','b'*32,'workspaceId'),('project','example-project','repo'),('operation','c'*32,'operationId')]:
+            responses=iter(['1' if group=='operation' else '2',identity])
+            with contextlib.redirect_stderr(io.StringIO()):
+                command=navigate(group,lambda _: next(responses),lambda: None)
+            arguments={'action':command[1],field:command[2]}
+            self.assertTrue(Draft202012Validator(cli.tool_schema('tdev_'+group)).is_valid(arguments),arguments)

@@ -45,8 +45,30 @@ The resident tunnel profile refers to that file; no secret is placed in argv or 
 
 Use `./tdev` from the source checkout for a menu; `./tdev link` installs the `tdev` shortcut in
 Termux's existing PATH directory (otherwise ~/.local/bin). It refuses to overwrite an unrelated
-command. The shortcut uses this checkout, so keep it in place. `tdev help` lists all commands;
-noninteractive `tdev` prints help. `--root PATH` or TDEV_ROOT selects another installation.
+command. The shortcut uses this checkout, so keep it in place. `tdev help` shows the main
+categories; `tdev help all` lists the full direct-command interface.
+
+In a terminal, enter just a category to select an action by number:
+
+```sh
+tdev                 # overall menu
+tdev connection      # connections, authentication mode, token copying
+tdev diagnostics     # server diagnostics and local observer
+tdev observer        # recording status/start/stop
+tdev work            # task/project/workspace/operation queries
+tdev maintenance     # installation, update, verification and recovery
+```
+
+`0` returns to the previous menu (or exits the entry menu); `q` exits navigation.
+After one selected action completes, the command exits. Connection actions offer registered
+connections by name and select their stable ID, including the legacy default. The labels show
+configured mode/desired state, not a live health assertion. `tdev connection mode` and
+`tdev connection token` also offer this picker when the name is omitted.
+Task/project/workspace/operation names alone open their own query menus; detailed queries
+currently ask for an ID or repository. Menu-based token rotation/revocation, connection removal,
+rollback and uninstall ask for confirmation. Existing explicit commands keep their original
+scripting semantics. Opening a menu performs no MCP call, service change or credential write.
+Noninteractive bare categories print available commands without prompting. `--root PATH` or TDEV_ROOT selects another installation.
 
 ```sh
 tdev status

@@ -13,9 +13,10 @@ from .installer import default_root
 from .installer_setup import answer, interactive
 
 
-HELP = '''tdev — local development and connection management
+ALL_HELP = '''tdev — local development and connection management
 
   tdev                         interactive menu (help when not a terminal)
+  tdev connection|diagnostics|observer|work|maintenance   category menus
   tdev status                  controller and connection status
   tdev install                 guided installation; optionally add first Tunnel
   tdev update [SOURCE]          install a qualified local source checkout
@@ -42,6 +43,21 @@ Use --root PATH before the command to select an installation, or set TDEV_ROOT.
 Modes: bearer requires a host token; no-auth permits No auth using local injection
 and also accepts a valid host Bearer. Invalid Bearer is always rejected.
 '''
+
+
+HELP = """tdev — 번호로 선택하는 interactive menu
+
+  tdev                 전체 메뉴
+  tdev connection      연결 / 인증 / 토큰
+  tdev diagnostics     진단 / 옵저버
+  tdev work            작업 / 프로젝트 / 실행 조회
+  tdev maintenance     설치 / 업데이트 / 복구
+  tdev status          전체 상태 바로 조회
+
+주요 메뉴만 입력하면 선택 목록이 열립니다. 0: 뒤로, q: 종료.
+tdev help all: 전체 명령. tdev help connection: 연결 메뉴.
+기존 직접 명령과 --root PATH, --json은 그대로 사용할 수 있습니다.
+"""
 
 
 def source_root():
@@ -79,18 +95,15 @@ def choose_mode():
         print('Choose 1 or 2.',file=sys.stderr)
 
 
-def menu():
-    choices = {'1':['status'],'2':['connection','list'],'3':['connection','add'],
-               '4':['connection','mode'],'5':['connection','token'],
-               '6':['diagnostics','inspect'],'7':['install'],'8':['recover']}
-    print('tdev\n1. Status\n2. Connections\n3. Add connection\n4. Change authentication mode\n'
-          '5. Copy Bearer token\n6. Diagnostics\n7. Install\n8. Recover\n0. Exit',file=sys.stderr)
-    choice = answer('Select: ')
-    if choice == '0': return []
-    require(choice in choices,'CLI_CHOICE')
-    command = choices[choice]
-    if choice in ('4','5'): command.append(answer('Connection name: '))
-    return command
+def pick_connection(root):
+    from .connections import Connections
+    from .cli_menu import connection
+    return connection(Connections(root), answer)
+
+
+def menu(root, group='main'):
+    from .cli_menu import navigate
+    return navigate(group, answer, lambda: pick_connection(root))
 
 
 def bridge(root):
@@ -116,11 +129,26 @@ def main(argv=None):
     parser.add_argument('--help',action='store_true')
     parser.add_argument('--json',action='store_true')
     options, args = parser.parse_known_args(args)
-    if options.help or args[:1] == ['help'] or not args and not interactive():
-        print(HELP); return 0
-    if not args: args = menu()
-    if not args: return 0
+    from .cli_menu import MENUS, ExitMenu, show
+    if options.help or args[:1] == ['help']:
+        topic = args[1] if args[:1] == ['help'] and len(args)>1 else (args[0] if args else 'main')
+        if topic in MENUS and topic != 'main':
+            show(topic)
+        else:
+            print(ALL_HELP if topic == 'all' else HELP)
+        return 0
+    group = 'main' if not args else args[0] if len(args)==1 and args[0] in MENUS else None
+    if group is not None and not interactive():
+        if group == 'main': print(HELP)
+        else:
+            show(group)
+            print('번호 선택은 터미널에서 가능합니다. 자동화에서는 위의 직접 명령을 사용하세요.')
+        return 0
     root = Path(options.root).absolute() if options.root else default_root()
+    if group is not None:
+        try: args = menu(root, group)
+        except ExitMenu: return 0
+    if not args: return 0
     command, *rest = args
     result = None
     if command == 'link':
@@ -169,7 +197,13 @@ def main(argv=None):
             else: result = add_connection(manager)
         elif action == 'migrate': result = manager.change('migrate')
         else:
-            name = rest[1] if len(rest)>1 else answer('Connection name: ')
+            if len(rest)>1:
+                name = rest[1]
+            else:
+                require(interactive(), 'CLI_ARGUMENT', 'Provide a connection name, or run tdev connection in a terminal')
+                try: name = pick_connection(root)
+                except ExitMenu: return 0
+                if name is None: return 0
             if action == 'inspect': result = manager.observe(name)
             elif action == 'token': result = manager.token(name)
             elif action == 'mode':
