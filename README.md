@@ -63,10 +63,14 @@ A non-service ZIP also builds/verifies/exports without a health port or deployme
 trial service is removed, trial task environments/refs are retired, and no pending effects remain;
 data, project registration, historical releases and evidence are intentionally retained.
 See [installed evidence](LOCAL_VALIDATION.md#installed-packaging-lifecycle-acceptance--2026-09-27).
-Real ChatGPT one-/two-project journey and visible continuity remain outstanding.
-The run also exposed a CLI limitation: MCP commands assume installation-wide connector.secret;
-this installation lacks that file although an active owner connection credential works. Explicit
-connection credential selection needs a follow-up; no secret was recreated or rotated.
+Real ChatGPT one-/two-project journey and visible continuity remain outstanding; the
+[baseline execution guide](examples/chatgpt/JOURNEY.md) is prepared for the actual host.
+Source **0.1.15** fixes the observed CLI credential-selection gap: `--connection NAME` uses
+that registered connection's local credential for MCP calls. If connector.secret is missing,
+terminal users can select a connection by number; automation receives an actionable error.
+No credential is silently chosen, recreated or rotated, and failed calls are never retried with
+another credential. Focused **25**, affected **27**, and full **307 tests** pass;
+installed read-only CLI calls also pass. The resident remains 0.1.14.
 
 Source **0.1.14** groups the local CLI into numbered terminal menus. Enter `tdev`,
 `tdev connection`, `tdev diagnostics`, `tdev work` or `tdev maintenance`; connection actions
@@ -257,7 +261,7 @@ See [resident evidence](LOCAL_VALIDATION.md#resident-service-installation--2026-
 
 Installed packaging delivery and lifecycle qualification is recorded in Current work above.
 The next milestone is the baseline one-/two-project ChatGPT development/deployment journey,
-with the observed CLI credential-selection gap handled before depending on that client. Measure remaining
+with explicit CLI credential selection available for local reference checks. Measure remaining
 friction before adding optional resume notes; broader package targets and concrete resource
 adapters follow. Visible-liveness observation accompanies useful work rather than replacing it.
 See the single [ordered roadmap](IMPLEMENTATION_PLAN.md#next-implementation-sequence).

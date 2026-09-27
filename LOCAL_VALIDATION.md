@@ -1637,6 +1637,46 @@ with the independent observer covering the entire workload. Verify whether the h
 response metadata and collect actual visible progress/Stop/successor/resume separately. Local
 authenticated installed MCP success does not qualify ChatGPT UI continuity or its private runner.
 
+## Explicit local CLI credential selection — 2026-09-27
+
+Source base `650e1dd3843b3c74fc6e78ce91b23bfbdb6f7b33`, source candidate 0.1.15.
+The fix adds --connection name/stable-ID for local MCP calls. Legacy default behavior remains;
+only a missing default file offers a terminal picker. Insecure/invalid credentials never cause
+fallback. Dedicated credentials require active state, known principal and matching private bytes;
+the server checks current auth again. No effect is repeated after any server/transport error.
+No wire/config schema or installed auth configuration changed. The source-backed CLI shortcut
+uses this code without a resident replacement.
+
+Evidence: `.artifacts/cli-credential-20260927/`.
+Focused `test_cli.py`: **25 tests, OK, 13.077s**. Affected `test_connections test_bridge test_http
+test_contract`: **27 tests, OK, 31.218s**, exit 0. The first full check stopped during
+resident tests across a session transition: the process no longer existed, there was no terminal
+summary or exit marker, and its partial `check.log` is not counted as PASS. A new detached local
+check runner records `check-final.log`, `check-final.exit` and a completion receipt. Final `sh scripts/check.sh`: **307 tests,
+OK, 543.729s**, exit 0, including diff whitespace check. Existing SQLite ResourceWarning
+appeared during fixture collection; this is not a warning-free claim. No production rehearsal
+was rerun for this client-only change; the existing installed read-only checks below qualify
+the actual CLI path, not a server replacement.
+Coverage includes same-owner replay across legacy/dedicated credentials, name/stable-ID selection,
+missing default non-TTY failure, terminal pick/cancel, unknown/disabled/revoked/mismatched/missing/
+symlink/public-mode selected files, legacy failures without alternate selection, server revocation
+after local credential inspection, no timeout retry and rejecting the option for local mutations.
+
+Actual source CLI read-only calls with --connection tdev_janmori succeeded against the existing
+0.1.14 resident: twelve-tool discovery and workspace list. A real PTY showed diagnostics menu →
+missing-default credential picker → q; cancellation returned 0 without MCP dispatch. No token
+was printed, copied, regenerated or rotated; resident/Tunnel services were not replaced.
+
+examples/chatgpt/JOURNEY.md prepares the real one-/two-project baseline prompt and separate
+server/caller/observer/visible evidence requirements. It is not executed ChatGPT acceptance.
+Read-only observer status at resume reports stopped, old PID 19489 and segment
+20260927-140614-coarse-f0c3cdd7, 4,509 samples, historical unavailable/storage-errors 0, but last
+sample approximately 14,000 seconds old. This is a live coverage gap, not evidence of present
+availability. The observer was not restarted; actual host observation needs a running current
+collector or an explicit coverage limitation. The first status read was incorrectly parsed as
+JSON by the local inspection command; status is human-readable and the original output is
+preserved. No product failure or secret issue was inferred from that parsing error.
+
 ## Installed packaging lifecycle acceptance — 2026-09-27
 
 Source HEAD `746344d54293e38ae1164d1f7f2417231cb11663`; resident 0.1.14, active bundle

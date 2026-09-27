@@ -740,6 +740,16 @@ cancelling navigation never changes services/credentials. Non-terminal category 
 usage without waiting for input. Explicit commands retain their scripting semantics and MCP
 request/replay behavior; a menu selection dispatches once and exits.
 
+Local CLI MCP calls default to the installation compatibility secret. An explicit --connection
+selects a registered connection's private credential by name/stable ID, without using the Tunnel
+transport. A missing default file may offer a terminal choice; non-terminal use requires explicit
+selection. Invalid/insecure default credentials never trigger fallback. Selected connections must
+be enabled and their credentials current/active, principal-bound and hash-matching; the server
+still authenticates and authorizes every request, including a revocation after local inspection.
+Local operator commands do not consume this option. Selection performs no credential creation,
+rotation, copying, persistent preference or authority change. Response/transport failures never
+retry the operation or switch credentials. A local connection choice is not Tunnel-path proof.
+
 ### Local lifecycle diagnostics
 
 The operational core owns admission, effects and recovery; optional diagnostic adapters own

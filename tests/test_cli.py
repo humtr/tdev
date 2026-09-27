@@ -115,6 +115,104 @@ class CLITest(unittest.TestCase):
             cli.main(['--root',str(self.root),'update'])
         install.assert_called_once_with(self.root,'update',None,controller_only=False)
 
+    def dedicated_connection(self):
+        ident='conn_'+'a'*32; cred='cred_'+'b'*32; token=b'fixture-dedicated-secret'
+        settings=json.loads((self.root/'resident.json').read_bytes())
+        settings['connections'][ident]={'id':ident,'name':'personal','tunnelId':'tunnel_'+'a'*32,
+            'authMode':'tunnel','enabled':True,'credentialId':cred,'profileDigest':'c'*64}
+        atomic_write(self.root/'resident.json',canonical(settings))
+        config=json.loads((self.root/'config.json').read_bytes())
+        config['credentials']={cred:{'principal':'owner','tokenHash':digest(token),'state':'active'}}
+        atomic_write(self.root/'config.json',canonical(config))
+        file=self.root/'connections'/ident/(cred+'.secret'); atomic_write(file,token)
+        return ident,cred,file
+
+    def test_explicit_connection_without_legacy_secret_uses_same_principal_and_no_writes(self):
+        ident,cred,file=self.dedicated_connection()
+        args=self.root/'create.json'; atomic_write(args,canonical({'action':'create','requestId':'owner-replay','name':'shared'}))
+        code,legacy=self.run_cli('call','workspace','--input',str(args)); self.assertEqual(code,0)
+        (self.root/'connector.secret').unlink()
+        originals={p:p.read_bytes() for p in (self.root/'config.json',self.root/'resident.json',file)}
+        for name in ('personal',ident):
+            code,output=self.run_cli('--connection',name,'call','workspace','--input',str(args))
+            self.assertEqual(code,0); self.assertEqual(json.loads(output),json.loads(legacy))
+            self.assertNotIn(file.read_text(),output)
+        for p,b in originals.items(): self.assertEqual(p.read_bytes(),b)
+        self.assertFalse((self.root/'connector.secret').exists())
+
+    def test_missing_default_nonterminal_fails_with_actionable_message_without_dispatch(self):
+        self.dedicated_connection(); (self.root/'connector.secret').unlink()
+        with patch.object(cli,'interactive',return_value=False), patch.object(Bridge,'forward') as forward:
+            with self.assertRaises(Fault) as caught: self.run_cli('workspace','list')
+        self.assertEqual(caught.exception.value['code'],'CLI_CREDENTIAL_REQUIRED')
+        self.assertIn('--connection',str(caught.exception.value)); forward.assert_not_called()
+
+    def test_terminal_missing_default_prompts_and_cancel_never_dispatches(self):
+        self.dedicated_connection(); (self.root/'connector.secret').unlink()
+        with patch.object(cli,'interactive',return_value=True), patch.object(cli,'answer',return_value='1'), contextlib.redirect_stderr(io.StringIO()) as err:
+            code,value=self.run_cli('tools')
+        self.assertEqual(code,0); self.assertEqual(len(json.loads(value)['result']['tools']),12)
+        self.assertNotIn('fixture-dedicated-secret',err.getvalue())
+        for choice in ('0','q'):
+            with patch.object(cli,'interactive',return_value=True), patch.object(cli,'answer',return_value=choice), patch.object(Bridge,'forward') as forward, contextlib.redirect_stderr(io.StringIO()):
+                self.assertEqual(self.run_cli('tools'),(0,''))
+            forward.assert_not_called()
+
+    def test_selected_missing_disabled_revoked_mismatch_and_insecure_credentials_do_not_fallback(self):
+        ident,cred,file=self.dedicated_connection()
+        settings=json.loads((self.root/'resident.json').read_bytes());config=json.loads((self.root/'config.json').read_bytes())
+        cases=['unknown','disabled','revoked','mismatch','missing','symlink','public']
+        for case in cases:
+            atomic_write(self.root/'resident.json',canonical(settings));atomic_write(self.root/'config.json',canonical(config))
+            if file.is_symlink(): file.unlink()
+            atomic_write(file,b'fixture-dedicated-secret')
+            name='personal'
+            if case=='unknown': name='absent'
+            elif case=='disabled':
+                value=json.loads(canonical(settings));value['connections'][ident]['enabled']=False
+                atomic_write(self.root/'resident.json',canonical(value))
+            elif case=='revoked':
+                value=json.loads(canonical(config));value['credentials'][cred]['state']='revoked'
+                atomic_write(self.root/'config.json',canonical(value))
+            elif case=='mismatch': atomic_write(file,b'wrong-secret')
+            elif case=='missing': file.unlink()
+            elif case=='symlink': file.unlink();file.symlink_to(self.root/'connector.secret')
+            elif case=='public': file.chmod(0o644)
+            with patch.object(Bridge,'forward') as forward, patch.object(cli,'answer') as answer:
+                with self.assertRaises(Fault,msg=case): self.run_cli('--connection',name,'tools')
+            forward.assert_not_called();answer.assert_not_called()
+
+    def test_selected_credential_server_revocation_and_transport_error_never_switch_credentials(self):
+        ident,cred,file=self.dedicated_connection()
+        client=cli.bridge(self.root,'personal')
+        cfg=json.loads((self.root/'config.json').read_bytes());cfg['credentials'][cred]['state']='revoked'
+        atomic_write(self.root/'config.json',canonical(cfg))
+        with patch.object(cli,'bridge',return_value=client) as selected, self.assertRaises(Fault):
+            self.run_cli('--connection','personal','tools')
+        selected.assert_called_once_with(self.root,'personal')
+        cfg['credentials'][cred]['state']='active';atomic_write(self.root/'config.json',canonical(cfg))
+        with patch.object(Bridge,'forward',side_effect=TimeoutError) as forward, self.assertRaises(TimeoutError):
+            self.run_cli('--connection','personal','workspace','list')
+        self.assertEqual(forward.call_count,1)
+
+    def test_legacy_bad_auth_or_permissions_do_not_offer_another_connection(self):
+        self.dedicated_connection()
+        for mode in ('wrong','public','symlink'):
+            file=self.root/'connector.secret'
+            if file.is_symlink():file.unlink()
+            atomic_write(file,b'wrong-legacy-secret')
+            if mode=='public':file.chmod(0o644)
+            if mode=='symlink':file.unlink();file.symlink_to(self.root/'config.json')
+            with patch.object(cli,'interactive',return_value=True), patch.object(cli,'answer') as answer, self.assertRaises(Fault):
+                self.run_cli('tools')
+            answer.assert_not_called()
+
+    def test_connection_option_rejects_local_mutations_and_help_is_read_only(self):
+        with patch.object(cli,'installer') as installer, patch.object(cli,'bridge') as bridge:
+            with self.assertRaises(Fault):self.run_cli('--connection','personal','update')
+            self.assertEqual(self.run_cli('--connection','personal','help')[0],0)
+        installer.assert_not_called();bridge.assert_not_called()
+
 
 class MenuTest(unittest.TestCase):
     def main(self, args, answers=()):

@@ -128,6 +128,25 @@ concurrent operator edit causes CONFIG_CHANGED, preserve both records and reconc
 `rollback` retains current credentials/config on connection-aware installations and refuses
 incompatible older bundles. `uninstall` preserves data/credentials for a later reinstall.
 
+Local MCP calls normally use the installation's existing `connector.secret`. To select a
+connection's credential explicitly, use its display name or stable ID:
+
+```sh
+tdev --connection personal tools
+tdev --connection personal workspace list
+tdev --connection personal diagnostics
+```
+
+This authenticates directly to the local controller; it does not test or traverse that Tunnel.
+The option applies to MCP calls only, not local connection/service administration. The selected
+connection must be enabled and its credential active and consistent with current config.
+A missing default secret opens a connection picker on a real terminal; cancelling sends nothing.
+Without a terminal, the error tells you to use `--connection NAME`. The CLI never automatically
+chooses a connection, recreates a missing secret or retries with another credential. An invalid
+legacy token or insecure file fails without fallback. Explicit `--connection` can be used when
+you intentionally want a different credential; it does not change existing clients or config.
+Selection is for this command only, and no secret enters arguments, logs or clipboard.
+
 Existing development and diagnostic tools are available through authenticated localhost calls:
 
 ```sh

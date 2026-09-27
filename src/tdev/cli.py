@@ -1,5 +1,6 @@
 """Human local CLI and authenticated MCP client. Secrets never enter argv or JSON receipts."""
 import argparse
+import hmac
 import json
 import os
 import shlex
@@ -8,7 +9,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from .common import Fault, atomic_write, canonical, private_file, require
+from .common import Fault, atomic_write, canonical, digest, private_file, require
 from .installer import default_root
 from .installer_setup import answer, interactive
 
@@ -40,6 +41,8 @@ ALL_HELP = '''tdev — local development and connection management
   tdev link                    install tdev shortcut in Termux bin (or ~/.local/bin)
 
 Use --root PATH before the command to select an installation, or set TDEV_ROOT.
+Use --connection NAME (or stable ID) for MCP calls with that connection's local credential.
+This selects authentication to localhost, not a Tunnel route. No credential fallback/retry.
 Modes: bearer requires a host token; no-auth permits No auth using local injection
 and also accepts a valid host Bearer. Invalid Bearer is always rejected.
 '''
@@ -57,6 +60,7 @@ HELP = """tdev — 번호로 선택하는 interactive menu
 주요 메뉴만 입력하면 선택 목록이 열립니다. 0: 뒤로, q: 종료.
 tdev help all: 전체 명령. tdev help connection: 연결 메뉴.
 기존 직접 명령과 --root PATH, --json은 그대로 사용할 수 있습니다.
+MCP 인증 연결 지정: tdev --connection NAME workspace list
 """
 
 
@@ -106,11 +110,51 @@ def menu(root, group='main'):
     return navigate(group, answer, lambda: pick_connection(root))
 
 
-def bridge(root):
+def bridge(root, connection=None):
     from .codex_bridge import Bridge
-    s = json.loads(private_file(root/'resident.json'))
-    token = private_file(root/'connector.secret').strip().decode()
-    return Bridge(f"http://127.0.0.1:{s['port']}/mcp",token)
+    from .connections import Connections
+    from .connection_model import select
+    from .cli_menu import ExitMenu
+    settings = json.loads(private_file(root/'resident.json'))
+    path = root/'connector.secret'
+    if connection is None:
+        # Only an absent legacy file offers a choice. Bad permissions/symlinks/auth do not.
+        try: path.lstat()
+        except FileNotFoundError:
+            require(interactive(), 'CLI_CREDENTIAL_REQUIRED',
+                    'connector.secret is missing; use tdev --connection NAME <command>. List names with tdev connection list')
+            print('로컬 기본 인증 파일이 없습니다. 이번 호출에 사용할 연결을 선택하세요.', file=sys.stderr)
+            connection = pick_connection(root)
+            if connection is None: raise ExitMenu
+    if connection is not None:
+        selected = select(settings, connection)
+        require(selected['enabled'], 'CLI_CONNECTION_DISABLED', 'Select an enabled connection explicitly')
+        path = Connections(root).credential_file(selected)
+        config = json.loads(private_file(root/'config.json'))
+        ident = selected['credentialId']
+        if ident is None:
+            expected = [p['tokenHash'] for p in config['principals'].values()]
+        else:
+            credential = config.get('credentials', {}).get(ident)
+            require(credential and credential['state']=='active'
+                    and credential['principal'] in config['principals'], 'CLI_CREDENTIAL_INACTIVE',
+                    'Selected connection credential is unavailable, disabled or revoked')
+            expected = [credential['tokenHash']]
+    try: token = private_file(path).strip()
+    except FileNotFoundError:
+        raise Fault('CLI_CREDENTIAL_MISSING', 'Selected credential file is missing; choose another connection explicitly or restore it') from None
+    if connection is not None:
+        require(any(hmac.compare_digest(digest(token), value) for value in expected),
+                'CLI_CREDENTIAL_MISMATCH', 'Selected credential file does not match current configuration')
+    return Bridge(f"http://127.0.0.1:{settings['port']}/mcp",token.decode())
+
+
+def forward(root, connection, method, params):
+    from .cli_menu import ExitMenu
+    try: client = bridge(root, connection)
+    except ExitMenu: return None
+    # No retry, credential fallback or second dispatch after any response/transport error.
+    return client.forward(1, method, params)
 
 
 def tool_schema(tool):
@@ -126,6 +170,7 @@ def main(argv=None):
     args = list(sys.argv[1:] if argv is None else argv)
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument('--root')
+    parser.add_argument('--connection')
     parser.add_argument('--help',action='store_true')
     parser.add_argument('--json',action='store_true')
     options, args = parser.parse_known_args(args)
@@ -151,6 +196,10 @@ def main(argv=None):
     if not args: return 0
     command, *rest = args
     result = None
+    if options.connection is not None:
+        require(command not in ('link','install','update','check','recover','rollback','uninstall',
+                                'status','connection','observer','admin','schema'),
+                'CLI_ARGUMENT', '--connection selects credentials for MCP calls only; use a positional name for connection management')
     if command == 'link':
         directory = Path(os.environ.get('PREFIX','/nonexistent'))/'bin'
         if not directory.is_dir() or str(directory) not in os.environ.get('PATH','').split(os.pathsep):
@@ -219,7 +268,7 @@ def main(argv=None):
         return subprocess.call([sys.executable,'-m','tdev.admin',*rest,'--root',str(root)],env={**os.environ,'PYTHONPATH':str(source_root()/'src')+':'+str(source_root()/'.tdev-deps')})
     elif command == 'schema':
         require(len(rest)==1,'CLI_ARGUMENT'); result = tool_schema(rest[0] if rest[0].startswith('tdev_') else 'tdev_'+rest[0])
-    elif command == 'tools': result = bridge(root).forward(1,'tools/list',{})
+    elif command == 'tools': result = forward(root,options.connection,'tools/list',{})
     else:
         p = argparse.ArgumentParser(prog='tdev '+command)
         p.add_argument('action',nargs='?'); p.add_argument('identity',nargs='?'); p.add_argument('--input')
@@ -235,7 +284,7 @@ def main(argv=None):
                 field = {'operation':'operationId','task':'taskId','workspace':'workspaceId','project':'repo'}.get(command)
                 require(field,'CLI_ARGUMENT','Use --input for this tool'); values[field] = a.identity
         tool_schema(tool)  # Reject typos before reading a credential or calling HTTP.
-        result = bridge(root).forward(1,'tools/call',{'name':tool,'arguments':values})
+        result = forward(root,options.connection,'tools/call',{'name':tool,'arguments':values})
     if result is not None:
         if not options.json and 'connections' in result:
             if 'controller' in result:
