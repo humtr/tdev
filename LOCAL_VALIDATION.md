@@ -1637,6 +1637,66 @@ with the independent observer covering the entire workload. Verify whether the h
 response metadata and collect actual visible progress/Stop/successor/resume separately. Local
 authenticated installed MCP success does not qualify ChatGPT UI continuity or its private runner.
 
+## Installed packaging lifecycle acceptance — 2026-09-27
+
+Source HEAD `746344d54293e38ae1164d1f7f2417231cb11663`; resident 0.1.14, active bundle
+`e356a2c6aea607050e9124ef6be8276c779a2721f033ef8ac092423f27f2dbe3`.
+Evidence and the local-only harness are in `.artifacts/installed-package-20260927/`:
+`calls.jsonl`, `state.json`, `result.json`, run/lifecycle/archive/finish logs and exported files.
+Run `pkg-465db7dbf0fb`, enrolled trial repo `p-db2cad4ec9177b4edb395216`, deployment
+`767660ec696b2124e244f5e500952f8e`. All effects used existing owner delegation to a new local
+project and a generated tdev-app service; no production controller/Tunnel/observer replacement,
+credential rotation, policy modification, external Git publication or arbitrary deletion.
+
+The CLI's fixed connector.secret lookup failed before HTTP because that file is missing in the
+current installation. Inspection found an active dedicated owner credential for tdev_janmori.
+The harness explicitly selected it, verified its configured hash/principal/state, read it privately
+and used Bridge.forward's modern authenticated localhost HTTP path. No token was printed, copied
+to clipboard, passed in argv or retained in evidence. Why the legacy file is absent was not
+established; healthy Tunnel probes do not establish that the local CLI credential exists. Add
+explicit connection selection rather than silently choosing another credential or rotating one.
+
+Executed acceptance:
+
+- Create isolated trial project under existing local-projects delegation; unchanged adopted
+  `sh scripts/check.sh` validates source and exported package checks. Use reviewed Python layout,
+  real public hash-pinned packaging 25.0 wheel and generated asset.
+- Prepare/verify two service versions; close tasks, retire source/build/artifact-validation
+  scratch and clean managed refs before release. Check live release header/body, dependency and
+  asset. Update while verifying the next version with the previous service still available.
+- Fresh HTTP connections observe the retained first version after rollback. Active/previous
+  versions refuse prune while running and stopped. No new build request is issued by rollback;
+  this run does not claim network denial or an instrumented absence of all network activity.
+- A candidate passed verification on its separate port but intentionally exited at the trial
+  deployment port. Release failed as expected, restored the earlier healthy service and retained
+  the failed operation. No controller/other service crash was injected.
+- Stop/start/remove; trial app-data sentinel survives. Export app source in 128-byte pages,
+  assemble and check returned SHA-256; preview/prune only the trial artifact handles after removal.
+- Non-service ZIP build and artifact verification use no service command, health port or target;
+  export/hash verification and explicit pruning pass, with retained history.
+- Reset all five trial task dependency environments through the supported API. An additional
+  service package was released successfully after its own environment and execution scratch
+  were retired, then removed and pruned. This closes the stronger runtime-independence check;
+  the first service runs alone did not prove dependency-directory absence.
+
+Final result: 70 trial operations, 69 succeeded and one intentional failed activation, no global
+running/unknown operations at final readback. Trial deployment desired=removed, revision 8,
+no running process. Trial data, enrolled initial repository, historical deployment copies/logs
+and operation evidence remain by contract; they were not destructively swept. Artifact admission
+advanced installed state from schema 3 to 5, so incompatible old bundles cannot be used for rollback.
+The controller and both Tunnel connections remain locally healthy at 0.1.14.
+
+A local harness state file briefly lost completed lifecycle fields when two independent phases
+saved stale snapshots. Per-call append-only evidence and server receipts remained intact; these
+were merged without reissuing effects, and final cleanup/readback ran sequentially. The durable
+server, not that harness state file, is the result authority.
+
+run.py, lifecycle.py, archive.py and finish.py each exited 0. These are installed acceptance
+checks, not a new full deterministic-suite run; product code was unchanged. Documentation diff
+checks pass. Actual ChatGPT host execution, visible continuity, cross-workspace acceptance,
+controller crash qualification on the live installation, native-extension/Android packaging and
+host-wide offline execution are not claimed. Earlier isolated fault/SDK evidence remains separate.
+
 ## Whole-roadmap review — 2026-09-27
 
 Reviewed at source/canonical head `aa250a66bda9e152f06bea80f17ede4a6c7251e0`.

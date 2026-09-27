@@ -55,6 +55,19 @@ isolation. See the [trust boundary](ARCHITECTURE.md#3-native-trust-and-containme
 
 ## Current work
 
+Installed native packaging acceptance now passes on resident **0.1.14** through authenticated
+local HTTP: pinned public dependency, generated asset, source/build/validation scratch retirement,
+dependency-environment removal, artifact verification, live release, update/rollback, failed-switch
+restoration, data-preserving stop/start/remove, paged export/hash checks and explicit pruning.
+A non-service ZIP also builds/verifies/exports without a health port or deployment. The owned
+trial service is removed, trial task environments/refs are retired, and no pending effects remain;
+data, project registration, historical releases and evidence are intentionally retained.
+See [installed evidence](LOCAL_VALIDATION.md#installed-packaging-lifecycle-acceptance--2026-09-27).
+Real ChatGPT one-/two-project journey and visible continuity remain outstanding.
+The run also exposed a CLI limitation: MCP commands assume installation-wide connector.secret;
+this installation lacks that file although an active owner connection credential works. Explicit
+connection credential selection needs a follow-up; no secret was recreated or rotated.
+
 Source **0.1.14** groups the local CLI into numbered terminal menus. Enter `tdev`,
 `tdev connection`, `tdev diagnostics`, `tdev work` or `tdev maintenance`; connection actions
 also offer a registered-connection picker. Direct commands remain available for automation,
@@ -159,8 +172,8 @@ and [export/prune usage](OPERATIONS.md#export-inspect-usage-and-prune-retained-a
 The retention slice passed all **186 tests**, official MCP SDK and inactive-bundle checks.
 A real isolated runit rehearsal covers packaged activation, failure recovery and export/prune;
 exact results are recorded in [LOCAL_VALIDATION.md](LOCAL_VALIDATION.md#artifact-retention-bounded-export-and-pruning--2026-09-22).
-The resident bundle now includes this tool; installed artifact build/validate/release journey
-acceptance remains outstanding. See
+Installed local-HTTP artifact build/validate/release acceptance now passes; the actual ChatGPT
+journey remains outstanding. See
 [recipe/build usage](OPERATIONS.md#inspect-a-packaging-recipe).
 
 Artifact production remains separate from service activation. The continuity review selects
@@ -177,7 +190,7 @@ releases an exact validated source candidate, verifies process and HTTP release 
 supports inspection/logs, start/stop, update, rollback and data-preserving removal. Interrupted
 switches retain recovery evidence. See [deployment usage](OPERATIONS.md#deploy-a-validated-project-on-termux).
 The installed adapter supports source releases and retained dependencies/build outputs; the latter
-still needs installed journey acceptance. Remote/container deployment and public ingress remain future work.
+now has installed local-HTTP acceptance, separate from actual ChatGPT journey acceptance. Remote/container deployment and public ingress remain future work.
 See [deployment evidence](LOCAL_VALIDATION.md#native-project-deployment--2026-09-21).
 The owned installation runs this adapter; installed MCP acceptance passed the full 140-test
 suite, live release identity, stop/restart and removal. The `owner` principal has the delegated
@@ -242,8 +255,9 @@ now delivered on the canonical tdev branch under the user-authorized 0.1 pre-rel
 this resident installation is not a product v1 release.
 See [resident evidence](LOCAL_VALIDATION.md#resident-service-installation--2026-09-21).
 
-The selected next work completes installed packaging delivery and lifecycle qualification,
-then the baseline one-/two-project ChatGPT development/deployment journey. Measure remaining
+Installed packaging delivery and lifecycle qualification is recorded in Current work above.
+The next milestone is the baseline one-/two-project ChatGPT development/deployment journey,
+with the observed CLI credential-selection gap handled before depending on that client. Measure remaining
 friction before adding optional resume notes; broader package targets and concrete resource
 adapters follow. Visible-liveness observation accompanies useful work rather than replacing it.
 See the single [ordered roadmap](IMPLEMENTATION_PLAN.md#next-implementation-sequence).

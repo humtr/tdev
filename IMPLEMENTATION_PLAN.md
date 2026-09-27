@@ -118,7 +118,9 @@ Unknown effects remain attached to their original operation/request; no ambiguou
 | 7 | Add narrow source-independent resource access | A demonstrated task needs native filesystem/process/toolchain observation without a dummy source task; bounded delegated observation and explicit ownership | Move only the specific blocker earlier if necessary; do not introduce several overlapping host/resource/connection families |
 | 8 | Add demand-selected integrations | Concrete MCP/CLI/API/model or remote/container target, then Android-use/companion if needed; attach/use/revoke/recover independently | No universal gateway, mandatory model, OAuth/RBAC or Android UI subsystem on the current critical path; shared-account restrictions require a separate user requirement |
 
-The immediate next execution is step 0 followed by steps 1–2. The core acceptance target is an
+Start with step 0 and steps 1–2 until their installed evidence is recorded in README; then
+advance to step 3. Repair concrete client blockers under step 4 when discovered rather than
+waiting until the end of the journey. The core acceptance target is an
 application running from retained verified bytes after its source/build environment is retired,
 with a proved update/rollback/cleanup path. Do not rebuild slices 1–5 simply because slice 6
 installed evidence is missing. No new language ecosystem blocks closure of the first qualified
@@ -415,8 +417,9 @@ claims out of README. Record actual acceptance and limitations in LOCAL_VALIDATI
 
 The selected queue above starts with slice 6, using the implemented
 recipe/identity, retained-build, validation and deployment boundaries. The pure-Python path has
-real selected-distribution build/relocation and isolated runit evidence; installed artifact validation/release and
-broader dependency/native-extension qualification remain outstanding.
+real selected-distribution build/relocation and isolated runit evidence; consult README for installed
+artifact validation/release acceptance. Real ChatGPT journey and broader dependency/native-extension
+qualification are separate gates.
 Product minor/major version changes still need user authority.
 
 ## Minimum semantic continuity implementation and qualification

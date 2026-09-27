@@ -832,7 +832,7 @@ observe the original unknown operation; do not launch a replacement attempt blin
 Artifact admission now advances private state to internal schema 5. Source-only state stays at 3;
 existing schema-4 metadata is preserved. Bundles supporting only schema 3/4 cannot subsequently
 activate against schema-5 state. This does not change the authorized 0.1 product line.
-Installed runtime acceptance remains outstanding.
+Installed local-HTTP acceptance is recorded in LOCAL_VALIDATION; actual ChatGPT journey acceptance remains separate.
 
 ## Export, inspect usage and prune retained artifacts
 
