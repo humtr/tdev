@@ -1637,6 +1637,28 @@ with the independent observer covering the entire workload. Verify whether the h
 response metadata and collect actual visible progress/Stop/successor/resume separately. Local
 authenticated installed MCP success does not qualify ChatGPT UI continuity or its private runner.
 
+## Whole-roadmap review — 2026-09-27
+
+Reviewed at source/canonical head `aa250a66bda9e152f06bea80f17ede4a6c7251e0`.
+Compared README, AGENTS, plan, relevant architecture and tool contracts against artifact,
+validation and deployment dispatch, the Python package example, isolated rehearsal source and
+prior recorded acceptance. This is a scoped plan/evidence audit, not a fresh whole-source defect
+review or rerun of historical live acceptance.
+
+The execution owner now has one ordered queue: installed packaging and lifecycle acceptance,
+baseline whole ChatGPT journey, measured friction fixes, then conditional semantic notes and
+additional package/resource adapters. It removes obsolete installation/diagnostic/connection
+implementation prerequisites and separates server freshness from visible continuity. Existing
+packaging and note specifications remain; no new authority document or wire schema was added.
+
+Read-only `tdev status` reports controller up/version 0.1.14 and locally healthy running
+connections `default` (bearer) and `tdev_janmori` (no-auth). No real workspace/host delivery
+acceptance follows from that observation. This review changed no runtime, credentials, services,
+observer or user work. Previously recorded 300-test qualification belongs to the executable CLI
+change, not to a new test run. This documentation-only review checks diff whitespace, Markdown
+local links/anchors in the edited plan/status documents and coherence with the scoped contracts;
+focused/affected/full executable suites and live rehearsals were not rerun. No version bump.
+
 ## Numbered local CLI menus — 2026-09-27
 
 Fresh local/canonical/remote head: `317b407b7691e26adda8a55662017f8f7c8043bc`.

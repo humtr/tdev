@@ -62,7 +62,10 @@ and non-terminal category calls show usage without prompting. See the
 [CLI guide](OPERATIONS.md#local-cli-and-multiple-tunnel-connections).
 CLI-focused **18 tests**, affected **41 tests**, and full **300 tests** pass.
 The source-backed command shortcut uses the new menus without a resident restart.
-The existing resident independently reports **0.1.13**; this menu change does not update it.
+During menu implementation the resident reported **0.1.13**. The subsequent 2026-09-27 read-only
+review reports **0.1.14 / up**, with `default` (bearer) and `tdev_janmori` (no-auth) both locally
+healthy. This observation does not establish real cross-workspace or packaged-release acceptance;
+no runtime/config change was performed during the roadmap review.
 
 Source **0.1.13** adds the local `tdev` CLI and installation-owned multiple Tunnel connections.
 Run `./tdev` for the menu or `./tdev link` to install the command shortcut. Connection-specific
@@ -80,7 +83,7 @@ noninteractive; existing residents preserve their exact auth mode/credentials. F
 interruption is retryable without secret rotation. See [installation](OPERATIONS.md#resident-installation-and-deployment)
 and [qualification](LOCAL_VALIDATION.md#interactive-installation-and-tunnel-local-authentication--2026-09-27).
 All 267 tests, pinned-client forwarding, official MCP SDK and isolated rehearsals pass.
-Real ChatGPT no-custom-credential acceptance remains outstanding; the resident is still 0.1.11.
+Real ChatGPT no-custom-credential acceptance was not established by that qualification; its resident was 0.1.11.
 
 Source **0.1.11** fixes ordinary native execution dropping the operator working-storage budget.
 New command/process/source-validation payloads retain `artifactLimits.workingBytes`, so both
@@ -230,8 +233,8 @@ Source-only state remains schema 3; this artifact-retention implementation accep
 and advances artifact admissions to schema 5 without discarding source/task/deployment records.
 Bundles that do not support schema 5
 cannot subsequently activate against it. This is an internal storage revision, not a product version.
-The resident installation still uses its existing schema-3 state. The
-installation now runs through owned runit services on localhost:8765, with the same Tunnel
+That initial resident qualification used schema-3 state; rebind the live store before migration or rollback. The
+installation runs through owned runit services on localhost:8765, with the same Tunnel
 identity, credentials and project enrollments. The old manual runtime and experimental tdev
 service/helper/agent registrations have been retired from the live graph. Historical private
 state and retired service files remain outside that graph. The accumulated implementation is
@@ -239,9 +242,12 @@ now delivered on the canonical tdev branch under the user-authorized 0.1 pre-rel
 this resident installation is not a product v1 release.
 See [resident evidence](LOCAL_VALIDATION.md#resident-service-installation--2026-09-21).
 
-The next development work completes packaging delivery qualification, then optional resume notes
-and the complete multi-project development/deployment journey, then additional concrete resource
-adapters. Persistent task dependencies and snapshot processes cover the initial native path;
+The selected next work completes installed packaging delivery and lifecycle qualification,
+then the baseline one-/two-project ChatGPT development/deployment journey. Measure remaining
+friction before adding optional resume notes; broader package targets and concrete resource
+adapters follow. Visible-liveness observation accompanies useful work rather than replacing it.
+See the single [ordered roadmap](IMPLEMENTATION_PLAN.md#next-implementation-sequence).
+Persistent task dependencies and snapshot processes cover the initial native path;
 hot reload, PTY debugging and cross-task environment sharing are not implemented.
 The native project-service adapter is separate from installation of tdev itself. Blender/MCP/device/
 computer-use/model connections remain future integrations. See

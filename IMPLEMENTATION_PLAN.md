@@ -23,7 +23,9 @@ exercise the real default runner but do not prove hostile-code isolation. Keep o
 OCI tests without treating external enrollment as a gate.
 
 Live progress continuity is a required acceptance dimension, not optional UX polish.
-The primary failure case is **same-turn staleness**: an operation advances or completes while
+Backend state freshness and ChatGPT visible continuity are distinct acceptance boundaries.
+A current operation response or completed backend cannot prove a live user-visible turn.
+One server-observable failure case is **same-turn staleness**: an operation advances or completes while
 the model is still working, but subsequent wait/status/frontier reads keep returning an older
 view, so the model waits, re-investigates completed predecessors, or stays trapped in the turn
 without doing the now-admissible next work. In observed failure this prolonged ambiguity can
@@ -86,169 +88,93 @@ goal also requires the work below.
 
 ## Next implementation sequence
 
-For the explicitly requested local CLI/multiple-Tunnel work, preserve principal/task ownership
-first, qualify credential admission and legacy compatibility, then connection-local lifecycle
-and journal recovery, followed by installation-wide update/rollback and the guided CLI. Run
-focused/affected/full checks plus isolated runit and pinned-client forwarding qualification.
-Source publication and a CLI shortcut do not authorize changing the existing live connection
-mode or installing an unqualified resident; real cross-workspace acceptance remains separate.
+This section is the single selected order. Detailed sections below are acceptance specifications,
+not competing queues. README owns implementation/current status; LOCAL_VALIDATION owns dated
+results. Earlier incident/install/connection requests do not remain perpetual prerequisites once
+implemented. Current user instructions may reprioritize an item; record the resulting order here.
 
+### Completion and evidence rules
 
-The user's resident-service request prioritizes tdev's own service installation and manual
-runtime replacement before the remaining development-environment work in step 2. Complete
-that concrete deployment, then return to persistent environments/dependency reuse/processes;
-this does not declare arbitrary project deployment or the complete coding journey finished.
+For each deliverable distinguish implemented source, local qualification, installed acceptance,
+and actual ChatGPT journey acceptance. Never collapse these into one percentage or PASS.
+Record source commit, tested bundle/config identity, artifact/validation/release identities where
+applicable, client path, result and cleanup ownership. A later version or a healthy controller
+alone does not requalify an untested journey. Reuse prior evidence unless relevant code, runtime,
+policy or host behavior changed; run focused/affected/full checks for implementation changes.
 
-1. **Resolve concepts and contracts together.** Maintain the composition model in
-   ARCHITECTURE: workspace, reusable project, source task and operation. Qualify single-project
-   defaults, multi-project targeting, source isolation, current authority, concurrent close/
-   admission, bounded current progress and restart replay. Update affected clients with
-   renamed contracts together; do not add aliases or migrations solely to preserve experimental
-   interfaces. Completion and current qualification belong in README and LOCAL_VALIDATION.
-2. **Complete routine local/Git development.** Cover project create/connect, local source
-   import, branching, comparison, editing, persistent dev processes/debugging, dependency
-   reuse, validation, commit/integration/conflict resolution, publication/readback and owned
-   cleanup. Preserve deliberate edits and recover interrupted work. Ordinary use must not
-   require manual IDs/OIDs or per-project private configuration changes. Task dependency storage
-   and snapshot development processes use existing execution/operation ownership; qualify
-   cross-task environment reuse, hot reload or PTY debugging only for a concrete next use case.
-   Support multiple project targets without implying atomic multi-repository publication.
-3. **Connect the resources needed for that path.** Establish concrete connection/runtime
-   identity, delegated authority and lifecycle using the native and Git provider paths first.
-   Keep provider effects available through authenticated connections without distributing
-   credentials to every command. Make extension points usable for selected MCP/API/CLI/device
-   adapters; a general gateway, model router or mandatory decision model is not a prerequisite.
-4. **Complete deployment and resident operation.** Bind validated artifacts to explicit
-   targets and implement deploy/status/log/stop/update/recover/remove semantics. Finish the
-   tdev Termux service installation requirements in OPERATIONS as the first concrete resident
-   deployment. Distinguish source publication, installation, readiness and actual live behaviour.
-   The first project adapter is delegated Termux runit source releases with explicit HTTP
-   release identity, stopped-service updates, rollback and data-preserving removal. Follow with
-   retained dependency/build-artifact packaging before claiming arbitrary app deployment;
-   reproducible rebuilding is an additional property to measure, not infer from retention.
-   Tests and inactive preparation do not authorize production activation.
-5. **Qualify the whole user journey.** From ChatGPT, start a new local project, develop/debug,
-   validate, integrate/publish, deploy to an authorized test target, verify identity/health,
-   update/recover and clean up. Exercise reconnects and lost responses at effect boundaries.
-   Include a two-project change. Measure human terminal/config interventions, manual identifiers,
-   tool round trips, environment startup and repeated work; the simple path must not become
-   more cumbersome because composition exists. Record measured results, not projected gains.
+Treat each unfamiliar production identity as an observation to verify, not an update instruction.
+No routine upgrade, credential rotation or observer restart is required merely to begin this plan.
+Unknown effects remain attached to their original operation/request; no ambiguous-effect retry.
 
-Only after the first complete path, qualify additional integrations as demanded by real work,
-such as Blender MCP, Android computer use or a replaceable decision model. Test attach/use/
-detach and replacement with task continuity; no selected extension becomes a dependency of
-basic development. Follow README's version policy throughout this sequence.
+| Order | Work | Completion gate | Dependency / scope limit |
+|---|---|---|---|
+| 0 | Bind the current installed acceptance target | Read current controller/bundle, grants, pending effects and an owned disposable project/service target; define cleanup and evidence paths | Read-only preparation; no broad config changes or unrelated cleanup |
+| 1 | Finish packaging slice 6 on the installed authenticated path | Pinned dependency + generated asset, source validation → retained build → artifact validation → release; exact live identity, logs and retained bytes recorded | Use the implemented native pure-Python path, not a new packaging framework |
+| 2 | Finish installed package lifecycle and non-service delivery | Retire task/build scratch through supported operations; package still runs; update, rollback without acquisition/rebuild, failed-switch recovery, stop/start/remove with data preserved; non-service file export and pin-aware prune | Own disposable effects only; app rollback cannot restore changed host runtime; use existing fault fixtures unless an installed-only gap needs a safe targeted check |
+| 3 | Qualify the baseline whole development journey | One new project and one two-project workspace, edit/debug/test/integrate/publish/package/deploy/verify/reconnect/cleanup through real ChatGPT; measure useful resumption and visible progress separately | Start without new semantic notes; local/bridge success is not ChatGPT acceptance; record blockers rather than waiting indefinitely for a host slot |
+| 4 | Repair measured friction and bound operating costs | Fix reproducible blockers from steps 1–3; measure manual IDs/config edits, redundant calls, large export cost and retained/release-copy storage; requalify affected paths | CLI artifact/deployment selectors, streaming export, historical-copy retention, hot reload/PTY or cross-task dependency reuse only when a concrete gap justifies them; preserve pins/data, no automatic GC by default |
+| 5 | Decide and qualify minimum semantic continuity | Baseline shows costly loss of working intent beyond durable facts; then bounded optional workspace notes, comparison against baseline and independent failure behavior | Existing notes design below remains the candidate; no mandatory sidecar, transcript store or per-call metadata; defer implementation if repository/task evidence is sufficient |
+| 6 | Qualify additional package targets one at a time | Native Python extension on selected Android ABI; then selected Node/static/native-binary case; bounded APK/AAB build/signature qualification when selected | Pure-Python success proves none of these. Pin actual toolchains/inputs; Android build/signature/install/live behavior are separate gates; no UI companion prerequisite |
+| 7 | Add narrow source-independent resource access | A demonstrated task needs native filesystem/process/toolchain observation without a dummy source task; bounded delegated observation and explicit ownership | Move only the specific blocker earlier if necessary; do not introduce several overlapping host/resource/connection families |
+| 8 | Add demand-selected integrations | Concrete MCP/CLI/API/model or remote/container target, then Android-use/companion if needed; attach/use/revoke/recover independently | No universal gateway, mandatory model, OAuth/RBAC or Android UI subsystem on the current critical path; shared-account restrictions require a separate user requirement |
+
+The immediate next execution is step 0 followed by steps 1–2. The core acceptance target is an
+application running from retained verified bytes after its source/build environment is retired,
+with a proved update/rollback/cleanup path. Do not rebuild slices 1–5 simply because slice 6
+installed evidence is missing. No new language ecosystem blocks closure of the first qualified
+packaging deliverable. Step 3 starts with available existing functionality before step 5 changes
+its recovery mechanism. Steps 5–8 are conditional work, not mandatory gates for closing the
+first native packaging milestone; unavailable optional clients do not prevent useful local work.
+
+### Cross-cutting acceptance tracks
+
+These tracks accompany the main queue; they do not independently restart completed implementation.
+A reproducible safety/data-loss defect can preempt it. Host-private uncertainty or a missing
+workspace/credential need not block unrelated local packaging work.
+
+| Track | Selected work | Exit / escalation rule |
+|---|---|---|
+| ChatGPT visible continuity | Observe ordinary packaging/development with bounded caller cells and sparse witnesses; independent local observer plus user-visible times; optional session B only when it adds discrimination | Backend completion, caller receipt/continuation and visible progress are separate results; a stall preserves evidence and opens a specific boundary investigation, not more density trials |
+| Connection/authentication | Qualify two independent real workspace paths to the same owner/task; Bearer-required and no-auth-compatible admission, correct/wrong/missing credentials, independent enable/disable and existing-client continuity | Healthy Tunnel processes are local evidence, not actual workspace authentication acceptance; run when those external clients are available, without replacing the packaging queue |
+| Local operator usability | Keep numbered menus and direct automation commands; assess lifecycle summaries, recoverable failures, installed/source identity and ID selection during real tasks | Add only actions that reduce measured operator burden; adding every MCP field to menus is not the goal |
+| Security and retained ownership | Current principal/policy checks, credential revocation surviving rollback, original-operation reconciliation, active/previous/in-flight artifact pins, bounded diagnostic storage | No auth weakening, deleted user evidence, silent effect retry or automatic repair based on a stale diagnostic/semantic note |
 
 ## Current priority after the continuity review
 
-The user's lifecycle investigation currently selects optional diagnostic delivery:
-bounded recording → watch/automatic activation and expiry → retained principal-scoped incidents
-and response notifications → focused failure/restart checks and full validation → inactive bundle
-rehearsal → authorized commit/push and resident update with watch enabled. Preserve operational
-independence, secrets and prior evidence. Do not treat alert offers as UI delivery. The next
-investigation is the first actual ChatGPT visible divergence, correlating server stages with
-host/cell and visible observations; further density trials need a discriminating hypothesis.
+Use the existing optional diagnostic implementation while returning to packaging delivery.
+Diagnostics remain operationally independent; continuous monitoring is not a new prerequisite
+for admission or success. Existing local evidence should be analyzed before acquiring new trials.
+The detailed investigation order below is activated by a useful evidence gap, not by elapsed time.
 
 ### Lifecycle investigation follow-up order
 
-Keep the diagnostic layer optional and fail-open; the operational core retains all effect,
-replay, cancellation and recovery decisions. The following work precedes broader packaging
-or semantic-continuity expansion while the user's visible-liveness investigation is active.
+1. **Correlate existing evidence first.** Bind runtime/process and capture coverage, original
+   request/operation and caller witness identity where available. Record server HTTP completion,
+   caller tool_return/cell_exit/next cell_enter, independent observer availability and actual
+   visible progress separately. No marker is a negative-proof shortcut; server write is not
+   caller receipt; cell_exit is not outer-result delivery; marker receipt is not UI delivery.
+2. **Observe a normal useful workload.** Reuse packaging acceptance as the workload. Apply the
+   existing bounded-cell adapter with total-attempt accounting and reserved closing witnesses;
+   the observed 20-call ceiling is not a tdev server contract and the conservative caller budget
+   is not a host guarantee. Session B must not wake A and must disclose status reconciliation.
+   Keep user-visible observation external; preserve evidence before bounded rings overwrite it.
+3. **Choose a falsifying comparison.** Only if a boundary remains ambiguous, compare equivalent
+   direct MCP / Local Codex bridge / available Code Mode / real ChatGPT behavior. Hold workload
+   and checkpoints fixed; count calls, bytes, rollover, useful progress and observation overhead.
+   Prototype aggregate observation only when redundant round trips explain material cost.
+4. **Handle control ownership separately.** Report/Stop/successor-message/resume evidence must
+   not be treated as the same defect as a natural visible stall. Existing evidence comes first;
+   additional disposable Stop/cancellation experiments require a newly selected hypothesis and
+   applicable user authorization. No revived C20/C22 or Stop campaign is implied by this plan.
+5. **Repair and qualify only the identified layer.** Fix a proved tdev issue in its semantic
+   owner, or mitigate caller pressure in the adapter. Qualify the changed path locally and in
+   the actual affected host. Report private host uncertainty explicitly. The current response
+   channel cannot guarantee host wake-up or visible rendering; recovery alone is not visible
+   success and a backend PASS must never mask that product gap.
 
-1. **Bound notification overhead.** Measure the current alert envelope bytes and repetition
-   against ordinary responses. Select a bounded retry/backoff policy with fair incident selection:
-   an unacknowledged old incident must neither flood every eligible response nor starve a new
-   incident. Retain explicit inspect/ack and distinguish delivery attempts from receipt. Test
-   lost responses, absent ack, restart, multiple principals and the retention limit. Agree the
-   resulting semantics in ARCHITECTURE/contract alongside implementation; do not silently change
-   live config or acknowledge the user's incidents to make the counter look better.
-   Add a compact principal-scoped error summary: count server signals even during incident
-   cooldown, keep client-reported observations separate, and expose coverage/retention/storage
-   limits. Classified reports must deduplicate retained request IDs, reject raw payloads and
-   preserve operational independence. Do not turn repeated failed observations into a count of
-   distinct backend operations or attribute host-private failures from server silence.
-2. **Capture the first divergence with independent observations.** Use the existing same-UID
-   snapshot/export path from a separate local observer process, with an explicit duration and
-   storage cap. Record socket/process unavailability as well as returned snapshots; same-process
-   diagnostic workers cannot attest a wholly suspended or deadlocked controller process.
-   A proposed observer must have no controller dependency, operational writes or raw payload
-   logging. Before starting a ChatGPT run, record bundle/process/key identity and workload inputs.
-   Record physical cell entry/exit, nested tool return, last visible progress and actual user
-   report/stop/resume receipt separately. Missing observations remain unknown. Pin evidence at
-   the first visible divergence, including coverage/drop counters; watch-ring overwrite and
-   absent server errors cannot establish a healthy host/UI. Bound any detailed trace separately.
-   The 2026-09-26 source adds a non-activating caller witness and optional response correlation
-   metadata for this step. Qualify replay/coverage and the independent observer locally first;
-   resident replacement is separately gated. Real ChatGPT discovery, metadata visibility and
-   await-ordered probes remain required before interpreting the next natural divergence.
-   The user-authorized 0.1.9 resident update is now installed; normal operation status
-   reconciliation cleared its initial update blocker. Continue with fresh ChatGPT discovery
-   and real-host qualification, not another source/runtime transition.
-3. **Compare one workload across available clients.** First replay through direct MCP and the
-   Local Codex bridge; then compare Codex Code Mode and real ChatGPT Code Mode where available.
-   Bind each client's current implementation/config before use. Compare coarse bounded observation
-   with repeated status polling while keeping backend work and visible checkpoints fixed. Count
-   physical invocations, admitted calls, response bytes, time to visible progress and control latency.
-   Do not hard-code the observed ChatGPT 20-call admission ceiling into tdev's server contract or
-   treat any Local Codex success as ChatGPT qualification. Prefer a host controller budget policy;
-   prototype aggregate observation only if measurements show redundant round trips dominate.
-   The selected bounded-cell reference adapter is in `examples/chatgpt`: qualify total-attempt
-   accounting, sparse-probe reservation, elapsed yielding and ambiguous-reply recovery locally.
-   Apply it to normal authorized work; further C20/C22 density or Stop experiments are not
-   selected. Actual outer-result receipt, fresh-cell scheduling and visible updates still need
-   real ChatGPT acceptance; local JS tests do not close that boundary.
-   The subsequent user request authorizes resident and observer application: publish compact
-   guidance through existing tool discovery, add an independent bounded observer frontier,
-   validate source/fixtures/SDK/inactive bundle, then update owned services and the standalone
-   collector with preserved evidence/configuration and an explicit cutover record. No server
-   enforcement of a physical-cell budget or UI-stall inference is introduced.
-4. **Qualify control ownership separately.** Use disposable delayed marker operations to test
-   report, Stop-only, successor-message plus Stop, reconnect and resume. Preserve original receipts;
-   no automatic retry of ambiguous effects. Only add server-side ownership/fencing if the evidence
-   identifies a missing enforceable boundary. A server response or diagnostic acknowledgment alone
-   is not a visible-progress or Stop acknowledgment.
-
-Release a runtime change only after focused/affected/full checks, inactive failure rehearsal and
-the authorized installed check. Qualification must report visible progress and backend terminal
-state separately, plus user control outcomes. If the host stops scheduling continuations or UI
-updates after receiving responses, tdev can preserve resumable state and reduce interaction cost,
-but cannot guarantee wake-up or same-turn visibility through the current request/response channel.
-
-The 2026-09-22 review preserves the sequence above and makes the remaining delivery order
-concrete. Architecture owns the selected boundaries; review observations are in LOCAL_VALIDATION.
-The existing packaging WIP is retained and generalized below, not discarded.
-
-1. **Settle small packaging prerequisites — this review.** Separate build host, artifact target,
-   signing transformation and deployment target. Preserve non-service outputs and optional
-   continuity/resource/Android support. The read-only Android inventory establishes plausible
-   feasibility, not a qualified toolchain. No Android-use or new host gateway is a prerequisite.
-2. **Implement packaging slices 1–6 below.** Start with the native dependency/generated-asset
-   service case and a non-service artifact fixture. This finishes the missing material path
-   using existing exec/operation ownership; source-free host access and semantic history are not
-   required to build from a source task. Qualify the exact Android toolchain separately before
-   promising APK/AAB support; a bounded APK/AAB build/signature spike may accompany packaging
-   qualification, but must not grow into companion/UI work or block the first service package.
-3. **Add minimum optional resume notes.** Use the now-stable source/artifact/deployment references
-   and existing workspace actions. This is a small independent slice before final journey
-   qualification, not a prerequisite for packaging. Defer journal compaction and conversation
-   routing unless the note-only measurements demonstrate a concrete gap.
-4. **Qualify the complete ChatGPT journey.** One new local project and one two-project workspace,
-   dependency/build output, validation/publication/deployment/recovery/cleanup, and actual fresh
-   conversations with/without notes. Measure cost and useful recovery, not just API existence.
-5. **Qualify source-task-independent native resource access.** First filesystem/process/toolchain
-   inspection (including explicitly selected external-session metadata) without creating a dummy
-   task. Reuse existing observation/operation conventions. Move only a narrowly demonstrated
-   blocker ahead of step 4; do not speculate a connection platform before it is needed.
-6. **Add demanded adapters.** External MCP/CLI/API/model/remote/container integrations and optional
-   Android companion/UI control follow concrete projects. Android app build/package qualification
-   may occur earlier; it does not wait for Android-use. No selected adapter becomes core required
-   infrastructure. Shared primitives do not imply one transport or authority hierarchy.
-
-**Next work is packaging slice 6 qualification and delivery**, following explicit retention,
-bounded file export, prune recovery and operator budgets. Qualify the packaged installed path
-and remaining journey cases, preserving active/previous/in-flight pins and source-only deployment.
-No unresolved continuity metadata or Android UI question requires delaying it. Android SDK
-installation, device permission changes and resident activation are separate from these source slices.
+Use runtime failure rehearsal and authorized installed validation for actual runtime changes.
+Do not silently acknowledge incidents, switch monitoring modes or replace a working observer
+as part of reading evidence. Native same-UID tests establish behavior, not hostile-code isolation.
 
 ## Deployment packaging implementation plan
 
@@ -404,7 +330,7 @@ dependency fallback fails clearly, and incompatible native/runtime requirements 
 
 ### Slice 4 — artifact validation and release integration
 
-Implemented in the unactivated checkout. Native checks use disposable copies, external writable
+The implemented native checks use disposable copies, external writable
 data, the adopted policy and stopped receipt proof. Service verification uses a separate loopback
 port and the manifest entrypoint; packaged release/start/rollback recheck runtime and policy before
 stopping the previous service. An isolated real runit/public-wheel rehearsal covers update,
@@ -441,7 +367,7 @@ evidence without losing the prior artifact or application data.
 
 ### Slice 5 — retention, limits and cleanup
 
-Implemented in the unactivated checkout: paged metadata usage, verified file-byte export,
+The implemented scope includes paged metadata usage, verified file-byte export,
 prune preview/current-pin recheck, durable retirement with recoverable rename/delete and
 preserved operation receipts. Global operator budgets reserve retained capacity for admitted
 builds; output/input/file ceilings remain conservative. This is not a disk quota for the whole
@@ -487,7 +413,7 @@ semantics match; do not create a universal artifact/connection framework just to
 Update ARCHITECTURE semantics and contract types alongside implemented slices; keep unimplemented
 claims out of README. Record actual acceptance and limitations in LOCAL_VALIDATION.
 
-The review above resolves the sequencing question. Continue at slice 6, using the implemented
+The selected queue above starts with slice 6, using the implemented
 recipe/identity, retained-build, validation and deployment boundaries. The pure-Python path has
 real selected-distribution build/relocation and isolated runit evidence; installed artifact validation/release and
 broader dependency/native-extension qualification remain outstanding.
@@ -495,7 +421,8 @@ Product minor/major version changes still need user authority.
 
 ## Minimum semantic continuity implementation and qualification
 
-Implement only ARCHITECTURE's optional workspace resume note first. Existing source tasks,
+After the baseline journey demonstrates a semantic recovery gap, implement only ARCHITECTURE's
+optional workspace resume note first. This candidate does not block baseline qualification. Existing source tasks,
 execution, validation, publication and deployment keep their semantics. Do not add a full
 transcript/event store or new thread/planner owner to make the test easier.
 
