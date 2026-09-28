@@ -7,7 +7,7 @@ Termux 자체나 Android 앱을 설치하는 명령은 아니며, Linux 배포�
 ## 1. 한 줄로 설치 시작
 
 ```bash
-bash -c 'set -e; command -v curl >/dev/null || pkg install -y curl; b=$(curl -fsSL --proto "=https" https://raw.githubusercontent.com/humtr/tdev/install/termux-bootstrap/bootstrap.sh); exec bash -c "$b" -- --repo "$1" --ref install/termux-bootstrap' -- https://github.com/humtr/tdev.git
+pkg install -y curl && b=$(curl -fsSL https://raw.githubusercontent.com/humtr/tdev/install/termux-bootstrap/bootstrap.sh) && bash -c "$b" -- --ref install/termux-bootstrap
 ```
 
 이 명령은 지정한 설치 브랜치에서 스크립트를 다운로드한 후 실행합니다. 다운로드가

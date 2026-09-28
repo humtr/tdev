@@ -10,7 +10,7 @@ not just a controller for another machine.
 새 Termux 터미널에서 다음 한 줄을 실행합니다. Python/Git 사전 설치는 필요하지 않습니다.
 
 ```bash
-bash -c 'set -e; command -v curl >/dev/null || pkg install -y curl; b=$(curl -fsSL --proto "=https" https://raw.githubusercontent.com/humtr/tdev/install/termux-bootstrap/bootstrap.sh); exec bash -c "$b" -- --repo "$1" --ref install/termux-bootstrap' -- https://github.com/humtr/tdev.git
+pkg install -y curl && b=$(curl -fsSL https://raw.githubusercontent.com/humtr/tdev/install/termux-bootstrap/bootstrap.sh) && bash -c "$b" -- --ref install/termux-bootstrap
 ```
 
 필요한 Termux 패키지와 서비스를 준비한 뒤 Tunnel ID와 런타임 키를 입력받습니다.

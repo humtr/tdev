@@ -1670,9 +1670,12 @@ the evidence directory, not installed into the operating environment. Package SH
 `a0345ca41cdcb357a311c345da227439f733e46bcf8d738d224e8b4585ab88b4`.
 A fresh private dependency directory seeded from that package plus actual pinned pip acquisition
 passes isolated imports and version checks on Python 3.14/Android arm64; a second preparation
-reuses the verified set. The exact documented Bash command was tested with a failing downloader:
+reuses the verified set. The original documented Bash command was tested with a failing downloader:
 exit 22 propagates and partial downloaded shell text is never executed. Shell syntax and diff
 whitespace checks pass. Current source preflight also recognizes the existing shared runsvdir.
+The user subsequently requested a shorter command: documentation now uses the bootstrap
+default repository and an AND-list around download/execution (286 to 171 characters).
+This documentation-only simplification did not change runtime source or rerun the suite.
 
 No package-manager install/update, service start/restart, resident replacement, credential change,
 observer change or project grant was performed on the operating installation during qualification.
