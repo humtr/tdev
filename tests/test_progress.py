@@ -65,6 +65,27 @@ class ProgressTest(Base):
         same = self.call("task", {"action": "inspect", "taskId": w["taskId"], "since": final["observation"]["cursor"]})
         self.assertFalse(same["observation"]["changed"])
 
+    def test_status_wait_returns_terminal_failure_and_bounds_nonterminal_wait(self):
+        w = self.open()
+        op = self.call("exec", {"requestId": "wait-fail", "taskId": w["taskId"], "expected": w["checkpoint"],
+                                "command": "printf phase; sleep .2; exit 7", "timeout": 5})
+        waited = self.call("operation", {"action": "status", "operationId": op["id"], "offset": 0,
+                                         "limit": 1000, "waitMs": 3000})
+        self.assertEqual(waited["status"], "failed", waited)
+        self.assertEqual(waited["result"]["exitCode"], 7)
+        self.assertEqual(base64.b64decode(waited["output"]["data"]), b"phase")
+
+        op2 = self.call("exec", {"requestId": "wait-running", "taskId": w["taskId"],
+                                 "expected": waited["result"]["checkpoint"], "command": "sleep 2", "timeout": 5})
+        started = time.monotonic()
+        running = self.call("operation", {"action": "status", "operationId": op2["id"], "waitMs": 100})
+        elapsed = time.monotonic() - started
+        self.assertEqual(running["status"], "running", running)
+        self.assertGreaterEqual(elapsed, .05)
+        self.assertLess(elapsed, 1.0)
+        self.call("operation", {"action": "cancel", "requestId": "wait-cleanup", "operationId": op2["id"]})
+        self.assertEqual(self.wait(op2["id"])["status"], "failed")
+
     def test_frontier_pagination_and_scope(self):
         w = self.open()
         self.open()

@@ -980,6 +980,12 @@
             "since": {
               "type": "string",
               "maxLength": 64
+            },
+            "waitMs": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 30000,
+              "description": "Bounded read-only terminal wait. While the operation is running or unknown, status waits up to this many milliseconds for terminal reconciliation, then returns the freshest status/log page; nonterminal log growth does not end the wait."
             }
           },
           "required": [
@@ -5686,7 +5692,7 @@
     },
     {
       "name": "tdev_operation",
-      "description": "Inspect any accepted operation by operationId or original request ID, including project and workspace changes. Status observes current progress without repeating effects. For exec/validation processes only: deliver sequenced stdin, request cancellation or retire stopped resources. ChatGPT Code Mode caller guidance (not a server limit): use short physical functions.exec cells, conservatively at most 16 total nested attempts including failures and diagnostics, and check a soft 15-second elapsed budget before another call. Reserve closing markers within that budget. Return continuation state and end the cell normally; after receiving it, the assistant reports progress and issues a fresh functions.exec without waiting for user input unless blocked or interrupted. Never retry ambiguous effects or regenerate requestId; observe the original operation. Avoid repeated status calls just to fill a cell. These are adjustable caller defaults, not guaranteed host capabilities; server completion and markers do not prove visible UI delivery.",
+      "description": "Inspect any accepted operation by operationId or original request ID, including project and workspace changes. Status observes current progress without repeating effects. For exec/validation processes only: deliver sequenced stdin, request cancellation or retire stopped resources. ChatGPT Code Mode caller guidance (not a server limit): use short physical functions.exec cells, conservatively at most 16 total nested attempts including failures and diagnostics, and check a soft 15-second elapsed budget before another call. Reserve closing markers within that budget. For one already-admitted ongoing exec/validation/build, prefer one bounded read-only status call with waitMs (at most 30000) per physical cell so terminal failed/cancelled state can be returned by that call; advance the returned output cursor and never replay the effect. If the bounded wait returns while still running, return exact continuation state and end the cell normally; after receiving it, the assistant reports progress and issues a fresh functions.exec in the same turn without waiting for user input unless blocked or interrupted. Unknown, malformed, unavailable or ambiguous results stop for review/reconciliation of the original identity. Never retry ambiguous effects or regenerate requestId; observe the original operation and never infer success from transport completion. These are adjustable caller defaults, not guaranteed host capabilities; server completion and markers do not prove visible UI delivery.",
       "inputSchema": {
         "$ref": "#/$defs/operationInput"
       },

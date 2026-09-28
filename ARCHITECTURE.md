@@ -405,11 +405,17 @@ updates, while unrelated source editing remains possible.
 
 Host-specific call budgeting belongs in a caller adapter, not server admission. The optional
 ChatGPT reference runner in `examples/chatgpt/run-cell.js` bounds total nested attempts, including
-diagnostics/failures, and checks elapsed time before another call. It returns a continuation to
-the assistant, which must receive the outer result and issue a new physical cell. It cannot
-schedule that cell, extend a turn or guarantee visible delivery. Unknown operational replies
-stop for reconciliation of the original identity; diagnostic failure never retries the effect.
-This adapter imports no runtime diagnostics and adds no operational-core dependency or wire type.
+diagnostics/failures, and checks elapsed time before another call. Its operation-monitor helper
+uses bounded server-side terminal waiting on one exact admitted operation; the default physical
+cell performs one read-only status call with a 30-second wait, advances the output cursor, surfaces
+terminal failure before return, and rolls over with exact continuation arguments if the operation
+is still nonterminal. Nonterminal log growth does not prematurely end that server wait.
+Unknown/unreadable status stops for review; the helper never replays, cancels or replaces the
+underlying effect. A rollover still requires the assistant to receive the outer result and issue a new physical cell;
+the adapter cannot schedule that cell, extend a turn or guarantee visible delivery. Unknown
+operational replies stop for reconciliation of the original identity; diagnostic failure never
+retries the effect. This adapter imports no runtime diagnostics and adds no operational-core
+dependency or wire type.
 The operation tool's discovery description carries compact ChatGPT caller guidance. These are
 adjustable orchestration defaults, not server admission limits; discovery cannot force the host
 to follow them. The full caller helper remains separate from the resident's operational core.

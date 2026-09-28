@@ -86,3 +86,73 @@ async function runTdevCell({tools, steps, nextIndex = 0, classify, onReply,
   return {status, reason, nextIndex: index, pending, attempted,
     elapsedMs: Math.max(0, now() - started), sequence, witnesses};
 }
+
+// Monitor one already-admitted operation inside a single physical cell. This is intentionally
+// read-only: it never replays the effect, cancels it, or invents a new request identity.
+async function runTdevOperationCell({tools, tool, operationId = null, lookupRequestId = null,
+  offset = 0, limit = 24000, onStatus = () => {}, maxCalls = 1,
+  maxElapsedMs = 35000, statusWaitMs = 30000, pollAfterMs = 0, now = () => Date.now(),
+  sleep = ms => new Promise(resolve => setTimeout(resolve, ms))}) {
+  const oneTarget = Boolean(operationId) !== Boolean(lookupRequestId);
+  if (!tools || typeof tool !== 'string' || !tool || typeof tools[tool] !== 'function' ||
+      !oneTarget || (operationId !== null && (typeof operationId !== 'string' || !operationId)) ||
+      (lookupRequestId !== null && (typeof lookupRequestId !== 'string' || !lookupRequestId)) ||
+      !Number.isSafeInteger(offset) || offset < 0 || !Number.isSafeInteger(limit) || limit < 1 || limit > 65536 ||
+      !Number.isSafeInteger(maxCalls) || maxCalls < 1 || !Number.isFinite(maxElapsedMs) || maxElapsedMs <= 0 ||
+      !Number.isSafeInteger(statusWaitMs) || statusWaitMs < 0 || statusWaitMs > 30000 ||
+      !Number.isFinite(pollAfterMs) || pollAfterMs < 0 || typeof onStatus !== 'function' ||
+      typeof now !== 'function' || typeof sleep !== 'function') throw new Error('Invalid operation monitor policy');
+
+  const target = operationId ? {operationId} : {lookupRequestId};
+  let attempted = 0, currentOffset = offset, last = null, lastFingerprint = null;
+  const started = now();
+  const packet = (status, reason, operationStatus = last?.status ?? null) => ({
+    status, reason, operationStatus, attempted, elapsedMs: Math.max(0, now() - started),
+    nextArgs: {action: 'status', ...target, offset: currentOffset, limit, waitMs: statusWaitMs}, operation: last
+  });
+
+  while (true) {
+    if (attempted >= maxCalls || now() - started >= maxElapsedMs) {
+      return packet('rollover', attempted >= maxCalls ? 'call_budget' : 'elapsed_budget');
+    }
+    let reply;
+    try {
+      attempted++;
+      const callWaitMs = Math.min(statusWaitMs,
+        Math.max(0, Math.floor(maxElapsedMs - (now() - started))));
+      reply = await tools[tool]({action: 'status', ...target, offset: currentOffset, limit, waitMs: callWaitMs});
+    } catch {
+      // Status is read-only and may be re-issued later, but do not hammer a rejected host call.
+      return packet('review', 'status_reply_unavailable');
+    }
+    const body = reply?.structuredContent ?? reply;
+    if (!body || body.ok !== true || !body.result || typeof body.result.status !== 'string') {
+      last = body?.ok === false ? {error: body.error ?? null} : null;
+      return packet('review', body?.ok === false ? 'status_error' : 'status_unreadable');
+    }
+    last = body.result;
+    const nextOffset = last.output?.nextOffset;
+    if (Number.isSafeInteger(nextOffset) && nextOffset >= currentOffset) currentOffset = nextOffset;
+    const fingerprint = JSON.stringify([last.status, last.effect, last.output?.availableBytes,
+      last.output?.nextOffset, last.result?.exitCode, last.result?.terminal, last.error?.code]);
+    if (fingerprint !== lastFingerprint) {
+      try { await onStatus(last, reply); }
+      catch { return packet('review', 'caller_processing_failed'); }
+      lastFingerprint = fingerprint;
+    }
+    if (last.status === 'succeeded' || last.status === 'failed' || last.status === 'cancelled') {
+      return packet('terminal', 'operation_terminal');
+    }
+    if (last.status !== 'running') return packet('review', 'operation_unknown');
+    if (attempted >= maxCalls || now() - started >= maxElapsedMs) {
+      return packet('rollover', attempted >= maxCalls ? 'call_budget' : 'elapsed_budget');
+    }
+    const remaining = Math.max(0, maxElapsedMs - (now() - started));
+    if (remaining <= 0) return packet('rollover', 'elapsed_budget');
+    const delay = Math.min(pollAfterMs, remaining);
+    if (delay > 0) {
+      try { await sleep(delay); }
+      catch { return packet('review', 'poll_sleep_failed'); }
+    }
+  }
+}
