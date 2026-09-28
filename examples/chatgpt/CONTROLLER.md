@@ -28,11 +28,17 @@ resident update or new MCP contract is needed. Pure-JS setup does not dispatch t
    in a fresh bounded cell. Never automatically rerun it or invent a replacement requestId.
    These statuses are not automatic rollover. A plan being `complete` means only its listed
    calls returned and were classified; establish actual command/validation success separately.
-6. For ongoing operations, return operationId and a bounded current status/log cursor. Avoid
-   building a plan of repeated status calls merely to fill the budget. Choose useful independent
-   work or a bounded observation after reviewing current progress. A no-change response is not
-   permission for an unbounded same-turn polling loop. A new session must rebind durable task/
-   operation state; the cell packet is transient caller context, not durable tdev resume storage.
+6. For an already-admitted ongoing exec/validation/build, switch to `runTdevOperationCell`.
+   By default each physical cell makes one read-only status call with `waitMs=30000` for that
+   exact operation/request identity. The server returns immediately on terminal reconciliation
+   or after the bounded wait with the freshest status/log page; nonterminal log growth alone does
+   not end the wait. The helper advances the output offset and surfaces terminal
+   `failed`/`cancelled` state before return. `unknown`, malformed or unavailable status stops for
+   review rather than looping. On `rollover`, give the user a brief progress update and issue a
+   fresh monitor cell in the same turn with `nextArgs`; do not wait for user input. This removes
+   dense polling and bounds the normal visible quiet interval, but cannot guarantee that the host
+   schedules the next physical cell. A new session must still rebind durable task/operation state;
+   monitor packets are transient caller context, not durable tdev resume storage.
 
 `classify` must return exactly `continue` only when the actual decoded response permits the next
 planned step. Running/unknown operations, semantic errors or unreadable wrappers require review.

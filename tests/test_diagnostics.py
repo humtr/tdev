@@ -282,7 +282,10 @@ finally:
     thread.join()
     server.server_close()
 """
-        env = dict(os.environ, PYTHONPATH=str(self.source/'src')+':'+str(self.source/'.tdev-deps'))
+        pythonpath = [str(self.source/'src'), str(self.source/'.tdev-deps')]
+        if os.environ.get('PYTHONPATH'):
+            pythonpath.append(os.environ['PYTHONPATH'])
+        env = dict(os.environ, PYTHONPATH=os.pathsep.join(pythonpath))
         subprocess.run([sys.executable, '-c', script], env=env, check=True,
                        capture_output=True, timeout=10)
 

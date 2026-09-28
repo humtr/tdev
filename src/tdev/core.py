@@ -856,6 +856,17 @@ class Controller:
                 result["outputError"] = e.value
         if "since" in args:
             result["observation"] = self.observation(result, args["since"], ["SQLite", "executor result/logs if applicable"])
+        wait_ms = args.get("waitMs", 0)
+        if wait_ms and result["status"] in ("running", "unknown"):
+            deadline = time.monotonic() + wait_ms / 1000
+            probe = dict(args)
+            probe.pop("waitMs", None)
+            while result["status"] in ("running", "unknown"):
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    break
+                time.sleep(min(1.0, remaining))
+                result = self.status(principal, probe)
         return result
 
     def close(self):

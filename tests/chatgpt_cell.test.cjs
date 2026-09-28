@@ -5,6 +5,7 @@ const vm = require('node:vm');
 const path = require('node:path');
 const source = fs.readFileSync(path.join(__dirname, '../examples/chatgpt/run-cell.js'), 'utf8');
 const fresh = () => vm.runInNewContext(source + '\nrunTdevCell;');
+const freshMonitor = () => vm.runInNewContext(source + '\nrunTdevOperationCell;');
 const plan = n => Array.from({length:n}, (_, i) => ({id:`s${i}`, tool:'work', args:{requestId:`r${i}`}}));
 const witness = {tool:'mark', instance:'a'.repeat(16), runId:'b'.repeat(32), cellId:'c'.repeat(32), sequence:0};
 const options = (n, tools) => ({steps:plan(n), tools, now:()=>0,
@@ -107,4 +108,40 @@ test('lower host budget works without server policy; absent metadata is not inve
     witness,maxCalls:4});
   assert.equal(result.attempted,4); assert.equal(result.nextIndex,1);
   assert.equal(marks[1].afterRequest,undefined);
+});
+
+test('operation monitor stays in one cell until terminal failure is observed', async () => {
+  let clock=0, calls=0, active=0;
+  const seen=[];
+  const states=[
+    {id:'op1',status:'running',effect:'unknown',result:null,error:null,output:{availableBytes:3,nextOffset:3}},
+    {id:'op1',status:'running',effect:'unknown',result:null,error:null,output:{availableBytes:3,nextOffset:3}},
+    {id:'op1',status:'failed',effect:'committed',result:{exitCode:7,terminal:true},error:null,output:{availableBytes:9,nextOffset:9}}
+  ];
+  const tools={status:async()=>{assert.equal(active++,0); const value=states[calls++]; active--; return {structuredContent:{ok:true,result:value}};}};
+  const result=await freshMonitor()({tools,tool:'status',operationId:'op1',maxCalls:5,maxElapsedMs:10000,
+    pollAfterMs:1000,now:()=>clock,sleep:async ms=>{clock+=ms;},onStatus:op=>seen.push(op.status)});
+  assert.equal(result.status,'terminal'); assert.equal(result.operationStatus,'failed');
+  assert.equal(result.operation.result.exitCode,7); assert.equal(result.attempted,3); assert.equal(active,0);
+  assert.deepEqual(seen,['running','failed']); assert.equal(result.nextArgs.offset,9);
+});
+
+test('operation monitor rolls over with exact read-only continuation state', async () => {
+  let clock=0, calls=0; const offsets=[];
+  const waits=[];
+  const tools={status:async args=>{offsets.push(args.offset); waits.push(args.waitMs); calls++; return {ok:true,result:{id:'op1',status:'running',effect:'unknown',result:null,error:null,
+    output:{availableBytes:calls,nextOffset:args.offset+1}}};}};
+  const result=await freshMonitor()({tools,tool:'status',operationId:'op1',maxCalls:3,maxElapsedMs:10000,
+    statusWaitMs:3000,pollAfterMs:1000,now:()=>clock,sleep:async ms=>{clock+=ms;}});
+  assert.equal(result.status,'rollover'); assert.equal(result.reason,'call_budget');
+  assert.equal(result.attempted,3); assert.deepEqual(offsets,[0,1,2]); assert.deepEqual(waits,[3000,3000,3000]);
+  assert.equal(result.nextArgs.offset,3); assert.equal(result.nextArgs.waitMs,3000);
+});
+
+test('operation monitor stops safely on unknown or unavailable status', async () => {
+  const unknown=await freshMonitor()({tools:{status:async()=>({ok:true,result:{status:'unknown'}})},tool:'status',operationId:'op1'});
+  assert.equal(unknown.status,'review'); assert.equal(unknown.reason,'operation_unknown'); assert.equal(unknown.attempted,1);
+  const unavailable=await freshMonitor()({tools:{status:async()=>{throw Error('transport');}},tool:'status',lookupRequestId:'req1'});
+  assert.equal(unavailable.status,'review'); assert.equal(unavailable.reason,'status_reply_unavailable'); assert.equal(unavailable.attempted,1);
+  assert.equal(unavailable.nextArgs.lookupRequestId,'req1');
 });
