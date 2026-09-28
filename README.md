@@ -5,6 +5,21 @@ projects and execution environments. ChatGPT chooses strategy and tools within t
 delegated authority. **Android + Termux is the default development and operating environment**,
 not just a controller for another machine.
 
+## 처음 설치하기
+
+새 Termux 터미널에서 다음 한 줄을 실행합니다. Python/Git 사전 설치는 필요하지 않습니다.
+
+```bash
+bash -c 'set -e; command -v curl >/dev/null || pkg install -y curl; b=$(curl -fsSL --proto "=https" https://raw.githubusercontent.com/humtr/tdev/install/termux-bootstrap/bootstrap.sh); exec bash -c "$b" -- --repo "$1" --ref install/termux-bootstrap' -- https://github.com/humtr/tdev.git
+```
+
+필요한 Termux 패키지와 서비스를 준비한 뒤 Tunnel ID와 런타임 키를 입력받습니다.
+키는 화면에 표시하지 않습니다. Tunnel은 미리 준비해야 하며, 설치 후 프로젝트 접근
+범위는 사용자가 지정합니다. [처음 설치·연결·첫 프로젝트 안내](INSTALL.md)를 따라가세요.
+이 명령은 공개된 설치 브랜치의 코드를 실행합니다. 이전 작업 데이터 복원 명령은 아닙니다.
+
+## Product purpose
+
 The first development goal is complete Git/local development, validation and deployment:
 create/connect projects → inspect/edit/debug → test → build/package → commit/integrate/publish → deploy →
 verify live behaviour → recover and clean up. A successful Git push is not deployment.
@@ -54,6 +69,12 @@ clean environment and API grants are useful safeguards, not hostile-code or cred
 isolation. See the [trust boundary](ARCHITECTURE.md#3-native-trust-and-containment).
 
 ## Current work
+
+Source **0.1.16** adds a Termux bootstrap for first-time users, including package preparation,
+version-checked private Python dependencies, stock termux-services compatibility and the command
+shortcut. The bootstrap preserves terminal input for the existing guided Tunnel setup and reuses
+matching clean source checkouts without resetting or pulling them. See [installation](INSTALL.md).
+The current resident is not replaced by this source change; qualification is recorded separately.
 
 Installed native packaging acceptance now passes on resident **0.1.14** through authenticated
 local HTTP: pinned public dependency, generated asset, source/build/validation scratch retirement,

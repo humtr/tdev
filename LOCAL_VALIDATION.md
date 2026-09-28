@@ -1637,6 +1637,52 @@ with the independent observer covering the entire workload. Verify whether the h
 response metadata and collect actual visible progress/Stop/successor/resume separately. Local
 authenticated installed MCP success does not qualify ChatGPT UI continuity or its private runner.
 
+## One-line Termux first installation — 2026-09-28
+
+Source base `0f6b78e18ec6abfad830bfd8e65917c7c128149a`, candidate **0.1.16**.
+The user selected first-time installation ahead of the remaining host journey gate.
+README now leads to INSTALL.md and a Bash command selecting repository URL and the separate
+`install/termux-bootstrap` source branch. bootstrap.sh prepares Termux packages, a persistent
+checkout, private dependencies, the shared service daemon and the existing interactive installer.
+There is no new MCP/config schema, remote Tunnel provisioning or automatic project delegation.
+
+Two fresh-install prerequisites were missing from the previous operating-environment evidence:
+stock termux-services has no `service-daemon status`, and PyPI has no Android wheel for the pinned
+rpds-py version. Preflight now observes one exact runsvdir executable/service-directory identity.
+The explicit bootstrap starts it only when absent; ambiguous/foreign graphs fail. Dependencies
+reuse only the matching native Termux distribution, then validate all exact versions and imports
+without global site-packages. Existing dependencies remain intact until staging succeeds.
+An existing owned tdev service skips system package preparation. The resident installer keeps
+its original ownership, outstanding-effect, credential and update-recovery checks.
+
+Evidence: `.artifacts/bootstrap-20260928/`. Focused bootstrap checks: **13 tests, OK, 5.477s**,
+exit 0. Affected `test_installer_setup test_resident test_cli test_admin`: **58 tests, OK, 82.125s**,
+exit 0. Coverage includes a real temporary Git clone and terminal stdin, unchanged clean retry,
+dirty/foreign/symlink checkout preservation, package/clone/installer failure, refused maintenance
+actions, wrong SVDIR, existing-service package preservation, exact native dependency selection,
+staging failure/retry and a real isolated runsvdir. The first broad run was interrupted with exit
+130 after the final service-path guard and fixture environment correction; it is not counted as PASS.
+The final complete `scripts/check.sh` run passes: **320 tests, OK, 962.282s**, exit 0
+(`check-final.log` / `check-final.exit`).
+
+The real Termux `python-rpds-py 2026.6.3` aarch64 package was downloaded and extracted only into
+the evidence directory, not installed into the operating environment. Package SHA-256:
+`a0345ca41cdcb357a311c345da227439f733e46bcf8d738d224e8b4585ab88b4`.
+A fresh private dependency directory seeded from that package plus actual pinned pip acquisition
+passes isolated imports and version checks on Python 3.14/Android arm64; a second preparation
+reuses the verified set. The exact documented Bash command was tested with a failing downloader:
+exit 22 propagates and partial downloaded shell text is never executed. Shell syntax and diff
+whitespace checks pass. Current source preflight also recognizes the existing shared runsvdir.
+
+No package-manager install/update, service start/restart, resident replacement, credential change,
+observer change or project grant was performed on the operating installation during qualification.
+It remains **0.1.14 / up**, both existing connections locally healthy. Full first-install acceptance
+on a wiped/new Termux environment, new Tunnel credentials and actual ChatGPT invocation still
+requires that environment; fake package/service steps are not claimed as this acceptance.
+INSTALL.md records the separate first-device, interruption/retry and connection acceptance procedure.
+This delivers installation; deleted configuration/workspaces/application data still need backups
+for restoration. Other Android ABIs and future native-package/Python combinations are unqualified.
+
 ## Explicit local CLI credential selection — 2026-09-27
 
 Source base `650e1dd3843b3c74fc6e78ce91b23bfbdb6f7b33`, source candidate 0.1.15.

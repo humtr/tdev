@@ -2,6 +2,10 @@
 
 Operator actions, not production authorization. Current status lives in README.
 
+New users: start with [INSTALL.md](INSTALL.md). Its one-line bootstrap prepares a fresh Termux
+environment and enters the guided installer. The inactive staging/rehearsal sequence below is
+for development and qualification, not a prerequisite for ordinary first-time users.
+
 ## On-device prerequisites and inactive install
 
 Use Termux Python, Git and the development CLIs required by the enrolled repositories
@@ -181,7 +185,10 @@ tdev connection add business --tunnel-id tunnel_0123456789abcdef0123456789abcdef
 `$PREFIX/var/service`, starts the controller before the tunnel and checks live identity/health.
 It discovers the existing owned installation (or an unambiguous running packaged controller).
 Use `--root /absolute/private/root` or TDEV_ROOT to select another installation explicitly.
-Pinned Python dependencies are bootstrapped into .tdev-deps when missing. Existing credentials,
+Pinned Python dependencies are checked for exact versions and isolated imports; incomplete or
+outdated sets are staged before replacing .tdev-deps. On Android, a matching Termux
+python-rpds-py package supplies the native extension. Use bootstrap.sh for prerequisite setup.
+Existing credentials,
 project delegation, state and Tunnel identity are retained; install does not create remote
 Tunnels or expand project grants.
 

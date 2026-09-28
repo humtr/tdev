@@ -93,6 +93,11 @@ not competing queues. README owns implementation/current status; LOCAL_VALIDATIO
 results. Earlier incident/install/connection requests do not remain perpetual prerequisites once
 implemented. Current user instructions may reprioritize an item; record the resulting order here.
 
+2026-09-28 user priority: deliver a repository-URL one-line first install on fresh Termux,
+including prerequisite/bootstrap handling, terminal setup, user documentation and isolated
+qualification. Preserve existing installations and source edits; publishing the installer source
+does not authorize replacing the resident. Complete this before resuming step 3 below.
+
 ### Completion and evidence rules
 
 For each deliverable distinguish implemented source, local qualification, installed acceptance,

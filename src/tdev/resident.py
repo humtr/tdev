@@ -138,13 +138,25 @@ class Runit:
         self.prefix = Path(os.environ.get('PREFIX', '/data/data/com.termux/files/usr')).resolve()
         self.svdir = Path(svdir or os.environ.get('SVDIR', self.prefix / 'var/service')).absolute()
 
+    def roots(self):
+        executable = (self.prefix / 'bin/runsvdir').resolve()
+        matches = []
+        for item in processes():
+            argv = item['argv'][1:]
+            if argv[:1] == ['-P']: argv = argv[1:]
+            if (argv and Path(argv[0]).is_absolute() and Path(argv[0]) == self.svdir and
+                    Path(item['exe']).resolve() == executable):
+                matches.append(item)
+        return matches
+
     def preflight(self):
         require(self.svdir == self.prefix / 'var/service' and self.svdir.is_dir() and not self.svdir.is_symlink(),
                 'SVDIR', 'Use the shared PREFIX/var/service directory')
         require(Path(os.environ.get('SVDIR', self.svdir)).absolute() == self.svdir, 'SVDIR')
         for tool in ('sv', 'runsv', 'runsvdir', 'svlogd', 'service-daemon'):
             require(shutil.which(tool), 'TERMUX_SERVICES_REQUIRED', 'Install/configure termux-services before tdev: missing ' + tool)
-        command(['service-daemon', 'status'])
+        require(len(self.roots()) == 1, 'SERVICE_ROOT',
+                'Expected one shared runsvdir; run the Termux service-daemon start command if stopped')
         monitor = command(['service-daemon', 'monitor-status'], check=False)
         return {'svdir': str(self.svdir), 'recoveryMonitor': monitor.returncode == 0}
 

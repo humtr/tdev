@@ -693,9 +693,22 @@ and desired state before clearing the fence. A process interruption leaves recov
 there is no claim of atomic two-directory filesystem replacement. Initial takeover is an
 explicit operator action with private recovery receipts; ordinary updates use owned runit
 services. A persisted DOWN marker survives shared-supervisor recovery. termux-services owns
-root recovery; tdev does not duplicate it or silently install shared infrastructure.
+root recovery; tdev does not duplicate it. The explicitly invoked first-install bootstrap may
+install Termux packages and start the shared service-daemon when no matching runsvdir exists.
+Ordinary installer/preflight calls only inspect it. Preflight checks one live runsvdir executable
+and absolute service-directory identity, so stock service-daemon needs no nonstandard status
+action. Multiple roots fail explicitly; no automatic shared-daemon restart or replacement.
 Production activation needs user authority. Bundle verification is not protection from
 hostile same-UID code. Native runner is included without extra executor enrollment.
+
+The shell bootstrap obtains a selected HTTPS repository branch/tag into a persistent source
+directory through temporary staging. An existing matching clean checkout is reused at its local
+commit; dirty/foreign sources are preserved and rejected. It installs no provider account or
+project grant and passes terminal input to the existing setup wizard. Dependency preparation
+verifies exact requirement versions and imports without global site-packages before switching
+the private directory. A version-matched Termux rpds distribution supplies Android native bytes;
+other pinned packages are acquired through pip. A native-version mismatch fails before activation.
+Package-manager inputs remain Termux-managed; this is not an OS snapshot or deleted-state restore.
 
 Connection-aware installations derive their runit service set from the registered collection,
 including a valid controller-only set. Each client has separate profile, health, process and log
