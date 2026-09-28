@@ -7,13 +7,41 @@ not just a controller for another machine.
 
 ## 처음 설치하기
 
-새 Termux 터미널에서 다음 한 줄을 실행합니다. Python/Git 사전 설치는 필요하지 않습니다.
+새 Termux 터미널에서 아래 두 방법 중 하나를 선택합니다. Python/Git 사전 설치는
+필요하지 않습니다. `curl: command not found`가 나오면 `pkg install -y curl`을 한 번
+실행하고 재시도합니다.
+
+### 간편 설치
+
+다운로드한 설치 진입점을 바로 실행합니다.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/humtr/tdev/setup/i | bash
 ```
 
-`curl: command not found`가 나오면 `pkg install -y curl`을 한 번 실행하고 재시도합니다.
+### 내용을 확인한 뒤 설치 — 더 안전한 방법
+
+본 설치기를 임시 파일로 모두 내려받은 뒤 내용을 표시합니다. 이 단계에서는 설치기를
+실행하지 않습니다. 다운로드가 성공해야 실행용 파일 이름으로 바꾸므로, 실패한 다운로드의
+일부 내용이 다음 단계에서 실행되는 것을 방지합니다.
+
+```bash
+tdev_setup_dir=$(mktemp -d) &&
+curl -fSL --proto '=https' https://raw.githubusercontent.com/humtr/tdev/install/termux-bootstrap/bootstrap.sh -o "$tdev_setup_dir/bootstrap.part" &&
+mv "$tdev_setup_dir/bootstrap.part" "$tdev_setup_dir/bootstrap.sh" &&
+cat "$tdev_setup_dir/bootstrap.sh"
+```
+
+오류 없이 다운로드가 끝나고 내용을 확인했다면, 같은 터미널에서 직접 실행합니다.
+
+```bash
+bash "$tdev_setup_dir/bootstrap.sh" --ref install/termux-bootstrap
+```
+
+이 방법도 실행 후에는 설치 브랜치의 소스와 외부 패키지를 내려받습니다. 파일을 먼저
+확인할 기회를 제공하는 방식이며, 코드 신뢰성이나 의존성 안전성을 보증하지는 않습니다.
+
+### 설치 후 안내
 
 필요한 Termux 패키지와 서비스를 준비한 뒤 Tunnel ID와 런타임 키를 입력받습니다.
 키는 화면에 표시하지 않습니다. Tunnel은 미리 준비해야 하며, 설치 후 프로젝트 접근
