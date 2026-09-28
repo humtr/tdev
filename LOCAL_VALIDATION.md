@@ -2139,3 +2139,13 @@ publishes caller guidance; it cannot force the assistant to use the helper, issu
 or update the visible UI. Existing full controller instructions and helper remain the executable
 reference. Real ChatGPT scheduling/visible continuity remains outstanding and is to be assessed
 during normal authorized work, not another density or Stop experiment.
+
+## Short piped installation entry — 2026-09-28
+
+The user requested the conventional short `curl … | bash` form. `i` is a single parsed
+shell block which downloads the full bootstrap, propagates its download failure and opens
+`/dev/tty` for the setup wizard before executing it. The `setup` branch exposes the short URL;
+the selected repository/source branch and existing bootstrap behaviour remain unchanged.
+README and INSTALL now show the 70-character command plus missing-curl recovery.
+No new tests or suite runs were performed for this entry point; the earlier 320-test result
+applies to the bootstrap implementation before this wrapper. The operating resident is unchanged.

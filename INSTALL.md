@@ -7,13 +7,14 @@ Termux 자체나 Android 앱을 설치하는 명령은 아니며, Linux 배포�
 ## 1. 한 줄로 설치 시작
 
 ```bash
-pkg install -y curl && b=$(curl -fsSL https://raw.githubusercontent.com/humtr/tdev/install/termux-bootstrap/bootstrap.sh) && bash -c "$b" -- --ref install/termux-bootstrap
+curl -fsSL https://raw.githubusercontent.com/humtr/tdev/setup/i | bash
 ```
 
-이 명령은 지정한 설치 브랜치에서 스크립트를 다운로드한 후 실행합니다. 다운로드가
-실패하면 실행하지 않습니다. `curl ... | bash`로 바꾸지 마세요. 설치 질문에 답할 터미널
-입력을 유지하기 위해 `bash -c`를 사용합니다. 실행 코드는 먼저
-[bootstrap.sh](bootstrap.sh)에서 확인할 수 있습니다.
+짧은 설치 진입점이 저장소·브랜치를 선택하고 본 설치기를 내려받습니다. 본 설치기는
+다운로드 성공 후 실행하며, 질문 입력은 터미널(`/dev/tty`)에 연결합니다.
+`curl: command not found`가 나오면 `pkg install -y curl`을 한 번 실행한 뒤 재시도합니다.
+실행 코드는 [짧은 진입점](i)과 [본 설치기](bootstrap.sh)에서 확인할 수 있습니다.
+`setup` 브랜치는 짧은 주소를 제공하며 실제 설치 소스는 `install/termux-bootstrap`입니다.
 
 자동으로 진행되는 순서:
 

@@ -701,6 +701,8 @@ action. Multiple roots fail explicitly; no automatic shared-daemon restart or re
 Production activation needs user authority. Bundle verification is not protection from
 hostile same-UID code. Native runner is included without extra executor enrollment.
 
+The short piped entry point `i` downloads the full bootstrap before execution and restores
+terminal input from `/dev/tty`; it selects the documented installation source branch internally.
 The shell bootstrap obtains a selected HTTPS repository branch/tag into a persistent source
 directory through temporary staging. An existing matching clean checkout is reused at its local
 commit; dirty/foreign sources are preserved and rejected. It installs no provider account or
