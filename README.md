@@ -55,6 +55,22 @@ isolation. See the [trust boundary](ARCHITECTURE.md#3-native-trust-and-containme
 
 ## Current work
 
+The observer CLI now binds its default evidence directory to the selected installation's
+persisted operator HOME, preserving custom `TDEV_OBSERVE_DIR` overrides and native task HOME
+isolation. `tdev observer status --json` reads both modes without creating files or controlling
+processes, and distinguishes missing evidence, stopped/stale records and invalid roots. The
+existing revision-2 collector can be inspected without replacement; new collectors from this
+source record revision 3 and explicit root identity. See [operator usage](OPERATIONS.md#caller-execution-witnesses)
+and [context qualification](LOCAL_VALIDATION.md#observer-context-binding--2026-09-28).
+The user reports successful fresh-session rediscovery, completed-effect recognition, new forward
+work/readback and visible handoff/final delivery in the 2026-09-28 reconnect trial. Local read-only
+checks independently confirmed the running observer and sample/runtime association; they did
+not replay that host trial or qualify remaining broader baseline gates.
+At final read-only closeout the old observer had stopped at 13:24:01 UTC, with its 316-sample
+segment intact. No observer control command was issued in this work; the initiating actor is
+unverified and no automatic restart was performed. The timestamped qualification above records
+both the earlier live observations and this later stopped state.
+
 Installed native packaging acceptance now passes on resident **0.1.14** through authenticated
 local HTTP: pinned public dependency, generated asset, source/build/validation scratch retirement,
 dependency-environment removal, artifact verification, live release, update/rollback, failed-switch

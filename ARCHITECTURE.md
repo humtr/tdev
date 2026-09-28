@@ -904,6 +904,32 @@ not identify a physical ChatGPT cell's attempts. Original snapshots remain intac
 continuous operator command uses the same reducer and records sampler bundle/script identity;
 neither observer imports into the server, calls MCP, acknowledges incidents or infers UI health.
 
+The canonical continuous observer entrypoint is `tdev observer`; `scripts/tdev-observe`
+is its independent collector and a standalone diagnostic/compatibility path. The installation's
+existing `resident.json.home` owns the persistent operator HOME (captured during installation,
+retained during updates, also used by resident launchers). The CLI resolves default observer
+evidence to `<resident.home>/tdev-observations` and explicitly passes both installation root
+and recording root to the collector. An explicit `TDEV_OBSERVE_DIR` overrides that default;
+relative overrides retain caller-cwd meaning and are made absolute before dispatch. Missing or
+invalid installation HOME fails explicitly, never falling back to execution HOME. No new state
+owner or evidence migration is introduced. Multiple installations sharing an operator HOME
+also share the legacy default evidence location; use separate explicit recording roots for
+independent collectors, and never treat a known installation mismatch as selected-root coverage.
+
+The source/operator shell HOME, disposable task/operation HOME, selected installation root and
+persistent observer evidence root are distinct. Source location is not evidence ownership;
+private native HOME remains unchanged. Direct standalone script use retains its historical
+HOME default and must pass `TDEV_OBSERVE_ROOT` and `TDEV_OBSERVE_DIR` explicitly outside an
+operator shell. A custom recording root is explicit operator context, not auto-discovered from
+other directories or saved implicitly by status. Installation updates do not move, prune or
+restart independent collectors. `status` reads bounded mode records and process identity without
+creating directories/locks, signalling processes, sampling the server or invoking MCP. It reports
+both resolved roots, per-mode lifecycle/freshness and recorded identity/coverage. Existing workers
+without a recorded installation root can bind through their explicit process environment;
+otherwise binding remains `unknown_legacy`, independently of verified process liveness. New
+workers record both roots. This local evidence timeline remains separate from server diagnostics
+and user-visible acceptance; absence at one recording root is not proof of missing global capture.
+
 Diagnostic storage revision 2 accepts existing revision-1 incidents and retains their IDs,
 acknowledgments and offer counts. Prior bundles do not understand revision 2: a rollback preserves
 the file and disables diagnostic persistence with an explicit storage error. Operational state

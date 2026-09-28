@@ -93,6 +93,22 @@ not competing queues. README owns implementation/current status; LOCAL_VALIDATIO
 results. Earlier incident/install/connection requests do not remain perpetual prerequisites once
 implemented. Current user instructions may reprioritize an item; record the resulting order here.
 
+2026-09-28 user priority: deliver a repository-URL one-line first install on fresh Termux,
+including prerequisite/bootstrap handling, terminal setup, user documentation and isolated
+qualification. Preserve existing installations and source edits; publishing the installer source
+does not authorize replacing the resident. Complete this before resuming step 3 below.
+
+2026-09-28 follow-up: installer source and both README installation options are published.
+The user selected step 3 again. Read-only resumption finds a healthy resident and no pending
+effects, but this session has no tdev connector tools. Continue the actual host trial through
+`examples/chatgpt/JOURNEY.md` when connected; preserve the already completed local evidence.
+
+2026-09-28 measured-friction priority (step 4): bind observer evidence discovery to the selected
+installation's persisted operator HOME, preserve explicit custom recording roots and existing
+collectors, qualify read-only status from isolated HOME, and correct acceptance guidance before
+using observer absence as reconnect coverage evidence. This source/CLI repair does not authorize
+a resident or collector replacement. Keep independent capture and visible acceptance separate.
+
 ### Completion and evidence rules
 
 For each deliverable distinguish implemented source, local qualification, installed acceptance,

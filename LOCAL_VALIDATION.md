@@ -2090,3 +2090,90 @@ publishes caller guidance; it cannot force the assistant to use the helper, issu
 or update the visible UI. Existing full controller instructions and helper remain the executable
 reference. Real ChatGPT scheduling/visible continuity remains outstanding and is to be assessed
 during normal authorized work, not another density or Stop experiment.
+
+## Observer context binding — 2026-09-28
+
+Fresh rebind used README/current development navigation, installation/native/diagnostic semantics
+in ARCHITECTURE, the diagnostic contract and current installer/resident/CLI/collector code.
+The source baseline is recorded in `.artifacts/observer-context-20260928/read-only-validation.json`;
+qualification includes the working changes, not a claim of a committed release. Existing dirty
+bootstrap/install work is preserved. No resident/provider/credential changes or live collector control commands were issued.
+
+The defect reproduced: the HEAD collector invoked with a temporary HOME and the actual selected
+installation printed “기록된 연속 observer가 없습니다.” It created its empty status directory in
+that disposable HOME. The revised CLI, from ordinary and temporary HOME with explicit `--root`
+and with `TDEV_ROOT`, instead read the same operator evidence root and existing coarse PID
+10748 / process start 172536607 / segment `20260928-213106-coarse-b1f96cb7`. Its recording root
+was `/data/data/com.termux/files/home/tdev-observations`; the selected installation was
+`/data/data/com.termux/files/home/.local/share/tdev/composition-upgrade-53vwtpp8`.
+This establishes an invocation-context false negative, not a failed collector.
+
+Root cause: the CLI only passed `TDEV_OBSERVE_ROOT`; the collector defaulted its independent
+recording root to caller `Path.home()`. The existing normative owner for operator HOME is
+`resident.json.home`, captured by installation and reused by service launchers/updates. The CLI
+now explicitly passes its default evidence path from that owner, preserving `TDEV_OBSERVE_DIR`
+overrides without evidence moves or native HOME changes. No MCP wire type or server diagnostic
+owner changed. Source collector revision 3 adds recorded root identity; the live collector stays
+revision 2. Its process identity is verified, but installation binding is honestly
+`unknown_legacy` because neither its old record nor process environment contains an explicit
+root. A separate bounded tail read joined a current sample's server PID 24176 and instance
+`2e2e0deeed4fa5b0` to that live server's `--state`/`--config` under the selected installation.
+This verifies the observed sample's runtime association without inventing missing legacy worker
+metadata. A later read kept the same observer PID/start/segment and samples advanced 236 → 263;
+unavailable/storageErrors/eventGaps/missingEvents/regressions remained zero.
+
+Status now reads bounded regular mode files without creating directories/locks, sending signals,
+pruning evidence or calling the server. It shows both modes and distinct absence, retained/stale,
+invalid/inaccessible and installation-mismatch outcomes, plus root/process/script/sample/coverage
+identity. This is independent local observation, not a new `tdev_diagnostics` surface.
+
+Initial focused/affected checks passed 53 tests. Expanded affected checks passed 61 tests
+(observer continuous/frontier/bounded sampler, CLI, resident). Final focused checks passed
+21 tests (continuous observer and CLI menus). The resumed full `sh scripts/check.sh` passed
+**326 tests in 745.786 seconds**, exit **0**, including `git diff --check`. Logs and the exit-code
+receipt are `check-resumed.log` and `check-resumed-result.json` in the evidence directory. The
+first full run was interrupted before its summary (186th test in progress); `check.log` is
+retained as incomplete, not PASS. Tests cover ordinary/isolated HOME, explicit/env/marker root
+selection, custom directory/alias and missing owner, live/stale PID/status, stopped and orphaned
+evidence, coarse/fine coexistence, read-only status including missing directories, corrupt/link/
+FIFO/inaccessible records, cross-installation control refusal, and retained bytes/operator HOME
+across a staged installation update using the fake runit backend. Real installed update was not run.
+
+The user reports actual ChatGPT reconnect/visible acceptance: fresh-session name discovery of
+project/workspace/task; bounded frontier recovery recognizing completed effects without replay;
+new `resume-proof.txt` forward effect/readback; user-confirmed prior-session handoff visibility
+and new-session final delivery; independent observer coverage and a matching caller witness.
+These are user-supplied host/visible results, not independently recreated by this local CLI test.
+They supersede the earlier pending assessment for that reported reconnect trial, without claiming
+all broader one-/two-project baseline gates. The earlier “observer stopped” preparation entry
+must not be reused as this trial's coverage verdict without binding its recording root/time.
+Keep server, caller, independent observer and user-visible timelines distinct.
+
+Deployment/verification: use the qualified source-backed CLI with the original installation and
+custom directory (if any), compare normal versus isolated HOME JSON, then confirm unchanged
+PID/start/segment and increasing samples. This status-only adoption requires no resident update
+or collector restart. The installed `/data/data/com.termux/files/usr/bin/tdev` shortcut already
+points to this checkout; invoking that actual command from temporary HOME also found PID 10748
+and the same root, with samples at 291. The shortcut itself was not rewritten. Existing
+private-bin collector was still running at revision 2 at that read; see the final observation below.
+Only a separately authorized collector upgrade needs evidence KEEP/script preservation, graceful
+mode-by-mode cutover with saved settings, new sample/identity verification and measured old-last
+to new-first sample gap, as specified in OPERATIONS. No cutover was performed in this work.
+
+Final read-only confirmation found a later state change: PID 10748 no longer exists and the
+original coarse record reports `stopped_evidence_exists`, revision 2, 316 samples. Its last
+sample is **2026-09-28 13:23:53.636 UTC** and graceful stop receipt is **13:24:01.187 UTC**
+(22:24:01 local +09:00). The original segment `20260928-213106-coarse-b1f96cb7` remains intact;
+its `observation.json` reports `stopReason=stopped`, and a streamed SHA-256 check matches the
+retained sample bytes. Unavailable/storageErrors/eventGaps/missingEvents/regressions are all zero
+for those retained samples. They do not establish coverage after the last sample.
+
+No operational observer stop/start was issued by this work. This stop predates the resumed
+full suite (started 13:32:37 UTC); the initiating actor/signal is not established by the stored
+receipt, so do not attribute it to the CLI change or infer continued capture. The source repair
+and earlier live read-only acceptance remain valid; current capture is stopped. No automatic
+restart, collector upgrade or runtime repair was attempted. If capture is resumed, explicitly
+select the original root/directory and saved coarse settings (10 seconds, 3600-second/64 MiB
+segments), preserve this closed segment, verify the new process/sample identity and report the
+coverage gap from 13:23:53.636 UTC. That is a separate operator action, not a prerequisite for
+using the corrected read-only CLI.
