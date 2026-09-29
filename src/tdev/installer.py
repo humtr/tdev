@@ -214,6 +214,8 @@ def main():
     parser.add_argument('--runtime-key-file')
     parser.add_argument('--profile-file')
     parser.add_argument('--controller-only', action='store_true', help='Fresh local installation with no Tunnel connections')
+    parser.add_argument('--allow-unknown-publish', metavar='OPERATION_ID',
+                        help='Maintenance-only: preserve one exact unknown managed create publication while updating services')
     parser.add_argument('--connector-auth', choices=('tunnel', 'bearer'),
                         help='Fresh setup only: Tunnel authorization with internal local credential, or host-provided Bearer')
     parser.add_argument('--takeover', action='store_true', help='Stop this installation\'s manual controller and matching managed Tunnel')
@@ -225,8 +227,11 @@ def main():
     require(not (args.diagnostics or args.diagnostic_principal) or not any(
         (args.no_start, args.check, args.rollback, args.uninstall, args.recover)), 'INSTALL_OPTIONS')
     require(not args.connector_auth or not any((args.no_start, args.check, args.rollback, args.uninstall, args.recover)), 'INSTALL_OPTIONS')
+    require(not args.allow_unknown_publish or not any((args.no_start, args.check, args.rollback, args.uninstall, args.recover, args.controller_only)), 'INSTALL_OPTIONS')
     require(not args.controller_only or not any((args.tunnel_id, args.runtime_key_file, args.profile_file, args.connector_auth, args.takeover, args.rollback, args.check, args.uninstall, args.recover, args.no_start)), 'INSTALL_OPTIONS')
     root = Path(args.root or args.directory or default_root()).absolute()
+    require(not args.allow_unknown_publish or (root / 'resident.json').exists(), 'INSTALL_OPTIONS',
+            'Unknown publication exemption is only valid for an existing resident update')
     source = Path(__file__).resolve().parents[2]
     if args.no_start:
         admin.prepare_tunnel(root)
@@ -266,7 +271,7 @@ def main():
         if (root / 'state/state.sqlite').exists():
             with sqlite3.connect('file:' + str(root / 'state/state.sqlite') + '?mode=ro', uri=True) as db:
                 require(db.execute('PRAGMA user_version').fetchone()[0] in admin.state_versions(root / 'versions' / staged['bundle']), 'SCHEMA_VERSION')
-                require(db.execute("SELECT count(*) FROM operation WHERE status IN ('running','unknown')").fetchone()[0] == 0, 'OUTSTANDING_EFFECT')
+                admin.maintenance_ready(db, args.allow_unknown_publish)
         with inst.lock():
             inst.recover()
             for request in args.retire_legacy:
@@ -298,7 +303,7 @@ def main():
                 require(principal in config_update['principals'], 'PRINCIPAL_NOT_FOUND')
                 config_update['principals'][principal]['diagnostics'] = True
         try:
-            result = inst.install(bundle, config_update, config_expected)
+            result = inst.install(bundle, config_update, config_expected, args.allow_unknown_publish)
             result['check'] = inst.check()
         except Exception:
             if args.takeover and not inst.journal.exists():

@@ -193,6 +193,26 @@ bash install.sh --recover
 bash install.sh --uninstall
 ```
 
+Resident maintenance normally refuses to start while any accepted operation is still
+`running` or `unknown`. Do not cancel, replay or force-terminalize work merely to install an
+update. A special case exists for a historical **managed branch create publication** whose
+provider reply was lost and whose outcome therefore remains permanently ambiguous even after
+independent readback. After reviewing that exact publication, an operator may preserve the
+receipt and exempt only that operation from the maintenance frontier:
+
+```sh
+tdev update /qualified/source --allow-unknown-publish OPERATION_ID
+# or, when invoking the source installer directly:
+bash install.sh --root /absolute/private/root --allow-unknown-publish OPERATION_ID
+```
+
+The option does **not** resolve, retry, delete or change the publication receipt. The named
+operation must be the exact stored managed-create publication; every other running/unknown
+operation continues to block maintenance. The exemption is stored in the installation journal
+so crash recovery uses the same bounded exception when restoring the previous bundle. Do not use
+this option for exec, validation, deployment, artifact work, or a publication whose identity has
+not been independently reconciled.
+
 For a fresh installation in an interactive terminal, `bash install.sh` asks for the missing
 Tunnel ID and a hidden runtime API key, then offers connector authentication: **OpenAI Tunnel
 authorization** (the fresh default) or **Connector-provided Bearer**. Create the Tunnel and runtime
