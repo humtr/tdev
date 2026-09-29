@@ -663,13 +663,15 @@ Default topology: Termux Python/Git/SQLite/controller + native supervisors + loc
 legacy initialize protocol. Each authenticated POST carries version/capability metadata
 and matching method/version/name headers; header mismatches fail before tool admission.
 server/discover is optional for clients, not a required handshake. Ordinary responses remain
-complete JSON envelopes. An explicit positive `waitMs` on command-mode `tdev_exec`, source
-`tdev_validate`, or `tdev_operation status` uses the same POST's request-scoped
-`text/event-stream`: headers are committed immediately with buffering disabled, comment
-keepalives may preserve transport liveness, an opted-in `_meta.progressToken` receives standard
-`notifications/progress`, and the matching final JSON-RPC response terminates the stream.
-Discovery/tool lists carry explicit private zero-TTL cache metadata. The exact envelope/error
-profile is in contracts/tools.schema.json x-mcp.
+complete JSON envelopes, including positive bounded waits when `_meta.progressToken` is absent.
+An explicit positive `waitMs` on command-mode `tdev_exec`, source `tdev_validate`, or
+`tdev_operation status` uses the same POST's request-scoped `text/event-stream` only when the
+request also opts into `_meta.progressToken`: headers are committed immediately with buffering
+disabled, standard `notifications/progress` are emitted while waiting, and the matching final
+JSON-RPC response terminates the stream. This follows auto response shaping rather than forcing
+a comment-only SSE stream merely because the server-side bounded wait is positive. Discovery/tool
+lists carry explicit private zero-TTL cache metadata. The exact envelope/error profile is in
+contracts/tools.schema.json x-mcp.
 
 Core HTTP has no initialize/initialized, transport session, GET/DELETE stream, SSE event-id
 resume or automatic protocol downgrade. Unimplemented client notifications are rejected.

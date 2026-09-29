@@ -146,10 +146,14 @@ workspace/credential need not block unrelated local packaging work.
 When long-running visible delivery is the selected evidence gap, measure the actual
 2026-07-28 POST response boundary before changing caller polling. Distinguish a silent
 open request, server SSE write/flush, Tunnel/client network receipt, host successor
-scheduling and visible rendering. A request-scoped SSE repair may observe an existing
-durable operation but must not become its execution owner, add protocol sessions/GET
-streams/replay, or treat keepalive comments as proof of progress or UI delivery. Qualify
-the exact transport with the pinned official SDK and the affected real host separately.
+scheduling and visible rendering. The 2026-09-29 real ChatGPT acceptance proved one concrete
+boundary: a no-progress-token `tdev_operation status(waitMs=8000)` produced HTTP 200 SSE headers,
+keepalive writes/flushes, terminal JSON-RPC write/flush and stream close at the resident while the
+host tool call did not return. The selected tdev repair is modern auto response shaping: no
+`progressToken` means one JSON response after bounded observation; an opted-in progress token
+uses request-scoped SSE with standard `notifications/progress`. Do not invent a server progress
+token or treat comments as protocol/UI progress. Qualify the JSON fallback in the affected real
+host and the progress-token SSE path with the pinned official SDK separately.
 
 Use the existing optional diagnostic implementation while returning to packaging delivery.
 Diagnostics remain operationally independent; continuous monitoring is not a new prerequisite

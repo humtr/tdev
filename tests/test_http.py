@@ -134,7 +134,7 @@ class HTTPTest(unittest.TestCase):
         self.assertTrue(value["result"]["structuredContent"]["ok"])
         self.assertEqual(self.request(headers={"Accept": "application/json"})[0], 406)
 
-    def test_status_wait_streams_request_scoped_progress_and_preserves_durable_operation(self):
+    def test_status_wait_uses_json_without_progress_and_sse_with_progress(self):
         def call(tool, args):
             code, response = self.request("tools/call", {"name": "tdev_" + tool, "arguments": args})
             self.assertEqual(code, 200)
@@ -163,8 +163,17 @@ class HTTPTest(unittest.TestCase):
         self.assertEqual(code, 200)
         self.assertEqual(response["result"]["structuredContent"]["result"]["status"], "succeeded")
 
+        op_json = call("exec", {"requestId": "sse-json", "taskId": w["taskId"],
+                                "expected": finished["result"]["checkpoint"],
+                                "command": "sleep .1; printf json", "timeout": 5})
+        code, content_type, buffering, data = self.stream(
+            {"action": "status", "operationId": op_json["id"], "waitMs": 5000})
+        self.assertEqual((code, content_type, buffering), (200, "application/json", None))
+        json_wait = json.loads(data)["result"]["structuredContent"]["result"]
+        self.assertEqual((json_wait["status"], json_wait["result"]["exitCode"]), ("succeeded", 0))
+
         op2 = call("exec", {"requestId": "sse-bridge", "taskId": w["taskId"],
-                            "expected": finished["result"]["checkpoint"],
+                            "expected": json_wait["result"]["checkpoint"],
                             "command": "sleep .1; printf bridge", "timeout": 5})
         from tdev.codex_bridge import Bridge
         bridge = Bridge(f"http://127.0.0.1:{self.server.server_port}/mcp", "alice-secret")
@@ -178,7 +187,8 @@ class HTTPTest(unittest.TestCase):
                             "expected": bridged_status["result"]["checkpoint"],
                             "command": "sleep .4; printf durable", "timeout": 5})
         conn = http.client.HTTPConnection("127.0.0.1", self.server.server_port, timeout=5)
-        meta = {META + "protocolVersion": VERSION, META + "clientCapabilities": {}}
+        meta = {META + "protocolVersion": VERSION, META + "clientCapabilities": {},
+                "progressToken": "disconnect-progress"}
         params = {"_meta": meta, "name": "tdev_operation", "arguments": {
             "action": "status", "operationId": op3["id"], "waitMs": 5000}}
         headers = {"Authorization": "Bearer alice-secret", "Content-Type": "application/json",

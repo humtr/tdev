@@ -55,6 +55,8 @@ isolation. See the [trust boundary](ARCHITECTURE.md#3-native-trust-and-containme
 
 ## Current work
 
+Source **0.1.18** changes modern HTTP response shaping after real ChatGPT host acceptance reproduced a transport-only stall on the 0.1.17 comment-only SSE path. The resident wrote and flushed HTTP 200 SSE headers, four keepalive comments, the terminal JSON-RPC response and stream close within about 3.4 seconds, while the ChatGPT tool call did not return to the assistant. Positive bounded waits now follow an auto profile: when the request includes `_meta.progressToken`, tdev uses request-scoped SSE with standard `notifications/progress`; without a progress token, the same bounded observation returns one `application/json` response and does not force a comment-only stream. Operation admission, durable identity, wait duration, disconnect semantics on the streamed path and replay rules are unchanged. Server write completion still does not prove Tunnel receipt or visible UI delivery.
+
 Source **0.1.17** directly measures the long-running MCP delivery boundary and adds
 2026-07-28 request-scoped SSE only for explicit positive waits on command `tdev_exec`,
 source `tdev_validate`, and `tdev_operation status`. The pre-change 0.1.16 profile was

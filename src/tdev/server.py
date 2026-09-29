@@ -403,7 +403,7 @@ def make_server(controller, port=0, diagnostics=None, diagnostic_factory=None):
                         return
                     arguments = params.get("arguments", {})
                     wait_ms = arguments.get('waitMs', 0)
-                    stream_wait = type(wait_ms) is int and wait_ms > 0 and (
+                    stream_wait = progress_token is not None and type(wait_ms) is int and wait_ms > 0 and (
                         (params.get("name") == "tdev_operation" and arguments.get("action") == "status")
                         or (params.get("name") == "tdev_exec" and arguments.get("mode", "command") != "process")
                         or (params.get("name") == "tdev_validate" and arguments.get("subject") != "artifact")
