@@ -102,7 +102,7 @@ def make_server(controller, port=0, diagnostics=None, diagnostic_factory=None):
                 data = canonical(value) if value is not None else b""
                 self._emit('serialization_finished', bytes=len(data), responseTag=self._observe('payload_tag', data))
                 stage = 'headers'
-                self._emit('socket_headers_started')
+                self._emit('socket_headers_started', httpStatus=status, mediaType="application/json")
                 self.send_response(status)
                 self.send_header("Content-Type", "application/json")
                 self.send_header("Content-Length", str(len(data)))
@@ -111,11 +111,15 @@ def make_server(controller, port=0, diagnostics=None, diagnostic_factory=None):
                     self.send_header("Allow", "POST")
                 self.send_header("Connection", "close")
                 self.end_headers()
-                self._emit('socket_headers_written')
+                self._emit('socket_headers_written', httpStatus=status, mediaType="application/json")
                 stage = 'body'
-                self._emit('socket_body_started')
+                self._emit('socket_body_started', httpStatus=status, mediaType="application/json")
                 self.wfile.write(data)
-                self._emit('socket_body_written', bytes=len(data), httpStatus=status)
+                self._emit('socket_body_written', bytes=len(data), httpStatus=status,
+                           mediaType="application/json")
+                self.wfile.flush()
+                self._emit('socket_flush_finished', httpStatus=status, mediaType="application/json",
+                           chunkKind='final', flushed=True)
             except Exception as error:
                 failure = ('broken_pipe' if isinstance(error, BrokenPipeError) else
                            'connection_reset' if isinstance(error, ConnectionResetError) else
@@ -125,6 +129,143 @@ def make_server(controller, port=0, diagnostics=None, diagnostic_factory=None):
                 if stage != 'body' or not isinstance(error, (BrokenPipeError, ConnectionResetError)):
                     raise
             self.close_connection = True
+            self._emit('socket_close_requested', httpStatus=status, mediaType="application/json")
+
+        def controller_event(self, event, value):
+            self._emit(event, **(self._observe('outcome', value) or {}))
+
+        def tool_result(self, principal, value):
+            result = {"content": [{"type": "text", "text": canonical(value).decode()}],
+                      "structuredContent": value, "isError": not value["ok"],
+                      "resultType": "complete",
+                      "_meta": {META + "serverInfo": {"name": "tdev", "version": __version__}}}
+            if hasattr(trace, 'receipt'):
+                receipt = self._observe('receipt', self._trace_request)
+                if receipt:
+                    try:
+                        canonical(receipt)
+                        result['_meta']['io.tdev/diagnosticReceipt'] = receipt
+                    except Exception:
+                        pass
+            if hasattr(trace, 'offers'):
+                try:
+                    alerts = trace.offers(principal)
+                    notice = ('tdev diagnostics: ' + '; '.join(a['id'] + ' ' + a['reason'] + ' (' + a['capture'] + ')' for a in alerts) +
+                              '. Acknowledge received incidentId once; inspect view=summary for counts. '
+                              'No user-visible delivery proof; existing work continues.')
+                    canonical(alerts)
+                except Exception:
+                    alerts = []
+                if alerts:
+                    result['_meta']['io.tdev/diagnostics'] = alerts
+                    result['content'].append({'type': 'text', 'text': notice})
+            return result
+
+        def sse_start(self, progress_requested):
+            media_type = "text/event-stream"
+            self._emit('socket_headers_started', httpStatus=200, mediaType=media_type,
+                       progressRequested=progress_requested)
+            self.send_response(200)
+            self.send_header("Content-Type", media_type)
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("X-Accel-Buffering", "no")
+            self.send_header("Connection", "close")
+            self.end_headers()
+            self.wfile.flush()
+            self._emit('socket_headers_written', httpStatus=200, mediaType=media_type,
+                       progressRequested=progress_requested)
+            self._emit('socket_flush_finished', mediaType=media_type, chunkKind='headers',
+                       progressRequested=progress_requested, flushed=True)
+            self.close_connection = True
+            self._sse_chunks = 0
+
+        def sse_write(self, value=None, comment=None, chunk_kind='message'):
+            media_type = "text/event-stream"
+            data = ((": " + comment + "\n\n").encode("utf-8") if comment is not None else
+                    b"event: message\ndata: " + canonical(value) + b"\n\n")
+            index = getattr(self, '_sse_chunks', 0)
+            if index == 0:
+                self._emit('socket_body_started', httpStatus=200, mediaType=media_type)
+            try:
+                self._emit('socket_chunk_started', bytes=len(data), httpStatus=200,
+                           mediaType=media_type, chunkKind=chunk_kind, chunkIndex=index)
+                self.wfile.write(data)
+                self._emit('socket_chunk_written', bytes=len(data), httpStatus=200,
+                           mediaType=media_type, chunkKind=chunk_kind, chunkIndex=index,
+                           responseTag=self._observe('payload_tag', data))
+                self.wfile.flush()
+                self._emit('socket_flush_finished', httpStatus=200, mediaType=media_type,
+                           chunkKind=chunk_kind, chunkIndex=index, flushed=True)
+                self._sse_chunks = index + 1
+                return True
+            except (BrokenPipeError, ConnectionResetError, TimeoutError) as error:
+                failure = ('broken_pipe' if isinstance(error, BrokenPipeError) else
+                           'connection_reset' if isinstance(error, ConnectionResetError) else 'timeout')
+                self._emit('response_failed', stage='body', failureClass=failure, httpStatus=200,
+                           mediaType=media_type, chunkKind=chunk_kind, chunkIndex=index)
+                self.close_connection = True
+                return False
+
+        def stream_wait(self, principal, ident, tool_name, arguments, progress_token):
+            state, done, cancelled = {}, threading.Event(), threading.Event()
+            started = time.monotonic_ns() if trace is not None else 0
+            self._emit('dispatch_started')
+            def run():
+                try:
+                    state['value'] = controller.call_observed(
+                        principal, tool_name, arguments,
+                        observer=self.controller_event, cancelled=cancelled)
+                except Exception:
+                    state['error'] = True
+                finally:
+                    done.set()
+            worker = threading.Thread(target=run, daemon=True)
+            worker.start()
+            self.sse_start(progress_token is not None)
+            connected = self.sse_write(comment='tdev-stream', chunk_kind='keepalive')
+            tick = 0
+            while connected and not done.wait(1.0):
+                tick += 1
+                if progress_token is None:
+                    connected = self.sse_write(comment='tdev-wait', chunk_kind='keepalive')
+                else:
+                    connected = self.sse_write(
+                        {"jsonrpc": "2.0", "method": "notifications/progress",
+                         "params": {"progressToken": progress_token, "progress": tick,
+                                    "message": "Waiting for tdev tool result"}},
+                        chunk_kind='progress')
+            if not connected:
+                # Stream cancellation stops this bounded observation request only. The already
+                # accepted durable operation is not request-owned and continues independently.
+                cancelled.set()
+                worker.join(1.5)
+                self._emit('socket_close_requested', httpStatus=200,
+                           mediaType="text/event-stream", failureClass='client_disconnect')
+                return
+            worker.join()
+            if state.get('error'):
+                self._emit('dispatch_failed', durationNs=time.monotonic_ns()-started)
+                if connected:
+                    self.sse_write({"jsonrpc": "2.0", "id": ident,
+                                    "error": {"code": -32603,
+                                              "message": "Internal error; observe retained request identity before retry"}},
+                                   chunk_kind='final')
+                return
+            value = state['value']
+            outcome = self._observe('outcome', value) or {}
+            self._emit('dispatch_finished', durationNs=time.monotonic_ns()-started, **outcome)
+            if hasattr(trace, 'tool_result'):
+                self._observe('tool_result', self._trace_request, value)
+            if connected:
+                connected = self.sse_write(
+                    {"jsonrpc": "2.0", "id": ident,
+                     "result": self.tool_result(principal, value)}, chunk_kind='final')
+                if connected:
+                    self._emit('response_stream_finished', httpStatus=200,
+                               mediaType="text/event-stream")
+            self._emit('socket_close_requested', httpStatus=200,
+                       mediaType="text/event-stream",
+                       failureClass=None if connected else 'write_error')
 
         def ingress(self):
             host = self.headers.get("Host", "")
@@ -244,6 +385,12 @@ def make_server(controller, port=0, diagnostics=None, diagnostic_factory=None):
             if version != VERSION:
                 self.rpc_error(400, ident, -32022, "Unsupported protocol version", {"supported": [VERSION], "requested": version})
                 return
+            progress_token = meta.get('progressToken')
+            if progress_token is not None and (
+                    isinstance(progress_token, bool) or not isinstance(progress_token, (str, int, float))):
+                self.rpc_error(400, ident, -32602, "Invalid progress token")
+                return
+            self._emit('request_accepted', progressRequested=progress_token is not None)
             error = None
             try:
                 if method == "server/discover":
@@ -254,10 +401,20 @@ def make_server(controller, port=0, diagnostics=None, diagnostic_factory=None):
                     if params.get("name") not in {t["name"] for t in controller.schema["x-tools"]} or not isinstance(params.get("arguments", {}), dict):
                         self.rpc_error(400, ident, -32602, "Unknown tool or invalid arguments")
                         return
+                    arguments = params.get("arguments", {})
+                    wait_ms = arguments.get('waitMs', 0)
+                    stream_wait = type(wait_ms) is int and wait_ms > 0 and (
+                        (params.get("name") == "tdev_operation" and arguments.get("action") == "status")
+                        or (params.get("name") == "tdev_exec" and arguments.get("mode", "command") != "process")
+                        or (params.get("name") == "tdev_validate" and arguments.get("subject") != "artifact")
+                    )
+                    if stream_wait:
+                        self.stream_wait(principal, ident, params.get("name"), arguments, progress_token)
+                        return
                     started = time.monotonic_ns() if trace is not None else 0
                     self._emit('dispatch_started')
                     try:
-                        value = controller.call(principal, params.get("name", ""), params.get("arguments", {}))
+                        value = controller.call(principal, params.get("name", ""), arguments)
                     except Exception:
                         if trace is not None:
                             self._emit('dispatch_failed', durationNs=time.monotonic_ns()-started)

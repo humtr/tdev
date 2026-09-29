@@ -923,7 +923,7 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 30000,
-          "description": "Bounded terminal observation after command admission. Omit or set 0 for an immediate retained handle; set a positive value to wait up to this many milliseconds for the exact admitted operation and return the freshest status/log page. This observation-only field does not change mutation identity and is ignored for process mode."
+          "description": "Bounded terminal observation after command admission. Omit or set 0 for an immediate retained handle; set a positive value to wait up to this many milliseconds for the exact admitted operation and return the freshest status/log page. This observation-only field does not change mutation identity and is ignored for process mode. On MCP HTTP, a positive command wait uses the request-scoped SSE response profile."
         },
         "capturePaths": {
           "type": "array",
@@ -991,7 +991,7 @@
               "type": "integer",
               "minimum": 0,
               "maximum": 30000,
-              "description": "Bounded read-only terminal wait. While the operation is running or unknown, status waits up to this many milliseconds for terminal reconciliation, then returns the freshest status/log page; nonterminal log growth does not end the wait."
+              "description": "Bounded read-only terminal wait. While the operation is running or unknown, status waits up to this many milliseconds for terminal reconciliation, then returns the freshest status/log page; nonterminal log growth does not end the wait. On MCP HTTP, a positive wait uses the request-scoped SSE response profile; omission or 0 remains an immediate JSON response."
             }
           },
           "required": [
@@ -1144,7 +1144,7 @@
               "type": "integer",
               "minimum": 0,
               "maximum": 30000,
-              "description": "Bounded terminal observation after source-validation admission. Omit or set 0 for an immediate retained handle; set a positive value to wait up to this many milliseconds for the exact admitted validation and return the freshest status/log page. This observation-only field does not change mutation identity."
+              "description": "Bounded terminal observation after source-validation admission. Omit or set 0 for an immediate retained handle; set a positive value to wait up to this many milliseconds for the exact admitted validation and return the freshest status/log page. This observation-only field does not change mutation identity. On MCP HTTP, a positive source-validation wait uses the request-scoped SSE response profile."
             }
           },
           "required": [
@@ -6277,7 +6277,7 @@
   ],
   "x-mcp": {
     "protocolVersion": "2026-07-28",
-    "transport": "Streamable HTTP POST /mcp; application/json responses",
+    "transport": "Streamable HTTP POST /mcp; application/json by default, request-scoped text/event-stream for explicit positive bounded waits",
     "methods": [
       "server/discover",
       "tools/list",
@@ -6286,7 +6286,8 @@
     "requestMetadata": {
       "io.modelcontextprotocol/protocolVersion": "required string; equal to protocolVersion header",
       "io.modelcontextprotocol/clientCapabilities": "required object; no client feature required by tdev",
-      "io.modelcontextprotocol/clientInfo": "optional self-reported implementation, never authority"
+      "io.modelcontextprotocol/clientInfo": "optional self-reported implementation, never authority",
+      "progressToken": "optional _meta string/number; requests standard notifications/progress on a streamed bounded wait; never durable identity or authority"
     },
     "headers": {
       "Accept": "application/json, text/event-stream",
@@ -6297,7 +6298,9 @@
     "response": {
       "resultType": "complete",
       "serverInfo": "every successful result _meta",
-      "cache": "server/discover and tools/list: ttlMs 0, cacheScope private; HTTP no-store"
+      "cache": "server/discover and tools/list: ttlMs 0, cacheScope private; HTTP no-store",
+      "boundedWaitStream": "positive waitMs on command tdev_exec, source tdev_validate, or tdev_operation status: text/event-stream with immediate headers, X-Accel-Buffering no, comment keepalive, optional notifications/progress when progressToken was supplied, then the matching final JSON-RPC response",
+      "disconnect": "cancels the bounded observation response only; an already accepted durable operation continues and is reconciled by identity without replay"
     },
     "errors": {
       "-32020": "HTTP 400 missing/malformed/mismatching headers",

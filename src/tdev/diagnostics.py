@@ -68,6 +68,9 @@ class Recorder:
         args = params.get('arguments')
         if not isinstance(args, dict):
             args = {}
+        meta = params.get('_meta')
+        if not isinstance(meta, dict):
+            meta = {}
         return {
             'rpcTag': self.tag(message.get('id')),
             'method': message.get('method') if message.get('method') in ('tools/call', 'tools/list', 'server/discover') else 'other',
@@ -78,6 +81,7 @@ class Recorder:
             'taskTag': self.tag(args.get('taskId')),
             'action': args.get('action') if args.get('action') in (
                 'status', 'stdin', 'cancel', 'retire', 'open', 'inspect', 'list', 'close') else None,
+            'progressRequested': meta.get('progressToken') is not None,
         }
 
     def outcome(self, value):
@@ -100,7 +104,8 @@ class Recorder:
         allowed = {'rpcTag','method','tool','requestTag','lookupTag','operationTag','taskTag',
                    'ok','status','effect','terminal','errorTag','authenticated','bytes',
                    'responseTag','httpStatus','durationNs','failureClass','stage','action',
-                   'principalTag','runTag','cellTag','sequence','phase','callOrdinal','afterRequest'}
+                   'principalTag','runTag','cellTag','sequence','phase','callOrdinal','afterRequest',
+                   'mediaType','chunkKind','chunkIndex','progressRequested','flushed'}
         value = dict(instance=self.instance, pid=os.getpid(), request=request,
                      event=event, timeNs=time.time_ns(),
                      monotonicNs=time.monotonic_ns())
@@ -111,7 +116,7 @@ class Recorder:
         value.update({k:v for k,v in fields.items() if k in allowed and v is not None})
         with self._lock:
             value['eventId'] = next(self._events)
-            for name in ('rpcTag', 'method', 'tool', 'requestTag', 'lookupTag', 'operationTag', 'taskTag', 'action'):
+            for name in ('rpcTag', 'method', 'tool', 'requestTag', 'lookupTag', 'operationTag', 'taskTag', 'action', 'progressRequested'):
                 if track and name not in value and name in self._active.get(request, {}):
                     value[name] = self._active[request][name]
             self._counts['emitted'] += 1

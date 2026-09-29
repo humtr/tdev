@@ -78,6 +78,28 @@ try {
   const called = await client.callTool({name:'tdev_task',arguments:{action:'list'}});
   assert.equal(called.isError, false);
   assert.equal(called.structuredContent.ok, true);
+  const repoHead = called.structuredContent.result.repositories.find(
+    r => r.repo === 'test' && r.ref === 'refs/heads/main').head;
+  const opened = await client.callTool({name:'tdev_task',arguments:{action:'open',
+    requestId:'sdk-stream-open',repo:'test',ref:'refs/heads/main',expectedHead:repoHead}});
+  assert.equal(opened.isError, false);
+  const task = opened.structuredContent.result.result;
+  const progress = [];
+  const waited = await client.callTool({name:'tdev_exec',arguments:{
+    requestId:'sdk-stream-exec',taskId:task.taskId,expected:task.checkpoint,
+    command:'sleep 1.3; printf sdk-stream',timeout:5,waitMs:5000}}, {
+      onprogress: update => progress.push(update),
+      timeout: 10000
+    });
+  assert(progress.length >= 1, 'official SDK did not receive notifications/progress');
+  assert(progress.some(update => update.progress >= 1));
+  assert.equal(waited.isError, false);
+  assert.equal(waited.structuredContent.result.status, 'succeeded');
+  assert.equal(waited.structuredContent.result.result.exitCode, 0);
+  const replay = await client.callTool({name:'tdev_exec',arguments:{
+    requestId:'sdk-stream-exec',taskId:task.taskId,expected:task.checkpoint,
+    command:'sleep 1.3; printf sdk-stream',timeout:5,waitMs:0}});
+  assert.equal(replay.structuredContent.result.id, waited.structuredContent.result.id);
   const workspace = await client.callTool({name:'tdev_workspace',arguments:{action:'list'}});
   assert.equal(workspace.isError, false);
   assert.equal(workspace.structuredContent.ok, true);
