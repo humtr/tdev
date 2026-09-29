@@ -126,16 +126,16 @@ test('operation monitor stays in one cell until terminal failure is observed', a
   assert.deepEqual(seen,['running','failed']); assert.equal(result.nextArgs.offset,9);
 });
 
-test('operation monitor rolls over with exact read-only continuation state', async () => {
+test('operation monitor default performs one bounded wait per physical cell before rollover', async () => {
   let clock=0, calls=0; const offsets=[];
   const waits=[];
   const tools={status:async args=>{offsets.push(args.offset); waits.push(args.waitMs); calls++; return {ok:true,result:{id:'op1',status:'running',effect:'unknown',result:null,error:null,
     output:{availableBytes:calls,nextOffset:args.offset+1}}};}};
-  const result=await freshMonitor()({tools,tool:'status',operationId:'op1',maxCalls:3,maxElapsedMs:10000,
+  const result=await freshMonitor()({tools,tool:'status',operationId:'op1',
     statusWaitMs:3000,pollAfterMs:1000,now:()=>clock,sleep:async ms=>{clock+=ms;}});
   assert.equal(result.status,'rollover'); assert.equal(result.reason,'call_budget');
-  assert.equal(result.attempted,3); assert.deepEqual(offsets,[0,1,2]); assert.deepEqual(waits,[3000,3000,3000]);
-  assert.equal(result.nextArgs.offset,3); assert.equal(result.nextArgs.waitMs,3000);
+  assert.equal(result.attempted,1); assert.deepEqual(offsets,[0]); assert.deepEqual(waits,[3000]);
+  assert.equal(result.nextArgs.offset,1); assert.equal(result.nextArgs.waitMs,3000);
 });
 
 test('operation monitor stops safely on unknown or unavailable status', async () => {

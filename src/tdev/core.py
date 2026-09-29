@@ -190,7 +190,20 @@ class Controller:
                 return {"ok": True, "result": self.inspect(principal, args)}
             if kind == "operation" and args["action"] == "status":
                 return {"ok": True, "result": self.status(principal, args)}
-            return {"ok": True, "result": self.mutate(principal, kind, args)}
+            mutation_args = args
+            wait_ms = 0
+            if kind == 'exec':
+                wait_ms = 0 if args.get('mode') == 'process' else args.get('waitMs', 0)
+            elif kind == 'validate' and args.get('subject') != 'artifact':
+                wait_ms = args.get('waitMs', 0)
+            if kind in ('exec', 'validate') and 'waitMs' in args:
+                mutation_args = dict(args)
+                mutation_args.pop('waitMs', None)
+            result = self.mutate(principal, kind, mutation_args)
+            if wait_ms:
+                result = self.status(principal, {'operationId': result['id'], 'offset': 0,
+                                                 'limit': 24000, 'waitMs': wait_ms})
+            return {"ok": True, "result": result}
         except Fault as e:
             return {"ok": False, "error": e.value}
         except (UnicodeError, ValueError, KeyError):

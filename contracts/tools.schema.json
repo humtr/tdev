@@ -919,6 +919,12 @@
           "minimum": 1,
           "maximum": 3600
         },
+        "waitMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 30000,
+          "description": "Bounded terminal observation after command admission. Omit or set 0 for an immediate retained handle; set a positive value to wait up to this many milliseconds for the exact admitted operation and return the freshest status/log page. This observation-only field does not change mutation identity and is ignored for process mode."
+        },
         "capturePaths": {
           "type": "array",
           "items": {
@@ -1133,6 +1139,12 @@
               "minimum": 1,
               "maximum": 3600,
               "description": "Validation deadline in seconds; default 300. Increase for a longer adopted test suite, up to 3600."
+            },
+            "waitMs": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 30000,
+              "description": "Bounded terminal observation after source-validation admission. Omit or set 0 for an immediate retained handle; set a positive value to wait up to this many milliseconds for the exact admitted validation and return the freshest status/log page. This observation-only field does not change mutation identity."
             }
           },
           "required": [
@@ -5642,7 +5654,7 @@
     },
     {
       "name": "tdev_exec",
-      "description": "Run commands on Termux by default (same-UID developer authority, not a sandbox); explicit remote executor is optional. Returns a retained operation handle. Never resubmit with a new request after response loss. Native dependencies/caches persist per task through TDEV_ENV_DIR; use environment=fresh for a disposable environment. mode=process starts a foreground development server/debugger on a fixed checkpoint without blocking source edits or capturing its files; omit timeout to run until cancel/exit. Observe logs/stdin/cancel/retire through tdev_operation.",
+      "description": "Run commands on Termux by default (same-UID developer authority, not a sandbox); explicit remote executor is optional. Returns a retained operation handle. For ordinary non-interactive ChatGPT Code Mode work, send waitMs=30000 so admission and one bounded terminal/log observation happen in the same nested tool call; omit it or set waitMs=0 for staged-stdin or immediate-handle workflows. If it still returns running, continue with tdev_operation status without replaying the effect. waitMs is observation-only and does not change request identity; process mode ignores it and returns immediately. Never resubmit with a new request after response loss. Native dependencies/caches persist per task through TDEV_ENV_DIR; use environment=fresh for a disposable environment. mode=process starts a foreground development server/debugger on a fixed checkpoint without blocking source edits or capturing its files; omit timeout to run until cancel/exit. Observe later logs/stdin/cancel/retire through tdev_operation.",
       "inputSchema": {
         "$ref": "#/$defs/execInput"
       },
@@ -5692,7 +5704,7 @@
     },
     {
       "name": "tdev_operation",
-      "description": "Inspect any accepted operation by operationId or original request ID, including project and workspace changes. Status observes current progress without repeating effects. For exec/validation processes only: deliver sequenced stdin, request cancellation or retire stopped resources. ChatGPT Code Mode caller guidance (not a server limit): use short physical functions.exec cells, conservatively at most 16 total nested attempts including failures and diagnostics, and check a soft 15-second elapsed budget before another call. Reserve closing markers within that budget. For one already-admitted ongoing exec/validation/build, prefer one bounded read-only status call with waitMs (at most 30000) per physical cell so terminal failed/cancelled state can be returned by that call; advance the returned output cursor and never replay the effect. If the bounded wait returns while still running, return exact continuation state and end the cell normally; after receiving it, the assistant reports progress and issues a fresh functions.exec in the same turn without waiting for user input unless blocked or interrupted. Unknown, malformed, unavailable or ambiguous results stop for review/reconciliation of the original identity. Never retry ambiguous effects or regenerate requestId; observe the original operation and never infer success from transport completion. These are adjustable caller defaults, not guaranteed host capabilities; server completion and markers do not prove visible UI delivery.",
+      "description": "Inspect any accepted operation by operationId or original request ID, including project and workspace changes. Status observes current progress without repeating effects. For exec/validation processes only: deliver sequenced stdin, request cancellation or retire stopped resources. ChatGPT Code Mode caller guidance (not a server limit): use short physical functions.exec cells, conservatively at most 16 total nested attempts including failures and diagnostics, and check a soft 15-second elapsed budget before another ordinary call. Reserve closing markers within that budget. For one already-admitted ongoing exec/validation/build, use the operation-monitor exception: keep the exact identity and perform one read-only status call with waitMs (at most 30000) per physical cell, advancing the returned output cursor and never replaying the effect. This reduces dependence on host scheduling a fresh physical cell every 30 seconds and surfaces terminal failed/cancelled state before return. If the in-cell monitor budget ends while still running, return exact continuation state and end the cell normally; after receiving it, the assistant reports progress and issues a fresh functions.exec in the same turn without waiting for user input unless blocked or interrupted. Unknown, malformed, unavailable or ambiguous results stop for review/reconciliation of the original identity. Never retry ambiguous effects or regenerate requestId; observe the original operation and never infer success from transport completion. These are adjustable caller defaults, not guaranteed host capabilities; server completion and markers do not prove visible UI delivery.",
       "inputSchema": {
         "$ref": "#/$defs/operationInput"
       },
@@ -5742,7 +5754,7 @@
     },
     {
       "name": "tdev_validate",
-      "description": "Freeze an exact candidate commit and run the operator's mandatory command through trusted outer execution. With subject=artifact and artifactId, verifies retained bytes using adopted artifactValidation policy in fresh scratch; never alters source. Service packages additionally require a free loopback health port/path and exercise the manifest entrypoint with TDEV_PORT and X-Tdev-Release. Observe/log/cancel/retire through tdev_operation. Artifact validation cannot authorize source publication.",
+      "description": "Freeze an exact candidate commit and run the operator's mandatory command through trusted outer execution. For ordinary ChatGPT Code Mode source validation, send waitMs=30000 so admission and one bounded terminal/log observation happen in the same nested tool call; omit it or set waitMs=0 when an immediate retained handle is required. If it still returns running, continue with tdev_operation status without replaying the effect. waitMs is observation-only and does not change request identity. With subject=artifact and artifactId, verifies retained bytes using adopted artifactValidation policy in fresh scratch; never alters source. Service packages additionally require a free loopback health port/path and exercise the manifest entrypoint with TDEV_PORT and X-Tdev-Release. Observe later logs/cancel/retire through tdev_operation. Artifact validation cannot authorize source publication.",
       "inputSchema": {
         "$ref": "#/$defs/validateInput"
       },

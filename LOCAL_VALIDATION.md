@@ -2090,3 +2090,28 @@ publishes caller guidance; it cannot force the assistant to use the helper, issu
 or update the visible UI. Existing full controller instructions and helper remain the executable
 reference. Real ChatGPT scheduling/visible continuity remains outstanding and is to be assessed
 during normal authorized work, not another density or Stop experiment.
+
+
+## Real ChatGPT successor-cell visible divergence — 2026-09-29
+
+During normal authorized `humtr/tdev` work, the user reported that the visible ChatGPT surface
+stopped after the host/tool-group label "Ran focused diagnostic policy test and checked operation
+status". A fresh durable task inspection after that report showed later work had nevertheless
+continued on the same source task: request `exec-wait-successor-first-probe-20260929`, operation
+`0a5acea60d2c4dbc9147d92527c1bf96`, was already `succeeded` / `committed` with exit code 0,
+and the task checkpoint had advanced to `04deda988d6417d5ff3b194465e4d03ff49e53c1`.
+No standalone assistant progress commentary was inserted between that probe's admission and its
+first two status cells. This therefore disproves a stronger hypothesis that a standalone progress
+message is required for the visible continuation loss. It does not identify which ChatGPT host/UI
+stage failed; tdev backend completion is not proof of visible delivery.
+
+Attempts to hide successor scheduling by performing multiple 30-second status waits inside one
+physical Code Mode cell were also not a safe workaround in this run: larger multi-wait cells hit
+the outer Code Mode cell timeout, while a single `status(waitMs=30000)` physical cell repeatedly
+returned current backend progress. The caller helper default was therefore restored to one
+bounded status call per physical cell; same-operation identity, output cursor advancement and
+no-replay semantics remain unchanged. Ordinary ChatGPT command/source-validation admission may
+still send explicit `waitMs=30000` once the refreshed connector schema exposes that source
+contract. The currently connected ChatGPT-side `tdev_exec` schema did not yet accept `waitMs`
+during this evidence run, so source implementation and live connector acceptance remain separate
+acceptance facts.
