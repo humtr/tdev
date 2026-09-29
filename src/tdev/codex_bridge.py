@@ -35,7 +35,10 @@ class Bridge:
             require(isinstance(name, str) and name.isascii() and name.startswith("tdev_")
                     and all(c.isalnum() or c == "_" for c in name), "BRIDGE_TOOL")
             headers["Mcp-Name"] = name
-        conn = http.client.HTTPConnection(self.target.hostname, self.target.port or 80, timeout=30)
+        arguments = params.get("arguments", {}) if method == "tools/call" else {}
+        wait_ms = arguments.get("waitMs", 0) if isinstance(arguments, dict) else 0
+        timeout = 45 if type(wait_ms) is int and wait_ms > 0 else 30
+        conn = http.client.HTTPConnection(self.target.hostname, self.target.port or 80, timeout=timeout)
         try:
             conn.request("POST", "/mcp", canonical({"jsonrpc": "2.0", "id": ident, "method": method, "params": params}), headers)
             response = conn.getresponse()
@@ -44,7 +47,18 @@ class Bridge:
                 raise Fault("BRIDGE_OUTPUT_LIMIT", effect="unknown")
             if response.status in (401, 403):
                 raise Fault("AUTHENTICATION_REQUIRED")
-            value = json.loads(data)
+            content_type = response.getheader("Content-Type", "").split(";", 1)[0]
+            if content_type == "text/event-stream":
+                value = None
+                for line in data.splitlines():
+                    if line.startswith(b"data:"):
+                        candidate = json.loads(line[5:].strip())
+                        if candidate.get("id") == ident:
+                            value = candidate
+                if value is None:
+                    raise Fault("BRIDGE_RESPONSE_ID", effect="unknown")
+            else:
+                value = json.loads(data)
             if value.get("id") != ident:
                 raise Fault("BRIDGE_RESPONSE_ID", effect="unknown")
             return value

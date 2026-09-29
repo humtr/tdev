@@ -143,6 +143,14 @@ workspace/credential need not block unrelated local packaging work.
 
 ## Current priority after the continuity review
 
+When long-running visible delivery is the selected evidence gap, measure the actual
+2026-07-28 POST response boundary before changing caller polling. Distinguish a silent
+open request, server SSE write/flush, Tunnel/client network receipt, host successor
+scheduling and visible rendering. A request-scoped SSE repair may observe an existing
+durable operation but must not become its execution owner, add protocol sessions/GET
+streams/replay, or treat keepalive comments as proof of progress or UI delivery. Qualify
+the exact transport with the pinned official SDK and the affected real host separately.
+
 Use the existing optional diagnostic implementation while returning to packaging delivery.
 Diagnostics remain operationally independent; continuous monitoring is not a new prerequisite
 for admission or success. Existing local evidence should be analyzed before acquiring new trials.

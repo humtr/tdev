@@ -55,6 +55,19 @@ isolation. See the [trust boundary](ARCHITECTURE.md#3-native-trust-and-containme
 
 ## Current work
 
+Source **0.1.17** directly measures the long-running MCP delivery boundary and adds
+2026-07-28 request-scoped SSE only for explicit positive waits on command `tdev_exec`,
+source `tdev_validate`, and `tdev_operation status`. The pre-change 0.1.16 profile was
+measured as a silent open HTTP request until terminal completion followed by one complete
+JSON response; it sent no intermediate response headers or bytes. The new path records
+request/JSON-RPC identity, dispatch, durable admission, response media type, each SSE
+chunk and flush, terminal observation, final response and close/write-failure boundary
+without logging bearer tokens or request bodies. Standard `notifications/progress` is sent
+only when the client supplies `_meta.progressToken`; otherwise SSE comments are keepalives.
+`waitMs` omission/zero, process/staged-stdin behavior, durable operation identity, requestId
+replay and publication semantics are unchanged. Server-side writes remain distinct from
+Tunnel/network receipt and user-visible ChatGPT rendering.
+
 Installed native packaging acceptance now passes on resident **0.1.14** through authenticated
 local HTTP: pinned public dependency, generated asset, source/build/validation scratch retirement,
 dependency-environment removal, artifact verification, live release, update/rollback, failed-switch

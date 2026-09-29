@@ -662,16 +662,24 @@ Default topology: Termux Python/Git/SQLite/controller + native supervisors + loc
 + outbound OpenAI Secure MCP Tunnel. MCP is pinned to **2026-07-28**, not a relabeled
 legacy initialize protocol. Each authenticated POST carries version/capability metadata
 and matching method/version/name headers; header mismatches fail before tool admission.
-server/discover is optional for clients, not a required handshake. Results are complete
-JSON envelopes; discovery/tool lists carry explicit private zero-TTL cache metadata.
-The exact envelope/error profile is in contracts/tools.schema.json x-mcp.
+server/discover is optional for clients, not a required handshake. Ordinary responses remain
+complete JSON envelopes. An explicit positive `waitMs` on command-mode `tdev_exec`, source
+`tdev_validate`, or `tdev_operation status` uses the same POST's request-scoped
+`text/event-stream`: headers are committed immediately with buffering disabled, comment
+keepalives may preserve transport liveness, an opted-in `_meta.progressToken` receives standard
+`notifications/progress`, and the matching final JSON-RPC response terminates the stream.
+Discovery/tool lists carry explicit private zero-TTL cache metadata. The exact envelope/error
+profile is in contracts/tools.schema.json x-mcp.
 
-Core HTTP has no initialize/initialized, transport session, GET/DELETE stream, SSE resume or automatic
-protocol downgrade. Unimplemented client notifications are rejected. The server does not
-advertise subscriptions, sampling, elicitation, tasks or MRTR input requests. GET healthz
-is liveness, not MCP. HTTP request IDs and clientInfo are not durable mutation identity or
-authority. Reconnect never cancels/relaunches an already accepted operation: these calls
-return durable operation handles, not request-scoped SSE jobs. No generic transport framework.
+Core HTTP has no initialize/initialized, transport session, GET/DELETE stream, SSE event-id
+resume or automatic protocol downgrade. Unimplemented client notifications are rejected.
+The server does not advertise subscriptions, sampling, elicitation, tasks or MRTR input
+requests. GET healthz is liveness, not MCP. HTTP request IDs, progress tokens and clientInfo
+are not durable mutation identity or authority. Stream disconnect cancels only the bounded
+observation response; an already accepted durable operation is not cancelled or relaunched.
+Reconnect reconciles that retained operation and never replays its completed effect. SSE
+comments are transport keepalives, not protocol progress or proof of ChatGPT/UI delivery.
+No generic transport framework or transport-owned execution lifecycle is introduced.
 
 OpenAI documents Streamable HTTP and private Secure MCP Tunnel, but that does not establish
 a live ChatGPT host's acceptance of this exact protocol revision or bearer forwarding.

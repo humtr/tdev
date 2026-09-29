@@ -46,6 +46,24 @@ class HTTPTest(unittest.TestCase):
         conn.close()
         return response.status, json.loads(data) if data else None
 
+    def stream(self, arguments, progress_token=None, ident=77):
+        conn = http.client.HTTPConnection("127.0.0.1", self.server.server_port, timeout=10)
+        meta = {META + "protocolVersion": VERSION, META + "clientCapabilities": {}}
+        if progress_token is not None:
+            meta["progressToken"] = progress_token
+        params = {"_meta": meta, "name": "tdev_operation", "arguments": arguments}
+        headers = {"Authorization": "Bearer alice-secret", "Content-Type": "application/json",
+                   "Accept": "application/json, text/event-stream", "MCP-Protocol-Version": VERSION,
+                   "Mcp-Method": "tools/call", "Mcp-Name": "tdev_operation"}
+        payload = {"jsonrpc": "2.0", "id": ident, "method": "tools/call", "params": params}
+        conn.request("POST", "/mcp", json.dumps(payload), headers)
+        response = conn.getresponse()
+        data = response.read()
+        result = (response.status, response.getheader("Content-Type", "").split(";", 1)[0],
+                  response.getheader("X-Accel-Buffering"), data)
+        conn.close()
+        return result
+
     def get(self, path, headers=None):
         conn = http.client.HTTPConnection("127.0.0.1", self.server.server_port, timeout=5)
         conn.request("GET", path, headers=headers or {})
@@ -115,6 +133,70 @@ class HTTPTest(unittest.TestCase):
         self.assertEqual(code, 200)
         self.assertTrue(value["result"]["structuredContent"]["ok"])
         self.assertEqual(self.request(headers={"Accept": "application/json"})[0], 406)
+
+    def test_status_wait_streams_request_scoped_progress_and_preserves_durable_operation(self):
+        def call(tool, args):
+            code, response = self.request("tools/call", {"name": "tdev_" + tool, "arguments": args})
+            self.assertEqual(code, 200)
+            value = response["result"]["structuredContent"]
+            self.assertTrue(value["ok"], value)
+            return value["result"]
+
+        w = call("task", {"action": "open", "requestId": "sse-open", "repo": "test",
+                          "ref": "refs/heads/main", "expectedHead": self.repo.head})["result"]
+        op = call("exec", {"requestId": "sse-exec", "taskId": w["taskId"], "expected": w["checkpoint"],
+                           "command": "sleep 1.3; printf streamed", "timeout": 5})
+        code, content_type, buffering, data = self.stream(
+            {"action": "status", "operationId": op["id"], "waitMs": 5000}, progress_token="progress-1")
+        self.assertEqual((code, content_type, buffering), (200, "text/event-stream", "no"))
+        self.assertIn(b": tdev-stream\n\n", data)
+        messages = [json.loads(line[5:].strip()) for line in data.splitlines() if line.startswith(b"data:")]
+        progress = [m for m in messages if m.get("method") == "notifications/progress"]
+        self.assertTrue(progress, messages)
+        self.assertEqual(progress[0]["params"]["progressToken"], "progress-1")
+        final = next(m for m in messages if m.get("id") == 77)
+        finished = final["result"]["structuredContent"]["result"]
+        self.assertEqual((finished["status"], finished["result"]["exitCode"]), ("succeeded", 0))
+
+        code, response = self.request("tools/call", {"name": "tdev_operation", "arguments": {
+            "action": "status", "operationId": op["id"], "waitMs": 0}})
+        self.assertEqual(code, 200)
+        self.assertEqual(response["result"]["structuredContent"]["result"]["status"], "succeeded")
+
+        op2 = call("exec", {"requestId": "sse-bridge", "taskId": w["taskId"],
+                            "expected": finished["result"]["checkpoint"],
+                            "command": "sleep .1; printf bridge", "timeout": 5})
+        from tdev.codex_bridge import Bridge
+        bridge = Bridge(f"http://127.0.0.1:{self.server.server_port}/mcp", "alice-secret")
+        bridged = bridge.handle({"jsonrpc": "2.0", "id": 9, "method": "tools/call",
+                                 "params": {"name": "tdev_operation", "arguments": {
+                                     "action": "status", "operationId": op2["id"], "waitMs": 5000}}})
+        bridged_status = bridged["result"]["structuredContent"]["result"]
+        self.assertEqual((bridged_status["status"], bridged_status["result"]["exitCode"]), ("succeeded", 0))
+
+        op3 = call("exec", {"requestId": "sse-disconnect", "taskId": w["taskId"],
+                            "expected": bridged_status["result"]["checkpoint"],
+                            "command": "sleep .4; printf durable", "timeout": 5})
+        conn = http.client.HTTPConnection("127.0.0.1", self.server.server_port, timeout=5)
+        meta = {META + "protocolVersion": VERSION, META + "clientCapabilities": {}}
+        params = {"_meta": meta, "name": "tdev_operation", "arguments": {
+            "action": "status", "operationId": op3["id"], "waitMs": 5000}}
+        headers = {"Authorization": "Bearer alice-secret", "Content-Type": "application/json",
+                   "Accept": "application/json, text/event-stream", "MCP-Protocol-Version": VERSION,
+                   "Mcp-Method": "tools/call", "Mcp-Name": "tdev_operation"}
+        conn.request("POST", "/mcp", json.dumps({"jsonrpc": "2.0", "id": 88,
+                                                  "method": "tools/call", "params": params}), headers)
+        response = conn.getresponse()
+        self.assertEqual(response.getheader("Content-Type").split(";", 1)[0], "text/event-stream")
+        self.assertTrue(response.fp.readline().startswith(b": tdev-stream"))
+        conn.close()
+        terminal = None
+        for _ in range(50):
+            terminal = call("operation", {"action": "status", "operationId": op3["id"]})
+            if terminal["status"] not in ("running", "unknown"):
+                break
+            time.sleep(.05)
+        self.assertEqual((terminal["status"], terminal["result"]["exitCode"]), ("succeeded", 0))
 
     def test_native_full_coding_path_over_http_without_executor_config(self):
         def call(tool, args):

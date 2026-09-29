@@ -66,6 +66,43 @@ class DiagnosticsTest(unittest.TestCase):
         for raw in [opid, 'open-private-label', 'alice-secret', 'refs/heads/main']:
             self.assertNotIn(raw, serialized)
 
+    def test_stream_trace_correlates_request_progress_chunks_terminal_and_final_flush(self):
+        def call(tool, args):
+            code, response = self.fixture.request("tools/call", {"name": "tdev_" + tool, "arguments": args})
+            self.assertEqual(code, 200)
+            value = response["result"]["structuredContent"]
+            self.assertTrue(value["ok"], value)
+            return value["result"]
+
+        opened = call("task", {"action": "open", "requestId": "trace-sse-open", "repo": "test",
+                               "ref": "refs/heads/main", "expectedHead": self.fixture.repo.head})["result"]
+        op = call("exec", {"requestId": "trace-sse-exec", "taskId": opened["taskId"],
+                           "expected": opened["checkpoint"], "command": "sleep 1.2; printf traced", "timeout": 5})
+        code, content_type, buffering, data = self.fixture.stream(
+            {"action": "status", "operationId": op["id"], "waitMs": 5000},
+            progress_token="do-not-log-progress-token", ident=123)
+        self.assertEqual((code, content_type, buffering), (200, "text/event-stream", "no"))
+        self.assertIn(b'"id":123', data)
+        rows = self.idle_snapshot()["recent"]
+        parsed = [r for r in rows if r["event"] == "rpc_parsed" and r.get("tool") == "tdev_operation"
+                  and r.get("progressRequested")]
+        self.assertTrue(parsed, rows)
+        request = parsed[-1]["request"]
+        request_rows = [r for r in rows if r.get("request") == request]
+        events = [r["event"] for r in request_rows]
+        for event in ("request_accepted", "dispatch_started", "socket_headers_written",
+                      "socket_chunk_written", "socket_flush_finished",
+                      "operation_terminal_observed", "dispatch_finished",
+                      "response_stream_finished", "http_finished"):
+            self.assertIn(event, events)
+        headers = next(r for r in request_rows if r["event"] == "socket_headers_written")
+        self.assertEqual(headers["mediaType"], "text/event-stream")
+        chunks = [r for r in request_rows if r["event"] == "socket_chunk_written"]
+        self.assertTrue(any(r.get("chunkKind") == "progress" for r in chunks), chunks)
+        self.assertTrue(any(r.get("chunkKind") == "final" for r in chunks), chunks)
+        self.assertTrue(all(type(r.get("timeNs")) is int and type(r.get("monotonicNs")) is int for r in request_rows))
+        self.assertNotIn("do-not-log-progress-token", json.dumps(request_rows))
+
     def test_disabled_server_has_no_collector(self):
         self.assertIsNone(self.original_server.diagnostics)
         self.assertFalse((Path(self.fixture.tmp.name)/'state/diagnostics').exists())

@@ -130,7 +130,8 @@ class Controller:
         return row
 
     def call(self, principal, tool, args):
-        # Installation fences admissions; observations/reconciliation remain usable.
+        # Preserve the long-standing call/_call seam used by maintenance and recovery
+        # instrumentation. Streaming-only observation must not widen this ABI.
         with open(self.store.root / 'admission.lock', 'a+b') as lock:
             fcntl.flock(lock, fcntl.LOCK_SH)
             from contextlib import nullcontext
@@ -138,7 +139,27 @@ class Controller:
             with self.artifacts.lock if guarded else nullcontext():
                 return self._call(principal, tool, args)
 
+    def call_observed(self, principal, tool, args, observer=None, cancelled=None):
+        # Installation fences admissions; observations/reconciliation remain usable.
+        with open(self.store.root / 'admission.lock', 'a+b') as lock:
+            fcntl.flock(lock, fcntl.LOCK_SH)
+            from contextlib import nullcontext
+            guarded = tool in ('tdev_artifact', 'tdev_deploy') or (tool == 'tdev_validate' and args.get('subject') == 'artifact')
+            with self.artifacts.lock if guarded else nullcontext():
+                return self._call_observed(principal, tool, args, observer=observer, cancelled=cancelled)
+
     def _call(self, principal, tool, args):
+        return self._call_observed(principal, tool, args)
+
+    def _call_observed(self, principal, tool, args, observer=None, cancelled=None):
+        def observe(event, value):
+            if observer is None:
+                return
+            try:
+                observer(event, value)
+            except Exception:
+                pass  # Diagnostics cannot participate in execution semantics.
+
         try:
             self.config = self.load_config()
             self.authorize(principal)
@@ -189,7 +210,11 @@ class Controller:
             if kind == "task" and args["action"] == "inspect":
                 return {"ok": True, "result": self.inspect(principal, args)}
             if kind == "operation" and args["action"] == "status":
-                return {"ok": True, "result": self.status(principal, args)}
+                result = self.status(principal, args, cancelled=cancelled)
+                value = {"ok": True, "result": result}
+                if result.get("status") in ("succeeded", "failed", "cancelled"):
+                    observe("operation_terminal_observed", value)
+                return value
             mutation_args = args
             wait_ms = 0
             if kind == 'exec':
@@ -200,10 +225,15 @@ class Controller:
                 mutation_args = dict(args)
                 mutation_args.pop('waitMs', None)
             result = self.mutate(principal, kind, mutation_args)
+            observe("operation_admitted", {"ok": True, "result": result})
             if wait_ms:
                 result = self.status(principal, {'operationId': result['id'], 'offset': 0,
-                                                 'limit': 24000, 'waitMs': wait_ms})
-            return {"ok": True, "result": result}
+                                                 'limit': 24000, 'waitMs': wait_ms},
+                                     cancelled=cancelled)
+            value = {"ok": True, "result": result}
+            if result.get("status") in ("succeeded", "failed", "cancelled"):
+                observe("operation_terminal_observed", value)
+            return value
         except Fault as e:
             return {"ok": False, "error": e.value}
         except (UnicodeError, ValueError, KeyError):
@@ -840,7 +870,7 @@ class Controller:
                 # Invalid/missing receipt is never promoted to terminal proof.
                 self.fail(row["id"], Fault(e.value["code"], e.value["message"], "unknown"))
 
-    def status(self, principal, args):
+    def status(self, principal, args, cancelled=None):
         require(bool(args.get("operationId")) != bool(args.get("lookupRequestId")), "STATUS_TARGET")
         if "lookupRequestId" in args:
             row = self.store.one("SELECT * FROM operation WHERE owner=? AND request=?", (principal, args["lookupRequestId"]))
@@ -876,10 +906,12 @@ class Controller:
             probe.pop("waitMs", None)
             while result["status"] in ("running", "unknown"):
                 remaining = deadline - time.monotonic()
-                if remaining <= 0:
+                if remaining <= 0 or (cancelled is not None and cancelled.is_set()):
                     break
                 time.sleep(min(1.0, remaining))
-                result = self.status(principal, probe)
+                if cancelled is not None and cancelled.is_set():
+                    break
+                result = self.status(principal, probe, cancelled=cancelled)
         return result
 
     def close(self):
