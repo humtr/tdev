@@ -28,17 +28,24 @@ resident update or new MCP contract is needed. Pure-JS setup does not dispatch t
    in a fresh bounded cell. Never automatically rerun it or invent a replacement requestId.
    These statuses are not automatic rollover. A plan being `complete` means only its listed
    calls returned and were classified; establish actual command/validation success separately.
-6. For an already-admitted ongoing exec/validation/build, switch to `runTdevOperationCell`.
-   By default each physical cell makes one read-only status call with `waitMs=30000` for that
-   exact operation/request identity. The server returns immediately on terminal reconciliation
-   or after the bounded wait with the freshest status/log page; nonterminal log growth alone does
-   not end the wait. The helper advances the output offset and surfaces terminal
+6. For ordinary non-interactive `tdev_exec` command work and source `tdev_validate`, include
+   `waitMs=30000` on the admission call. The controller excludes this observation-only field from
+   mutation identity, admits or replays the exact request once, then performs one bounded terminal/log
+   observation before returning that same nested tool call. This removes the admission-to-monitor
+   physical-cell scheduling gap for short success/failure. For staged-stdin workflows, explicitly
+   set `waitMs=0` so the caller receives the retained handle before delivering later stdin; process
+   mode ignores admission waiting and returns immediately. If admission still returns `running`, switch to
+   `runTdevOperationCell`. By default each monitor cell makes exactly one read-only status call with `waitMs=30000`
+   for that exact operation/request identity before returning or rolling over. This keeps multiple 30-second terminal waits inside one physical cell instead
+   of requiring a fresh host-scheduled cell after every wait. The server returns immediately on
+   terminal reconciliation or after the bounded wait with the freshest status/log page; nonterminal
+   log growth alone does not end the wait. The helper advances the output offset and surfaces terminal
    `failed`/`cancelled` state before return. `unknown`, malformed or unavailable status stops for
-   review rather than looping. On `rollover`, give the user a brief progress update and issue a
-   fresh monitor cell in the same turn with `nextArgs`; do not wait for user input. This removes
-   dense polling and bounds the normal visible quiet interval, but cannot guarantee that the host
-   schedules the next physical cell. A new session must still rebind durable task/operation state;
-   monitor packets are transient caller context, not durable tdev resume storage.
+   review rather than looping. On `rollover`, give the user a brief progress update and issue a fresh
+   monitor cell in the same turn with `nextArgs`; do not wait for user input. This removes dense
+   polling and bounds the normal visible quiet interval, but cannot guarantee that the host schedules
+   the next physical cell. A new session must still rebind durable task/operation state; monitor
+   packets are transient caller context, not durable tdev resume storage.
 
 `classify` must return exactly `continue` only when the actual decoded response permits the next
 planned step. Running/unknown operations, semantic errors or unreadable wrappers require review.
