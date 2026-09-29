@@ -31,12 +31,13 @@ in README; wire types live in the contract.
 
 `tdev_workspace` owns composition; `tdev_task` owns source-task lifecycle. `tdev_edit` changes
 source. `tdev_operation` inspects every accepted operation and controls exec/validation
-processes where applicable. Its strict action-specific wire validator remains the
-`operationInput` discriminated union. Because some Code Mode hosts compact a root composition
-schema to an untyped map, MCP discovery advertises the same field vocabulary through the flat
-`operationToolInput` surface; the controller still validates every call against
-`operationInput` before dispatch. Discovery therefore improves model-visible typing without
-changing accepted operation semantics or replay identity. No old-name aliases are provided for experimental contracts.
+processes where applicable. Strict action-specific wire validators remain the canonical
+root unions. Because some Code Mode hosts compact a tool-input root composition schema to an
+untyped map, MCP discovery advertises action-discriminated tools through typed root objects
+whose properties cover the canonical arms; nested `oneOf`/`anyOf`/`allOf` inside those fields
+is preserved. The controller still validates every call against the canonical input definition
+before dispatch. Discovery therefore improves model-visible typing without changing accepted
+semantics or replay identity. No old-name aliases are provided for experimental contracts.
 Workspace create/list/inspect/attach/detach/configure/close need no Git source task. A workspace
 may be empty. Each project membership captures its enrolled identity and never grants authority.
 
