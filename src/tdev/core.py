@@ -264,7 +264,7 @@ class Controller:
                 continue
         return {"repositories": repos, "tasks": tasks,
                 "nextAfter": page[-1]["cursor"] if len(rows) > len(page) else None,
-                "execution": "Termux-native by default: same-UID developer authority, host network, not a sandbox. Explicit SSH/OCI is optional."}
+                "execution": "Termux-native: same-UID developer authority, host network, not a sandbox."}
 
     @staticmethod
     def observation(value, since, sources):

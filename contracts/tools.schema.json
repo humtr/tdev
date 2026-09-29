@@ -907,13 +907,6 @@
           "type": "string",
           "maxLength": 65536
         },
-        "network": {
-          "enum": [
-            "host",
-            "none",
-            "internet"
-          ]
-        },
         "timeout": {
           "type": "integer",
           "minimum": 1,
@@ -947,7 +940,7 @@
             "task",
             "fresh"
           ],
-          "description": "Native default task reuses private dependency/cache storage; fresh uses only this operation. Remote supports fresh only. HOME and source remain per-operation."
+          "description": "Default task reuses the task's private dependency/cache storage; fresh uses only this operation. HOME and source remain per-operation."
         }
       },
       "required": [
@@ -1104,6 +1097,45 @@
       ],
       "type": "object"
     },
+    "operationToolInput": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "enum": ["status", "stdin", "cancel", "retire"],
+          "description": "Operation action. status requires exactly one of operationId or lookupRequestId. stdin requires requestId, operationId, sequence and text. cancel/retire require requestId and operationId."
+        },
+        "operationId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+          "description": "Retained operation identity. Required for stdin/cancel/retire and one of the two status lookup choices."
+        },
+        "lookupRequestId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+          "description": "Original request identity; status alternative to operationId."
+        },
+        "offset": {"type": "integer", "minimum": 0, "description": "Status output cursor."},
+        "limit": {"type": "integer", "minimum": 1, "maximum": 65536, "description": "Maximum status output bytes."},
+        "since": {"type": "string", "maxLength": 64, "description": "Status observation token for freshness/no-change reconciliation."},
+        "waitMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 30000,
+          "description": "Status-only bounded read-only terminal wait. Positive waits use request-scoped SSE only when the MCP request supplies _meta.progressToken; otherwise the bounded wait returns one application/json response."
+        },
+        "requestId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+          "description": "Mutation identity for stdin/cancel/retire. Keep it stable when reconciling a lost reply."
+        },
+        "sequence": {"type": "integer", "minimum": 0, "maximum": 1023, "description": "stdin delivery sequence."},
+        "text": {"type": "string", "maxLength": 65536, "description": "stdin text payload."},
+        "eof": {"type": "boolean", "description": "stdin end-of-file marker."}
+      },
+      "required": ["action"],
+      "additionalProperties": false,
+      "description": "Host-friendly typed discovery surface for tdev_operation. The canonical operationInput definition remains the strict action-specific call validator."
+    },
     "validateInput": {
       "type": "object",
       "oneOf": [
@@ -1132,7 +1164,7 @@
                 "task",
                 "fresh"
               ],
-              "description": "Native default task reuses private dependency/cache storage; fresh uses only this operation. Remote supports fresh only. HOME and source remain per-operation."
+              "description": "Default task reuses the task's private dependency/cache storage; fresh uses only this operation. HOME and source remain per-operation."
             },
             "timeout": {
               "type": "integer",
@@ -5654,7 +5686,7 @@
     },
     {
       "name": "tdev_exec",
-      "description": "Run commands on Termux by default (same-UID developer authority, not a sandbox); explicit remote executor is optional. Returns a retained operation handle. For ordinary non-interactive ChatGPT Code Mode work, send waitMs=30000 so admission and one bounded terminal/log observation happen in the same nested tool call; omit it or set waitMs=0 for staged-stdin or immediate-handle workflows. If it still returns running, continue with tdev_operation status without replaying the effect. waitMs is observation-only and does not change request identity; process mode ignores it and returns immediately. Never resubmit with a new request after response loss. Native dependencies/caches persist per task through TDEV_ENV_DIR; use environment=fresh for a disposable environment. mode=process starts a foreground development server/debugger on a fixed checkpoint without blocking source edits or capturing its files; omit timeout to run until cancel/exit. Observe later logs/stdin/cancel/retire through tdev_operation.",
+      "description": "Run commands in the Termux-native development environment (same-UID developer authority, host network, not a sandbox). Returns a retained operation handle. For ordinary non-interactive ChatGPT Code Mode work, send waitMs=30000 so admission and one bounded terminal/log observation happen in the same nested tool call; omit it or set waitMs=0 for staged-stdin or immediate-handle workflows. If it still returns running, continue with tdev_operation status without replaying the effect. waitMs is observation-only and does not change request identity; process mode ignores it and returns immediately. Never resubmit with a new request after response loss. Dependencies/caches persist per task through TDEV_ENV_DIR; use environment=fresh for a disposable environment. mode=process starts a foreground development server/debugger on a fixed checkpoint without blocking source edits or capturing its files; omit timeout to run until cancel/exit. Observe later logs/stdin/cancel/retire through tdev_operation.",
       "inputSchema": {
         "$ref": "#/$defs/execInput"
       },
@@ -5706,7 +5738,7 @@
       "name": "tdev_operation",
       "description": "Inspect any accepted operation by operationId or original request ID, including project and workspace changes. Status observes current progress without repeating effects. For exec/validation processes only: deliver sequenced stdin, request cancellation or retire stopped resources. ChatGPT Code Mode caller guidance (not a server limit): use short physical functions.exec cells, conservatively at most 16 total nested attempts including failures and diagnostics, and check a soft 15-second elapsed budget before another ordinary call. Reserve closing markers within that budget. For one already-admitted ongoing exec/validation/build, use the operation-monitor exception: keep the exact identity and perform one read-only status call with waitMs (at most 30000) per physical cell, advancing the returned output cursor and never replaying the effect. This reduces dependence on host scheduling a fresh physical cell every 30 seconds and surfaces terminal failed/cancelled state before return. If the in-cell monitor budget ends while still running, return exact continuation state and end the cell normally; after receiving it, the assistant reports progress and issues a fresh functions.exec in the same turn without waiting for user input unless blocked or interrupted. Unknown, malformed, unavailable or ambiguous results stop for review/reconciliation of the original identity. Never retry ambiguous effects or regenerate requestId; observe the original operation and never infer success from transport completion. These are adjustable caller defaults, not guaranteed host capabilities; server completion and markers do not prove visible UI delivery.",
       "inputSchema": {
-        "$ref": "#/$defs/operationInput"
+        "$ref": "#/$defs/operationToolInput"
       },
       "outputSchema": {
         "type": "object",
@@ -6118,14 +6150,13 @@
       "cwd": ".",
       "env": {},
       "stdin": "",
-      "network": "backend default: host for native; none for SSH/OCI",
       "timeout": "300 seconds for command/validation; process has no deadline unless supplied",
       "capturePaths": [],
       "encoding": "utf8",
       "mode": "100644",
       "replaceCount": 1,
       "eof": false,
-      "environment": "task for native; fresh for remote",
+      "environment": "task by default; fresh for a disposable dependency/cache environment",
       "execMode": "command"
     },
     "processStatus": "Exactly one of operationId and lookupRequestId is required; neither/both rejected.",

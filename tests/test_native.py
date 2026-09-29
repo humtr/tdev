@@ -225,11 +225,14 @@ for name in ('one','two'):
         self.assertTrue(result["result"]["cancelled"])
         self.assertIsNone(identity(child_pid))
 
-    def test_native_network_and_symlink_claims_are_honest(self):
+    def test_native_network_is_not_caller_selectable_and_symlink_claims_are_honest(self):
         w = self.open()
-        denied = self.execute(w, "true", network="none")
-        self.assertEqual(denied["effect"], "none")
-        self.assertEqual(denied["error"]["code"], "NETWORK_DENIED")
+        denied = self.c.call("alice", "tdev_exec", {
+            "requestId": "network-not-public", "taskId": w["taskId"],
+            "expected": w["checkpoint"], "command": "true", "network": "none"})
+        self.assertFalse(denied["ok"])
+        self.assertEqual(denied["error"]["effect"], "none")
+        self.assertEqual(denied["error"]["code"], "SCHEMA")
         op = self.call("exec", {"requestId": "link", "taskId": w["taskId"], "expected": w["checkpoint"], "command": "ln -s /outside escape"})
         result = self.wait(op["id"])
         self.assertEqual(result["status"], "failed")

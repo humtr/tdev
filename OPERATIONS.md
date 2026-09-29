@@ -715,20 +715,19 @@ New DOWN Tunnel service templates write their randomly assigned health address t
 An old foreground runtime without that file needs separate observation; do not infer its
 health from a guessed fixed port or restart it just to create the file.
 
-## Optional SSH/OCI backend
+## Dormant SSH/OCI backend
 
-Only users who choose stronger isolation need a separate Linux host, rootless Podman with
-cgroup v2/seccomp, pinned image and SSH key/host enrollment. Set executor kind=ssh with
-target, script, digest, spool, image, identityFile and knownHosts (legacy omission of kind
-also works). Install the standalone src/tdev/executor.py at an immutable versioned remote
-path and pin its SHA-256; pre-pull the image. None is its default network. Internet requires
-the adopted private network-policy.json and matching networkPolicyDigest, plus live egress
-qualification. See ARCHITECTURE for its distinct security guarantees.
+The authored SSH/rootless-Podman backend is retained for possible later use, but it is not
+part of the current MCP coding surface and is not a native installation requirement. Normal
+ChatGPT/Codex development runs in Termux with the app UID's host network; callers do not
+select a network mode. Existing operator-side executor configuration and accepted operation
+identity remain readable so retained evidence is not reinterpreted.
 
-Do not claim optional OCI host isolation/resource/network acceptance from local fixture
-tests. Those tests remain useful but are not a native installation gate. A failing explicit
-remote backend never falls back to a less-isolated native run. Accepted operation intents
-continue using their recorded backend even after configuration changes.
+Reactivating this backend as a supported product path requires an explicit product decision,
+a dedicated public contract, and real Linux SSH/Podman isolation plus network qualification.
+The existing mocked control-flow tests are preservation evidence only. Never infer remote
+support from their PASS status, and never fall back from an explicitly retained remote intent
+to native execution.
 
 ## Activation and rollback
 

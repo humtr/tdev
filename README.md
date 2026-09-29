@@ -45,15 +45,17 @@ checkpoints; SQLite holds workspace composition, source tasks, enrolled projects
 the experimental source-workspace/process names without aliases.
 
 Core HTTP MCP is pinned to **2026-07-28**. Local Codex has an explicitly selected legacy stdio
-adapter; it does not downgrade core HTTP. Commands/tests run natively on Termux by default.
-Explicit remote execution remains optional and never silently falls back to native. No SSH
-host, VPS, OCI, root, systemd or Docker prerequisite is imposed on local development.
+adapter; it does not downgrade core HTTP. Commands/tests in the public coding surface run natively on Termux. The authored SSH/rootless-Podman
+backend is retained dormant for possible later qualification and is not advertised as a caller-selectable
+execution/network mode. No SSH host, VPS, OCI, root, systemd or Docker prerequisite is imposed on development.
 
 Native execution carries ordinary Termux app-UID authority. Source copies, private HOME,
 clean environment and API grants are useful safeguards, not hostile-code or credential
 isolation. See the [trust boundary](ARCHITECTURE.md#3-native-trust-and-containment).
 
 ## Current work
+
+Source **0.1.19** makes `tdev_operation` typed in ChatGPT Code Mode without weakening the server's action-specific validation and keeps the normal MCP coding surface Termux-native. The advertised operation schema is a flat typed discovery object while the canonical discriminated union remains the call validator. `tdev_exec` no longer advertises or accepts a caller-selected `network`; native execution already resolves to the Termux app UID's host network. The existing SSH/rootless-Podman implementation, operator configuration and tests are retained as a dormant experimental backend for possible later qualification, but its network controls are not part of the current public coding surface. Installed ChatGPT acceptance requires updating the resident and Refreshing the connector.
 
 Source **0.1.18** changes modern HTTP response shaping after real ChatGPT host acceptance reproduced a transport-only stall on the 0.1.17 comment-only SSE path. The resident wrote and flushed HTTP 200 SSE headers, four keepalive comments, the terminal JSON-RPC response and stream close within about 3.4 seconds, while the ChatGPT tool call did not return to the assistant. Positive bounded waits now follow an auto profile: when the request includes `_meta.progressToken`, tdev uses request-scoped SSE with standard `notifications/progress`; without a progress token, the same bounded observation returns one `application/json` response and does not force a comment-only stream. Operation admission, durable identity, wait duration, disconnect semantics on the streamed path and replay rules are unchanged. Server write completion still does not prove Tunnel receipt or visible UI delivery.
 

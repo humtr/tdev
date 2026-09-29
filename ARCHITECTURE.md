@@ -31,7 +31,12 @@ in README; wire types live in the contract.
 
 `tdev_workspace` owns composition; `tdev_task` owns source-task lifecycle. `tdev_edit` changes
 source. `tdev_operation` inspects every accepted operation and controls exec/validation
-processes where applicable. No old-name aliases are provided for experimental contracts.
+processes where applicable. Its strict action-specific wire validator remains the
+`operationInput` discriminated union. Because some Code Mode hosts compact a root composition
+schema to an untyped map, MCP discovery advertises the same field vocabulary through the flat
+`operationToolInput` surface; the controller still validates every call against
+`operationInput` before dispatch. Discovery therefore improves model-visible typing without
+changing accepted operation semantics or replay identity. No old-name aliases are provided for experimental contracts.
 Workspace create/list/inspect/attach/detach/configure/close need no Git source task. A workspace
 may be empty. Each project membership captures its enrolled identity and never grants authority.
 
@@ -87,7 +92,7 @@ registry or planner before there is a usable development loop.
 |---|---|---|---|
 | Shell in the user's existing checkout | minimal copying | partial writes, unrelated dirty state and candidate config affect controller operations | rejected as default |
 | Native subprocess in a per-operation copy | installed Termux CLIs, no provisioning/cold remote startup | same UID, no hostile-code filesystem/network isolation; materialization/capture cost | default |
-| SSH + rootless OCI outer runner | OS isolation and enforceable network/resource controls after qualification | external host/image/SSH maintenance, transfer/cold start and more failure points | optional explicit backend |
+| SSH + rootless OCI outer runner | preserved isolation design for possible later qualification | external host/image/SSH maintenance, transfer/cold start and more failure points | dormant experimental backend; not advertised by the current MCP coding surface |
 
 The source surface is task/read/edit/exec/operation/validate/publish; workspace supplies
 composition and project supplies delegated local/GitHub enrollment. CLI adapters need no

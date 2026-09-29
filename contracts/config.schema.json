@@ -126,7 +126,7 @@
             }
           },
           "executor": {
-            "description": "Omitted means Termux-native same-UID execution. SSH/OCI is an explicit optional backend, never an installation prerequisite.",
+            "description": "Omitted means Termux-native same-UID execution. The authored SSH/OCI backend is retained as dormant operator configuration for possible later qualification; it is not part of the current MCP coding surface.",
             "oneOf": [
               {
                 "type": "object",
@@ -283,7 +283,7 @@
             "minLength": 1
           },
           "executor": {
-            "description": "Omitted means Termux-native same-UID execution. SSH/OCI is an explicit optional backend, never an installation prerequisite.",
+            "description": "Omitted means Termux-native same-UID execution. The authored SSH/OCI backend is retained as dormant operator configuration for possible later qualification; it is not part of the current MCP coding surface.",
             "oneOf": [
               {
                 "type": "object",

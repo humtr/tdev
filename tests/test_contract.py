@@ -23,10 +23,42 @@ class ContractTest(unittest.TestCase):
             bad = json.loads(json.dumps(example))
             bad["input"]["adminApproved"] = True
             self.assertFalse(validator.is_valid(bad))
-        for tool in expanded(s, s["x-tools"]):
+        tools = {tool["name"]: tool for tool in expanded(s, s["x-tools"])}
+        for tool in tools.values():
             self.assertEqual(tool["inputSchema"]["type"], "object")
             Draft202012Validator.check_schema(tool["inputSchema"])
             Draft202012Validator.check_schema(tool["outputSchema"])
+
+        exec_schema = tools["tdev_exec"]["inputSchema"]
+        self.assertNotIn("network", exec_schema["properties"])
+        self.assertFalse(validator.is_valid({"tool": "tdev_exec", "input": {
+            "requestId": "exec-network", "taskId": wid, "expected": oid,
+            "command": "true", "network": "none"}}))
+
+        operation_schema = tools["tdev_operation"]["inputSchema"]
+        self.assertNotIn("oneOf", operation_schema)
+        self.assertEqual(operation_schema["properties"]["action"]["enum"],
+                         ["status", "stdin", "cancel", "retire"])
+        advertised = Draft202012Validator(operation_schema)
+        for value in (
+            {"action": "status", "operationId": "exec", "waitMs": 30000},
+            {"action": "status", "lookupRequestId": "original"},
+            {"action": "stdin", "requestId": "stdin", "operationId": "exec",
+             "sequence": 0, "text": "hello"},
+            {"action": "cancel", "requestId": "cancel", "operationId": "exec"},
+            {"action": "retire", "requestId": "retire", "operationId": "exec"},
+        ):
+            self.assertTrue(advertised.is_valid(value))
+            validator.validate({"tool": "tdev_operation", "input": value})
+        for value in (
+            {"action": "status"},
+            {"action": "status", "operationId": "exec", "lookupRequestId": "original"},
+            {"action": "stdin", "operationId": "exec", "sequence": 0, "text": "hello"},
+            {"action": "cancel", "requestId": "cancel", "operationId": "exec", "waitMs": 1},
+        ):
+            self.assertFalse(validator.is_valid({"tool": "tdev_operation", "input": value}))
+        self.assertFalse(advertised.is_valid({"action": "status", "operationId": "exec",
+                                              "unexpected": True}))
         config = json.loads((Path(__file__).resolve().parents[1] / "contracts/config.schema.json").read_bytes())
         Draft202012Validator.check_schema(config)
 
