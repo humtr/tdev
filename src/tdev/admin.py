@@ -174,7 +174,37 @@ def stage(root, source):
             "tunnelMode": tunnel_runtime["mode"]}
 
 
-def point(root, ident):
+def maintenance_ready(db, allow_unknown_publish=None):
+    """Require a maintenance-safe frontier without resolving publication ambiguity."""
+    rows = db.execute(
+        "SELECT id,kind,status,effect,intent,task,ref FROM operation "
+        "WHERE status IN ('running','unknown')"
+    ).fetchall()
+    if allow_unknown_publish is not None:
+        target = db.execute(
+            "SELECT id,kind,status,effect,intent,task,ref FROM operation WHERE id=?",
+            (allow_unknown_publish,),
+        ).fetchone()
+        require(target is not None, 'PUBLICATION_EXEMPTION',
+                'Unknown publication exemption must name an existing operation')
+        intent = json.loads(target[4])
+        task = intent.get('task') or {}
+        require(target[1] == 'publish' and intent.get('refMutation') == 'create'
+                and intent.get('old') is None and isinstance(intent.get('new'), str)
+                and task.get('managed') == 1 and task.get('id') == target[5]
+                and task.get('ref') == target[6],
+                'PUBLICATION_EXEMPTION',
+                'Only the exact historical managed create publication may be exempted')
+        if target[2] == 'unknown':
+            require(target[3] == 'unknown', 'PUBLICATION_EXEMPTION')
+            rows = [row for row in rows if row[0] != allow_unknown_publish]
+        else:
+            require(target[2] in ('succeeded','failed','cancelled'), 'PUBLICATION_EXEMPTION')
+    require(not rows, 'OUTSTANDING_EFFECT',
+            'Observe or finish existing operations before updating services')
+
+
+def point(root, ident, allow_unknown_publish=None):
     root = Path(root)
     require(len(ident) == 64 and all(c in "0123456789abcdef" for c in ident), "BUNDLE_IDENTITY")
     destination = root / "versions" / ident
@@ -194,7 +224,7 @@ def point(root, ident):
             try:
                 require(db.execute("PRAGMA user_version").fetchone()[0] in manifest.get('stateVersions', [1]),
                         "SCHEMA_VERSION", 'Selected bundle cannot read the current state schema; rollback requires a compatible bundle')
-                require(db.execute("SELECT count(*) FROM operation WHERE status IN ('running','unknown')").fetchone()[0] == 0, "OUTSTANDING_EFFECT")
+                maintenance_ready(db, allow_unknown_publish)
             finally:
                 db.close()
         active = root / "active"
