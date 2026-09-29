@@ -42,7 +42,13 @@ class CLITest(unittest.TestCase):
         self.assertEqual(len(json.loads(output)['result']['tools']),12)
         code,output=self.run_cli('workspace','list'); self.assertEqual(code,0)
         self.assertTrue(json.loads(output)['result']['structuredContent']['ok'])
-        code,schema=self.run_cli('schema','workspace'); self.assertEqual(code,0); self.assertIn('oneOf',json.loads(schema)); self.assertNotIn('$ref',schema)
+        code,schema=self.run_cli('schema','workspace'); self.assertEqual(code,0)
+        workspace_schema=json.loads(schema)
+        self.assertNotIn('oneOf',workspace_schema)
+        self.assertEqual(workspace_schema['properties']['action']['enum'],
+                         ['list','inspect','create','attach','detach','configure','close'])
+        self.assertFalse(workspace_schema['additionalProperties'])
+        self.assertNotIn('$ref',schema)
         self.assertNotIn((self.root/'connector.secret').read_text(),output)
 
     def test_status_does_not_claim_an_unowned_listener_as_healthy(self):

@@ -1097,6 +1097,677 @@
       ],
       "type": "object"
     },
+    "workspaceToolInput": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "enum": [
+            "list",
+            "inspect",
+            "create",
+            "attach",
+            "detach",
+            "configure",
+            "close"
+          ]
+        },
+        "after": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50
+        },
+        "includeClosed": {
+          "type": "boolean"
+        },
+        "workspaceId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "since": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "pendingAfter": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "requestId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "projects": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "uniqueItems": true,
+          "maxItems": 64
+        },
+        "defaultRepo": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          ]
+        },
+        "expectedRevision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "repo": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "additionalProperties": false,
+      "description": "Host-friendly typed discovery surface for tdev_workspace. The canonical workspaceInput definition remains the strict action-specific call validator."
+    },
+    "taskToolInput": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "enum": [
+            "list",
+            "open",
+            "compose",
+            "close",
+            "inspect",
+            "start",
+            "cleanup",
+            "integrate",
+            "resetEnvironment"
+          ]
+        },
+        "after": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50
+        },
+        "includeClosed": {
+          "type": "boolean"
+        },
+        "workspaceId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "requestId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "repo": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "ref": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^refs/heads/[^\\s~^:?*\\[\\\\]+$"
+            },
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096
+            }
+          ]
+        },
+        "expectedHead": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "taskId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+              },
+              "checkpoint": {
+                "type": "string",
+                "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+              }
+            },
+            "required": [
+              "taskId",
+              "checkpoint"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "maxItems": 16
+        },
+        "taskId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "expected": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+        },
+        "since": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "before": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "baseRef": {
+          "type": "string",
+          "pattern": "^refs/heads/[^\\s~^:?*\\[\\\\]+$"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "fromTaskId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "localChanges": {
+          "type": "boolean",
+          "description": "Capture the enrolled checkout final working-tree bytes into a new task; preserve its index/files/refs. Requires a matching checked-out source branch."
+        },
+        "sourceTaskId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "sourceCheckpoint": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+        },
+        "resolutions": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4096
+                  },
+                  "choice": {
+                    "enum": [
+                      "current",
+                      "incoming",
+                      "base",
+                      "delete"
+                    ]
+                  }
+                },
+                "required": [
+                  "path",
+                  "choice"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4096
+                  },
+                  "choice": {
+                    "const": "content"
+                  },
+                  "content": {
+                    "type": "string",
+                    "maxLength": 1048576
+                  },
+                  "encoding": {
+                    "enum": [
+                      "utf8",
+                      "base64"
+                    ]
+                  },
+                  "mode": {
+                    "enum": [
+                      "100644",
+                      "100755"
+                    ]
+                  }
+                },
+                "required": [
+                  "path",
+                  "choice",
+                  "content"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "additionalProperties": false,
+      "description": "Host-friendly typed discovery surface for tdev_task. The canonical taskInput definition remains the strict action-specific call validator."
+    },
+    "validateToolInput": {
+      "type": "object",
+      "properties": {
+        "requestId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "taskId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "expected": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "environment": {
+          "enum": [
+            "task",
+            "fresh"
+          ],
+          "description": "Default task reuses the task's private dependency/cache storage; fresh uses only this operation. HOME and source remain per-operation."
+        },
+        "timeout": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3600,
+          "description": "Validation deadline in seconds; default 300. Increase for a longer adopted test suite, up to 3600."
+        },
+        "waitMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 30000,
+          "description": "Bounded terminal observation after source-validation admission. Omit or set 0 for an immediate retained handle; set a positive value to wait up to this many milliseconds for the exact admitted validation and return the freshest status/log page. This observation-only field does not change mutation identity. On MCP HTTP, a positive source-validation wait with _meta.progressToken uses request-scoped SSE with standard progress notifications; without progressToken the bounded wait returns one application/json response."
+        },
+        "subject": {
+          "const": "artifact"
+        },
+        "artifactId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "health": {
+          "type": "object",
+          "properties": {
+            "port": {
+              "type": "integer",
+              "minimum": 1024,
+              "maximum": 65535
+            },
+            "path": {
+              "type": "string",
+              "pattern": "^/[^\\r\\n ]*$",
+              "maxLength": 2048
+            }
+          },
+          "required": [
+            "port",
+            "path"
+          ],
+          "additionalProperties": false,
+          "description": "Readiness requires HTTP 200 from 127.0.0.1:port/path with X-Tdev-Release equal to the process TDEV_RELEASE environment value."
+        }
+      },
+      "required": [
+        "requestId"
+      ],
+      "additionalProperties": false,
+      "description": "Host-friendly typed discovery surface for tdev_validate. The canonical validateInput definition remains the strict action-specific call validator."
+    },
+    "projectToolInput": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "enum": [
+            "list",
+            "inspect",
+            "connect",
+            "create"
+          ]
+        },
+        "repo": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "requestId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "policy": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "additionalProperties": false,
+      "description": "Host-friendly typed discovery surface for tdev_project. The canonical projectInput definition remains the strict action-specific call validator."
+    },
+    "deployToolInput": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "enum": [
+            "targets",
+            "list",
+            "inspect",
+            "release",
+            "start",
+            "stop",
+            "rollback",
+            "remove"
+          ]
+        },
+        "after": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "limit": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            },
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65536
+            }
+          ]
+        },
+        "deploymentId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "since": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "requestId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "validationId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "target": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,62}$"
+        },
+        "expectedRevision": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Supply the inspected revision for an update. Omitted resolves the current revision during admission; concurrent changes are still checked."
+            },
+            {
+              "type": "integer",
+              "minimum": 0
+            }
+          ]
+        },
+        "command": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "Foreground command in the exact source release; use TDEV_DATA_DIR for persistent writable data. Task venv/cache and build outputs are not packaged."
+        },
+        "health": {
+          "type": "object",
+          "properties": {
+            "port": {
+              "type": "integer",
+              "minimum": 1024,
+              "maximum": 65535
+            },
+            "path": {
+              "type": "string",
+              "pattern": "^/[^\\r\\n ]*$",
+              "maxLength": 2048
+            }
+          },
+          "required": [
+            "port",
+            "path"
+          ],
+          "additionalProperties": false,
+          "description": "Readiness requires HTTP 200 from 127.0.0.1:port/path with X-Tdev-Release equal to the process TDEV_RELEASE environment value."
+        },
+        "subject": {
+          "const": "artifact"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "additionalProperties": false,
+      "description": "Host-friendly typed discovery surface for tdev_deploy. The canonical deployInput definition remains the strict action-specific call validator."
+    },
+    "artifactToolInput": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "enum": [
+            "inspectRecipe",
+            "prepare",
+            "inspect",
+            "list",
+            "usage",
+            "export",
+            "prunePreview",
+            "prune"
+          ]
+        },
+        "validationId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "path": {
+          "$ref": "#/$defs/ArtifactPath"
+        },
+        "requestId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "timeout": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3600
+        },
+        "artifactId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "taskId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "before": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "limit": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            },
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65536
+            }
+          ]
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "expectedPreview": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "additionalProperties": false,
+      "description": "Host-friendly typed discovery surface for tdev_artifact. The canonical artifactInput definition remains the strict action-specific call validator."
+    },
+    "diagnosticsToolInput": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "enum": [
+            "inspect",
+            "activate",
+            "stop",
+            "acknowledge",
+            "report",
+            "mark"
+          ]
+        },
+        "view": {
+          "enum": [
+            "full",
+            "summary"
+          ]
+        },
+        "requestId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 300
+        },
+        "incidentId": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{32}$"
+        },
+        "category": {
+          "enum": [
+            "visible_stall",
+            "transport_error",
+            "call_limit",
+            "unexpected_turn_end",
+            "control_mismatch"
+          ]
+        },
+        "instance": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{16}$",
+          "minLength": 16,
+          "maxLength": 16
+        },
+        "runId": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{32}$",
+          "minLength": 32,
+          "maxLength": 32
+        },
+        "cellId": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{32}$",
+          "minLength": 32,
+          "maxLength": 32
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "phase": {
+          "enum": [
+            "cell_enter",
+            "tool_return",
+            "cell_exit"
+          ]
+        },
+        "callOrdinal": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "afterRequest": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "additionalProperties": false,
+      "description": "Host-friendly typed discovery surface for tdev_diagnostics. The canonical diagnosticsInput definition remains the strict action-specific call validator."
+    },
     "operationToolInput": {
       "type": "object",
       "properties": {
@@ -5468,7 +6139,7 @@
       "name": "tdev_workspace",
       "description": "Create, list and inspect development spaces; attach/detach enrolled projects, configure defaults and close. Membership selects projects, never grants authority. Empty spaces need no Git repository. Mutations use expectedRevision; close/detach retain source tasks and owned branches and require no open or uncertain tasks. Omit workspaceId when starting a task to use an automatic default space.",
       "inputSchema": {
-        "$ref": "#/$defs/workspaceInput"
+        "$ref": "#/$defs/workspaceToolInput"
       },
       "annotations": {
         "readOnlyHint": true,
@@ -5528,7 +6199,7 @@
       "name": "tdev_task",
       "description": "Start, inspect and manage an isolated source task for one project in a workspace. Start resolves project/base HEAD and owned branch naming. Omit workspaceId for an automatic default workspace; explicit workspaces use attached projects and their defaultRepo. Edit source with tdev_edit. Close retains branches; cleanup removes only an unchanged branch owned by this task. Continue a proved publication via start.fromTaskId. Start with localChanges=true to import the enrolled local checkout without writing to it. Integrate another same-project task delta with three-way merging; applied=false means the target is unchanged. Retry conflict resolution with new requestId and the returned sourceCheckpoint; keep prior resolutions if conflicts are truncated. Inspect includes outstanding processes independent of history pagination and dependency storage. resetEnvironment removes task dependencies/caches only after every execution is proved stopped; it also works after close. Close retains processes and dependencies.",
       "inputSchema": {
-        "$ref": "#/$defs/taskInput"
+        "$ref": "#/$defs/taskToolInput"
       },
       "outputSchema": {
         "type": "object",
@@ -5788,7 +6459,7 @@
       "name": "tdev_validate",
       "description": "Freeze an exact candidate commit and run the operator's mandatory command through trusted outer execution. For ordinary ChatGPT Code Mode source validation, send waitMs=30000 so admission and one bounded terminal/log observation happen in the same nested tool call; omit it or set waitMs=0 when an immediate retained handle is required. If it still returns running, continue with tdev_operation status without replaying the effect. waitMs is observation-only and does not change request identity. With subject=artifact and artifactId, verifies retained bytes using adopted artifactValidation policy in fresh scratch; never alters source. Service packages additionally require a free loopback health port/path and exercise the manifest entrypoint with TDEV_PORT and X-Tdev-Release. Observe later logs/cancel/retire through tdev_operation. Artifact validation cannot authorize source publication.",
       "inputSchema": {
-        "$ref": "#/$defs/validateInput"
+        "$ref": "#/$defs/validateToolInput"
       },
       "outputSchema": {
         "type": "object",
@@ -5888,7 +6559,7 @@
       "name": "tdev_project",
       "description": "List projects and delegated policies; connect existing local Git folders or GitHub repositories, or create initialized projects. Local names are relative to the policy root; GitHub names are repository names under the policy owner. GitHub creation is private. Uses controller provider credentials; no gh authentication in exec needed. No caller-supplied credentials, commands or executor settings. Inspect original mutations through tdev_operation status.",
       "inputSchema": {
-        "$ref": "#/$defs/projectInput"
+        "$ref": "#/$defs/projectToolInput"
       },
       "outputSchema": {
         "type": "object",
@@ -5948,7 +6619,7 @@
       "name": "tdev_deploy",
       "description": "Deploy a successfully validated native source candidate to a delegated Termux runit target. Release creates/updates a named owned service and checks process identity plus configured loopback HTTP readiness. Inspect returns current state and rotating logs; start/stop/rollback/remove require revision CAS. Remove preserves data/releases/logs. Observe interrupted effects through tdev_operation status before retrying. Source publication is separate; task dependency directories are not bundled. The app must return HTTP 200 with X-Tdev-Release equal to TDEV_RELEASE; writable state belongs in TDEV_DATA_DIR. Services must stay in the foreground. release subject=artifact uses a successful artifact validationId and manifest launch settings; command override is forbidden. health.port is the deployment port supplied as TDEV_PORT; health.path must match validation. Current artifact/runtime/policy checks precede stopping the previous service.",
       "inputSchema": {
-        "$ref": "#/$defs/deployInput"
+        "$ref": "#/$defs/deployToolInput"
       },
       "outputSchema": {
         "type": "object",
@@ -6011,7 +6682,7 @@
       "name": "tdev_artifact",
       "description": "Inspect a recipe from successful source validation, prepare a retained native build, list builds or inspect sealed bytes. Default recipe path: tdev-package.json. prepare requires requestId and validationId; reuse the request after a lost reply. Uses fresh source, pinned public HTTPS dependencies and declared exports, independent of task caches and deployment targets. Observe/log/cancel/retire through tdev_operation; artifactId is the build operation id. list exposes outstanding builds regardless of history page. Build success is not artifact validation or deployment. Use tdev_validate subject=artifact for verification. Service inspect reports current declared runtime compatibility separately from retained-byte integrity; it never installs or starts a service. Export reads verified file bytes in bounded base64 pages, never writes caller paths. usage returns paged authorized retained-object counts, excluding scratch and deployment copies; shared digests can recur across pages. prunePreview reports live pins and retention policy; explicit prune requires its token and rechecks pins, journals retirement and preserves historical receipts. Active/previous deployments and unknown work cannot be pruned. No automatic GC.",
       "inputSchema": {
-        "$ref": "#/$defs/artifactInput"
+        "$ref": "#/$defs/artifactToolInput"
       },
       "outputSchema": {
         "type": "object",
@@ -6086,7 +6757,7 @@
       "name": "tdev_diagnostics",
       "description": "Observe optional runtime diagnostics. inspect view=summary returns principal-scoped server error counts, separately counted client reports, pending and retry-exhausted incidents in one bounded response; default full also includes up to 32 incidents. report with a stable requestId and a category records a client-observed visible stall, transport error, call limit, unexpected turn end or control mismatch and starts a bounded capture; this is a report, not server/UI proof. Never include raw error messages, commands, auth or conversation text. Reuse requestId after a lost report/activation reply within retained history. activate starts a bounded trace; stop ends capture, not development work. report/activate/stop require the diagnostic grant. Acknowledge a received incidentId once; inspect remains available after automatic offers are exhausted. Notifications use fair selection, exponential backoff and at most eight offers per incident; failed writes do not acknowledge delivery. Counters are best effort, bounded and restart-persisted, not a complete audit. No retry/cancel/provider mutation, host wake-up or UI-delivery guarantee. mark requires the diagnostic grant and watch/trace; it records bounded caller execution witnesses without activating capture. Read inspect.witness.instance first; use fresh opaque hex run/cell IDs and increasing run sequence. tool_return requires callOrdinal and may reference the preceding response diagnosticReceipt.request as afterRequest. Marker arrival is caller assertion, not UI proof; mark failures must not retry/cancel development work. Reuse identical instance/runId/sequence only for a lost marker reply, within bounded process-local retention.",
       "inputSchema": {
-        "$ref": "#/$defs/diagnosticsInput"
+        "$ref": "#/$defs/diagnosticsToolInput"
       },
       "outputSchema": {
         "type": "object",
