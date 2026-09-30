@@ -426,5 +426,57 @@
     "chatgptInjectionCapturedByThisRun": false,
     "visibleUiDeliveryMeasured": false,
     "continuousIndependentObserver": false
+  },
+  "postActivation": {
+    "residentVersion": "0.1.24",
+    "bundle": "34e0b9234eacfd8948c73b0a6c257b75f13503c50a587f9c7fa987d116609e56",
+    "controllerPid": 18698,
+    "connections": [
+      {
+        "name": "tdev_janmori",
+        "healthy": true,
+        "process": "running"
+      },
+      {
+        "name": "default",
+        "healthy": true,
+        "process": "running"
+      }
+    ],
+    "connectionMetadataAndCredentialFilesPreserved": true,
+    "unknownReceiptIdentical": true,
+    "maintenanceJournalAbsent": true,
+    "toolsByteEqualTo0123": true,
+    "toolCount": 13,
+    "humanNameUniqueClosedPredecessor": true,
+    "multipleObjectivesRemainAmbiguous": true,
+    "shortcutRelinkedAndReadPassed": true,
+    "chatgptHostRun": false,
+    "bothCredentialsAuthenticated": true,
+    "preservedDataAfterResidentCutover": true
+  },
+  "qualification0124": {
+    "sourceVersion": "0.1.24",
+    "bundle": "34e0b9234eacfd8948c73b0a6c257b75f13503c50a587f9c7fa987d116609e56",
+    "focused": {
+      "tests": 8,
+      "result": "passed",
+      "seconds": 30.392
+    },
+    "affected": {
+      "tests": 33,
+      "result": "passed",
+      "seconds": 129.468
+    },
+    "inactiveBundle": "passed",
+    "full": {
+      "tests": 332,
+      "seconds": 1009.823,
+      "result": "passed"
+    },
+    "wireContractChanged": false,
+    "injectedChatgptAcceptance": "pending separate actual host report",
+    "shortcut": "relinked and project-list read passed",
+    "historicalUnknown": "preserved; never reconciled or replayed"
   }
 }

@@ -55,6 +55,11 @@ isolation. See the [trust boundary](ARCHITECTURE.md#3-native-trust-and-containme
 
 ## Current work
 
+Live resident and qualified source are **0.1.24**, bundle
+`34e0b9234eacfd8948c73b0a6c257b75f13503c50a587f9c7fa987d116609e56`.
+Both existing connections are healthy/running, and the Termux `tdev` shortcut now uses the
+qualified checkout; the original dirty checkout remains untouched.
+
 Source **0.1.24** completes the same human-name rule in newly accepted project create/connect
 responses. Previously retained receipts keep their original bytes, including old path-valued names;
 current listing/discovery is a separate projection. Focused **8**, affected **33** and full **332 tests** plus inactive bundle qualification pass.

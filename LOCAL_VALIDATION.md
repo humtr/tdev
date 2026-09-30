@@ -1932,6 +1932,37 @@ Private focused/affected/full and inactive receipts are under `name-receipt-*` i
 evidence directory. The existing actual host continuation guide now starts with a bounded
 read-only human-name check; the complete two-project workload remains separate.
 
+### Final canonical/resident/terminal acceptance
+
+Fresh canonical readback matched `dc743395726925b14e34720f6eea005e69a0b719` after the qualified
+0.1.24 implementation was pushed. Before activation, the staged file digest matched the inactive
+rehearsal exactly, and the maintenance frontier contained only the independently reviewed historical
+managed-create publication. Its repository identity was read back as `humtr/tdev`, GitHub ID
+1322208918, and its exact managed ref was absent; absence was not treated as failure or success.
+The authorized update exempted only `2531fb0f9bbd4aa584865f62898e1010` while preserving it unknown.
+
+The resident activated bundle
+`34e0b9234eacfd8948c73b0a6c257b75f13503c50a587f9c7fa987d116609e56` / controller **0.1.24**.
+Both configured connections were separately observed healthy/running after startup; each credential
+also successfully authenticated a local project-list MCP read. Before/after checks matched every
+captured configuration, connection credential/header/profile file, stable connection identity and
+runtime identity, and the entire historical unknown operation row. No other running/unknown effect,
+maintenance flag or install journal remained. The fresh owned app-data sentinel was still intact.
+Live tools/list was byte-equal to the 0.1.23 catalog, including the user's fixed annotations.
+
+Fresh bridge clients again resolved the human project + source label to the closed published
+predecessor with no outstanding operation, while the project-only query honestly remained ambiguous.
+The recognized owned Termux shortcut was backed up privately and relinked using the existing CLI
+owner to `prj/tdev-surface-redesign`; the same project-list command that previously returned SCHEMA
+then succeeded with a human project name. No original dirty source, credential, grant, unrelated project source,
+retained unknown effect or prior ChatGPT documentation task was overwritten/cleaned.
+
+These results are reflected in the compact public packet. This remains local installed control-plane
+readback; it does not claim a new actual ChatGPT call, successful Connector Refresh, host scheduling
+or visible UI progress. The actual fresh-session request was supplied to the user; until its result
+arrives, that acceptance and the complete one-/two-project ChatGPT workload remain open. Ordinary
+continuation uses the existing installation; no new OpenAI admin key is needed.
+
 ## Whole-roadmap review — 2026-09-27
 
 Reviewed at source/canonical head `aa250a66bda9e152f06bea80f17ede4a6c7251e0`.
