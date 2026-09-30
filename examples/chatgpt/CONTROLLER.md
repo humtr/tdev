@@ -100,3 +100,25 @@ Local tests prove the JS gate, fresh-instance counters and no automatic ambiguou
 do not prove that ChatGPT schedules the next cell, obeys cancellation or updates its visible UI.
 Keep server, caller-witness, independent-observer and user-visible timelines distinct. Normal
 usage acceptance should measure time between visible updates, not just backend completion.
+
+## Isolating a reported visible stall
+
+First preserve the stalled physical cell's exact code, any host error/result and the user's
+approximate wall time with timezone. Export existing local server evidence before rotation;
+record coverage gaps and the incident's runtime generation separately from the current one.
+Inspect retained state and observe the original effect only. A terminal receipt eliminates a
+reason to re-execute it, but an HTTP flush does not establish Tunnel delivery or a fulfilled await.
+
+For the next explicitly authorized host diagnostic run, use a read-only comparison, not another
+validation/build. In the first physical cell make exactly one read call, emit a compact returned
+packet and end the cell. After the assistant receives that packet, send a short commentary update
+and make one read in a fresh cell. Record each received packet and the user's observed progress.
+This isolates the boundary without a density/ceiling search or detached calls. It cannot retroactively
+prove why the old cell stalled, and a short successful run does not qualify a long workload.
+
+If current diagnostic grant, fresh authorization and generation permit witnesses, separately repeat
+with one operational read plus the runner's three sparse markers (`maxCalls:4`). Preserve actual
+marker replies and metadata; absent/failed markers remain inconclusive. Do not activate diagnostics,
+restart an observer or change the resident just to manufacture missing evidence. If the host cell
+does not return, retain that failure and reconcile in the next user-authorized turn; a caller timeout
+must not pretend to cancel the effect or repair host scheduling.

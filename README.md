@@ -60,12 +60,13 @@ Live resident and qualified source are **0.1.24**, bundle
 Both existing connections are healthy/running, and the Termux `tdev` shortcut now uses the
 qualified checkout; the original dirty checkout remains untouched.
 
-The reported fresh ChatGPT conversation recovered the completed source work in **3 read calls**
+The reported ChatGPT run recovered the completed source work in **3 read calls**
 using only project name and label, with **0 user-supplied internal IDs** and no new effects.
 Project-only lookup remained ambiguous; label filtering selected the closed published predecessor,
 and task inspection confirmed the exact validation/publication commit. Installed state independently
-matched. This passes bounded fresh-session material rediscovery; the complete two-project workload
-and measured continuous visible progress remain separate. See
+matched. This confirms bounded material rediscovery. The user's subsequent report of a visible
+stall around 18:30 KST, followed by a new turn, leaves host continuity unresolved; a new turn
+alone does not establish a fresh conversation. The complete two-project workload remains separate. See
 [the actual host report](LOCAL_VALIDATION.md#actual-fresh-chatgpt-material-recovery-report--2026-09-30).
 
 Source **0.1.24** completes the same human-name rule in newly accepted project create/connect

@@ -1965,7 +1965,7 @@ open. Ordinary continuation uses the existing installation; no new OpenAI admin 
 
 ### Actual fresh ChatGPT material recovery report — 2026-09-30
 
-The user ran the requested check in a new ChatGPT conversation and supplied its result after
+The user supplied the result of the requested new-conversation check after
 `Worked for 2m 30s`. This is host-reported execution evidence, separately corroborated by local
 installed state; Local Codex did not execute those three calls or capture raw ChatGPT events.
 Fresh rebind at receipt still showed canonical `11f8da4fa61e9ca836573219a82a2839efd4748e`, live
@@ -1993,7 +1993,7 @@ Only dated documentation/evidence changed; JSON parsing/receipt consistency and 
 were checked. Implementation tests were not rerun: the unchanged 0.1.24 qualification remains the
 previous focused 8 / affected 33 / full 332, not a newly executed suite.
 
-This passes the bounded actual fresh-session **material rediscovery** check: names + labels recover
+This passes bounded ChatGPT **material rediscovery**: names + labels recover
 a completed predecessor without user-managed IDs, and real ambiguity remains explicit. It does not
 pass the complete one-/two-project workload, reconnect with running/unknown work, preservation of
 unsubmitted planning intent or quantitative visible-continuity acceptance. No loss-response effect
@@ -2006,6 +2006,62 @@ needed to remove the user's ID burden. Architecture implication: qualify retriev
 predecessors alongside live tasks, and distinguish successful material rediscovery from recovering
 working intent. Evidence strength: user-reported actual host calls + matching installed state;
 remaining uncertainty: no raw host capture, running/unknown effect or continuous UI timeline here.
+
+
+### User-reported 18:30 KST visible stall review — 2026-09-30
+
+The user clarified that ChatGPT kept showing the same visible activity around **18:30 KST**
+and they started a new turn to investigate. Successful subsequent reads do not resolve that stall.
+A new turn alone does not prove a fresh conversation; the earlier requested fresh-conversation
+check retains its successful material lookup evidence, with the session boundary unverified.
+
+Fresh rebind: canonical `8fd364c6744cb8a71277db5059fbb945caadf598`, live **0.1.24** /
+`34e0b9234eacfd8948c73b0a6c257b75f13503c50a587f9c7fa987d116609e56`, both connections healthy.
+The incident itself belongs to **0.1.22**, instance `02307ca408adab97`, bundle `ec6d43eb…`.
+These generations must not be conflated. Read-only diagnostic export retained the live snapshot,
+rotated event files and incidents, with hashes and coverage in the private
+`.artifacts/installed-journey-20260930/stall-1830-review`. Export is non-atomic; absent rotated
+segments and watch capture gaps are disclosed. The public packet contains the bounded analysis.
+
+| KST / boundary | Measured fact |
+|---|---|
+| 18:29:59–18:30:29 | Request 60 observed the original validation as running; bounded wait returned normally |
+| 18:30:36–18:30:41 | Request 61 status returned succeeded/committed/terminal; dispatch 5.065 seconds |
+| 18:30:41.841 | HTTP 200; 2,113 bytes written, socket flushed and HTTP finished; complete events 282–300 retained |
+| 18:45:02 | Existing principal-reported incident `f9162b133388b3afde97a53ec3e8f462`, reason reported_visible_stall |
+| 18:53:41 onward | Later cell_enter/tool_return/cell_exit witnesses exist; none retained in 18:25–18:52 |
+
+Local read-only SQLite joined the retained original validation
+`9284e2e8eafb4f37b50dacdee1dd04b9` to the diagnostic operation tag using the matching key generation,
+without exporting the correlation key. Its original request is
+`installed-acceptance-doc-full-validation-20260930`; receipt remains succeeded/committed, exit 0.
+The later canonical-closeout validation has a different original operation/task. Neither was
+re-executed in this review. The only current running/unknown effect remains historical publication
+`2531fb0f9bbd4aa584865f62898e1010`, unknown/unknown, unchanged.
+
+Finding: backend validation completion and the final server response are confirmed. Tunnel
+receipt, JS await continuation, outer-cell delivery and next-cell/assistant/UI scheduling remain
+unseparated. In particular, missing witnesses cannot prove a nested-call ceiling or identify a
+Code Mode fault. Watch did not persist events 301–370; the stopped independent observer supplied
+no live coverage. No exact stalled cell script/host error was provided. The separate 150-second
+readback report is not a measured duration for this incident.
+
+Observation: durable backend work succeeded while reported visible progress stalled.
+Direct cause: **unresolved** beyond the confirmed server response boundary. Immediate action:
+preserve evidence, recognize terminal predecessors, and prepare the bounded read-only comparison
+in CONTROLLER.md before expanding the workload. General principle: recovery of material state and
+continuous host execution are distinct acceptance gates. Related surfaces: operation monitoring,
+physical-cell rollover and caller witnesses. Architecture implication: no provider retry, resident
+restart, annotation change or schema rewrite can be justified solely by this evidence. Evidence
+strength: exact server events + current immutable receipt + user-visible report; host layer unproven.
+
+Validation performed: export/JSON parsing, event sequence, operation-tag/key-generation join,
+terminal receipt, unchanged unknown frontier and diff whitespace. No implementation tests rerun;
+no runtime/provider/credential/observer configuration changed. Documentation qualification does not
+mark the visible-stall issue fixed. The fetched official
+[ChatGPT connection/testing guidance](https://developers.openai.com/plugins/deploy/connect-chatgpt)
+describes local Inspector, Tunnel status and live host checks; it does not establish this incident's
+physical-cell scheduling outcome.
 
 ## Whole-roadmap review — 2026-09-27
 

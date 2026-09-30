@@ -144,10 +144,15 @@ Unknown effects remain attached to their original operation/request; no ambiguou
 Steps 0–2 are now requalified on the live 0.1.22 resident through the refreshed ChatGPT surface and
 their installed evidence is recorded in README/LOCAL_VALIDATION. The next selected work is step 3: run
 the baseline whole one-/two-project development journey and measure reconnect/visible progress separately.
-The 0.1.24 human-name fixes additionally passed the bounded actual fresh-session material lookup:
+The 0.1.24 human-name fixes additionally passed the bounded reported ChatGPT material lookup:
 three reported reads, no user-supplied IDs, explicit ambiguity and recognition of the closed published
 predecessor. This is a completed subcheck of step 3, not closure of its one-/two-project workload or
 continuous visible-progress gate.
+Before expanding that workload, isolate the user-reported 18:30 KST visible stall using the
+original terminal receipt and bounded read-only cells. Server completion is recorded; the
+stalled cell script/host return and matching caller witnesses are missing. A new turn is not
+proof of a fresh conversation or repaired scheduling. Do not rerun successful validation or
+restart resident/Tunnel merely to diagnose it; use the incident protocol in CONTROLLER.md.
 Repair concrete client blockers under step 4 when discovered rather than waiting until the end of the
 journey. The proved packaging target is an application running from retained verified bytes after its
 source/build environment is retired, with update/rollback/failed-switch recovery/cleanup rechecked through

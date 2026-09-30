@@ -480,7 +480,7 @@
     "historicalUnknown": "preserved; never reconciled or replayed"
   },
   "freshSessionHostReport": {
-    "provenance": "User-supplied result from the requested new ChatGPT conversation; local material readback independently matched. Raw host event/declaration capture unavailable.",
+    "provenance": "User-supplied response to the requested new-conversation check; local material readback matched. Exact conversation/cell boundary was not captured; later user clarification describes a new turn after a visible stall.",
     "runtimeAtLocalRebind": "0.1.24",
     "reportedCallCount": 3,
     "toolKinds": 2,
@@ -544,13 +544,81 @@
       }
     ],
     "acceptance": {
-      "freshSessionHumanNameRecovery": "reported passed, locally cross-checked",
+      "freshSessionHumanNameRecovery": "material lookup passed; fresh-conversation boundary not independently verified",
       "completedPredecessorRecognized": "reported passed",
       "noNewEffect": "reported passed",
       "continuousVisibleProgress": "not measured",
       "newRawInjectedDeclarationCapture": "not provided",
       "runningUnknownEffectReconnection": "not exercised",
       "completeTwoProjectJourney": "open"
+    }
+  },
+  "visibleStallReview": {
+    "reportedVisibleStall": {
+      "approximateTime": "2026-09-30T18:30:00+09:00",
+      "source": "user report; new turn required; exact physical cell not provided"
+    },
+    "incidentRuntime": {
+      "version": "0.1.22",
+      "bundle": "ec6d43eb2e842b99203202e0deadb82c1a2abe2862546186dd753a71c8bb7c33",
+      "instance": "02307ca408adab97",
+      "keyId": "7ca33a31371bbfad"
+    },
+    "originalValidation": {
+      "operationId": "9284e2e8eafb4f37b50dacdee1dd04b9",
+      "requestId": "installed-acceptance-doc-full-validation-20260930",
+      "status": "succeeded",
+      "effect": "committed",
+      "exitCode": 0
+    },
+    "serverBoundary": {
+      "request": 61,
+      "eventIds": [
+        282,
+        300
+      ],
+      "records": 19,
+      "httpStartedUTC": "2026-09-30T09:30:36.758696Z",
+      "terminalDispatchUTC": "2026-09-30T09:30:41.838204Z",
+      "httpFinishedUTC": "2026-09-30T09:30:41.841332Z",
+      "dispatchSeconds": 5.065002342,
+      "httpStatus": 200,
+      "bytesWritten": 2113,
+      "flushed": true
+    },
+    "callerReportedIncident": {
+      "id": "f9162b133388b3afde97a53ec3e8f462",
+      "createdAt": "2026-09-30T18:45:02+09:00",
+      "reason": "reported_visible_stall"
+    },
+    "limits": [
+      "No retained host witnesses in 18:25–18:52 KST; first retained later witness at 18:53:41.",
+      "Watch capture is sparse: event IDs 301–370 are not present in the exported stream/retained incident prebuffers. Absence is not proof of no calls.",
+      "Stopped independent observer does not cover this incident.",
+      "No exact stalled physical-cell code, host error/result or continuous UI timeline.",
+      "Server flush does not establish Tunnel receipt, JS await return, outer-cell delivery or next-cell scheduling.",
+      "Worked for 2m 30s readback report is a separate run, not an incident duration."
+    ],
+    "assessment": {
+      "validationCompletion": "confirmed",
+      "visibleStall": "user reported; unresolved",
+      "hostCodeModeFailure": "plausible; specific layer unproven",
+      "freshConversationBoundary": "not independently captured; new turn alone is insufficient"
+    },
+    "actions": {
+      "export": "read-only snapshot plus non-atomic hashed private export; existing diagnostics mode unchanged",
+      "mutationReplay": false,
+      "residentChange": false,
+      "observerRestart": false,
+      "unknownFrontier": [
+        {
+          "id": "2531fb0f9bbd4aa584865f62898e1010",
+          "kind": "publish",
+          "status": "unknown",
+          "effect": "unknown"
+        }
+      ],
+      "next": "bounded read-only physical-cell comparison; optional authorized sparse witness; no new validation"
     }
   }
 }
