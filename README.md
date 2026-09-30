@@ -55,6 +55,11 @@ isolation. See the [trust boundary](ARCHITECTURE.md#3-native-trust-and-containme
 
 ## Current work
 
+Source **0.1.24** completes the same human-name rule in newly accepted project create/connect
+responses. Previously retained receipts keep their original bytes, including old path-valued names;
+current listing/discovery is a separate projection. Focused **8**, affected **33** and full **332 tests** plus inactive bundle qualification pass.
+Final activation/readback are recorded in the takeover review. The thirteen-tool input surface and fixed host hints are unchanged.
+
 Source **0.1.23** fixes a measured human-name continuation gap: delegated local projects now
 show their enrolled checkout relative to the current policy root, so `tdev_find` can resolve
 `pkg-chatgpt-20260930-a1` directly. Old exact remote locators still work. It does not rewrite
@@ -81,7 +86,7 @@ pinned MCP SDK and inactive bundle rehearsal. Final command/process ChatGPT typi
 negative controls also pass their reported checks; no actual process runs in that probe.
 
 The qualified source was canonically published at `593d57a65d76c90f49cdf999d603e1c53a986477` and bundle
-`ec6d43eb2e842b99203202e0deadb82c1a2abe2862546186dd753a71c8bb7c33` is now the live resident **0.1.22**.
+`ec6d43eb2e842b99203202e0deadb82c1a2abe2862546186dd753a71c8bb7c33` was activated as resident **0.1.22** at that qualification.
 The owned recoverable update preserved the exact historical unknown publication receipt and both configured connections.
 After the user refreshed the ChatGPT connector, the actual injected catalog exposed all thirteen tools with the required
 `request` envelope. Live `tdev_project` list and `tdev_find` calls succeeded, while missing deployment revision and

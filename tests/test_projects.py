@@ -14,8 +14,12 @@ from tdev.projects import Projects
 class ProjectTest(Base):
     def test_local_human_name_resolves_after_restart_without_rewriting_old_receipt(self):
         self.policy()
-        created = self.call('project', {'action': 'create', 'requestId': 'named-project',
-                                        'policy': 'dev', 'name': 'human-project'})
+        # Model an already accepted pre-fix receipt; its bytes remain authoritative
+        # even though current list/find projections now use the human name.
+        with patch.object(self.c.projects, 'display_name', side_effect=lambda cfg: cfg.get('name', cfg['remote'])):
+            created = self.call('project', {'action': 'create', 'requestId': 'named-project',
+                                            'policy': 'dev', 'name': 'human-project'})
+        self.assertEqual(created['result']['name'], str(self.root / 'human-project/.git'))
         repo = created['result']['repo']
         task = self.start(repo=repo, label='continue me')
         self.c.close()
@@ -68,6 +72,7 @@ class ProjectTest(Base):
         linked = self.call('project', args)
         self.assertEqual(linked['status'], 'succeeded', linked)
         project = linked['result']
+        self.assertEqual(project['name'], 'authored')
         self.assertEqual(self.call('project', args), linked)
         self.repo.config['projectPolicies']['dev']['validation'] = 'test -f a.txt'
         w = self.start(repo=project['repo'])
@@ -81,6 +86,7 @@ class ProjectTest(Base):
         self.assertEqual(git('status', '--porcelain', cwd=self.repo.work), before)
         self.repo.config['projectPolicies']['dev']['validation'] = 'test -f README.md'
         created = self.call('project', {'action': 'create', 'requestId': 'new', 'policy': 'dev', 'name': 'new-project'})
+        self.assertEqual(created['result']['name'], 'new-project')
         self.assertEqual(created['status'], 'succeeded', created)
         self.assertTrue((self.root / 'new-project/README.md').is_file())
         self.assertEqual(self.call('project', {'action': 'inspect', 'repo': created['result']['repo']})['head'],

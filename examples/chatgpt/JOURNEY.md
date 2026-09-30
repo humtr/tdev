@@ -5,6 +5,31 @@ new tool contract or a claim that ChatGPT has already passed it. Read current re
 instructions and discovered tools; current user intent and actual grants bound every effect.
 The local CLI's --connection selector is not needed inside a connected ChatGPT session.
 
+## Fresh-session continuation check
+
+Run this small read-only check after refreshing the installed connector and opening a new
+ChatGPT conversation. It verifies the human-name path without repeating the completed package
+journey. Local MCP readback is already recorded; actual model selection and visible delivery
+still need the connected host.
+
+```text
+현재 연결된 tdev로 pkg-chatgpt-20260930-a1의 작업 상태를 재발견해라.
+내부 ID는 내가 제공하지 않는다. 새 작업·빌드·게시·배포를 시작하지 마라.
+실제 주입 도구에서 request envelope와 tdev_find를 확인한 뒤,
+프로젝트 이름으로 state:all 검색해 두 작업의 label을 보여라.
+임의로 최신 작업을 선택하지 마라. a1-source label로 좁혀 원본 source 작업을
+조회하고, 반환된 원본 publication receipt만 관찰해 완료 상태를 인정해라.
+닫힌 task, 정리된 ref, 완료 receipt와 실행 가능한 artifact를 구별해라.
+기존 완료 효과를 재실행하지 마라. 호출 수와 실제 응답, 선언 가시성,
+화면 진행 여부와 관측 불가 항목을 구분해서 보고해라.
+```
+
+Expected material readback: the project-only query is ambiguous between source and failed-switch
+work; `label:"a1-source"` resolves the closed published predecessor, with no outstanding operation.
+Its managed ref is cleaned and retained artifacts are pruned. Receipt success does not mean its
+payload still exists. The historical unknown publication in the tdev project is unrelated and
+must remain unresolved. This check does not by itself close the two-project workload below.
+
 ## Prompt for the working ChatGPT session
 
 ```text
@@ -13,6 +38,9 @@ The local CLI's --connection selector is not needed inside a connected ChatGPT s
 examples/chatgpt/CONTROLLER.md를 읽고 현재 도구를 재확인한다.
 Local Codex의 설치본 검증 결과를 이 ChatGPT 세션의 성공으로 대체하지 않는다.
 
+먼저 tdev_find로 이름/목표에 맞는 기존 작업과 완료된 predecessor를 확인한다.
+이미 완료된 packaging acceptance를 재실행해서 측정을 채우지 않는다. 아래 전체
+실험은 새로운 one-/two-project 목적이며, 기존 효과의 replay가 아니다.
 기존 사용자 프로젝트와 분리된, 현재 위임된 local project 범위의 시험 프로젝트를
 만든다. 프로젝트 이름에는 새 run 식별자를 사용하고 소유한 작업·서비스·결과물 ID를
 기록한다. 현재 권한으로 가능한 시험만 수행한다. 권한이 부족하면 해당 지점만 보고하고

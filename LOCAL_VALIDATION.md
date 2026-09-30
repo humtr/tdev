@@ -1885,6 +1885,53 @@ therefore has no continuous independent observer or new ChatGPT witness/UI timel
 one-/two-project semantic continuation and measured visible progress remain open. A new API/admin
 key is not required for this local qualification or ordinary installed continuation.
 
+### Intermediate canonical publication and 0.1.23 resident readback
+
+Qualified implementation/evidence was committed and pushed to canonical as
+`aa3f60af318bd942a42cb0407319a61fb8b15597`. The owned resident update activated the qualified
+`cfe8abe4fa0896e625ef024983ad6a2ad9bf330120cbd070987f513cad584dff` bundle and controller 0.1.23.
+Both configured Tunnel connections subsequently reported healthy/running. Fresh bridge clients
+verified 13 exact request-envelope tools and unchanged fixed annotations. Direct project-name
+lookup returned both closed objectives as ambiguous; adding `label:"a1-source"` uniquely returned
+the published/cleaned predecessor with no outstanding effects. The exact legacy remote locator
+returned the same frontier. Configuration/profile hashes, enrollment count and the exact unknown
+publication row were preserved; no maintenance/install journal remained.
+
+A final cross-surface review then found new create/connect receipts still constructing `name` from
+remote path directly, despite corrected current list/find projections. The 0.1.24 follow-up applies
+the same project-owned projection at new receipt creation. Existing receipt bytes remain unchanged.
+The restart regression now explicitly seeds a pre-fix path-valued receipt and proves exact replay;
+existing create/connect tests also assert meaningful human names. Direct cause: two name projection
+sites. General insight: current observation and immutable accepted receipt are different kinds of
+truth; align new responses but never “repair” historical receipts by rewriting their bytes. No new
+field, default, state format or selection policy is introduced.
+
+### Terminal entrypoint finding
+
+The installed `tdev` shortcut still imported the original old/dirty `prj/tdev/src` checkout.
+A read-only `tdev ... --connection tdev_janmori project list` actually sent the old flat input and
+received `SCHEMA`, effect none, from resident 0.1.23. No mutation was admitted. The shortcut's
+old CLI also printed the MCP error without a failing shell status; the qualified CLI already has
+proper envelope/error handling. This is a deployment-entrypoint mismatch, not failure of the new
+runtime schema. The old source tree must stay untouched. After final qualification, relink only
+the recognized owned shortcut to the qualified checkout using the existing `tdev link` owner;
+keep its old bytes in private evidence and verify the same terminal read succeeds.
+General principle: source, resident, discovery and local command binding are independent version
+frontiers. Canonical publication or healthy server alone does not prove a human entrypoint is current.
+
+### Final 0.1.24 source qualification
+
+The receipt-alignment change passed focused **8 tests in 30.392 s**, affected **33 tests in
+129.468 s**, and a new complete `scripts/check.sh` run: **332 tests in 1009.823 s**, plus the
+whitespace check. No source changes followed that run. Its inactive bundle rehearsal passed as
+`34e0b9234eacfd8948c73b0a6c257b75f13503c50a587f9c7fa987d116609e56`, including HTTP/restart,
+retained validation/export/prune and exact source publication, with no production service changes.
+The tool contract is byte-identical to the earlier 0.1.22/0.1.23 thirteen-tool contract; the recorded
+actual Codex loader check is reused for that unchanged input surface, not claimed as a new model run.
+Private focused/affected/full and inactive receipts are under `name-receipt-*` in the takeover
+evidence directory. The existing actual host continuation guide now starts with a bounded
+read-only human-name check; the complete two-project workload remains separate.
+
 ## Whole-roadmap review — 2026-09-27
 
 Reviewed at source/canonical head `aa250a66bda9e152f06bea80f17ede4a6c7251e0`.

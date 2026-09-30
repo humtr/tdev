@@ -33,6 +33,8 @@ in README; wire types live in the contract.
 Delegated local project display names derive from the enrolled checkout relative to its current
 policy root; explicit configured names remain authoritative. The old exact remote locator also
 resolves, without guessing a basename, changing enrollment or rewriting accepted receipts.
+New create/connect receipts use the same name projection; replay returns the originally accepted
+receipt, even when its historical display name differs from the current projection.
 Duplicate names remain ambiguous. It performs bounded local reads, not executor/provider
 reconciliation. Retained creation intents
 supply labels; no transcript store, per-conversation current-task pointer or state migration is

@@ -223,7 +223,8 @@ class Projects:
             else:
                 db.execute('INSERT INTO project(id,owner,policy,authority,identity,config) VALUES(?,?,?,?,?,?)',
                            (repo, row['owner'], intent['input']['policy'], intent['authority'], cfg['identity'], canonical(cfg).decode()))
-            value = {'repo': repo, 'name': cfg.get('name', cfg['remote']), 'identity': cfg['identity'],
+            value = {'repo': repo, 'name': self.display_name({**cfg, '_projectPolicy': intent['input']['policy']}),
+                     'identity': cfg['identity'],
                      'defaultRef': cfg['defaultRef'], 'managedRefNamespaces': [policy['managedRefNamespace']],
                      'policy': intent['input']['policy'], 'provider': cfg['kind'], 'checkout': cfg.get('checkout')}
             db.execute("UPDATE operation SET status='succeeded',effect='committed',result=?,error=NULL WHERE id=?",
