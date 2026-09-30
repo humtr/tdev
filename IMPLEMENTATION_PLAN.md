@@ -141,15 +141,15 @@ Unknown effects remain attached to their original operation/request; no ambiguou
 | 7 | Add narrow source-independent resource access | A demonstrated task needs native filesystem/process/toolchain observation without a dummy source task; bounded delegated observation and explicit ownership | Move only the specific blocker earlier if necessary; do not introduce several overlapping host/resource/connection families |
 | 8 | Add demand-selected integrations | Concrete MCP/CLI/API/model or remote/container target, then Android-use/companion if needed; attach/use/revoke/recover independently | No universal gateway, mandatory model, OAuth/RBAC or Android UI subsystem on the current critical path; shared-account restrictions require a separate user requirement |
 
-Start with step 0 and steps 1–2 until their installed evidence is recorded in README; then
-advance to step 3. Repair concrete client blockers under step 4 when discovered rather than
-waiting until the end of the journey. The core acceptance target is an
-application running from retained verified bytes after its source/build environment is retired,
-with a proved update/rollback/cleanup path. Do not rebuild slices 1–5 simply because slice 6
-installed evidence is missing. No new language ecosystem blocks closure of the first qualified
-packaging deliverable. Step 3 starts with available existing functionality before step 5 changes
-its recovery mechanism. Steps 5–8 are conditional work, not mandatory gates for closing the
-first native packaging milestone; unavailable optional clients do not prevent useful local work.
+Steps 0–2 are now requalified on the live 0.1.22 resident through the refreshed ChatGPT surface and
+their installed evidence is recorded in README/LOCAL_VALIDATION. The next selected work is step 3: run
+the baseline whole one-/two-project development journey and measure reconnect/visible progress separately.
+Repair concrete client blockers under step 4 when discovered rather than waiting until the end of the
+journey. The proved packaging target is an application running from retained verified bytes after its
+source/build environment is retired, with update/rollback/failed-switch recovery/cleanup rechecked through
+actual host calls. Do not rebuild slices 1–5 merely to continue the journey. Step 3 starts with available
+existing functionality before step 5 changes its recovery mechanism. Steps 5–8 remain conditional work,
+not mandatory gates; unavailable optional clients do not prevent useful local work.
 
 ### Cross-cutting acceptance tracks
 

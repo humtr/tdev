@@ -30,7 +30,11 @@ in README; wire types live in the contract.
 | Operation | An accepted execution or effect with identity, progress, result and recovery evidence. |
 
 `tdev_find` resolves retained source work from human project names and task labels.
-It performs bounded local reads, not executor/provider reconciliation. Retained creation intents
+Delegated local project display names derive from the enrolled checkout relative to its current
+policy root; explicit configured names remain authoritative. The old exact remote locator also
+resolves, without guessing a basename, changing enrollment or rewriting accepted receipts.
+Duplicate names remain ambiguous. It performs bounded local reads, not executor/provider
+reconciliation. Retained creation intents
 supply labels; no transcript store, per-conversation current-task pointer or state migration is
 needed. Multiple matches, incomplete pages and unavailable historical bindings never select a
 task. Closed work remains visible by default. Returned checkpoints and receipts are a local

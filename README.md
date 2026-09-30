@@ -55,6 +55,17 @@ isolation. See the [trust boundary](ARCHITECTURE.md#3-native-trust-and-containme
 
 ## Current work
 
+Source **0.1.23** fixes a measured human-name continuation gap: delegated local projects now
+show their enrolled checkout relative to the current policy root, so `tdev_find` can resolve
+`pkg-chatgpt-20260930-a1` directly. Old exact remote locators still work. It does not rewrite
+project/effect receipts, reconcile on discovery, select ambiguous work or change tool inputs/hints.
+Focused **7**, affected **33**, full **332 tests**, inactive bundle and actual Codex schema-loader
+checks pass. The takeover also completed the handed-off service/artifact lifecycle through
+authenticated local MCP, with fresh data preservation, supervisor crash recovery, failed-switch
+restoration, export and explicit pruning. This is independent backend acceptance, not a new
+ChatGPT/UI measurement. Resident activation is recorded separately below. See
+[the takeover review](LOCAL_VALIDATION.md#installed-handoff-review-and-human-name-recovery--2026-09-30).
+
 Source **0.1.22** implements the selected thirteen-tool surface after root/flat/nested/action/
 workflow comparisons. Exact positive request alternatives replace eight duplicated flat discovery
 schemas. `tdev_find` resolves human-name source continuation from retained intents and receipts,
@@ -101,16 +112,28 @@ only when the client supplies `_meta.progressToken`; otherwise SSE comments are 
 replay and publication semantics are unchanged. Server-side writes remain distinct from
 Tunnel/network receipt and user-visible ChatGPT rendering.
 
-Installed native packaging acceptance now passes on resident **0.1.14** through authenticated
+Installed native packaging acceptance first passed on resident **0.1.14** through authenticated
 local HTTP: pinned public dependency, generated asset, source/build/validation scratch retirement,
 dependency-environment removal, artifact verification, live release, update/rollback, failed-switch
 restoration, data-preserving stop/start/remove, paged export/hash checks and explicit pruning.
 A non-service ZIP also builds/verifies/exports without a health port or deployment. The owned
-trial service is removed, trial task environments/refs are retired, and no pending effects remain;
-data, project registration, historical releases and evidence are intentionally retained.
+trial service was removed, trial task environments/refs were retired, and no pending effects remained;
+data, project registration, historical releases and evidence were intentionally retained.
 See [installed evidence](LOCAL_VALIDATION.md#installed-packaging-lifecycle-acceptance--2026-09-27).
-Real ChatGPT one-/two-project journey and visible continuity remain outstanding; the
-[baseline execution guide](examples/chatgpt/JOURNEY.md) is prepared for the actual host.
+
+The refreshed **0.1.22** ChatGPT surface now requalifies that installed packaging path with actual
+model-facing calls. A fresh service fixture completed source validation, retained artifact build and
+artifact validation, create/update, retained-byte rollback, failed-switch reconciliation, stop/start/remove,
+scratch/environment/ref cleanup and exact artifact pruning. The failed update first returned an unknown
+recovery receipt; observing that original operation reconciled it to a committed failed operation with
+`rolledBack:true`, while the previous release remained HTTP 200. A fresh non-service archive also
+validated and exported its 145-byte ZIP in three bounded pages with one stable SHA-256 before cleanup.
+This 0.1.22 run reuses the earlier data-sentinel result rather than claiming a second data-preservation
+measurement. Final retained artifact usage returned to zero. See
+[the dated requalification](LOCAL_VALIDATION.md#refreshed-chatgpt-packaginglifecycle-requalification--2026-09-30)
+and [bounded host evidence](examples/chatgpt/PACKAGING_ACCEPTANCE_20260930.md).
+The complete one-/two-project ChatGPT development journey and measured visible continuity remain separate;
+the [baseline execution guide](examples/chatgpt/JOURNEY.md) is prepared for that next step.
 Source **0.1.15** fixes the observed CLI credential-selection gap: `--connection NAME` uses
 that registered connection's local credential for MCP calls. If connector.secret is missing,
 terminal users can select a connection by number; automation receives an actionable error.

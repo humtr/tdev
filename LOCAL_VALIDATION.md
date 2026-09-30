@@ -1737,6 +1737,154 @@ checks pass. Actual ChatGPT host execution, visible continuity, cross-workspace 
 controller crash qualification on the live installation, native-extension/Android packaging and
 host-wide offline execution are not claimed. Earlier isolated fault/SDK evidence remains separate.
 
+## Refreshed ChatGPT packaging/lifecycle requalification — 2026-09-30
+
+The retained ChatGPT closeout task `152c039f710c466a83a72933b81b63f8` reports this run through
+the actual refreshed thirteen-tool surface. On takeover, its terminal source/artifact validation,
+original failed-switch receipt, removed deployment and pruned archive were read back from the
+installed resident; those effects were not repeated. This verifies durable backend state, not
+an independent capture of its ChatGPT declaration or visible UI timeline. The reported runtime was **0.1.22** / bundle
+`ec6d43eb2e842b99203202e0deadb82c1a2abe2862546186dd753a71c8bb7c33`. It intentionally reuses the
+2026-09-27 data-sentinel and broader fault evidence where the invariant was already established; it does
+not relabel those older measurements as fresh. The purpose here was to prove the changed model-facing
+surface, explicit deployment revisions and original-operation recovery against the installed runtime.
+Bounded receipt details are in `examples/chatgpt/PACKAGING_ACCEPTANCE_20260930.md`.
+
+The disposable project was existing local enrollment `p-db2cad4ec9177b4edb395216`. Baseline artifact
+usage was zero and its historical deployment was already removed. A new managed service task
+`df48138d4e6240fb8f58804952302402` integrated the previously reviewed fixture delta from the same
+`9a335d2604fc2191c63f8d158a53da228cf155c7` base without replaying historical effects.
+Source validation `476f9b583e64410ab1eeea8cb2848b41`, artifact `c7280fe6a9df4a5ba8af44a72a2d6103`
+and artifact validation `ae2e4d7dc59b483988f8c8bd9e125e4d` succeeded. The retained artifact digest was
+`de01f132bd1a5ac6f8d86336d02fa9b9cb029a3398aeae88280228f547ce1a84`; release created deployment
+`f70af0ef214fc553722ce3fdf8b3ea6b` at revision 1 / release
+`a73747e463c982300156ebb2d5dd4e1e8f1ca97d257699f959df03d33766bf45`, with HTTP health 200.
+After source/build/artifact-validation scratch retirement and task environment reset, the same release
+remained healthy and retained `dist/asset.json` exported as 32 bytes with SHA-256
+`0ca9e98414b209833559f1c01bd92e29cc05a4ec2a69e1d2651244e33e3d8c78`.
+
+An updated source produced validated artifact `46f30864143a4f599cb11c15a63dd03d` and updated the same
+deployment with `expectedRevision:1` to revision 2 / release
+`f45071e4ae65f968fd50376a30bcd7d96833ca888ec53b7226ea46986b937140`, still HTTP 200. Rollback with
+`expectedRevision:2` restored the first retained release at revision 3 without a new build. A separately
+validated artifact `2f831b3a3b80423dabe0405b810a9ceb` was designed to pass artifact validation on its separate port
+but fail on the deployment port. Release operation `730a89f706e94c25ab6b070076de0782` initially returned
+`DEPLOYMENT_RECOVERY_REQUIRED` with unknown effect. No replacement release was admitted. Status on that
+same operation reconciled to `failed`, `effect:committed`, `DEPLOYMENT_INTERRUPTED` and `rolledBack:true`;
+inspect independently showed revision 3 still on the first release, running and HTTP 200.
+
+CAS lifecycle then stopped revision 3 to revision 4, started revision 4 to revision 5 with HTTP 200, and
+removed revision 5 to revision 6. All new source/build/artifact-validation scratch was retired; the task
+environment was reset, task closed and managed ref cleaned. All three service artifacts had empty pin
+sets, were pruned with their exact preview tokens, and retained artifact usage returned to zero.
+The earlier 2026-09-27 data-sentinel result remains the data-preservation evidence; this run did not
+create a second sentinel.
+
+A second managed task `5193628ef9b54e48b0b2804106090385` integrated the retained archive fixture on the
+same base. Source validation `7796c59179e640aebd236184ac50ef39`, archive artifact
+`b4c6e87b2eb1496181f4236fcd30eb50` and artifact validation `133336c54d2d4a1f857c58515c762b73`
+all succeeded without a service command or health port. Manifest `dist/hello.zip` was 145 bytes with
+SHA-256 `9eb80fac27052ec4a6bcb0fc6ed7542e200bbcd1be8de520cc4c4be59233eb85`; three 64-byte-bounded export
+calls advanced 0→64→128→145 and reported that same digest. Its execution scratch/environment/ref and
+retained artifact were then retired/reset/cleaned/pruned; final artifact usage again reported zero.
+
+This closes installed queue steps 0–2 for the current surface. It is actual ChatGPT tool execution, but
+it is not the separate whole one-/two-project development/deploy/reconnect journey and is not a
+quantitative visible-continuity measurement.
+
+## Installed handoff review and human-name recovery — 2026-09-30
+
+### Fresh authority and starting frontier
+
+The original `prj/tdev` checkout was old source with unrelated dirty changes; it was not changed.
+Root navigation, README, affected architecture/contracts, IMPLEMENTATION_PLAN and operator update
+rules were rebound in `prj/tdev-surface-redesign`, fast-forwarded to canonical
+`055b97d534e06504e3a7db1eaeee0287d852bdf4`. Installed runtime readback was 0.1.22 / bundle
+`ec6d43eb2e842b99203202e0deadb82c1a2abe2862546186dd753a71c8bb7c33`, with both connections healthy.
+The historical managed-create publication `2531fb0f9bbd4aa584865f62898e1010` remained unknown/unknown.
+The retained earlier ChatGPT closeout was reviewed and terminal receipts were read back, rather than
+recreating its service/archive work. Its open documentation task is preserved, not silently closed.
+
+### Fixture review and corrections
+
+The handed-off source task `fee2f0d9bd904f6e8b14fe3a80a73e7e` and successful retained artifact
+`f6307a0fe1a0479c8e4e498c29642cf2` were reused. The earlier literal-newline mistakes were already
+corrected; their failed exec/source-validation/build receipts remain terminal history. Including
+`check.py`, `test_app.py` and `scripts/check.sh` in the recipe is appropriate: the currently delegated
+source/artifact policy requires that entrypoint, with static source checks and separate live artifact
+checks. It is not a policy waiver or a build-success substitute for validation.
+
+The original lock substring check could overlook malformed final bytes, and live dependency locality
+was implicit. A genuinely strengthened second candidate checks exact lock bytes and rejects literal
+`\n`, incorrect hashes and duplicate requirements; checks recipe/input/service metadata; proves
+`packaging==25.0` imports from the artifact's Python directory; and verifies real HTTP status,
+`X-Tdev-Release`, body identity/version and generated asset bytes. Source publication and artifact
+validation remain independent receipts. The new candidate was validated/built normally; the successful
+first artifact was not discarded. One local edit harness initially supplied a SHA-256 instead of the
+Git blob OID for `before`; terminal `EDIT_CONFLICT` / effect none was retained, then corrected input
+was admitted under a new identity. This and the earlier newline errors are fixture-authoring mistakes,
+not product failures or ambiguous mutation retries.
+
+### Installed lifecycle results
+
+These calls used the authenticated localhost MCP bridge from Codex, not injected ChatGPT tools.
+Requests were persisted before one dispatch; admitted running/unknown work was observed by its
+original operation only. Private requests/responses and timestamps remain in
+`.artifacts/installed-journey-20260930`; the compact public record is
+[`installed-a1-20260930.json`](examples/chatgpt/installed-a1-20260930.json).
+
+| Stage | Fresh result |
+|---|---|
+| Reuse original artifact | Artifact validation `ff41967b1ffe465aa7eebb17a2ac6d86`, exit 0, actual health/header/dependency/asset checks |
+| Initial release | Deployment `1a7384347f050a137239369207c82093`, `expectedRevision:0` → revision 1; separate inspect and direct HTTP verify version one |
+| Strengthened second source | Validation `1262b65ffa39416d9bbf58363b7f5976`, candidate `b37c6933b482a7ece331af1075c0330f8a537fcc`; managed publication readback exact; main unchanged |
+| Second artifact | `5af26f5b3e8446a390ebc25cff16fe26`, digest `54872539bbfb7c83d4d7ed973cf582dd134a7e8e3b50ff585451af84139e80dd`; artifact validation `1c7adc5f1a864d0c96f3bc110fa2ec1d` exit 0 |
+| Previous service during validation | Distinct validation port; direct HTTP version one before/after validation. Continuous zero downtime is not inferred |
+| Update and rollback | Expected revisions 1→2→3, separate live identity/health readback; rollback reused retained first release without rebuilding |
+| Owned supervisor crash | Exact process command/deployment ownership checked before one SIGKILL; fresh supervisor and child restored same healthy release |
+| Bad activation | Separately validated artifact `ef52e8de66434bfbb7ade277241c5c34`; release `53de25feb715414ab42e9840af00c100` failed/committed, `DEPLOYMENT_NOT_READY`, `rolledBack:true`; original revision 3 healthy independently |
+| Scratch independence | All stopped original/second/bad source/build/validation scratch retired, both task environments reset; version one still HTTP 200 |
+| Stop/start/remove | CAS revisions 3→4→5→6; fresh `data/keep` sentinel preserved byte-for-byte after each stage; no running process after remove |
+| Pin/export/prune | Active artifact preview pinned; second asset exported in two 16-byte pages, 32 total, stable SHA-256 `0ca9e98414b209833559f1c01bd92e29cc05a4ec2a69e1d2651244e33e3d8c78`; all three artifacts pruned only after empty-pin exact-token previews |
+| Final owned state | Both source tasks closed and managed refs cleaned; retained usage 0. Project registration, data, release history, receipts and unrelated tasks preserved |
+
+### Measured defect, insight and decision ownership
+
+Observation: `find({project:"pkg-chatgpt-20260930-a1"})` returned none despite an enrolled project
+and retained task; the exact private `.git` path returned the correct frontier. Direct cause: project
+projection fell back to remote path instead of its policy-relative human name. Immediate fix:
+derive that name from the already enrolled checkout/current root; retain the old exact remote alias.
+General principle: a well-typed locator must refer to the same user-facing namespace at enrollment,
+listing and continuation. A schema probe cannot prove runtime identity resolution. Related surfaces:
+project list, terminal display and new-session task discovery. Architecture implication: derive names
+in the existing project owner, keep IDs/CAS for concurrency, and never add a mutable current-task
+pointer or fuzzy selection to conceal real ambiguity. Evidence strength: installed reproduction plus
+restart/replay regression; post-activation installed lookup remains a separate readback below.
+
+Removed choices: none in this patch; the earlier network/executor knobs remain absent. Added choices:
+none; project/objective lookup already expresses the intent. Retained choices: exact project key/name,
+label/state, explicit task start/predecessor, execution mode, revision/CAS and effect identity.
+Internalized choice: local project display-name derivation belongs to the controller's enrolled
+project/policy binding. No state or accepted receipt is rewritten, and duplicate names stay ambiguous.
+
+### Qualification and visibility limits
+
+Focused project/continuation tests: **7 passed**; affected project/continuation/surface/HTTP tests:
+**33 passed**. `scripts/check.sh`: **332 tests passed in 900.906 s**, plus diff whitespace check.
+Inactive bundle rehearsal passed with bundle
+`cfe8abe4fa0896e625ef024983ad6a2ad9bf330120cbd070987f513cad584dff`: authenticated HTTP/restart,
+retained artifact validation/export/prune, exact source publication and no production service changes.
+Actual Codex app-server loader matched all 13 input schemas and effect-free probe calls; this is not
+model-inference or ChatGPT rendering acceptance. Tool input schemas and the user's fixed annotations
+are unchanged. The owned disposable journey ran on installed 0.1.22; lookup implementation is 0.1.23.
+
+Backend receipts, local caller receive timestamps, MCP/Tunnel delivery and ChatGPT visible rendering
+are distinct. The existing `visible_stall` caller report `f9162b133388b3afde97a53ec3e8f462` is not
+converted into a backend failure. The independent observer reported stopped at takeover; this run
+therefore has no continuous independent observer or new ChatGPT witness/UI timeline. Fresh ChatGPT
+one-/two-project semantic continuation and measured visible progress remain open. A new API/admin
+key is not required for this local qualification or ordinary installed continuation.
+
 ## Whole-roadmap review — 2026-09-27
 
 Reviewed at source/canonical head `aa250a66bda9e152f06bea80f17ede4a6c7251e0`.

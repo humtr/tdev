@@ -1,0 +1,430 @@
+{
+  "client": "Codex-driven authenticated localhost MCP bridge, not ChatGPT injected tools",
+  "runtimeVersion": "0.1.22",
+  "runtimeBundle": "ec6d43eb2e842b99203202e0deadb82c1a2abe2862546186dd753a71c8bb7c33",
+  "project": "pkg-chatgpt-20260930-a1",
+  "effects": [
+    {
+      "step": "build-bad",
+      "operationId": "ef52e8de66434bfbb7ade277241c5c34",
+      "kind": "artifact",
+      "statusAtResponse": "running",
+      "effectAtResponse": "unknown",
+      "observedStatus": "succeeded",
+      "observedEffect": "committed"
+    },
+    {
+      "step": "build-two",
+      "operationId": "5af26f5b3e8446a390ebc25cff16fe26",
+      "kind": "artifact",
+      "statusAtResponse": "running",
+      "effectAtResponse": "unknown",
+      "observedStatus": "succeeded",
+      "observedEffect": "committed"
+    },
+    {
+      "step": "clean-ref-bad",
+      "operationId": "349ff74dd7f04e6386d25d536af4214e",
+      "kind": "task",
+      "statusAtResponse": "succeeded",
+      "effectAtResponse": "committed",
+      "observedStatus": "succeeded",
+      "observedEffect": "committed"
+    },
+    {
+      "step": "clean-ref-source",
+      "operationId": "9e295e77c4c04a25bffb14c1ff8175b2",
+      "kind": "task",
+      "statusAtResponse": "succeeded",
+      "effectAtResponse": "committed",
+      "observedStatus": "succeeded",
+      "observedEffect": "committed"
+    },
+    {
+      "step": "close-bad",
+      "operationId": "76007b534bfa46669aab7991fe0f6aa4",
+      "kind": "task",
+      "statusAtResponse": "succeeded",
+      "effectAtResponse": "committed",
+      "observedStatus": "succeeded",
+      "observedEffect": "committed"
+    },
+    {
+      "step": "edit-bad",
+      "operationId": "660d45f6d2594fb9a6d1c40a5fff7121",
+      "kind": "edit",
+      "statusAtResponse": "succeeded",
+      "effectAtResponse": "committed",
+      "observedStatus": "succeeded",
+      "observedEffect": "committed"
+    },
+    {
+      "step": "edit-two-r2",
+      "operationId": "4df026bc9b7943fda89ff0f43e9a90d0",
+      "kind": "edit",
+      "statusAtResponse": "succeeded",
+      "effectAtResponse": "committed",
+      "observedStatus": "succeeded",
+      "observedEffect": "committed"
+    },
+    {
+      "step": "edit-two",
+      "operationId": "122f179c82e44795874a59895945585e",
+      "kind": "edit",
+      "statusAtResponse": "failed",
+      "effectAtResponse": "none",
+      "observedStatus": "failed",
+      "observedEffect": "none"
+    },
+    {
+      "step": "prune-5af26f5b3e8446a390ebc25cff16fe26",
+      "operationId": "182377a735e44c4bb7cfb958ad4c3b04",
+      "kind": "operation",
+      "statusAtResponse": "succeeded",
+      "effectAtResponse": "committed",
+      "observedStatus": "succeeded",
+      "observedEffect": "committed"
+    },
+    {
+      "step": "prune-ef52e8de66434bfbb7ade277241c5c34",
+      "operationId": "d0f741e394e249df86512a5dfa76308f",
+      "kind": "operation",
+      "statusAtResponse": "succeeded",
+      "effectAtResponse": "committed",
+      "observedStatus": "succeeded",
+      "observedEffect": "committed"
+    },
+    {
+      "step": "prune-f6307a0fe1a0479c8e4e498c29642cf2",
+      "operationId": "bb5896002447487c9c76af22938cb689",
+      "kind": "operation",
+      "statusAtResponse": "succeeded",
+      "effectAtResponse": "committed",
+      "observedStatus": "succeeded",
+      "observedEffect": "committed"
+    },
+    {
+      "step": "publish-two",
+      "operationId": "d86f00ea837548bfb591cd3d3d60efe4",
+      "kind": "publish",
+      "statusAtResponse": "succeeded",
+      "effectAtResponse": "committed",
+      "observedStatus": "succeeded",
+      "observedEffect": "committed"
+    },
+    {
+      "step": "release-bad",
+      "operationId": "53de25feb715414ab42e9840af00c100",
+      "kind": "deploy",
+      "statusAtResponse": "failed",
+      "effectAtResponse": "committed",
+      "observedStatus": "failed",
+      "observedEffect": "committed"
+    },
+    {
+      "step": "release-one",
+      "operationId": "7723cb6b9445443ea574dfe3d4693cb1",
+      "kind": "deploy",
+      "statusAtResponse": "succeeded",
+      "effectAtResponse": "committed",
+      "observedStatus": "succeeded",
+      "observedEffect": "committed"
+    },
+    {
+      "step": "release-two",
+      "operationId": "2eabbe38e6f84c4485077faf84d017b1",
+      "kind": "deploy",
+      "statusAtResponse": "succeeded",
+      "effectAtResponse": "committed",
+      "observedStatus": "succeeded",
+      "observedEffect": "committed"
+    },
+    {
+      "step": "remove-final",
+      "operationId": "37216ce4c5c94da0a416b880a7042e8f",
+      "kind": "deploy",
+      "statusAtResponse": "succeeded",
+      "effectAtResponse": "committed",
+      "observedStatus": "succeeded",
+      "observedEffect": "committed"
+    },
+    {
+      "step": "reset-bad",
+      "operationId": "576a247f2ad041bdb0cd2bf56577344d",
+      "kind": "task",
+      "statusAtResponse": "succeeded",
+      "effectAtResponse": "committed",
+      "observedStatus": "succeeded",
+      "observedEffect": "committed"
+    },
+    {
+      "step": "reset-source",
+      "operationId": "50727059be3245498a8ef83a77df9797",
+      "kind": "task",
+      "statusAtResponse": "succeeded",
+      "effectAtResponse": "committed",
+      "observedStatus": "succeeded",
+      "observedEffect": "committed"
+    },
+    {
+      "step": "retire-1262b65ffa39416d9bbf58363b7f5976",
+      "operationId": "80709e5aac064c1c83d506553f587365",
+      "kind": "operation",
+      "statusAtResponse": "succeeded",
+      "effectAtResponse": "committed",
+      "observedStatus": "succeeded",
+      "observedEffect": "committed"
+    },
+    {
+      "step": "retire-1c06c1fcb9a7445482cb75ffe1f0f743",
+      "operationId": "f68f463b1f9244578807cb5eb9eca484",
+      "kind": "operation",
+      "statusAtResponse": "succeeded",
+      "effectAtResponse": "committed",
+      "observedStatus": "succeeded",
+      "observedEffect": "committed"
+    },
+    {
+      "step": "retire-1c7adc5f1a864d0c96f3bc110fa2ec1d",
+      "operationId": "276fa82062034fa78e6b8e74695e60d2",
+      "kind": "operation",
+      "statusAtResponse": "succeeded",
+      "effectAtResponse": "committed",
+      "observedStatus": "succeeded",
+      "observedEffect": "committed"
+    },
+    {
+      "step": "retire-5af26f5b3e8446a390ebc25cff16fe26",
+      "operationId": "5588648c26eb4d0b92f1d6dd38cd7009",
+      "kind": "operation",
+      "statusAtResponse": "succeeded",
+      "effectAtResponse": "committed",
+      "observedStatus": "succeeded",
+      "observedEffect": "committed"
+    },
+    {
+      "step": "retire-70ff06d4040f405e9759813acefbe211",
+      "operationId": "06e9ca1e46b84a3d91cf8d5a60e893c4",
+      "kind": "operation",
+      "statusAtResponse": "succeeded",
+      "effectAtResponse": "committed",
+      "observedStatus": "succeeded",
+      "observedEffect": "committed"
+    },
+    {
+      "step": "retire-75565d2f6ebb4effaff6ce3fa07f3dde",
+      "operationId": "e2dec027deb2480582e1bbff09554872",
+      "kind": "operation",
+      "statusAtResponse": "succeeded",
+      "effectAtResponse": "committed",
+      "observedStatus": "succeeded",
+      "observedEffect": "committed"
+    },
+    {
+      "step": "retire-932de471f9c0402cb4c6227976dbe61d",
+      "operationId": "691840eb2ce6438a932f0ea8794ae9f1",
+      "kind": "operation",
+      "statusAtResponse": "succeeded",
+      "effectAtResponse": "committed",
+      "observedStatus": "succeeded",
+      "observedEffect": "committed"
+    },
+    {
+      "step": "retire-b71d84e69e7c4aaf8fb7422aa703047a",
+      "operationId": "7f32842564a944c298097ea83703a5b8",
+      "kind": "operation",
+      "statusAtResponse": "succeeded",
+      "effectAtResponse": "committed",
+      "observedStatus": "succeeded",
+      "observedEffect": "committed"
+    },
+    {
+      "step": "retire-ddacd519abb148678199e09407d975fc",
+      "operationId": "50bb8d1cefc54a1ca8212f54437bde2b",
+      "kind": "operation",
+      "statusAtResponse": "succeeded",
+      "effectAtResponse": "committed",
+      "observedStatus": "succeeded",
+      "observedEffect": "committed"
+    },
+    {
+      "step": "retire-e4531d7514b54cff99f48a46bf28fa8c",
+      "operationId": "55b84fad24a241b98436303b72ff4eda",
+      "kind": "operation",
+      "statusAtResponse": "succeeded",
+      "effectAtResponse": "committed",
+      "observedStatus": "succeeded",
+      "observedEffect": "committed"
+    },
+    {
+      "step": "retire-ef52e8de66434bfbb7ade277241c5c34",
+      "operationId": "62c02a7dfe5446e08b94e01ff75f2963",
+      "kind": "operation",
+      "statusAtResponse": "succeeded",
+      "effectAtResponse": "committed",
+      "observedStatus": "succeeded",
+      "observedEffect": "committed"
+    },
+    {
+      "step": "retire-ef7349858ad244da8807bf2291898b22",
+      "operationId": "1d1f329770634dabb7eef17afc1c3863",
+      "kind": "operation",
+      "statusAtResponse": "succeeded",
+      "effectAtResponse": "committed",
+      "observedStatus": "succeeded",
+      "observedEffect": "committed"
+    },
+    {
+      "step": "retire-f6307a0fe1a0479c8e4e498c29642cf2",
+      "operationId": "4648aa29c3974e64848e65a381bb2090",
+      "kind": "operation",
+      "statusAtResponse": "succeeded",
+      "effectAtResponse": "committed",
+      "observedStatus": "succeeded",
+      "observedEffect": "committed"
+    },
+    {
+      "step": "retire-ff41967b1ffe465aa7eebb17a2ac6d86",
+      "operationId": "3b06574da7a7447b8fb3c0e58b1a4d0f",
+      "kind": "operation",
+      "statusAtResponse": "succeeded",
+      "effectAtResponse": "committed",
+      "observedStatus": "succeeded",
+      "observedEffect": "committed"
+    },
+    {
+      "step": "rollback-one",
+      "operationId": "b1bac50b649343e2a895748873539a46",
+      "kind": "deploy",
+      "statusAtResponse": "succeeded",
+      "effectAtResponse": "committed",
+      "observedStatus": "succeeded",
+      "observedEffect": "committed"
+    },
+    {
+      "step": "source-bad",
+      "operationId": "ef7349858ad244da8807bf2291898b22",
+      "kind": "validate",
+      "statusAtResponse": "succeeded",
+      "effectAtResponse": "committed",
+      "observedStatus": "succeeded",
+      "observedEffect": "committed"
+    },
+    {
+      "step": "source-two",
+      "operationId": "1262b65ffa39416d9bbf58363b7f5976",
+      "kind": "validate",
+      "statusAtResponse": "succeeded",
+      "effectAtResponse": "committed",
+      "observedStatus": "succeeded",
+      "observedEffect": "committed"
+    },
+    {
+      "step": "start-bad",
+      "operationId": "847d1053e76143d6b3d162d2f3ade1d0",
+      "kind": "task",
+      "statusAtResponse": "succeeded",
+      "effectAtResponse": "committed",
+      "observedStatus": "succeeded",
+      "observedEffect": "committed"
+    },
+    {
+      "step": "start-final",
+      "operationId": "a93e4f2406ab4aef9c0fbe38cec4e853",
+      "kind": "deploy",
+      "statusAtResponse": "succeeded",
+      "effectAtResponse": "committed",
+      "observedStatus": "succeeded",
+      "observedEffect": "committed"
+    },
+    {
+      "step": "stop-final",
+      "operationId": "d30307c5a50947ada3c3390adf571eb4",
+      "kind": "deploy",
+      "statusAtResponse": "succeeded",
+      "effectAtResponse": "committed",
+      "observedStatus": "succeeded",
+      "observedEffect": "committed"
+    },
+    {
+      "step": "validate-bad",
+      "operationId": "70ff06d4040f405e9759813acefbe211",
+      "kind": "validate",
+      "statusAtResponse": "running",
+      "effectAtResponse": "unknown",
+      "observedStatus": "succeeded",
+      "observedEffect": "committed"
+    },
+    {
+      "step": "validate-one",
+      "operationId": "ff41967b1ffe465aa7eebb17a2ac6d86",
+      "kind": "validate",
+      "statusAtResponse": "running",
+      "effectAtResponse": "unknown",
+      "observedStatus": "succeeded",
+      "observedEffect": "committed"
+    },
+    {
+      "step": "validate-two",
+      "operationId": "1c7adc5f1a864d0c96f3bc110fa2ec1d",
+      "kind": "validate",
+      "statusAtResponse": "running",
+      "effectAtResponse": "unknown",
+      "observedStatus": "succeeded",
+      "observedEffect": "committed"
+    }
+  ],
+  "directReadResponses": 21,
+  "originalOperationStatusReceipts": 10,
+  "receiptSpanSeconds": 1108.75,
+  "export": {
+    "size": 32,
+    "sha256": "0ca9e98414b209833559f1c01bd92e29cc05a4ec2a69e1d2651244e33e3d8c78",
+    "pages": 2,
+    "asset": {
+      "message": "retained package"
+    }
+  },
+  "crash": {
+    "before": {
+      "childPid": 7753,
+      "healthStatus": 200,
+      "healthy": true,
+      "pid": 7731,
+      "release": "63bb1adc946dbfbb00ca4445d4108565675b254872972d60b849ce739d954c47",
+      "running": true
+    },
+    "after": {
+      "childPid": 7813,
+      "healthStatus": 200,
+      "healthy": true,
+      "pid": 7794,
+      "release": "63bb1adc946dbfbb00ca4445d4108565675b254872972d60b849ce739d954c47",
+      "running": true
+    }
+  },
+  "finalRetainedUsage": {
+    "limits": {
+      "files": 4096,
+      "inputBytes": 67108864,
+      "outputBytes": 67108864,
+      "retainedBytes": 2147483648,
+      "retentionSeconds": 0,
+      "timeoutSeconds": 3600,
+      "workingBytes": 536870912
+    },
+    "nextBefore": null,
+    "retainedArtifacts": 0,
+    "retainedBytes": 0,
+    "retainedObjects": 0,
+    "scope": "this page of authorized retained objects; excludes native scratch and deployment copies; shared digests can recur on other pages",
+    "unmeasuredArtifacts": 0
+  },
+  "claims": {
+    "nativeLifecycle": true,
+    "freshDataPreservation": true,
+    "chatgptInjectionCapturedByThisRun": false,
+    "visibleUiDeliveryMeasured": false,
+    "continuousIndependentObserver": false
+  }
+}

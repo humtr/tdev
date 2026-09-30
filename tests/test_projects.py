@@ -12,6 +12,24 @@ from tdev.projects import Projects
 
 
 class ProjectTest(Base):
+    def test_local_human_name_resolves_after_restart_without_rewriting_old_receipt(self):
+        self.policy()
+        created = self.call('project', {'action': 'create', 'requestId': 'named-project',
+                                        'policy': 'dev', 'name': 'human-project'})
+        repo = created['result']['repo']
+        task = self.start(repo=repo, label='continue me')
+        self.c.close()
+        self.c = Controller(self.root / 'state', self.repo.config, self.executor)
+        with patch.object(self.c, 'reconcile', side_effect=AssertionError('lookup cannot reconcile')):
+            found = self.call('find', {'project': 'human-project', 'label': 'continue me'})
+            legacy = self.call('find', {'project': str(self.root / 'human-project/.git')})
+        self.assertEqual(found['resolution'], 'unique')
+        self.assertEqual(found['matches'][0]['taskId'], task['taskId'])
+        self.assertEqual(found['projects'], [{'project': repo, 'name': 'human-project'}])
+        self.assertEqual(legacy['matches'][0]['taskId'], task['taskId'])
+        self.assertEqual(self.call('project', {'action': 'create', 'requestId': 'named-project',
+                                              'policy': 'dev', 'name': 'human-project'}), created)
+
     def policy(self, kind='local'):
         p = {'kind': kind, 'validation': 'test -f README.md', 'allowCreate': True,
              'managedRefNamespace': 'refs/heads/tdev-work/'}

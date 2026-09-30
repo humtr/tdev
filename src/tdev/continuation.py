@@ -59,7 +59,8 @@ class Continuation:
         label = args.get('label', '').casefold()
         # A duplicate display name must remain ambiguous, including across projects.
         projects = [p for p in c.projects.list(principal)['projects']
-                    if not query or query in (p['repo'].casefold(), p['name'].casefold())]
+                    if not query or query in (p['repo'].casefold(), p['name'].casefold(),
+                                              c.config['repositories'][p['repo']]['remote'].casefold())]
         project_ids = {p['repo'] for p in projects}
         matches, pending, unavailable = [], [], 0
         state = args.get('state', 'all')

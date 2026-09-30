@@ -81,9 +81,22 @@ class Projects:
         default = cfg.get('defaultRef') or (allowed[0] if len(allowed) == 1 else '')
         if default not in allowed:
             default = ''
-        return {'repo': repo, 'name': cfg.get('name', cfg['remote']), 'identity': cfg['identity'],
+        return {'repo': repo, 'name': self.display_name(cfg), 'identity': cfg['identity'],
                 'defaultRef': default, 'managedRefNamespaces': self.c.namespaces(principal, repo),
                 'policy': cfg.get('_projectPolicy'), 'provider': cfg['kind'], 'checkout': cfg.get('checkout')}
+
+    def display_name(self, cfg):
+        if 'name' in cfg:
+            return cfg['name']
+        policy = self.c.config.get('projectPolicies', {}).get(cfg.get('_projectPolicy'), {})
+        if cfg['kind'] == 'local' and policy.get('kind') == 'local':
+            # The enrolled checkout and current delegation define the original
+            # human location. Do not guess a basename across unrelated roots.
+            try:
+                return Path(cfg.get('checkout', cfg['remote'])).relative_to(policy['root']).as_posix()
+            except ValueError:
+                pass
+        return cfg['remote']
 
     def list(self, principal):
         projects = [self.public(principal, repo) for repo, refs in self.c.config['principals'][principal].get('repos', {}).items()
