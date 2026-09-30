@@ -3055,7 +3055,7 @@ not a measured model error rate.
 | Fresh ChatGPT B / B2 comparison | B partial failure; B2 tested branches PASS | User declaration excerpts/control reports; no complete raw injected catalog or unbiased selection benchmark |
 | Fresh ChatGPT selected find/start/release | PASS for reported declarations/instructed calls | `host-product-report.md`; three effect-free valid receipts, expectedRevision omission rejected before receipt |
 | Fresh ChatGPT selected command/process | PASS for reported declaration/instructed controls | `host-exec-report.md`, `host-exec-summary.json`; digest matched, waitMs:0 and capturePaths:[] rejected before dispatch; no process ran |
-| Production resident acceptance of 0.1.22 | NOT RUN | Resident remains 0.1.21; read-only final capture at 05:38:47 UTC shows existing connections healthy, historical unknown publication and another actor's running exec preserved |
+| Production resident acceptance of 0.1.22 | PASS | Canonical `593d57a65d76c90f49cdf999d603e1c53a986477`; active bundle `ec6d43eb2e842b99203202e0deadb82c1a2abe2862546186dd753a71c8bb7c33`; resident 0.1.22; exact unknown publication preserved; both configured connections healthy/running; refreshed ChatGPT injected 13-tool `request` surface and direct read-only calls passed |
 | Real complete ChatGPT development/deploy/reconnect journey | NOT RUN | Probe validation receipts do not create tasks, run commands, deploy or attest visible continuity |
 
 The latest resident readback had 44 open/72 closed tasks and 2,123 succeeded/338 failed/one running/
@@ -3093,3 +3093,31 @@ Publication is a non-force update from the observed canonical base; activation u
 owned installation and recoverable installer, preserving both connections/auth modes and watch.
 Completion, exact canonical commit, live schema readback and state-preservation results are
 recorded below after each step succeeds. No successful deployment is claimed in advance.
+
+Canonical publication completed at `593d57a65d76c90f49cdf999d603e1c53a986477`. The Codex session that prepared this
+change ended immediately after the successful push because its workspace credit was exhausted; its retained command history
+contains no resident installer invocation after that push. Resident activation was therefore resumed independently rather
+than assuming a partially completed replacement.
+
+The exact qualified source and bundle were rechecked before mutation. The pre-update frontier contained only historical
+unknown publication `2531fb0f9bbd4aa584865f62898e1010`; no maintenance or install-transaction journal was pending.
+The owned installer ran with that one explicit maintenance exemption, then `install.sh --check` succeeded. Readback showed:
+
+- active bundle `ec6d43eb2e842b99203202e0deadb82c1a2abe2862546186dd753a71c8bb7c33` and resident version **0.1.22**;
+- controller up, with `tdev_janmori` (Tunnel authorization) and `default` (Bearer) both enabled, healthy and running;
+- historical publication `2531fb0f9bbd4aa584865f62898e1010` still exactly `unknown`/`unknown`, with no replay or resolution;
+- no pending maintenance journal, install transaction or recovery state after the successful switch.
+
+Before host Refresh, authenticated localhost discovery through `tdev_janmori` advertised exactly thirteen tools:
+`tdev_find`, `tdev_workspace`, `tdev_task`, `tdev_read`, `tdev_edit`, `tdev_exec`, `tdev_operation`, `tdev_validate`,
+`tdev_publish`, `tdev_project`, `tdev_deploy`, `tdev_artifact`, `tdev_diagnostics`. The selected composed tools had a closed
+root object requiring `request`; live catalog inspection showed 9 task alternatives, 2 exec alternatives, 4 operation
+alternatives, 2 validation alternatives and 6 deployment alternatives.
+
+After the user performed the required ChatGPT connector Refresh, the actual injected catalog matched that thirteen-tool
+resident surface. `tdev_project({request:{action:"list"}})` succeeded, and
+`tdev_find({request:{project:"tdev",label:"surface",state:"all",limit:5}})` resolved the retained `typed-native-surface`
+work uniquely without replaying an effect. Host-side negative controls rejected a deployment release missing
+`expectedRevision`, process mode with `waitMs:0`, and process mode with `capturePaths:[]` before dispatch. This is installed
+and refreshed ChatGPT surface acceptance, not the still-separate complete development/deploy/reconnect journey.
+The bounded evidence summary is `examples/surface-probe/evidence/host-installed-acceptance-20260930.md`.

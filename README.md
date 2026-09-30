@@ -67,10 +67,17 @@ Fresh ChatGPT input probes preserve find fields, task-start alternatives, mandat
 revision and command/process branches. Missing revision and process wait/capture inputs are rejected. Actual Codex and official MCP SDK checks exercise the new
 input envelope. Final full validation passes **331 tests**, alongside the actual Codex journey,
 pinned MCP SDK and inactive bundle rehearsal. Final command/process ChatGPT typing and both
-negative controls also pass their reported checks; no actual process runs in that probe. The resident is
-still 0.1.21 at qualification. The user has now authorized canonical publication and resident
-activation; exact deployed status is recorded in the dated activation section after readback.
-See [the dated review](LOCAL_VALIDATION.md#surface-redesign-review--2026-09-30) and
+negative controls also pass their reported checks; no actual process runs in that probe.
+
+The qualified source was canonically published at `593d57a65d76c90f49cdf999d603e1c53a986477` and bundle
+`ec6d43eb2e842b99203202e0deadb82c1a2abe2862546186dd753a71c8bb7c33` is now the live resident **0.1.22**.
+The owned recoverable update preserved the exact historical unknown publication receipt and both configured connections.
+After the user refreshed the ChatGPT connector, the actual injected catalog exposed all thirteen tools with the required
+`request` envelope. Live `tdev_project` list and `tdev_find` calls succeeded, while missing deployment revision and
+process `waitMs`/`capturePaths` controls were rejected by the host schema before dispatch. This establishes installed
+surface acceptance; the complete ChatGPT development/deploy/reconnect journey remains a separate acceptance target.
+See [the dated review](LOCAL_VALIDATION.md#surface-redesign-review--2026-09-30),
+[the activation record](LOCAL_VALIDATION.md#n-authorized-canonical-publication-and-resident-activation--2026-09-30), and
 [reproducible probe](examples/surface-probe/README.md).
 
 Source **0.1.21** makes every remaining root-composed MCP tool host-friendly for ChatGPT discovery. The strict canonical root unions remain the runtime validators, while `tdev_workspace`, `tdev_task`, `tdev_validate`, `tdev_project`, `tdev_deploy`, `tdev_artifact` and `tdev_diagnostics` advertise typed root objects whose fields are the union vocabulary of their canonical arms. Nested composition inside fields remains intact (including `tdev_task.resolutions`), so only the tool-input root avoids a composition-only schema. Runtime action requirements and replay semantics are unchanged. Connector acceptance checks the actual host-visible declaration in a fresh ChatGPT session after Refresh because an already-open conversation may retain its previously injected tool catalog.

@@ -101,9 +101,10 @@ its candidates and generated fixtures are evidence, not additional contract owne
 The B2 positive-alternative gate and selected find/start/release/command-process probes passed
 their fresh-host checks. The selected thirteen-tool source passes final full validation and
 client/bundle qualification. The user now authorizes canonical publication and resident activation.
-Publish the qualified source, perform the owned recoverable update after the maintenance-frontier
-check, then read back exact live schema/state and record installed acceptance. Do not reopen the rejected broader
-split merely to complete the experimental candidate list.
+Canonical publication, the owned recoverable resident update, live schema/state readback and refreshed ChatGPT
+installed-surface acceptance are now complete for 0.1.22. Continue with the installed acceptance sequence below: bind the
+current disposable target, finish packaging/lifecycle evidence, then run the complete ChatGPT development/deploy/reconnect
+journey. Do not reopen the rejected broader split merely to complete the experimental candidate list.
 
 User clarification during this review: preserve the existing fixed host annotation profile,
 including `readOnlyHint=true`. This is an intentional permission-popup workaround, not an
