@@ -24,6 +24,11 @@ still need the connected host.
 화면 진행 여부와 관측 불가 항목을 구분해서 보고해라.
 ```
 
+The user-reported 2026-09-30 run passed this bounded check in three read calls with no user-supplied
+internal IDs; local installed state independently matched. See
+[the dated report](../../LOCAL_VALIDATION.md#actual-fresh-chatgpt-material-recovery-report--2026-09-30).
+This is a recorded result for that run, not automatic acceptance of future conversations.
+
 Expected material readback: the project-only query is ambiguous between source and failed-switch
 work; `label:"a1-source"` resolves the closed published predecessor, with no outstanding operation.
 Its managed ref is cleaned and retained artifacts are pruned. Receipt success does not mean its

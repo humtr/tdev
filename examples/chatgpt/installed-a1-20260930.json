@@ -475,8 +475,82 @@
       "result": "passed"
     },
     "wireContractChanged": false,
-    "injectedChatgptAcceptance": "pending separate actual host report",
+    "injectedChatgptAcceptance": "Fresh-session human-name material recovery reported passed and locally cross-checked; complete two-project/visible-continuity workload remains open.",
     "shortcut": "relinked and project-list read passed",
     "historicalUnknown": "preserved; never reconciled or replayed"
+  },
+  "freshSessionHostReport": {
+    "provenance": "User-supplied result from the requested new ChatGPT conversation; local material readback independently matched. Raw host event/declaration capture unavailable.",
+    "runtimeAtLocalRebind": "0.1.24",
+    "reportedCallCount": 3,
+    "toolKinds": 2,
+    "userSuppliedInternalIds": 0,
+    "reportedMutationCalls": 0,
+    "reportedRunSeconds": 150,
+    "durationScope": "Reported Worked for 2m 30s; not measured backend or individual call latency.",
+    "calls": [
+      {
+        "tool": "tdev_find",
+        "arguments": {
+          "request": {
+            "project": "pkg-chatgpt-20260930-a1",
+            "state": "all"
+          }
+        },
+        "result": {
+          "ok": true,
+          "projectCount": 1,
+          "resolution": "ambiguous",
+          "labels": [
+            "pkg-chatgpt-20260930-a1-source",
+            "pkg-chatgpt-20260930-a1-failed-switch"
+          ]
+        }
+      },
+      {
+        "tool": "tdev_find",
+        "arguments": {
+          "request": {
+            "project": "pkg-chatgpt-20260930-a1",
+            "label": "a1-source",
+            "state": "all"
+          }
+        },
+        "result": {
+          "resolution": "unique",
+          "closed": true,
+          "outstanding": [],
+          "checkpoint": "b0417818e8619c9a63fee36d5b0a84f31e14ed2e",
+          "publishedCheckpoint": "b37c6933b482a7ece331af1075c0330f8a537fcc"
+        }
+      },
+      {
+        "tool": "tdev_task",
+        "action": "inspect",
+        "argumentsProvenance": "taskId taken from preceding find result; complete argument JSON not supplied in report.",
+        "result": {
+          "closed": true,
+          "active": null,
+          "processes": [],
+          "refCleanup": "done",
+          "refState": "deleted",
+          "sourceValidationStatus": "succeeded",
+          "sourceValidationExitCode": 0,
+          "sourceValidationTerminal": true,
+          "candidate": "b37c6933b482a7ece331af1075c0330f8a537fcc",
+          "publicationStatus": "succeeded",
+          "publicationCommit": "b37c6933b482a7ece331af1075c0330f8a537fcc"
+        }
+      }
+    ],
+    "acceptance": {
+      "freshSessionHumanNameRecovery": "reported passed, locally cross-checked",
+      "completedPredecessorRecognized": "reported passed",
+      "noNewEffect": "reported passed",
+      "continuousVisibleProgress": "not measured",
+      "newRawInjectedDeclarationCapture": "not provided",
+      "runningUnknownEffectReconnection": "not exercised",
+      "completeTwoProjectJourney": "open"
+    }
   }
 }

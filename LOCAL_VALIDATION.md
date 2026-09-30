@@ -1959,9 +1959,53 @@ retained unknown effect or prior ChatGPT documentation task was overwritten/clea
 
 These results are reflected in the compact public packet. This remains local installed control-plane
 readback; it does not claim a new actual ChatGPT call, successful Connector Refresh, host scheduling
-or visible UI progress. The actual fresh-session request was supplied to the user; until its result
-arrives, that acceptance and the complete one-/two-project ChatGPT workload remain open. Ordinary
-continuation uses the existing installation; no new OpenAI admin key is needed.
+or visible UI progress. The actual fresh-session request was supplied to the user; its subsequent
+reported result is recorded separately below. The complete one-/two-project ChatGPT workload remains
+open. Ordinary continuation uses the existing installation; no new OpenAI admin key is needed.
+
+### Actual fresh ChatGPT material recovery report — 2026-09-30
+
+The user ran the requested check in a new ChatGPT conversation and supplied its result after
+`Worked for 2m 30s`. This is host-reported execution evidence, separately corroborated by local
+installed state; Local Codex did not execute those three calls or capture raw ChatGPT events.
+Fresh rebind at receipt still showed canonical `11f8da4fa61e9ca836573219a82a2839efd4748e`, live
+0.1.24 / bundle `34e0b9234eacfd8948c73b0a6c257b75f13503c50a587f9c7fa987d116609e56`, both connections
+healthy/running. The bounded call/result record is in the public packet's `freshSessionHostReport`.
+
+| Reported call | Result |
+|---|---|
+| `tdev_find({request:{project:"pkg-chatgpt-20260930-a1",state:"all"}})` | One project, two task labels: source and failed-switch; `resolution:"ambiguous"` |
+| `tdev_find({request:{project:"pkg-chatgpt-20260930-a1",label:"a1-source",state:"all"}})` | Unique closed predecessor; `outstanding:[]`; checkpoint `b0417818e8619c9a63fee36d5b0a84f31e14ed2e`, published checkpoint `b37c6933b482a7ece331af1075c0330f8a537fcc` |
+| `tdev_task` inspect using the returned taskId | Source validation succeeded/terminal/exit 0; candidate and publication commit both `b37c6933b482a7ece331af1075c0330f8a537fcc`; publication succeeded; task closed, active null, no processes, ref cleanup done and ref deleted |
+
+Measurement: **3 reported read calls**, **2 tool kinds**, **0 user-supplied internal IDs**, **0
+reported mutation calls**. The two exact find inputs were supplied; complete inspect argument JSON
+was not, so no limit/cursor or fourth operation-status call is invented. Domain inspection already
+returned the original publication receipt. The 150-second reported run duration is coarse; it does
+not establish per-call/backend latency or continuous visible progress. The user received a completed
+host result, but no independent UI/witness/observer timeline or new injected declaration was captured.
+
+Local Codex then made two separate read calls to confirm the unique source frontier and terminal
+validation/publication pairing. These additional local calls are not counted as host calls. They
+matched the reported state and left the existing unknown frontier unchanged. No completed effect was
+replayed; no new task/build/publication/deployment was admitted and no runtime update was needed.
+Only dated documentation/evidence changed; JSON parsing/receipt consistency and `git diff --check`
+were checked. Implementation tests were not rerun: the unchanged 0.1.24 qualification remains the
+previous focused 8 / affected 33 / full 332, not a newly executed suite.
+
+This passes the bounded actual fresh-session **material rediscovery** check: names + labels recover
+a completed predecessor without user-managed IDs, and real ambiguity remains explicit. It does not
+pass the complete one-/two-project workload, reconnect with running/unknown work, preservation of
+unsubmitted planning intent or quantitative visible-continuity acceptance. No loss-response effect
+was deliberately induced in this check. Those dimensions retain their prior evidence/open status.
+
+Observation: the host required only human project/objective locators; IDs were interpreted from
+returned state. Direct cause of success: consistent project namespace plus retained labels/frontier.
+General principle: stable effect identity and human discovery are complementary; removing IDs is not
+needed to remove the user's ID burden. Architecture implication: qualify retrieval of closed
+predecessors alongside live tasks, and distinguish successful material rediscovery from recovering
+working intent. Evidence strength: user-reported actual host calls + matching installed state;
+remaining uncertainty: no raw host capture, running/unknown effect or continuous UI timeline here.
 
 ## Whole-roadmap review — 2026-09-27
 
