@@ -103,8 +103,13 @@ usage acceptance should measure time between visible updates, not just backend c
 
 ## Isolating a reported visible stall
 
-First preserve the stalled physical cell's exact code, any host error/result and the user's
-approximate wall time with timezone. Export existing local server evidence before rotation;
+The agent owns collection of any exposed physical-cell code and host error/result. Do not make
+the user extract Code Mode internals or treat their absence as a permission blocker. Use the
+user's approximate wall time with timezone and independently available logs. An existing
+authorization to diagnose continues to apply; do not ask for the same grant again. If this
+client exposes no ChatGPT execution-history API, record that capability boundary and continue
+authorized investigation/work from durable state rather than waiting for inaccessible material.
+Export existing local server evidence before rotation;
 record coverage gaps and the incident's runtime generation separately from the current one.
 Inspect retained state and observe the original effect only. A terminal receipt eliminates a
 reason to re-execute it, but an HTTP flush does not establish Tunnel delivery or a fulfilled await.
@@ -116,9 +121,11 @@ and make one read in a fresh cell. Record each received packet and the user's ob
 This isolates the boundary without a density/ceiling search or detached calls. It cannot retroactively
 prove why the old cell stalled, and a short successful run does not qualify a long workload.
 
-If current diagnostic grant, fresh authorization and generation permit witnesses, separately repeat
+If current diagnostic grant, session authorization and generation permit witnesses, separately repeat
 with one operational read plus the runner's three sparse markers (`maxCalls:4`). Preserve actual
-marker replies and metadata; absent/failed markers remain inconclusive. Do not activate diagnostics,
-restart an observer or change the resident just to manufacture missing evidence. If the host cell
+marker replies and metadata; absent/failed markers remain inconclusive. Do not change the resident
+or claim retroactive coverage to manufacture missing evidence. An authorized independent observer or
+bounded trace can capture new server evidence; state its duration/storage limits and avoid claiming
+retroactive coverage. If the host cell
 does not return, retain that failure and reconcile in the next user-authorized turn; a caller timeout
 must not pretend to cancel the effect or repair host scheduling.

@@ -2063,6 +2063,34 @@ mark the visible-stall issue fixed. The fetched official
 describes local Inspector, Tunnel status and live host checks; it does not establish this incident's
 physical-cell scheduling outcome.
 
+
+Follow-up authorization: the user cannot inspect Code Mode and explicitly said all available
+permissions are granted. Agent collection replaces the request for user-provided internal cell
+code; absence is a capability/evidence boundary, not a request to approve more access. The existing
+principal has diagnostic authority. No additional API key or grant was requested.
+
+Read-only Tunnel review recovered **140 INFO forwarded records** in 18:25–18:52 KST, including
+successive requests after the terminal server response. Two opaque command-correlation prefixes
+exist, without proven conversation/cell semantics. The matching-version public dispatcher source
+shows the INFO message after forwardResponses, including some unsuccessful exits; it alone does
+not prove control-plane response acceptance. Current runit-owned connections separately pass
+health/readiness, successful control-plane polling and main-channel probe. Plugin inventory points
+at an older stopped alias, not the active resident: its suggested restart was not used. The local
+Tunnel Codex app-server status/events path does not supply remote ChatGPT physical-cell history
+(events response HTTP 200, empty body); it is not substituted for that history.
+
+Under this authorization an independent observer samples into a new private directory:
+**5-second interval, maximum 3,600 seconds or 64 MiB**, whichever ends first. One supported local
+diagnostic activation enables **300 seconds** of trace, returning to watch automatically.
+No resident/Tunnel restart or credential/grant/hint change. One authenticated localhost find
+verification returned a unique predecessor; its request-41 receipt joins independent samples
+containing dispatch, body write, flush and HTTP completion. This qualifies current server capture,
+not ChatGPT execution or repaired visible delivery. No development effect replayed. Capture limits
+and transport readbacks are recorded in the public packet's agentOwnedFollowup. Documentation/JSON
+checks only; no new implementation or full-suite result claimed. Capture cannot supply retroactive
+coverage or indefinitely guarantee observation. Subsequent snapshot confirms the trace lease
+expired back to watch; historical unknown publication remains unknown/unknown.
+
 ## Whole-roadmap review — 2026-09-27
 
 Reviewed at source/canonical head `aa250a66bda9e152f06bea80f17ede4a6c7251e0`.

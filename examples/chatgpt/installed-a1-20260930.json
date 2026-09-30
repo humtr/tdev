@@ -619,6 +619,68 @@
         }
       ],
       "next": "bounded read-only physical-cell comparison; optional authorized sparse witness; no new validation"
+    },
+    "agentOwnedFollowup": {
+      "authority": "User cannot inspect Code Mode and has granted available permissions; agent owns collection, no new key/grant requested.",
+      "tunnelReview": {
+        "version": "0.0.14",
+        "windowKST": [
+          "18:25",
+          "18:52"
+        ],
+        "forwardedLogRecords": 140,
+        "opaqueCommandCorrelationPrefixes": 2,
+        "meaning": "Subsequent requests continued; prefix is not proven conversation/cell identity; INFO forwarded log does not prove successful response post.",
+        "source": "https://github.com/openai/tunnel-client/blob/v0.0.14/pkg/dispatcher/internal/processor.go",
+        "legacyAlias": "Stopped plugin alias differs from active runit-owned resident; no connect/start performed."
+      },
+      "currentTransportReadback": [
+        {
+          "connection": "tdev_janmori",
+          "sampledNs": 1790772635977870937,
+          "/healthz": 200,
+          "/readyz": 200,
+          "mainChannelProbe": "ok",
+          "lastSuccessfulPoll": 1790772605.0,
+          "pollAgeSeconds": 31.07
+        },
+        {
+          "connection": "default",
+          "sampledNs": 1790772636067064843,
+          "/healthz": 200,
+          "/readyz": 200,
+          "mainChannelProbe": "ok",
+          "lastSuccessfulPoll": 1790772615.0,
+          "pollAgeSeconds": 21.09
+        }
+      ],
+      "capture": {
+        "leaseSeconds": 300,
+        "leaseExpiresAt": 1790772606.3678784,
+        "returnsTo": "watch",
+        "observer": "independent-followup",
+        "durationCeilingSeconds": 3600,
+        "byteCeiling": 67108864,
+        "intervalSeconds": 5,
+        "sampleCountAtCheck": 117,
+        "unavailableAtCheck": 0,
+        "bytesAtCheck": 47276144,
+        "readReceipt": {
+          "instance": "fb62c294b8274b4a",
+          "request": 41
+        },
+        "capturedReadHTTPFinished": true,
+        "client": "Local authenticated localhost MCP, not ChatGPT Code Mode",
+        "traceExpiryReadback": "watch after the 300-second lease; unknown frontier unchanged"
+      },
+      "capabilityBoundary": "No remote ChatGPT conversation/physical-cell history API in this session. Local Tunnel Codex events returned HTTP 200 empty body; not that history.",
+      "actionsNotTaken": [
+        "source/provider replay",
+        "resident/Tunnel restart",
+        "credential/grant/hint changes",
+        "new ChatGPT conversation sent by Codex"
+      ],
+      "status": "Visible stall unresolved; current server capture verified; user-internal-code prerequisite withdrawn."
     }
   }
 }
