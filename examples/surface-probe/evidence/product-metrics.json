@@ -1,0 +1,22 @@
+{
+  "sourceContractSha256": "b25025e68029cf56837e2ca5e037ddd7c539641062cced351e189db8d1edb08a",
+  "baseline": {
+    "tools": 12,
+    "inputBytes": 18151,
+    "toolDescriptionBytes": 9824,
+    "outputBytes": 246373,
+    "allBytes": 276470
+  },
+  "product": {
+    "tools": 13,
+    "inputBytes": 31371,
+    "toolDescriptionBytes": 3299,
+    "outputBytes": 250764,
+    "allBytes": 287730
+  },
+  "measures": "compact UTF-8 JSON bytes, not model tokens or selection accuracy",
+  "validPositiveCases": 59,
+  "invalidCases": 854,
+  "invalidAccepted": 0,
+  "modelSelectionAccuracy": null
+}

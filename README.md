@@ -36,7 +36,7 @@ credentials and in-flight effects still require deliberate handling.
 
 ## Implementation status
 
-Twelve MCP tools separate composition (`tdev_workspace`), source tasks (`tdev_task`), projects
+Thirteen MCP tools include human-name continuation lookup (`tdev_find`) and separate composition (`tdev_workspace`), source tasks (`tdev_task`), projects
 (`tdev_project`), source read/edit, execution, general operation observation/control
 (`tdev_operation`), validation, publication, project deployment (`tdev_deploy`) and artifact
 recipe inspection and retained builds (`tdev_artifact`), plus runtime diagnostics
@@ -54,6 +54,24 @@ clean environment and API grants are useful safeguards, not hostile-code or cred
 isolation. See the [trust boundary](ARCHITECTURE.md#3-native-trust-and-containment).
 
 ## Current work
+
+Source **0.1.22** implements the selected thirteen-tool surface after root/flat/nested/action/
+workflow comparisons. Exact positive request alternatives replace eight duplicated flat discovery
+schemas. `tdev_find` resolves human-name source continuation from retained intents and receipts,
+without replaying effects or choosing an ambiguous/truncated result. Deployment release now
+requires explicit create/update revision intent. Finite command and persistent process use
+mode-specific branches, rejecting ineffective process wait/capture choices. Tool descriptions are shorter; fixed host hints,
+including `readOnlyHint=true`, remain unchanged.
+
+Fresh ChatGPT input probes preserve find fields, task-start alternatives, mandatory deployment
+revision and command/process branches. Missing revision and process wait/capture inputs are rejected. Actual Codex and official MCP SDK checks exercise the new
+input envelope. Final full validation passes **331 tests**, alongside the actual Codex journey,
+pinned MCP SDK and inactive bundle rehearsal. Final command/process ChatGPT typing and both
+negative controls also pass their reported checks; no actual process runs in that probe. The resident is
+still 0.1.21 at qualification. The user has now authorized canonical publication and resident
+activation; exact deployed status is recorded in the dated activation section after readback.
+See [the dated review](LOCAL_VALIDATION.md#surface-redesign-review--2026-09-30) and
+[reproducible probe](examples/surface-probe/README.md).
 
 Source **0.1.21** makes every remaining root-composed MCP tool host-friendly for ChatGPT discovery. The strict canonical root unions remain the runtime validators, while `tdev_workspace`, `tdev_task`, `tdev_validate`, `tdev_project`, `tdev_deploy`, `tdev_artifact` and `tdev_diagnostics` advertise typed root objects whose fields are the union vocabulary of their canonical arms. Nested composition inside fields remains intact (including `tdev_task.resolutions`), so only the tool-input root avoids a composition-only schema. Runtime action requirements and replay semantics are unchanged. Connector acceptance checks the actual host-visible declaration in a fresh ChatGPT session after Refresh because an already-open conversation may retain its previously injected tool catalog.
 

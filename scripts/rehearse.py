@@ -71,7 +71,7 @@ print(s.server_port,flush=True); s.serve_forever()
                     conn.close()
                     return response.status, json.loads(data) if data else None
                 def call(tool, args):
-                    status, value = request("tools/call", {"name": "tdev_" + tool, "arguments": args})
+                    status, value = request("tools/call", {"name": "tdev_" + tool, "arguments": {"request": args}})
                     assert status == 200, (status, value)
                     value = value["result"]["structuredContent"]
                     assert value["ok"], value
@@ -89,7 +89,7 @@ print(s.server_port,flush=True); s.serve_forever()
                     status, data = request("tools/list", {}, secret)
                     assert status == expected, status
                     if expected == 200:
-                        assert len(data["result"]["tools"]) == 12
+                        assert len(data["result"]["tools"]) == 13
                 if iteration == 0:
                     w = call("task", {"action": "open", "requestId": "open", "repo": "test", "ref": "refs/heads/main", "expectedHead": repo.head})["result"]
                     recipe = {'format': 1, 'kind': 'files', 'inputs': ['a.txt'], 'dependencies': [],
@@ -132,7 +132,7 @@ print(s.server_port,flush=True); s.serve_forever()
                                                'expectedPreview': preview['previewToken']})
                     assert pruned['status'] == 'succeeded'
                     assert call('operation', {'action': 'status', 'operationId': built['id']})['artifactStorage']['state'] == 'pruned'
-                observations.append({"restart": iteration, "wrongBearer": 401, "authorizedTools": 12})
+                observations.append({"restart": iteration, "wrongBearer": 401, "authorizedTools": 13})
             finally:
                 if proc.poll() is None:
                     os.kill(proc.pid, signal.SIGKILL)

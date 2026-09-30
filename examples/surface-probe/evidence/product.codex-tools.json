@@ -1,0 +1,2501 @@
+{
+  "tdev_diagnostics": {
+    "name": "tdev_diagnostics",
+    "description": "Operator-granted diagnostics and optional caller witnesses. Inspect does not activate tracing. Diagnostic failure never justifies repeating development effects. Witness receipts are caller assertions, not proof of host scheduling or visible UI delivery.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "request": {
+          "oneOf": [
+            {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "const": "inspect"
+                },
+                "view": {
+                  "enum": [
+                    "full",
+                    "summary"
+                  ]
+                }
+              },
+              "required": [
+                "action"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "const": "activate"
+                },
+                "requestId": {
+                  "maxLength": 128,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "seconds": {
+                  "maximum": 300,
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "action",
+                "requestId"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "const": "stop"
+                }
+              },
+              "required": [
+                "action"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "const": "acknowledge"
+                },
+                "incidentId": {
+                  "pattern": "^[a-f0-9]{32}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action",
+                "incidentId"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "const": "report"
+                },
+                "category": {
+                  "enum": [
+                    "visible_stall",
+                    "transport_error",
+                    "call_limit",
+                    "unexpected_turn_end",
+                    "control_mismatch"
+                  ]
+                },
+                "requestId": {
+                  "maxLength": 128,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action",
+                "requestId",
+                "category"
+              ],
+              "type": "object"
+            },
+            {
+              "oneOf": [
+                {
+                  "additionalProperties": false,
+                  "description": "Optional caller witness with increasing per-run sequence. Exact retained replay returns its original receipt; conflicts or expired identity fail. No host/UI attestation; failure never retries development work.",
+                  "properties": {
+                    "action": {
+                      "const": "mark"
+                    },
+                    "cellId": {
+                      "maxLength": 32,
+                      "minLength": 32,
+                      "pattern": "^[a-f0-9]{32}$",
+                      "type": "string"
+                    },
+                    "instance": {
+                      "maxLength": 16,
+                      "minLength": 16,
+                      "pattern": "^[a-f0-9]{16}$",
+                      "type": "string"
+                    },
+                    "phase": {
+                      "enum": [
+                        "cell_enter",
+                        "cell_exit"
+                      ]
+                    },
+                    "runId": {
+                      "maxLength": 32,
+                      "minLength": 32,
+                      "pattern": "^[a-f0-9]{32}$",
+                      "type": "string"
+                    },
+                    "sequence": {
+                      "maximum": 9007199254740991,
+                      "minimum": 1,
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "action",
+                    "cellId",
+                    "instance",
+                    "phase",
+                    "runId",
+                    "sequence"
+                  ],
+                  "type": "object"
+                },
+                {
+                  "additionalProperties": false,
+                  "description": "Optional caller witness with increasing per-run sequence. Exact retained replay returns its original receipt; conflicts or expired identity fail. No host/UI attestation; failure never retries development work.",
+                  "properties": {
+                    "action": {
+                      "const": "mark"
+                    },
+                    "afterRequest": {
+                      "maximum": 9007199254740991,
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "callOrdinal": {
+                      "maximum": 9007199254740991,
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "cellId": {
+                      "maxLength": 32,
+                      "minLength": 32,
+                      "pattern": "^[a-f0-9]{32}$",
+                      "type": "string"
+                    },
+                    "instance": {
+                      "maxLength": 16,
+                      "minLength": 16,
+                      "pattern": "^[a-f0-9]{16}$",
+                      "type": "string"
+                    },
+                    "phase": {
+                      "enum": [
+                        "tool_return"
+                      ]
+                    },
+                    "runId": {
+                      "maxLength": 32,
+                      "minLength": 32,
+                      "pattern": "^[a-f0-9]{32}$",
+                      "type": "string"
+                    },
+                    "sequence": {
+                      "maximum": 9007199254740991,
+                      "minimum": 1,
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "action",
+                    "callOrdinal",
+                    "cellId",
+                    "instance",
+                    "phase",
+                    "runId",
+                    "sequence"
+                  ],
+                  "type": "object"
+                }
+              ]
+            }
+          ],
+          "type": "object"
+        }
+      },
+      "required": [
+        "request"
+      ],
+      "type": "object"
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    }
+  },
+  "tdev_deploy": {
+    "name": "tdev_deploy",
+    "description": "Release validated source or artifact to an owned native service. expectedRevision 0 creates; a positive revision updates exactly the inspected service. Inspect live release identity/health separately from acceptance. Rollback uses retained previous bytes. remove preserves data; source publication is independent.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "request": {
+          "oneOf": [
+            {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "const": "targets"
+                }
+              },
+              "required": [
+                "action"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "const": "list"
+                },
+                "after": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "limit": {
+                  "maximum": 50,
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "action"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "const": "inspect"
+                },
+                "deploymentId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                },
+                "limit": {
+                  "maximum": 65536,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "offset": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "since": {
+                  "maxLength": 64,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action",
+                "deploymentId"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "const": "release"
+                },
+                "command": {
+                  "description": "Foreground command in the exact source release; use TDEV_DATA_DIR for persistent writable data. Task venv/cache and build outputs are not packaged.",
+                  "maxLength": 65536,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "expectedRevision": {
+                  "description": "0 creates a new service only. A positive value updates exactly that inspected revision. Never infer an update from a matching service name.",
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "health": {
+                  "additionalProperties": false,
+                  "description": "Readiness requires HTTP 200 from 127.0.0.1:port/path with X-Tdev-Release equal to the process TDEV_RELEASE environment value.",
+                  "properties": {
+                    "path": {
+                      "maxLength": 2048,
+                      "pattern": "^/[^\\r\\n ]*$",
+                      "type": "string"
+                    },
+                    "port": {
+                      "maximum": 65535,
+                      "minimum": 1024,
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "port",
+                    "path"
+                  ],
+                  "type": "object"
+                },
+                "name": {
+                  "pattern": "^[a-z][a-z0-9-]{0,62}$",
+                  "type": "string"
+                },
+                "requestId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                },
+                "target": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                },
+                "validationId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action",
+                "requestId",
+                "validationId",
+                "name",
+                "command",
+                "health",
+                "expectedRevision"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "const": "release"
+                },
+                "expectedRevision": {
+                  "description": "0 creates a new service only. A positive value updates exactly that inspected revision. Never infer an update from a matching service name.",
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "health": {
+                  "additionalProperties": false,
+                  "description": "Readiness requires HTTP 200 from 127.0.0.1:port/path with X-Tdev-Release equal to the process TDEV_RELEASE environment value.",
+                  "properties": {
+                    "path": {
+                      "maxLength": 2048,
+                      "pattern": "^/[^\\r\\n ]*$",
+                      "type": "string"
+                    },
+                    "port": {
+                      "maximum": 65535,
+                      "minimum": 1024,
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "port",
+                    "path"
+                  ],
+                  "type": "object"
+                },
+                "name": {
+                  "pattern": "^[a-z][a-z0-9-]{0,62}$",
+                  "type": "string"
+                },
+                "requestId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                },
+                "subject": {
+                  "const": "artifact"
+                },
+                "target": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                },
+                "validationId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action",
+                "requestId",
+                "validationId",
+                "name",
+                "health",
+                "subject",
+                "expectedRevision"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "enum": [
+                    "start",
+                    "stop",
+                    "rollback",
+                    "remove"
+                  ]
+                },
+                "deploymentId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                },
+                "expectedRevision": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "requestId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action",
+                "requestId",
+                "deploymentId",
+                "expectedRevision"
+              ],
+              "type": "object"
+            }
+          ],
+          "type": "object"
+        }
+      },
+      "required": [
+        "request"
+      ],
+      "type": "object"
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    }
+  },
+  "tdev_read": {
+    "name": "tdev_read",
+    "description": "Read files, search, diffs and history from a task checkpoint in one bounded batch. Omitted checkpoint resolves the current committed task source; use returned checkpoint for edits.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "request": {
+          "additionalProperties": false,
+          "properties": {
+            "budget": {
+              "maximum": 65536,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "checkpoint": {
+              "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$",
+              "type": "string"
+            },
+            "queries": {
+              "items": {
+                "oneOf": [
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "action": {
+                        "const": "file"
+                      },
+                      "limit": {
+                        "maximum": 65536,
+                        "minimum": 1,
+                        "type": "integer"
+                      },
+                      "offset": {
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      "path": {
+                        "maxLength": 4096,
+                        "minLength": 1,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "path"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "action": {
+                        "const": "list"
+                      },
+                      "offset": {
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      "path": {
+                        "maxLength": 4096,
+                        "minLength": 1,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "action"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "action": {
+                        "const": "search"
+                      },
+                      "offset": {
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      "path": {
+                        "maxLength": 4096,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "text": {
+                        "maxLength": 2048,
+                        "minLength": 1,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "text"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "action": {
+                        "const": "diff"
+                      },
+                      "base": {
+                        "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$",
+                        "type": "string"
+                      },
+                      "format": {
+                        "enum": [
+                          "stat",
+                          "patch",
+                          "names"
+                        ]
+                      },
+                      "limit": {
+                        "maximum": 65536,
+                        "minimum": 1,
+                        "type": "integer"
+                      },
+                      "offset": {
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      "path": {
+                        "maxLength": 4096,
+                        "minLength": 1,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "action"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "action": {
+                        "const": "history"
+                      },
+                      "limit": {
+                        "maximum": 65536,
+                        "minimum": 1,
+                        "type": "integer"
+                      },
+                      "offset": {
+                        "minimum": 0,
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "action"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              },
+              "maxItems": 32,
+              "minItems": 1,
+              "type": "array"
+            },
+            "taskId": {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+              "type": "string"
+            }
+          },
+          "required": [
+            "taskId",
+            "queries"
+          ],
+          "type": "object"
+        }
+      },
+      "required": [
+        "request"
+      ],
+      "type": "object"
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    }
+  },
+  "tdev_task": {
+    "name": "tdev_task",
+    "description": "Manage isolated source work. Find existing work with tdev_find before starting again. start creates independent work; fromTaskId creates new work from a published predecessor, not a resume. Inspect returns checkpoint, operations and owned cleanup. Closing does not stop processes or clean resources.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "request": {
+          "oneOf": [
+            {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "const": "list"
+                },
+                "after": {
+                  "maximum": 9007199254740991,
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "includeClosed": {
+                  "type": "boolean"
+                },
+                "limit": {
+                  "maximum": 50,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "workspaceId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "const": "open"
+                },
+                "expectedHead": {
+                  "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$",
+                  "type": "string"
+                },
+                "ref": {
+                  "pattern": "^refs/heads/[^\\s~^:?*\\[\\\\]+$",
+                  "type": "string"
+                },
+                "repo": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                },
+                "requestId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                },
+                "workspaceId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action",
+                "requestId",
+                "repo",
+                "ref",
+                "expectedHead"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "const": "compose"
+                },
+                "expectedHead": {
+                  "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$",
+                  "type": "string"
+                },
+                "ref": {
+                  "maxLength": 4096,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "repo": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                },
+                "requestId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                },
+                "sources": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "checkpoint": {
+                        "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$",
+                        "type": "string"
+                      },
+                      "taskId": {
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "taskId",
+                      "checkpoint"
+                    ],
+                    "type": "object"
+                  },
+                  "maxItems": 16,
+                  "minItems": 1,
+                  "type": "array"
+                },
+                "workspaceId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action",
+                "requestId",
+                "repo",
+                "ref",
+                "expectedHead",
+                "sources"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "const": "close"
+                },
+                "expected": {
+                  "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$",
+                  "type": "string"
+                },
+                "requestId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                },
+                "taskId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action",
+                "requestId",
+                "taskId",
+                "expected"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "const": "inspect"
+                },
+                "before": {
+                  "maximum": 9007199254740991,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "limit": {
+                  "maximum": 50,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "since": {
+                  "maxLength": 64,
+                  "type": "string"
+                },
+                "taskId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action",
+                "taskId"
+              ],
+              "type": "object"
+            },
+            {
+              "oneOf": [
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "action": {
+                      "const": "start"
+                    },
+                    "baseRef": {
+                      "pattern": "^refs/heads/[^\\s~^:?*\\[\\\\]+$",
+                      "type": "string"
+                    },
+                    "expectedHead": {
+                      "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$",
+                      "type": "string"
+                    },
+                    "label": {
+                      "maxLength": 80,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "localChanges": {
+                      "description": "Capture the enrolled checkout final working-tree bytes into a new task; preserve its index/files/refs. Requires a matching checked-out source branch.",
+                      "type": "boolean"
+                    },
+                    "repo": {
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                      "type": "string"
+                    },
+                    "workspaceId": {
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "action",
+                    "requestId"
+                  ],
+                  "type": "object"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "action": {
+                      "const": "start"
+                    },
+                    "expectedHead": {
+                      "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$",
+                      "type": "string"
+                    },
+                    "fromTaskId": {
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                      "type": "string"
+                    },
+                    "label": {
+                      "maxLength": 80,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "localChanges": {
+                      "description": "Capture the enrolled checkout final working-tree bytes into a new task; preserve its index/files/refs. Requires a matching checked-out source branch.",
+                      "enum": [
+                        false
+                      ],
+                      "type": "boolean"
+                    },
+                    "repo": {
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                      "type": "string"
+                    },
+                    "workspaceId": {
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "action",
+                    "fromTaskId",
+                    "requestId"
+                  ],
+                  "type": "object"
+                }
+              ]
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "const": "cleanup"
+                },
+                "requestId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                },
+                "taskId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action",
+                "requestId",
+                "taskId"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "const": "integrate"
+                },
+                "expected": {
+                  "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$",
+                  "type": "string"
+                },
+                "requestId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                },
+                "resolutions": {
+                  "items": {
+                    "oneOf": [
+                      {
+                        "additionalProperties": false,
+                        "properties": {
+                          "choice": {
+                            "enum": [
+                              "current",
+                              "incoming",
+                              "base",
+                              "delete"
+                            ]
+                          },
+                          "path": {
+                            "maxLength": 4096,
+                            "minLength": 1,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "path",
+                          "choice"
+                        ],
+                        "type": "object"
+                      },
+                      {
+                        "additionalProperties": false,
+                        "properties": {
+                          "choice": {
+                            "const": "content"
+                          },
+                          "content": {
+                            "maxLength": 1048576,
+                            "type": "string"
+                          },
+                          "encoding": {
+                            "enum": [
+                              "utf8",
+                              "base64"
+                            ]
+                          },
+                          "mode": {
+                            "enum": [
+                              "100644",
+                              "100755"
+                            ]
+                          },
+                          "path": {
+                            "maxLength": 4096,
+                            "minLength": 1,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "path",
+                          "choice",
+                          "content"
+                        ],
+                        "type": "object"
+                      }
+                    ]
+                  },
+                  "maxItems": 1000,
+                  "type": "array"
+                },
+                "sourceCheckpoint": {
+                  "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$",
+                  "type": "string"
+                },
+                "sourceTaskId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                },
+                "taskId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action",
+                "requestId",
+                "taskId",
+                "expected",
+                "sourceTaskId"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "const": "resetEnvironment"
+                },
+                "expected": {
+                  "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$",
+                  "type": "string"
+                },
+                "requestId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                },
+                "taskId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action",
+                "requestId",
+                "taskId",
+                "expected"
+              ],
+              "type": "object"
+            }
+          ],
+          "type": "object"
+        }
+      },
+      "required": [
+        "request"
+      ],
+      "type": "object"
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    }
+  },
+  "tdev_validate": {
+    "name": "tdev_validate",
+    "description": "Validate exact source into an immutable publication candidate, or validate a retained artifact. Source tests, artifact validation and deployment health are distinct. Check terminal success before using the validation identity. Does not publish or deploy.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "request": {
+          "oneOf": [
+            {
+              "additionalProperties": false,
+              "properties": {
+                "environment": {
+                  "description": "Default task reuses the task's private dependency/cache storage; fresh uses only this operation. HOME and source remain per-operation.",
+                  "enum": [
+                    "task",
+                    "fresh"
+                  ]
+                },
+                "expected": {
+                  "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$",
+                  "type": "string"
+                },
+                "message": {
+                  "maxLength": 4096,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "requestId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                },
+                "taskId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                },
+                "timeout": {
+                  "description": "Validation deadline in seconds; default 300. Increase for a longer adopted test suite, up to 3600.",
+                  "maximum": 3600,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "waitMs": {
+                  "description": "Bounded terminal observation of the original operation; 0 returns immediately. Waiting never creates a new effect. A positive wait may return nonterminal state.",
+                  "maximum": 30000,
+                  "minimum": 0,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "requestId",
+                "taskId",
+                "expected",
+                "message"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "artifactId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                },
+                "health": {
+                  "additionalProperties": false,
+                  "description": "Readiness requires HTTP 200 from 127.0.0.1:port/path with X-Tdev-Release equal to the process TDEV_RELEASE environment value.",
+                  "properties": {
+                    "path": {
+                      "maxLength": 2048,
+                      "pattern": "^/[^\\r\\n ]*$",
+                      "type": "string"
+                    },
+                    "port": {
+                      "maximum": 65535,
+                      "minimum": 1024,
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "port",
+                    "path"
+                  ],
+                  "type": "object"
+                },
+                "requestId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                },
+                "subject": {
+                  "const": "artifact"
+                },
+                "timeout": {
+                  "description": "Validation deadline in seconds; default 300. Increase for a longer adopted test suite, up to 3600.",
+                  "maximum": 3600,
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "subject",
+                "requestId",
+                "artifactId"
+              ],
+              "type": "object"
+            }
+          ],
+          "type": "object"
+        }
+      },
+      "required": [
+        "request"
+      ],
+      "type": "object"
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    }
+  },
+  "tdev_artifact": {
+    "name": "tdev_artifact",
+    "description": "Inspect recipes, build from exact validated source, and inspect/export retained bytes. Build success is not artifact validation. usage/prunePreview expose retention and pins; prune requires its exact preview identity. Source scratch can retire without deleting retained artifacts.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "request": {
+          "oneOf": [
+            {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "const": "inspectRecipe"
+                },
+                "path": {
+                  "description": "Canonical relative path; no traversal, backslashes, control characters or .git components. Additional path/overlap checks are enforced by the controller.",
+                  "maxLength": 1024,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "validationId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action",
+                "validationId"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "const": "prepare"
+                },
+                "path": {
+                  "description": "Canonical relative path; no traversal, backslashes, control characters or .git components. Additional path/overlap checks are enforced by the controller.",
+                  "maxLength": 1024,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "requestId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                },
+                "timeout": {
+                  "maximum": 3600,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "validationId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action",
+                "validationId",
+                "requestId"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "const": "inspect"
+                },
+                "artifactId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action",
+                "artifactId"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "const": "list"
+                },
+                "before": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "limit": {
+                  "maximum": 50,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "taskId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "const": "usage"
+                },
+                "before": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "limit": {
+                  "maximum": 50,
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "action"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "const": "export"
+                },
+                "artifactId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                },
+                "limit": {
+                  "maximum": 65536,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "offset": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "path": {
+                  "description": "Canonical relative path; no traversal, backslashes, control characters or .git components. Additional path/overlap checks are enforced by the controller.",
+                  "maxLength": 1024,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action",
+                "artifactId",
+                "path"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "const": "prunePreview"
+                },
+                "artifactId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action",
+                "artifactId"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "const": "prune"
+                },
+                "artifactId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                },
+                "expectedPreview": {
+                  "pattern": "^[0-9a-f]{64}$",
+                  "type": "string"
+                },
+                "requestId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action",
+                "artifactId",
+                "requestId",
+                "expectedPreview"
+              ],
+              "type": "object"
+            }
+          ],
+          "type": "object"
+        }
+      },
+      "required": [
+        "request"
+      ],
+      "type": "object"
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    }
+  },
+  "tdev_edit": {
+    "name": "tdev_edit",
+    "description": "Atomically edit exact task source with checkpoint and file preconditions. Returns the retained effect receipt and new checkpoint.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "request": {
+          "additionalProperties": false,
+          "properties": {
+            "edits": {
+              "items": {
+                "oneOf": [
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "action": {
+                        "const": "put"
+                      },
+                      "before": {
+                        "anyOf": [
+                          {
+                            "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$",
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "content": {
+                        "maxLength": 1048576,
+                        "type": "string"
+                      },
+                      "encoding": {
+                        "enum": [
+                          "utf8",
+                          "base64"
+                        ]
+                      },
+                      "mode": {
+                        "enum": [
+                          "100644",
+                          "100755",
+                          "120000"
+                        ]
+                      },
+                      "path": {
+                        "maxLength": 4096,
+                        "minLength": 1,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "path",
+                      "content",
+                      "before"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "action": {
+                        "const": "replace"
+                      },
+                      "count": {
+                        "maximum": 10000,
+                        "minimum": 1,
+                        "type": "integer"
+                      },
+                      "old": {
+                        "maxLength": 1048576,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "path": {
+                        "maxLength": 4096,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "text": {
+                        "maxLength": 1048576,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "path",
+                      "old",
+                      "text"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "action": {
+                        "const": "delete"
+                      },
+                      "before": {
+                        "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$",
+                        "type": "string"
+                      },
+                      "path": {
+                        "maxLength": 4096,
+                        "minLength": 1,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "path",
+                      "before"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "action": {
+                        "const": "move"
+                      },
+                      "before": {
+                        "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$",
+                        "type": "string"
+                      },
+                      "path": {
+                        "maxLength": 4096,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "to": {
+                        "maxLength": 4096,
+                        "minLength": 1,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "path",
+                      "to",
+                      "before"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              },
+              "maxItems": 256,
+              "minItems": 1,
+              "type": "array"
+            },
+            "expected": {
+              "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$",
+              "type": "string"
+            },
+            "requestId": {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+              "type": "string"
+            },
+            "taskId": {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+              "type": "string"
+            }
+          },
+          "required": [
+            "requestId",
+            "taskId",
+            "expected",
+            "edits"
+          ],
+          "type": "object"
+        }
+      },
+      "required": [
+        "request"
+      ],
+      "type": "object"
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    }
+  },
+  "tdev_find": {
+    "name": "tdev_find",
+    "description": "Find retained work by project name and task label before starting new work. Returns completed predecessors and running/unknown receipts without reconciling effects. Ambiguous or incomplete results never choose a task. Observe original outstanding receipts; do not replay them with new identities.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "request": {
+          "additionalProperties": false,
+          "properties": {
+            "after": {
+              "maximum": 9007199254740991,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "label": {
+              "description": "Case-insensitive substring of retained task label.",
+              "maxLength": 80,
+              "minLength": 1,
+              "type": "string"
+            },
+            "limit": {
+              "maximum": 20,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "project": {
+              "description": "Exact enrolled project key or display name; duplicate names are not auto-selected.",
+              "maxLength": 160,
+              "minLength": 1,
+              "type": "string"
+            },
+            "since": {
+              "maxLength": 64,
+              "type": "string"
+            },
+            "state": {
+              "default": "all",
+              "description": "Includes closed work by default so completed predecessors are not mistaken for missing work.",
+              "enum": [
+                "all",
+                "open",
+                "closed"
+              ]
+            }
+          },
+          "required": [],
+          "type": "object"
+        }
+      },
+      "required": [
+        "request"
+      ],
+      "type": "object"
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    }
+  },
+  "tdev_publish": {
+    "name": "tdev_publish",
+    "description": "Publish exactly a successful source-validation candidate using remote-head CAS. Publication is not deployment. If the reply is lost, observe the original request; never send a replacement mutation.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "request": {
+          "additionalProperties": false,
+          "properties": {
+            "expectedHead": {
+              "anyOf": [
+                {
+                  "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "requestId": {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+              "type": "string"
+            },
+            "validationId": {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+              "type": "string"
+            }
+          },
+          "required": [
+            "requestId",
+            "validationId"
+          ],
+          "type": "object"
+        }
+      },
+      "required": [
+        "request"
+      ],
+      "type": "object"
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    }
+  },
+  "tdev_workspace": {
+    "name": "tdev_workspace",
+    "description": "Compose enrolled projects without granting access. Inspect membership and current work; revision-CAS changes update only this workspace. Closing preserves tasks, receipts and resources.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "request": {
+          "oneOf": [
+            {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "const": "list"
+                },
+                "after": {
+                  "maximum": 9007199254740991,
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "includeClosed": {
+                  "type": "boolean"
+                },
+                "limit": {
+                  "maximum": 50,
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "action"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "const": "inspect"
+                },
+                "after": {
+                  "maximum": 9007199254740991,
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "includeClosed": {
+                  "type": "boolean"
+                },
+                "limit": {
+                  "maximum": 50,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "pendingAfter": {
+                  "maximum": 9007199254740991,
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "since": {
+                  "maxLength": 64,
+                  "type": "string"
+                },
+                "workspaceId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action",
+                "workspaceId"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "const": "create"
+                },
+                "defaultRepo": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                },
+                "name": {
+                  "maxLength": 160,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "projects": {
+                  "items": {
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                    "type": "string"
+                  },
+                  "maxItems": 64,
+                  "type": "array",
+                  "uniqueItems": true
+                },
+                "requestId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action",
+                "requestId",
+                "name"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "const": "attach"
+                },
+                "expectedRevision": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "repo": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                },
+                "requestId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                },
+                "workspaceId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action",
+                "requestId",
+                "workspaceId",
+                "expectedRevision",
+                "repo"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "const": "detach"
+                },
+                "expectedRevision": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "repo": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                },
+                "requestId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                },
+                "workspaceId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action",
+                "requestId",
+                "workspaceId",
+                "expectedRevision",
+                "repo"
+              ],
+              "type": "object"
+            },
+            {
+              "oneOf": [
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "action": {
+                      "const": "configure"
+                    },
+                    "defaultRepo": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "expectedRevision": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "name": {
+                      "maxLength": 160,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                      "type": "string"
+                    },
+                    "workspaceId": {
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "action",
+                    "expectedRevision",
+                    "name",
+                    "requestId",
+                    "workspaceId"
+                  ],
+                  "type": "object"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "action": {
+                      "const": "configure"
+                    },
+                    "defaultRepo": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "expectedRevision": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "requestId": {
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                      "type": "string"
+                    },
+                    "workspaceId": {
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "action",
+                    "defaultRepo",
+                    "expectedRevision",
+                    "requestId",
+                    "workspaceId"
+                  ],
+                  "type": "object"
+                }
+              ]
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "const": "close"
+                },
+                "expectedRevision": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "requestId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                },
+                "workspaceId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action",
+                "requestId",
+                "workspaceId",
+                "expectedRevision"
+              ],
+              "type": "object"
+            }
+          ],
+          "type": "object"
+        }
+      },
+      "required": [
+        "request"
+      ],
+      "type": "object"
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    }
+  },
+  "tdev_exec": {
+    "name": "tdev_exec",
+    "description": "Run natively on Termux at an exact task checkpoint. command is finite and may capture changes; process persists without capture or a default deadline. Admission is not command success. Observe the retained operation, then cancel/retire explicitly. No shell detachment or provider credentials needed.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "request": {
+          "oneOf": [
+            {
+              "additionalProperties": false,
+              "properties": {
+                "capturePaths": {
+                  "items": {
+                    "maxLength": 4096,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "maxItems": 64,
+                  "minItems": 0,
+                  "type": "array"
+                },
+                "command": {
+                  "maxLength": 65536,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "cwd": {
+                  "maxLength": 4096,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "env": {
+                  "additionalProperties": {
+                    "maxLength": 8192,
+                    "type": "string"
+                  },
+                  "maxProperties": 64,
+                  "propertyNames": {
+                    "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                  },
+                  "type": "object"
+                },
+                "environment": {
+                  "description": "Default task reuses the task's private dependency/cache storage; fresh uses only this operation. HOME and source remain per-operation.",
+                  "enum": [
+                    "task",
+                    "fresh"
+                  ]
+                },
+                "expected": {
+                  "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$",
+                  "type": "string"
+                },
+                "mode": {
+                  "const": "command",
+                  "description": "Finite command; stopped changes may be captured. Default mode."
+                },
+                "requestId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                },
+                "stdin": {
+                  "maxLength": 65536,
+                  "type": "string"
+                },
+                "taskId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                },
+                "timeout": {
+                  "maximum": 3600,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "waitMs": {
+                  "description": "Bounded observation after admission; 0 returns the receipt immediately. Not part of effect identity. Staged stdin requires immediate admission.",
+                  "maximum": 30000,
+                  "minimum": 0,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "requestId",
+                "taskId",
+                "expected",
+                "command"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "command": {
+                  "maxLength": 65536,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "cwd": {
+                  "maxLength": 4096,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "env": {
+                  "additionalProperties": {
+                    "maxLength": 8192,
+                    "type": "string"
+                  },
+                  "maxProperties": 64,
+                  "propertyNames": {
+                    "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                  },
+                  "type": "object"
+                },
+                "environment": {
+                  "description": "Default task reuses the task's private dependency/cache storage; fresh uses only this operation. HOME and source remain per-operation.",
+                  "enum": [
+                    "task",
+                    "fresh"
+                  ]
+                },
+                "expected": {
+                  "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$",
+                  "type": "string"
+                },
+                "mode": {
+                  "const": "process",
+                  "description": "Persistent fixed-source process. No capture or admission wait; no default deadline."
+                },
+                "requestId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                },
+                "stdin": {
+                  "maxLength": 65536,
+                  "type": "string"
+                },
+                "taskId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                },
+                "timeout": {
+                  "maximum": 3600,
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "requestId",
+                "taskId",
+                "expected",
+                "command",
+                "mode"
+              ],
+              "type": "object"
+            }
+          ]
+        }
+      },
+      "required": [
+        "request"
+      ],
+      "type": "object"
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    }
+  },
+  "tdev_operation": {
+    "name": "tdev_operation",
+    "description": "Observe or control an original accepted operation. status by operationId or original lookupRequestId reconciles retained work, including journaled deployment restoration; it never admits a replacement effect. Check terminal result/exitCode. stdin is sequenced; cancel stops execution; retire removes stopped owned scratch while preserving receipts. Never retry ambiguous effects with a new requestId.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "request": {
+          "oneOf": [
+            {
+              "oneOf": [
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "action": {
+                      "const": "status"
+                    },
+                    "limit": {
+                      "maximum": 65536,
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "offset": {
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "operationId": {
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                      "type": "string"
+                    },
+                    "since": {
+                      "maxLength": 64,
+                      "type": "string"
+                    },
+                    "waitMs": {
+                      "description": "Bounded terminal observation of the original operation; 0 returns immediately. Waiting never creates a new effect. A positive wait may return nonterminal state.",
+                      "maximum": 30000,
+                      "minimum": 0,
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "action",
+                    "operationId"
+                  ],
+                  "type": "object"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "action": {
+                      "const": "status"
+                    },
+                    "limit": {
+                      "maximum": 65536,
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "lookupRequestId": {
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                      "type": "string"
+                    },
+                    "offset": {
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "since": {
+                      "maxLength": 64,
+                      "type": "string"
+                    },
+                    "waitMs": {
+                      "description": "Bounded terminal observation of the original operation; 0 returns immediately. Waiting never creates a new effect. A positive wait may return nonterminal state.",
+                      "maximum": 30000,
+                      "minimum": 0,
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "action",
+                    "lookupRequestId"
+                  ],
+                  "type": "object"
+                }
+              ]
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "const": "stdin"
+                },
+                "eof": {
+                  "type": "boolean"
+                },
+                "operationId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                },
+                "requestId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                },
+                "sequence": {
+                  "maximum": 1023,
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "text": {
+                  "maxLength": 65536,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action",
+                "requestId",
+                "operationId",
+                "sequence",
+                "text"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "const": "cancel"
+                },
+                "operationId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                },
+                "requestId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action",
+                "requestId",
+                "operationId"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "const": "retire"
+                },
+                "operationId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                },
+                "requestId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action",
+                "requestId",
+                "operationId"
+              ],
+              "type": "object"
+            }
+          ],
+          "type": "object"
+        }
+      },
+      "required": [
+        "request"
+      ],
+      "type": "object"
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    }
+  },
+  "tdev_project": {
+    "name": "tdev_project",
+    "description": "List, inspect, connect or create enrolled projects within delegated policy. Use existing enrollments when available. The controller selects provider credentials; workspace membership never grants project authority.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "request": {
+          "oneOf": [
+            {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "const": "list"
+                }
+              },
+              "required": [
+                "action"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "const": "inspect"
+                },
+                "repo": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action",
+                "repo"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "const": "connect"
+                },
+                "name": {
+                  "maxLength": 4096,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "policy": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                },
+                "requestId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action",
+                "requestId",
+                "policy",
+                "name"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "const": "create"
+                },
+                "name": {
+                  "maxLength": 4096,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "policy": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                },
+                "requestId": {
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action",
+                "requestId",
+                "policy",
+                "name"
+              ],
+              "type": "object"
+            }
+          ],
+          "type": "object"
+        }
+      },
+      "required": [
+        "request"
+      ],
+      "type": "object"
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    }
+  }
+}

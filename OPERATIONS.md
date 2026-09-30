@@ -968,12 +968,12 @@ previous config receipt; concurrent edits cause an explicit conflict. Do not han
 ChatGPT can use the following `tdev_diagnostics` arguments:
 
 ```json
-{"action":"inspect"}
-{"action":"inspect","view":"summary"}
-{"action":"report","requestId":"observed-transport-error-1","category":"transport_error"}
-{"action":"activate","requestId":"investigate-freeze-1","seconds":120}
-{"action":"acknowledge","incidentId":"RETURNED_INCIDENT_ID"}
-{"action":"stop"}
+{"request":{"action":"inspect"}}
+{"request":{"action":"inspect","view":"summary"}}
+{"request":{"action":"report","requestId":"observed-transport-error-1","category":"transport_error"}}
+{"request":{"action":"activate","requestId":"investigate-freeze-1","seconds":120}}
+{"request":{"action":"acknowledge","incidentId":"RETURNED_INCIDENT_ID"}}
+{"request":{"action":"stop"}}
 ```
 
 `report`/`activate`/`stop` require that principal's `diagnostics: true` grant. Inspection and acknowledgment
@@ -1145,7 +1145,7 @@ async function probe(phase, fields = {}) {
   const args = {action: "mark", instance: generation, runId, cellId,
                 sequence: ++sequence, phase, ...fields};
   try {
-    const reply = await tools.ACTUAL_TDEV_DIAGNOSTICS(args);
+    const reply = await tools.ACTUAL_TDEV_DIAGNOSTICS({request: args});
     // Preserve this reply in the host transcript. Check structured ok/error as exposed.
     text(reply);
   } catch {
@@ -1153,7 +1153,7 @@ async function probe(phase, fields = {}) {
   }
 }
 await probe("cell_enter");
-const reply = await tools.ACTUAL_TDEV_TASK({action: "list"});
+const reply = await tools.ACTUAL_TDEV_TASK({request: {action: "list"}});
 // This point follows a fulfilled target-tool await, never a finally block or deferred replay.
 const receipt = reply?._meta?.["io.tdev/diagnosticReceipt"];
 await probe("tool_return", {callOrdinal: 1,
@@ -1192,3 +1192,12 @@ ChatGPT client identity, or proof the user saw progress. Match the external user
 visible progress, Stop pressed, Stopped thinking, successor message and resumed progress. Compare
 a similarly bounded uninstrumented workload to assess observer effects. Local direct MCP/bridge
 success qualifies the tdev boundary only; actual Codex agent-loop and ChatGPT acceptance are separate.
+
+### Source redesign request envelope
+
+In the redesign source, MCP tool arguments use `{"request":{...}}`. `tdev schema TOOL`
+prints that exact schema. Terminal convenience commands such as `tdev task list` construct
+the envelope; `tdev call TOOL --input FILE` sends the file unchanged and therefore requires
+the envelope in FILE. The installed resident may still expose its previous catalog; inspect
+that installation's `tools/list` before using source-client syntax against it. Never retry a
+failed or lost mutation with a new request identity because a catalog changed.

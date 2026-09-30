@@ -293,7 +293,7 @@ def main(argv=None):
                 field = {'operation':'operationId','task':'taskId','workspace':'workspaceId','project':'repo'}.get(command)
                 require(field,'CLI_ARGUMENT','Use --input for this tool'); values[field] = a.identity
         tool_schema(tool)  # Reject typos before reading a credential or calling HTTP.
-        result = forward(root,options.connection,'tools/call',{'name':tool,'arguments':values})
+        result = forward(root,options.connection,'tools/call',{'name':tool,'arguments':values if command == 'call' else {'request':values}})
     if result is not None:
         if not options.json and 'connections' in result:
             if 'controller' in result:

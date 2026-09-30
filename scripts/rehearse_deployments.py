@@ -85,7 +85,7 @@ def main():
             w = call('task', {'action': 'open', 'requestId': 'open', 'repo': 'test', 'ref': 'refs/heads/main', 'expectedHead': repo.head})['result']
             w['checkpoint'] = call('edit', {'requestId': 'app', 'taskId': w['taskId'], 'expected': w['checkpoint'], 'edits': [{'action': 'put', 'path': 'app.py', 'before': None, 'content': APP.replace('PORT', str(port))}]})['result']['checkpoint']
             validation = wait(call('validate', {'requestId': 'validate-one', 'taskId': w['taskId'], 'expected': w['checkpoint'], 'message': 'one'}))
-            first = call('deploy', {'action': 'release', 'requestId': 'release-one', 'name': 'app', 'validationId': validation['id'], 'command': 'exec python -u app.py', 'health': {'port': port, 'path': '/'}})
+            first = call('deploy', {'expectedRevision': 0, 'action': 'release', 'requestId': 'release-one', 'name': 'app', 'validationId': validation['id'], 'command': 'exec python -u app.py', 'health': {'port': port, 'path': '/'}})
             assert first['status'] == 'succeeded', first
             ident = first['result']['deploymentId']; deployment = inspect(ident)['deployment']
             actual = response()

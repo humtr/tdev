@@ -1,0 +1,23 @@
+{
+  "bundle": "d5d254cbce02b724af8edb8700a9162d4274eae9227ea7569405620e9d079a54",
+  "source": "/data/data/com.termux/files/home/prj/tdev-surface-redesign",
+  "inactiveInstall": true,
+  "productionServicesTouched": false,
+  "protocol": "2026-07-28",
+  "nativeSigkillRecoveryAndExactPublication": true,
+  "retainedNativeArtifactAfterScratchRetirement": true,
+  "artifactValidationAfterInstalledBuild": true,
+  "artifactExportAndExplicitPrune": true,
+  "bundleHttpAndRestart": [
+    {
+      "restart": 0,
+      "wrongBearer": 401,
+      "authorizedTools": 13
+    },
+    {
+      "restart": 1,
+      "wrongBearer": 401,
+      "authorizedTools": 13
+    }
+  ]
+}

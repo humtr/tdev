@@ -8,7 +8,7 @@ resident update or new MCP contract is needed. Pure-JS setup does not dispatch t
 ## Assistant policy
 
 1. Bind current task, tools and authority. Prepare a small ordered plan of already authorized
-   steps. Use stable step IDs and retain the exact original mutation requestId/arguments before
+   steps. Each step.args is exact public JSON, `{request:{...}}`. Use stable step IDs and retain the exact original mutation requestId/arguments before
    dispatch. Do not pre-plan dependent mutations against an unknown future checkpoint. Setup
    discovery belongs in a separate bounded cell; do not spend uncounted calls before the runner.
 2. Pass all nested calls in the work cell through one `runTdevCell` invocation. Its default
@@ -34,15 +34,15 @@ resident update or new MCP contract is needed. Pure-JS setup does not dispatch t
    observation before returning that same nested tool call. This removes the admission-to-monitor
    physical-cell scheduling gap for short success/failure. For staged-stdin workflows, explicitly
    set `waitMs=0` so the caller receives the retained handle before delivering later stdin; process
-   mode ignores admission waiting and returns immediately. If admission still returns `running`, switch to
-   `runTdevOperationCell`. By default each monitor cell makes exactly one read-only status call with `waitMs=30000`
+   mode returns immediately and its request rejects `waitMs` and `capturePaths`. If admission still returns `running`, switch to
+   `runTdevOperationCell`. By default each monitor cell makes exactly one original-operation status call with `waitMs=30000`
    for that exact operation/request identity before returning or rolling over. This keeps multiple 30-second terminal waits inside one physical cell instead
    of requiring a fresh host-scheduled cell after every wait. The server returns immediately on
    terminal reconciliation or after the bounded wait with the freshest status/log page; nonterminal
    log growth alone does not end the wait. The helper advances the output offset and surfaces terminal
    `failed`/`cancelled` state before return. `unknown`, malformed or unavailable status stops for
    review rather than looping. On `rollover`, give the user a brief progress update and issue a fresh
-   monitor cell in the same turn with `nextArgs`; do not wait for user input. This removes dense
+   monitor cell in the same turn with `nextArgs.request` spread into its options; do not wait for user input. This removes dense
    polling and bounds the normal visible quiet interval, but cannot guarantee that the host schedules
    the next physical cell. A new session must still rebind durable task/operation state; monitor
    packets are transient caller context, not durable tdev resume storage.
@@ -59,7 +59,7 @@ Example tail after pasting the function and selecting the actual discovered tool
 // A read-only usage example, not a density experiment. Adapt decoding to the real host wrapper.
 const packet = await runTdevCell({
   tools,
-  steps: [{id: "projects", tool: "ACTUAL_TDEV_PROJECT", args: {action: "list"}}],
+  steps: [{id: "projects", tool: "ACTUAL_TDEV_PROJECT", args: {request: {action: "list"}}}],
   onReply: reply => text(reply),
   classify: reply => {
     const body = reply?.structuredContent; // If absent, review; never guess success.

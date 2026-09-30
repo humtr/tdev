@@ -1,0 +1,51 @@
+{
+  "source": "user supplied ChatGPT report (Worked for 24s); declaration excerpts, not complete raw injected catalog",
+  "candidate": "selected product, final command/process inputs",
+  "tool": "tdev_exec",
+  "arguments": {
+    "request": {
+      "requestId": "final-process-1",
+      "taskId": "fixture",
+      "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "command": "sleep 1",
+      "mode": "process"
+    }
+  },
+  "receipt": {
+    "ok": true,
+    "probeOnly": true,
+    "effect": "none",
+    "code": "CANONICAL_VALID",
+    "canonicalTool": "tdev_exec",
+    "inputDigest": "b952d42292cc5bea1708e23024ba8f43c0def4f83d2527e1f449c03331a2a885"
+  },
+  "matchesUserReportedDigest": true,
+  "hostDeclaration": {
+    "commandRequired": [
+      "requestId",
+      "taskId",
+      "expected",
+      "command"
+    ],
+    "processRequired": [
+      "requestId",
+      "taskId",
+      "expected",
+      "command",
+      "mode"
+    ],
+    "processMode": "process",
+    "additionalProperties": false,
+    "waitAndCaptureCommandOnly": true
+  },
+  "hostRejectionsBeforeProbeReceipt": [
+    {
+      "waitMs": 0
+    },
+    {
+      "capturePaths": []
+    }
+  ],
+  "uninstructedModelSelectionAccuracy": null,
+  "actualProcessExecution": false
+}

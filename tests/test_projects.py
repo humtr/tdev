@@ -223,6 +223,13 @@ class ProjectTest(Base):
         self.assertEqual(unknown['status'], 'unknown')
         self.c.close(); self.c = Controller(self.root / 'state', self.repo.config, self.executor)
         with patch.object(Projects, 'github', side_effect=AssertionError('Never retry creation based on name')):
+            found = self.call('find', {'project': 'example/lost'})
+            self.assertEqual(found['resolution'], 'unique')
+            self.assertEqual(found['matches'], [])
+            self.assertEqual(found['pending'][0]['operationId'], unknown['id'])
+            self.assertEqual(found['pending'][0]['requestId'], 'lost')
+            self.assertEqual(found['pending'][0]['projectName'], 'example/lost')
+            self.assertEqual(found['pending'][0]['status'], 'unknown')
             self.assertEqual(self.call('project', {**args, 'requestId': 'lost', 'name': 'lost'})['status'], 'unknown')
         with patch.object(Projects, 'github', side_effect=Fault('PROVIDER_AUTH_REQUIRED', 'Controller credential missing')):
             denied = self.call('project', {**args, 'requestId': 'denied', 'name': 'denied'})

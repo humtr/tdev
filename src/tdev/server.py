@@ -402,28 +402,36 @@ def make_server(controller, port=0, diagnostics=None, diagnostic_factory=None):
                         self.rpc_error(400, ident, -32602, "Unknown tool or invalid arguments")
                         return
                     arguments = params.get("arguments", {})
-                    wait_ms = arguments.get('waitMs', 0)
-                    stream_wait = progress_token is not None and type(wait_ms) is int and wait_ms > 0 and (
-                        (params.get("name") == "tdev_operation" and arguments.get("action") == "status")
-                        or (params.get("name") == "tdev_exec" and arguments.get("mode", "command") != "process")
-                        or (params.get("name") == "tdev_validate" and arguments.get("subject") != "artifact")
-                    )
-                    if stream_wait:
-                        self.stream_wait(principal, ident, params.get("name"), arguments, progress_token)
-                        return
-                    started = time.monotonic_ns() if trace is not None else 0
-                    self._emit('dispatch_started')
                     try:
-                        value = controller.call(principal, params.get("name", ""), arguments)
-                    except Exception:
+                        # Authenticate above, validate the public envelope before choosing
+                        # SSE, then preserve semantic bytes for durable admission/replay.
+                        if hasattr(controller, 'decode_wire'):
+                            arguments = controller.decode_wire(params['name'], arguments)
+                    except Fault as fault:
+                        value = {'ok': False, 'error': fault.value}
+                    else:
+                        wait_ms = arguments.get('waitMs', 0)
+                        stream_wait = progress_token is not None and type(wait_ms) is int and wait_ms > 0 and (
+                            (params.get("name") == "tdev_operation" and arguments.get("action") == "status")
+                            or (params.get("name") == "tdev_exec" and arguments.get("mode", "command") != "process")
+                            or (params.get("name") == "tdev_validate" and arguments.get("subject") != "artifact")
+                        )
+                        if stream_wait:
+                            self.stream_wait(principal, ident, params.get("name"), arguments, progress_token)
+                            return
+                        started = time.monotonic_ns() if trace is not None else 0
+                        self._emit('dispatch_started')
+                        try:
+                            value = controller.call(principal, params.get("name", ""), arguments)
+                        except Exception:
+                            if trace is not None:
+                                self._emit('dispatch_failed', durationNs=time.monotonic_ns()-started)
+                            raise
                         if trace is not None:
-                            self._emit('dispatch_failed', durationNs=time.monotonic_ns()-started)
-                        raise
-                    if trace is not None:
-                        self._emit('dispatch_finished', durationNs=time.monotonic_ns()-started,
-                                   **(self._observe('outcome', value) or {}))
-                        if hasattr(trace, 'tool_result'):
-                            self._observe('tool_result', self._trace_request, value)
+                            self._emit('dispatch_finished', durationNs=time.monotonic_ns()-started,
+                                       **(self._observe('outcome', value) or {}))
+                    if hasattr(trace, 'tool_result'):
+                        self._observe('tool_result', self._trace_request, value)
                     result = {"content": [{"type": "text", "text": canonical(value).decode()}],
                               "structuredContent": value, "isError": not value["ok"]}
                 else:

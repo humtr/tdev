@@ -88,6 +88,28 @@ goal also requires the work below.
 
 ## Next implementation sequence
 
+2026-09-30 user priority: re-evaluate the complete model-facing development surface from
+workloads and recovery, without preserving experimental names/count. First rebind current
+canonical/resident state, record the surface/decision audits and compare at least grouped,
+nested-request, action-per-tool and workflow candidates. Run the isolated schema probe before
+selecting a public replacement. Actual fresh ChatGPT declaration/call evidence is a gate for
+broader implementation, not substitutable by JSON Schema or local bridge success. While that
+host is unavailable, finish the reproducible local comparisons and host-ready probe only.
+Then implement selected slices with replay/state preservation, focused/affected/full checks,
+and separately authorized resident acceptance. See the dated surface review in LOCAL_VALIDATION;
+its candidates and generated fixtures are evidence, not additional contract owners.
+The B2 positive-alternative gate and selected find/start/release/command-process probes passed
+their fresh-host checks. The selected thirteen-tool source passes final full validation and
+client/bundle qualification. The user now authorizes canonical publication and resident activation.
+Publish the qualified source, perform the owned recoverable update after the maintenance-frontier
+check, then read back exact live schema/state and record installed acceptance. Do not reopen the rejected broader
+split merely to complete the experimental candidate list.
+
+User clarification during this review: preserve the existing fixed host annotation profile,
+including `readOnlyHint=true`. This is an intentional permission-popup workaround, not an
+accidental claim of pure effects. Do not change it without first solving and qualifying the
+popup behavior. Actual effect/recovery boundaries may improve independently of these hints.
+
 This section is the single selected order. Detailed sections below are acceptance specifications,
 not competing queues. README owns implementation/current status; LOCAL_VALIDATION owns dated
 results. Earlier incident/install/connection requests do not remain perpetual prerequisites once

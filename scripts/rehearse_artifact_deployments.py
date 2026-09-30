@@ -76,19 +76,19 @@ def main():
             for op in (build, check, {'id': source}):
                 f.call('operation', {'action': 'retire', 'requestId': 'retire-' + op['id'], 'operationId': op['id']})
             return check
-        def release(validation, name):
+        def release(validation, name, revision):
             return f.call('deploy', {'action': 'release', 'subject': 'artifact', 'requestId': name,
-                          'validationId': validation['id'], 'name': 'package', 'health': {'port': port, 'path': '/healthz'}})
+                          'expectedRevision': revision, 'validationId': validation['id'], 'name': 'package', 'health': {'port': port, 'path': '/healthz'}})
         def response():
             with urllib.request.urlopen('http://127.0.0.1:' + str(port) + '/healthz', timeout=2) as stream:
                 return json.load(stream)
-        first = release(prepare('one'), 'first')
+        first = release(prepare('one'), 'first', 0)
         assert first['status'] == 'succeeded', first
         ident = first['result']['deploymentId']
         assert response()['version'] == 'one' and response()['release'] == first['result']['release']
         second_check = prepare('two')  # First service stays up while validating on a separate port.
         assert response()['version'] == 'one'
-        second = release(second_check, 'second')
+        second = release(second_check, 'second', 1)
         assert second['status'] == 'succeeded', second
         assert response()['version'] == 'two'
         active_build = second_check['result']['artifactId']
@@ -107,7 +107,7 @@ def main():
             assert time.monotonic() < until, runtime
             time.sleep(.1)
         bad_check = prepare('bad', True)  # Readiness passes validation, deliberately exits at target port.
-        failed = release(bad_check, 'failed-switch')
+        failed = release(bad_check, 'failed-switch', 3)
         for _ in range(3):
             if failed['status'] != 'unknown':
                 break

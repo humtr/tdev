@@ -67,7 +67,7 @@ class ArtifactValidationTest(Base):
         self.c.deployments.backend = FixtureDeployment(self.root / 'state', self.runit)
 
     def release(self, validation, request='release', **extra):
-        return self.call('deploy', {'action': 'release', 'subject': 'artifact', 'requestId': request,
+        return self.call('deploy', {'expectedRevision': 0, 'action': 'release', 'subject': 'artifact', 'requestId': request,
                          'name': 'package', 'validationId': validation['id'], 'health': {'port': 18180, 'path': '/healthz'}, **extra})
 
     def test_file_validation_closed_source_fresh_policy_and_no_source_publication(self):
@@ -150,7 +150,7 @@ class ArtifactValidationTest(Base):
         _, verified = self.verify(build, True)
         first = self.release(verified)
         before = list(self.runit.events)
-        bad = self.c.call('alice', 'tdev_deploy', {'action': 'release', 'subject': 'artifact', 'requestId': 'override',
+        bad = self.c.call('alice', 'tdev_deploy', {'expectedRevision': 0, 'action': 'release', 'subject': 'artifact', 'requestId': 'override',
                        'name': 'package', 'validationId': verified['id'], 'command': 'true', 'health': {'port': 18180, 'path': '/healthz'}})
         self.assertEqual(bad['error']['code'], 'SCHEMA')
         self.repo.config['repositories']['test']['artifactValidation'] = 'changed'
@@ -162,7 +162,7 @@ class ArtifactValidationTest(Base):
         receipt = dict(verified['result']); receipt['contentDigest'] = '0' * 64
         with self.c.store.tx() as db:
             db.execute('UPDATE operation SET result=? WHERE id=?', (canonical(receipt).decode(), verified['id']))
-        bad = self.c.call('alice', 'tdev_deploy', {'action': 'release', 'subject': 'artifact', 'requestId': 'forged',
+        bad = self.c.call('alice', 'tdev_deploy', {'expectedRevision': 0, 'action': 'release', 'subject': 'artifact', 'requestId': 'forged',
                        'name': 'package', 'validationId': verified['id'], 'health': {'port': 18180, 'path': '/healthz'}})
         self.assertEqual(bad['error']['code'], 'ARTIFACT_VALIDATION_RECEIPT')
         self.assertEqual(before, self.runit.events)
@@ -191,7 +191,7 @@ class ArtifactValidationTest(Base):
             original(record, ident)
             raise KeyboardInterrupt()
         with patch.object(self.c.deployments.backend, 'apply', crash), self.assertRaises(KeyboardInterrupt):
-            self.release(verified, 'crash')
+            self.release(verified, 'crash', expectedRevision=1)
         self.c.close(); self.c = Controller(self.root / 'state', self.repo.config)
         self.c.deployments.backend = FixtureDeployment(self.root / 'state', self.runit)
         recovered = self.call('operation', {'action': 'status', 'lookupRequestId': 'crash'})
@@ -221,7 +221,7 @@ class ArtifactValidationTest(Base):
         before = list(self.runit.events)
         content = verified['result']['contentDigest']
         (self.c.artifacts.objects() / content / 'files/dist/asset.txt').write_text('tampered')
-        rejected = self.c.call('alice', 'tdev_deploy', {'action': 'release', 'subject': 'artifact', 'requestId': 'tamper',
+        rejected = self.c.call('alice', 'tdev_deploy', {'expectedRevision': 0, 'action': 'release', 'subject': 'artifact', 'requestId': 'tamper',
                        'name': 'package', 'validationId': verified['id'], 'health': {'port': 18180, 'path': '/healthz'}})
         self.assertEqual(rejected['error']['code'], 'ARTIFACT_BYTES_CHANGED')
         self.assertEqual(before, self.runit.events)

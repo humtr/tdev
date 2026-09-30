@@ -28,6 +28,8 @@ class Controller:
         self.config_source = config
         self.config = self.load_config()
         self.schema, self.validator = load_contract()
+        from .surface import Surface
+        self.wire = Surface(self.schema)
         self.store = Store(directory)
         self.config = self.load_config()
         self.projects = Projects(self)
@@ -129,6 +131,9 @@ class Controller:
             self.task(principal, source['taskId'])
         return row
 
+    def decode_wire(self, tool, arguments):
+        return self.wire.decode(tool, arguments)
+
     def call(self, principal, tool, args):
         # Preserve the long-standing call/_call seam used by maintenance and recovery
         # instrumentation. Streaming-only observation must not widen this ABI.
@@ -167,6 +172,9 @@ class Controller:
             require(not errors, "SCHEMA", "Input does not match the public contract")
             require(len(canonical(args)) <= 2 * 1024 * 1024, "INPUT_LIMIT")
             kind = tool.removeprefix("tdev_")
+            if kind == 'find':
+                from .continuation import Continuation
+                return {'ok': True, 'result': Continuation(self).find(principal, args)}
             if kind == 'diagnostics':
                 if args['action'] in ('activate', 'report', 'stop', 'mark'):
                     require(self.config['principals'][principal].get('diagnostics', False), 'PERMISSION_DENIED')

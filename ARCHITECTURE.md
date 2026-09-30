@@ -29,15 +29,28 @@ in README; wire types live in the contract.
 | Source task | Isolated source state for one project within a workspace; a multi-project objective uses multiple tasks. |
 | Operation | An accepted execution or effect with identity, progress, result and recovery evidence. |
 
+`tdev_find` resolves retained source work from human project names and task labels.
+It performs bounded local reads, not executor/provider reconciliation. Retained creation intents
+supply labels; no transcript store, per-conversation current-task pointer or state migration is
+needed. Multiple matches, incomplete pages and unavailable historical bindings never select a
+task. Closed work remains visible by default. Returned checkpoints and receipts are a local
+frontier, not live provider health or permission to mutate; exact CAS/current authority still
+apply on admission. Use domain inspection for older history and detailed resource ownership.
+
 `tdev_workspace` owns composition; `tdev_task` owns source-task lifecycle. `tdev_edit` changes
 source. `tdev_operation` inspects every accepted operation and controls exec/validation
-processes where applicable. Strict action-specific wire validators remain the canonical
-root unions. Because some Code Mode hosts compact a tool-input root composition schema to an
-untyped map, MCP discovery advertises action-discriminated tools through typed root objects
-whose properties cover the canonical arms; nested `oneOf`/`anyOf`/`allOf` inside those fields
-is preserved. The controller still validates every call against the canonical input definition
-before dispatch. Discovery therefore improves model-visible typing without changing accepted
-semantics or replay identity. No old-name aliases are provided for experimental contracts.
+processes where applicable. Every MCP input is a closed typed root object with a
+required `request` property. Its exact alternatives reuse the canonical semantic input
+schemas; no flat discovery vocabulary is maintained separately. Presence/exclusion rules
+use explicit positive object alternatives, because the qualified ChatGPT host lost some
+negative/conditional branches even inside nested unions. The HTTP edge validates the envelope
+before streaming/dispatch, then passes unchanged semantic arguments to the controller.
+The controller rechecks authority and semantic validation before replay/admission. Stored
+request hashes and receipts do not include the transport envelope; old accepted effects
+remain recoverable without rewriting state. The terminal CLI constructs the envelope for
+convenience commands; `tdev call --input` accepts exact public JSON. There is no public flat
+syntax alias. Fixed host-hint annotations remain unchanged at the user's direction; these
+hints do not authorize effects or describe reconciliation purity.
 Workspace create/list/inspect/attach/detach/configure/close need no Git source task. A workspace
 may be empty. Each project membership captures its enrolled identity and never grants authority.
 
@@ -104,7 +117,7 @@ native programs nevertheless have the real app UID's authority (§3).
 `tdev_artifact inspectRecipe` supplies the first packaging surface described in §8; it reads
 validated source metadata and does not produce or release an artifact.
 
-Tool annotations use the fixed tmcp host-hint scope: all twelve public tools advertise
+Tool annotations use the fixed tmcp host-hint scope: all public tools advertise
 `readOnlyHint=true`, with `destructiveHint=false`, `idempotentHint=false` and
 `openWorldHint=false`. These annotations are host hints, not effect semantics, admission
 authority or a safety boundary. The actual task mutation, owner-trusted execution,
@@ -416,7 +429,8 @@ admission may include an explicit bounded terminal observation (normally `waitMs
 observation-only `waitMs` field before mutation identity/admission, starts or replays the exact
 operation, then performs one bounded status/log observation before returning from the same tool
 call. Staged-stdin workflows must set `waitMs=0` to receive the retained handle before later stdin;
-process mode ignores admission waiting and returns immediately. This closes the
+process mode returns immediately and rejects `waitMs` and `capturePaths` in its request branch.
+The command branch alone supports those observation/capture choices. This closes the
 admission-to-monitor physical-cell gap for short terminal
 success/failure without replaying the effect. For an operation that remains running, the
 operation-monitor helper uses bounded server-side terminal waiting on that exact admitted operation;
@@ -430,17 +444,17 @@ and issue a new physical cell; the adapter cannot schedule that cell, extend a t
 visible delivery. Unknown operational replies stop for reconciliation of the original identity;
 diagnostic failure never retries the effect. This adapter imports no runtime diagnostics and adds
 no operational-core dependency.
-The operation tool's discovery description carries compact ChatGPT caller guidance. These are
-adjustable orchestration defaults, not server admission limits; discovery cannot force the host
-to follow them. The full caller helper remains separate from the resident's operational core.
+The operation tool's description explains receipt observation, control and effect uncertainty.
+Physical-cell budgets and orchestration defaults belong in the separate ChatGPT caller adapter,
+not discovery prose or server admission limits; the server cannot force host scheduling.
 
 The controller must surface underlying completion within the same turn and after reconnect,
 including when the caller missed the completion response. Replaying a mutation reconciles
 the original operation before returning; it never starts the effect again. Process status
 reads the supervisor's current result/log evidence, not a cached admission response.
 
-Use task list (bounded task pages, includeClosed for cleanup) then task
-inspect for a known task. Inspect reconciles its busy operation and returns current
+Use find for human-name continuation; task list remains the explicit domain inventory.
+Use task inspect for a known task when live reconciliation or older history is needed. Inspect reconciles its busy operation and returns current
 checkpoint/base, live remote head or a provider error, a bounded newest-first operation page
 (including related controls), original request IDs, cleanup state and mutationReady.
 Older predecessors are available by before cursor; the response does not claim the entire
@@ -953,7 +967,10 @@ once per principal. Project authority and current target identity gate admission
 and replay. Targets cannot address arbitrary service names or replace tdev/tdev-tunnel. A named
 principal/target deployment owns one generated service name and a persistent deployment row;
 source tasks can close while that service continues independently. Deployment mutations are
-retained operations, with per-deployment writer ownership and revision CAS. `targets`, paged
+retained operations, with per-deployment writer ownership and revision CAS. Release requires
+an explicit expected revision: zero admits an initial service, and a positive value updates
+exactly that inspected revision. Matching an existing name never silently authorizes updating
+its current revision. The revision is checked before preparation and again inside admission. `targets`, paged
 `list`, and `inspect` require no source task. A sole delegated target resolves automatically.
 
 Release selects a succeeded validation and its exact frozen candidate, rechecks the adopted

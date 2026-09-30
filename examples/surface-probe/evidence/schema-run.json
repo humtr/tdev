@@ -1,0 +1,189 @@
+{
+  "method": "deterministic schema corpus; no model-generated calls or ChatGPT rendering",
+  "contractSha256": "35ea0a5ed2d7d7d85957117e85e72d2fb7f0e0640156cf2e4908ea54adf9bebf",
+  "validCanonicalCases": 53,
+  "modelSelectionAccuracy": null,
+  "hostRendering": null,
+  "candidates": {
+    "root": {
+      "tools": 12,
+      "inputBytes": 28369,
+      "meanInputBytes": 2364,
+      "maxInputBytes": 5223,
+      "declarationBytes": 40111,
+      "descriptionBytes": 9824,
+      "validCasesAccepted": 53,
+      "invalidCases": 777,
+      "invalidDiscoveryAccepted": 0,
+      "invalidRuntimeAccepted": 0,
+      "invalidByCategory": {
+        "omit": {
+          "total": 165,
+          "discoveryAccepted": 0
+        },
+        "add": {
+          "total": 443,
+          "discoveryAccepted": 0
+        },
+        "range": {
+          "total": 116,
+          "discoveryAccepted": 0
+        },
+        "invented": {
+          "total": 53,
+          "discoveryAccepted": 0
+        }
+      }
+    },
+    "A": {
+      "tools": 12,
+      "inputBytes": 18151,
+      "meanInputBytes": 1513,
+      "maxInputBytes": 2683,
+      "declarationBytes": 29893,
+      "descriptionBytes": 9824,
+      "validCasesAccepted": 53,
+      "invalidCases": 777,
+      "invalidDiscoveryAccepted": 547,
+      "invalidRuntimeAccepted": 0,
+      "invalidByCategory": {
+        "omit": {
+          "total": 165,
+          "discoveryAccepted": 104
+        },
+        "add": {
+          "total": 443,
+          "discoveryAccepted": 443
+        },
+        "range": {
+          "total": 116,
+          "discoveryAccepted": 0
+        },
+        "invented": {
+          "total": 53,
+          "discoveryAccepted": 0
+        }
+      }
+    },
+    "B": {
+      "tools": 12,
+      "inputBytes": 29509,
+      "meanInputBytes": 2459,
+      "maxInputBytes": 5318,
+      "declarationBytes": 41251,
+      "descriptionBytes": 9824,
+      "validCasesAccepted": 53,
+      "invalidCases": 777,
+      "invalidDiscoveryAccepted": 0,
+      "invalidRuntimeAccepted": 0,
+      "invalidByCategory": {
+        "omit": {
+          "total": 165,
+          "discoveryAccepted": 0
+        },
+        "add": {
+          "total": 443,
+          "discoveryAccepted": 0
+        },
+        "range": {
+          "total": 116,
+          "discoveryAccepted": 0
+        },
+        "invented": {
+          "total": 53,
+          "discoveryAccepted": 0
+        }
+      }
+    },
+    "C": {
+      "tools": 53,
+      "inputBytes": 29177,
+      "meanInputBytes": 551,
+      "maxInputBytes": 1868,
+      "declarationBytes": 40329,
+      "descriptionBytes": 2273,
+      "validCasesAccepted": 53,
+      "invalidCases": 777,
+      "invalidDiscoveryAccepted": 0,
+      "invalidRuntimeAccepted": 0,
+      "invalidByCategory": {
+        "omit": {
+          "total": 165,
+          "discoveryAccepted": 0
+        },
+        "add": {
+          "total": 443,
+          "discoveryAccepted": 0
+        },
+        "range": {
+          "total": 116,
+          "discoveryAccepted": 0
+        },
+        "invented": {
+          "total": 53,
+          "discoveryAccepted": 0
+        }
+      }
+    },
+    "D": {
+      "tools": 6,
+      "inputBytes": 37545,
+      "meanInputBytes": 6258,
+      "maxInputBytes": 9375,
+      "declarationBytes": 38816,
+      "descriptionBytes": 311,
+      "validCasesAccepted": 53,
+      "invalidCases": 777,
+      "invalidDiscoveryAccepted": 0,
+      "invalidRuntimeAccepted": 0,
+      "invalidByCategory": {
+        "omit": {
+          "total": 165,
+          "discoveryAccepted": 0
+        },
+        "add": {
+          "total": 443,
+          "discoveryAccepted": 0
+        },
+        "range": {
+          "total": 116,
+          "discoveryAccepted": 0
+        },
+        "invented": {
+          "total": 53,
+          "discoveryAccepted": 0
+        }
+      }
+    },
+    "B2": {
+      "tools": 12,
+      "inputBytes": 32365,
+      "meanInputBytes": 2697,
+      "maxInputBytes": 5865,
+      "declarationBytes": 44107,
+      "descriptionBytes": 9824,
+      "validCasesAccepted": 53,
+      "invalidCases": 777,
+      "invalidDiscoveryAccepted": 0,
+      "invalidRuntimeAccepted": 0,
+      "invalidByCategory": {
+        "omit": {
+          "total": 165,
+          "discoveryAccepted": 0
+        },
+        "add": {
+          "total": 443,
+          "discoveryAccepted": 0
+        },
+        "range": {
+          "total": 116,
+          "discoveryAccepted": 0
+        },
+        "invented": {
+          "total": 53,
+          "discoveryAccepted": 0
+        }
+      }
+    }
+  }
+}

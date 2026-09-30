@@ -109,15 +109,22 @@ class ProgressTest(Base):
         self.assertEqual(replay["id"], validation["id"])
         self.assertEqual(replay["status"], "failed")
 
-    def test_process_admission_ignores_wait_ms(self):
+    def test_process_admission_is_immediate_and_rejects_ineffective_options(self):
         w = self.open()
         started = time.monotonic()
         process = self.call("exec", {"requestId": "process-wait-ignored", "taskId": w["taskId"],
                                      "expected": w["checkpoint"], "command": "sleep 2",
-                                     "mode": "process", "timeout": 5, "waitMs": 30000})
+                                     "mode": "process", "timeout": 5})
         elapsed = time.monotonic() - started
         self.assertEqual(process["status"], "running", process)
         self.assertLess(elapsed, 1.0)
+        for extra in ({'waitMs': 30000}, {'waitMs': 0}, {'capturePaths': ['new']}, {'capturePaths': []}):
+            invalid = self.c.call('alice', 'tdev_exec', {
+                'requestId': 'invalid-process-options', 'taskId': w['taskId'],
+                'expected': w['checkpoint'], 'command': 'sleep 2', 'mode': 'process', **extra})
+            self.assertEqual(invalid['error']['code'], 'SCHEMA')
+            self.assertEqual(invalid['error']['effect'], 'none')
+        self.assertIsNone(self.c.store.one('SELECT id FROM operation WHERE request=?', ('invalid-process-options',)))
         self.call("operation", {"action": "cancel", "requestId": "process-wait-cleanup",
                                 "operationId": process["id"]})
         self.assertEqual(self.wait(process["id"])["status"], "failed")

@@ -1,0 +1,2089 @@
+{
+  "method": "Analytical fixed traces routed through actual candidate schemas; no domain effects/model inference. Minimal canonical fixture inputs; timing, output-derived handles, ambiguity and additional polls are not simulated.",
+  "scenarios": {
+    "small_edit": {
+      "A": {
+        "calls": 9,
+        "toolKinds": 8,
+        "trace": [
+          {
+            "name": "tdev_project",
+            "arguments": {
+              "action": "list"
+            }
+          },
+          {
+            "name": "tdev_task",
+            "arguments": {
+              "action": "start",
+              "requestId": "x"
+            }
+          },
+          {
+            "name": "tdev_read",
+            "arguments": {
+              "taskId": "x",
+              "queries": [
+                {
+                  "action": "file",
+                  "path": "x"
+                }
+              ]
+            }
+          },
+          {
+            "name": "tdev_edit",
+            "arguments": {
+              "requestId": "x",
+              "taskId": "x",
+              "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "edits": [
+                {
+                  "action": "put",
+                  "path": "x",
+                  "content": "x",
+                  "before": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                }
+              ]
+            }
+          },
+          {
+            "name": "tdev_exec",
+            "arguments": {
+              "requestId": "x",
+              "taskId": "x",
+              "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "command": "x"
+            }
+          },
+          {
+            "name": "tdev_operation",
+            "arguments": {
+              "action": "status",
+              "operationId": "operation"
+            }
+          },
+          {
+            "name": "tdev_validate",
+            "arguments": {
+              "requestId": "x",
+              "taskId": "x",
+              "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "message": "x"
+            }
+          },
+          {
+            "name": "tdev_operation",
+            "arguments": {
+              "action": "status",
+              "operationId": "operation"
+            }
+          },
+          {
+            "name": "tdev_publish",
+            "arguments": {
+              "requestId": "x",
+              "validationId": "x"
+            }
+          }
+        ]
+      },
+      "B": {
+        "calls": 9,
+        "toolKinds": 8,
+        "trace": [
+          {
+            "name": "tdev_project",
+            "arguments": {
+              "request": {
+                "action": "list"
+              }
+            }
+          },
+          {
+            "name": "tdev_task",
+            "arguments": {
+              "request": {
+                "action": "start",
+                "requestId": "x"
+              }
+            }
+          },
+          {
+            "name": "tdev_read",
+            "arguments": {
+              "request": {
+                "taskId": "x",
+                "queries": [
+                  {
+                    "action": "file",
+                    "path": "x"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "name": "tdev_edit",
+            "arguments": {
+              "request": {
+                "requestId": "x",
+                "taskId": "x",
+                "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "edits": [
+                  {
+                    "action": "put",
+                    "path": "x",
+                    "content": "x",
+                    "before": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "name": "tdev_exec",
+            "arguments": {
+              "request": {
+                "requestId": "x",
+                "taskId": "x",
+                "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "command": "x"
+              }
+            }
+          },
+          {
+            "name": "tdev_operation",
+            "arguments": {
+              "request": {
+                "action": "status",
+                "operationId": "operation"
+              }
+            }
+          },
+          {
+            "name": "tdev_validate",
+            "arguments": {
+              "request": {
+                "requestId": "x",
+                "taskId": "x",
+                "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "message": "x"
+              }
+            }
+          },
+          {
+            "name": "tdev_operation",
+            "arguments": {
+              "request": {
+                "action": "status",
+                "operationId": "operation"
+              }
+            }
+          },
+          {
+            "name": "tdev_publish",
+            "arguments": {
+              "request": {
+                "requestId": "x",
+                "validationId": "x"
+              }
+            }
+          }
+        ]
+      },
+      "C": {
+        "calls": 9,
+        "toolKinds": 8,
+        "trace": [
+          {
+            "name": "tdev_project_list",
+            "arguments": {
+              "action": "list"
+            }
+          },
+          {
+            "name": "tdev_task_start",
+            "arguments": {
+              "action": "start",
+              "requestId": "x"
+            }
+          },
+          {
+            "name": "tdev_read",
+            "arguments": {
+              "taskId": "x",
+              "queries": [
+                {
+                  "action": "file",
+                  "path": "x"
+                }
+              ]
+            }
+          },
+          {
+            "name": "tdev_edit",
+            "arguments": {
+              "requestId": "x",
+              "taskId": "x",
+              "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "edits": [
+                {
+                  "action": "put",
+                  "path": "x",
+                  "content": "x",
+                  "before": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                }
+              ]
+            }
+          },
+          {
+            "name": "tdev_exec",
+            "arguments": {
+              "requestId": "x",
+              "taskId": "x",
+              "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "command": "x"
+            }
+          },
+          {
+            "name": "tdev_operation_status",
+            "arguments": {
+              "action": "status",
+              "operationId": "operation"
+            }
+          },
+          {
+            "name": "tdev_validate_source",
+            "arguments": {
+              "requestId": "x",
+              "taskId": "x",
+              "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "message": "x"
+            }
+          },
+          {
+            "name": "tdev_operation_status",
+            "arguments": {
+              "action": "status",
+              "operationId": "operation"
+            }
+          },
+          {
+            "name": "tdev_publish",
+            "arguments": {
+              "requestId": "x",
+              "validationId": "x"
+            }
+          }
+        ]
+      },
+      "D": {
+        "calls": 9,
+        "toolKinds": 4,
+        "trace": [
+          {
+            "name": "tdev_observe",
+            "arguments": {
+              "request": {
+                "intent": "project.list",
+                "arguments": {
+                  "action": "list"
+                }
+              }
+            }
+          },
+          {
+            "name": "tdev_source",
+            "arguments": {
+              "request": {
+                "intent": "task.start",
+                "arguments": {
+                  "action": "start",
+                  "requestId": "x"
+                }
+              }
+            }
+          },
+          {
+            "name": "tdev_source",
+            "arguments": {
+              "request": {
+                "intent": "read.call",
+                "arguments": {
+                  "taskId": "x",
+                  "queries": [
+                    {
+                      "action": "file",
+                      "path": "x"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "name": "tdev_source",
+            "arguments": {
+              "request": {
+                "intent": "edit.call",
+                "arguments": {
+                  "requestId": "x",
+                  "taskId": "x",
+                  "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                  "edits": [
+                    {
+                      "action": "put",
+                      "path": "x",
+                      "content": "x",
+                      "before": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "name": "tdev_run",
+            "arguments": {
+              "request": {
+                "intent": "exec.call",
+                "arguments": {
+                  "requestId": "x",
+                  "taskId": "x",
+                  "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                  "command": "x"
+                }
+              }
+            }
+          },
+          {
+            "name": "tdev_observe",
+            "arguments": {
+              "request": {
+                "intent": "operation.status",
+                "arguments": {
+                  "action": "status",
+                  "operationId": "operation"
+                }
+              }
+            }
+          },
+          {
+            "name": "tdev_release",
+            "arguments": {
+              "request": {
+                "intent": "validate.source",
+                "arguments": {
+                  "requestId": "x",
+                  "taskId": "x",
+                  "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                  "message": "x"
+                }
+              }
+            }
+          },
+          {
+            "name": "tdev_observe",
+            "arguments": {
+              "request": {
+                "intent": "operation.status",
+                "arguments": {
+                  "action": "status",
+                  "operationId": "operation"
+                }
+              }
+            }
+          },
+          {
+            "name": "tdev_release",
+            "arguments": {
+              "request": {
+                "intent": "publish.call",
+                "arguments": {
+                  "requestId": "x",
+                  "validationId": "x"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "B2": {
+        "calls": 9,
+        "toolKinds": 8,
+        "trace": [
+          {
+            "name": "tdev_project",
+            "arguments": {
+              "request": {
+                "action": "list"
+              }
+            }
+          },
+          {
+            "name": "tdev_task",
+            "arguments": {
+              "request": {
+                "action": "start",
+                "requestId": "x"
+              }
+            }
+          },
+          {
+            "name": "tdev_read",
+            "arguments": {
+              "request": {
+                "taskId": "x",
+                "queries": [
+                  {
+                    "action": "file",
+                    "path": "x"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "name": "tdev_edit",
+            "arguments": {
+              "request": {
+                "requestId": "x",
+                "taskId": "x",
+                "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "edits": [
+                  {
+                    "action": "put",
+                    "path": "x",
+                    "content": "x",
+                    "before": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "name": "tdev_exec",
+            "arguments": {
+              "request": {
+                "requestId": "x",
+                "taskId": "x",
+                "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "command": "x"
+              }
+            }
+          },
+          {
+            "name": "tdev_operation",
+            "arguments": {
+              "request": {
+                "action": "status",
+                "operationId": "operation"
+              }
+            }
+          },
+          {
+            "name": "tdev_validate",
+            "arguments": {
+              "request": {
+                "requestId": "x",
+                "taskId": "x",
+                "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "message": "x"
+              }
+            }
+          },
+          {
+            "name": "tdev_operation",
+            "arguments": {
+              "request": {
+                "action": "status",
+                "operationId": "operation"
+              }
+            }
+          },
+          {
+            "name": "tdev_publish",
+            "arguments": {
+              "request": {
+                "requestId": "x",
+                "validationId": "x"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "debugging": {
+      "A": {
+        "calls": 9,
+        "toolKinds": 4,
+        "trace": [
+          {
+            "name": "tdev_task",
+            "arguments": {
+              "action": "inspect",
+              "taskId": "x"
+            }
+          },
+          {
+            "name": "tdev_exec",
+            "arguments": {
+              "requestId": "x",
+              "taskId": "x",
+              "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "command": "x",
+              "mode": "process"
+            }
+          },
+          {
+            "name": "tdev_operation",
+            "arguments": {
+              "action": "status",
+              "operationId": "operation"
+            }
+          },
+          {
+            "name": "tdev_edit",
+            "arguments": {
+              "requestId": "x",
+              "taskId": "x",
+              "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "edits": [
+                {
+                  "action": "put",
+                  "path": "x",
+                  "content": "x",
+                  "before": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                }
+              ]
+            }
+          },
+          {
+            "name": "tdev_operation",
+            "arguments": {
+              "action": "cancel",
+              "requestId": "x",
+              "operationId": "x"
+            }
+          },
+          {
+            "name": "tdev_operation",
+            "arguments": {
+              "action": "status",
+              "operationId": "operation"
+            }
+          },
+          {
+            "name": "tdev_exec",
+            "arguments": {
+              "requestId": "x",
+              "taskId": "x",
+              "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "command": "x",
+              "mode": "process"
+            }
+          },
+          {
+            "name": "tdev_operation",
+            "arguments": {
+              "action": "status",
+              "operationId": "operation"
+            }
+          },
+          {
+            "name": "tdev_operation",
+            "arguments": {
+              "action": "retire",
+              "requestId": "x",
+              "operationId": "x"
+            }
+          }
+        ]
+      },
+      "B": {
+        "calls": 9,
+        "toolKinds": 4,
+        "trace": [
+          {
+            "name": "tdev_task",
+            "arguments": {
+              "request": {
+                "action": "inspect",
+                "taskId": "x"
+              }
+            }
+          },
+          {
+            "name": "tdev_exec",
+            "arguments": {
+              "request": {
+                "requestId": "x",
+                "taskId": "x",
+                "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "command": "x",
+                "mode": "process"
+              }
+            }
+          },
+          {
+            "name": "tdev_operation",
+            "arguments": {
+              "request": {
+                "action": "status",
+                "operationId": "operation"
+              }
+            }
+          },
+          {
+            "name": "tdev_edit",
+            "arguments": {
+              "request": {
+                "requestId": "x",
+                "taskId": "x",
+                "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "edits": [
+                  {
+                    "action": "put",
+                    "path": "x",
+                    "content": "x",
+                    "before": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "name": "tdev_operation",
+            "arguments": {
+              "request": {
+                "action": "cancel",
+                "requestId": "x",
+                "operationId": "x"
+              }
+            }
+          },
+          {
+            "name": "tdev_operation",
+            "arguments": {
+              "request": {
+                "action": "status",
+                "operationId": "operation"
+              }
+            }
+          },
+          {
+            "name": "tdev_exec",
+            "arguments": {
+              "request": {
+                "requestId": "x",
+                "taskId": "x",
+                "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "command": "x",
+                "mode": "process"
+              }
+            }
+          },
+          {
+            "name": "tdev_operation",
+            "arguments": {
+              "request": {
+                "action": "status",
+                "operationId": "operation"
+              }
+            }
+          },
+          {
+            "name": "tdev_operation",
+            "arguments": {
+              "request": {
+                "action": "retire",
+                "requestId": "x",
+                "operationId": "x"
+              }
+            }
+          }
+        ]
+      },
+      "C": {
+        "calls": 9,
+        "toolKinds": 6,
+        "trace": [
+          {
+            "name": "tdev_task_inspect",
+            "arguments": {
+              "action": "inspect",
+              "taskId": "x"
+            }
+          },
+          {
+            "name": "tdev_exec",
+            "arguments": {
+              "requestId": "x",
+              "taskId": "x",
+              "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "command": "x",
+              "mode": "process"
+            }
+          },
+          {
+            "name": "tdev_operation_status",
+            "arguments": {
+              "action": "status",
+              "operationId": "operation"
+            }
+          },
+          {
+            "name": "tdev_edit",
+            "arguments": {
+              "requestId": "x",
+              "taskId": "x",
+              "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "edits": [
+                {
+                  "action": "put",
+                  "path": "x",
+                  "content": "x",
+                  "before": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                }
+              ]
+            }
+          },
+          {
+            "name": "tdev_operation_cancel",
+            "arguments": {
+              "action": "cancel",
+              "requestId": "x",
+              "operationId": "x"
+            }
+          },
+          {
+            "name": "tdev_operation_status",
+            "arguments": {
+              "action": "status",
+              "operationId": "operation"
+            }
+          },
+          {
+            "name": "tdev_exec",
+            "arguments": {
+              "requestId": "x",
+              "taskId": "x",
+              "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "command": "x",
+              "mode": "process"
+            }
+          },
+          {
+            "name": "tdev_operation_status",
+            "arguments": {
+              "action": "status",
+              "operationId": "operation"
+            }
+          },
+          {
+            "name": "tdev_operation_retire",
+            "arguments": {
+              "action": "retire",
+              "requestId": "x",
+              "operationId": "x"
+            }
+          }
+        ]
+      },
+      "D": {
+        "calls": 9,
+        "toolKinds": 3,
+        "trace": [
+          {
+            "name": "tdev_observe",
+            "arguments": {
+              "request": {
+                "intent": "task.inspect",
+                "arguments": {
+                  "action": "inspect",
+                  "taskId": "x"
+                }
+              }
+            }
+          },
+          {
+            "name": "tdev_run",
+            "arguments": {
+              "request": {
+                "intent": "exec.call",
+                "arguments": {
+                  "requestId": "x",
+                  "taskId": "x",
+                  "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                  "command": "x",
+                  "mode": "process"
+                }
+              }
+            }
+          },
+          {
+            "name": "tdev_observe",
+            "arguments": {
+              "request": {
+                "intent": "operation.status",
+                "arguments": {
+                  "action": "status",
+                  "operationId": "operation"
+                }
+              }
+            }
+          },
+          {
+            "name": "tdev_source",
+            "arguments": {
+              "request": {
+                "intent": "edit.call",
+                "arguments": {
+                  "requestId": "x",
+                  "taskId": "x",
+                  "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                  "edits": [
+                    {
+                      "action": "put",
+                      "path": "x",
+                      "content": "x",
+                      "before": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "name": "tdev_run",
+            "arguments": {
+              "request": {
+                "intent": "operation.cancel",
+                "arguments": {
+                  "action": "cancel",
+                  "requestId": "x",
+                  "operationId": "x"
+                }
+              }
+            }
+          },
+          {
+            "name": "tdev_observe",
+            "arguments": {
+              "request": {
+                "intent": "operation.status",
+                "arguments": {
+                  "action": "status",
+                  "operationId": "operation"
+                }
+              }
+            }
+          },
+          {
+            "name": "tdev_run",
+            "arguments": {
+              "request": {
+                "intent": "exec.call",
+                "arguments": {
+                  "requestId": "x",
+                  "taskId": "x",
+                  "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                  "command": "x",
+                  "mode": "process"
+                }
+              }
+            }
+          },
+          {
+            "name": "tdev_observe",
+            "arguments": {
+              "request": {
+                "intent": "operation.status",
+                "arguments": {
+                  "action": "status",
+                  "operationId": "operation"
+                }
+              }
+            }
+          },
+          {
+            "name": "tdev_run",
+            "arguments": {
+              "request": {
+                "intent": "operation.retire",
+                "arguments": {
+                  "action": "retire",
+                  "requestId": "x",
+                  "operationId": "x"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "B2": {
+        "calls": 9,
+        "toolKinds": 4,
+        "trace": [
+          {
+            "name": "tdev_task",
+            "arguments": {
+              "request": {
+                "action": "inspect",
+                "taskId": "x"
+              }
+            }
+          },
+          {
+            "name": "tdev_exec",
+            "arguments": {
+              "request": {
+                "requestId": "x",
+                "taskId": "x",
+                "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "command": "x",
+                "mode": "process"
+              }
+            }
+          },
+          {
+            "name": "tdev_operation",
+            "arguments": {
+              "request": {
+                "action": "status",
+                "operationId": "operation"
+              }
+            }
+          },
+          {
+            "name": "tdev_edit",
+            "arguments": {
+              "request": {
+                "requestId": "x",
+                "taskId": "x",
+                "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "edits": [
+                  {
+                    "action": "put",
+                    "path": "x",
+                    "content": "x",
+                    "before": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "name": "tdev_operation",
+            "arguments": {
+              "request": {
+                "action": "cancel",
+                "requestId": "x",
+                "operationId": "x"
+              }
+            }
+          },
+          {
+            "name": "tdev_operation",
+            "arguments": {
+              "request": {
+                "action": "status",
+                "operationId": "operation"
+              }
+            }
+          },
+          {
+            "name": "tdev_exec",
+            "arguments": {
+              "request": {
+                "requestId": "x",
+                "taskId": "x",
+                "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "command": "x",
+                "mode": "process"
+              }
+            }
+          },
+          {
+            "name": "tdev_operation",
+            "arguments": {
+              "request": {
+                "action": "status",
+                "operationId": "operation"
+              }
+            }
+          },
+          {
+            "name": "tdev_operation",
+            "arguments": {
+              "request": {
+                "action": "retire",
+                "requestId": "x",
+                "operationId": "x"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "reconnect": {
+      "A": {
+        "calls": 4,
+        "toolKinds": 3,
+        "trace": [
+          {
+            "name": "tdev_project",
+            "arguments": {
+              "action": "list"
+            }
+          },
+          {
+            "name": "tdev_task",
+            "arguments": {
+              "action": "list"
+            }
+          },
+          {
+            "name": "tdev_task",
+            "arguments": {
+              "action": "inspect",
+              "taskId": "x"
+            }
+          },
+          {
+            "name": "tdev_operation",
+            "arguments": {
+              "action": "status",
+              "operationId": "operation"
+            }
+          }
+        ]
+      },
+      "B": {
+        "calls": 4,
+        "toolKinds": 3,
+        "trace": [
+          {
+            "name": "tdev_project",
+            "arguments": {
+              "request": {
+                "action": "list"
+              }
+            }
+          },
+          {
+            "name": "tdev_task",
+            "arguments": {
+              "request": {
+                "action": "list"
+              }
+            }
+          },
+          {
+            "name": "tdev_task",
+            "arguments": {
+              "request": {
+                "action": "inspect",
+                "taskId": "x"
+              }
+            }
+          },
+          {
+            "name": "tdev_operation",
+            "arguments": {
+              "request": {
+                "action": "status",
+                "operationId": "operation"
+              }
+            }
+          }
+        ]
+      },
+      "C": {
+        "calls": 4,
+        "toolKinds": 4,
+        "trace": [
+          {
+            "name": "tdev_project_list",
+            "arguments": {
+              "action": "list"
+            }
+          },
+          {
+            "name": "tdev_task_list",
+            "arguments": {
+              "action": "list"
+            }
+          },
+          {
+            "name": "tdev_task_inspect",
+            "arguments": {
+              "action": "inspect",
+              "taskId": "x"
+            }
+          },
+          {
+            "name": "tdev_operation_status",
+            "arguments": {
+              "action": "status",
+              "operationId": "operation"
+            }
+          }
+        ]
+      },
+      "D": {
+        "calls": 4,
+        "toolKinds": 1,
+        "trace": [
+          {
+            "name": "tdev_observe",
+            "arguments": {
+              "request": {
+                "intent": "project.list",
+                "arguments": {
+                  "action": "list"
+                }
+              }
+            }
+          },
+          {
+            "name": "tdev_observe",
+            "arguments": {
+              "request": {
+                "intent": "task.list",
+                "arguments": {
+                  "action": "list"
+                }
+              }
+            }
+          },
+          {
+            "name": "tdev_observe",
+            "arguments": {
+              "request": {
+                "intent": "task.inspect",
+                "arguments": {
+                  "action": "inspect",
+                  "taskId": "x"
+                }
+              }
+            }
+          },
+          {
+            "name": "tdev_observe",
+            "arguments": {
+              "request": {
+                "intent": "operation.status",
+                "arguments": {
+                  "action": "status",
+                  "operationId": "operation"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "B2": {
+        "calls": 4,
+        "toolKinds": 3,
+        "trace": [
+          {
+            "name": "tdev_project",
+            "arguments": {
+              "request": {
+                "action": "list"
+              }
+            }
+          },
+          {
+            "name": "tdev_task",
+            "arguments": {
+              "request": {
+                "action": "list"
+              }
+            }
+          },
+          {
+            "name": "tdev_task",
+            "arguments": {
+              "request": {
+                "action": "inspect",
+                "taskId": "x"
+              }
+            }
+          },
+          {
+            "name": "tdev_operation",
+            "arguments": {
+              "request": {
+                "action": "status",
+                "operationId": "operation"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "artifact_release": {
+      "A": {
+        "calls": 11,
+        "toolKinds": 4,
+        "trace": [
+          {
+            "name": "tdev_validate",
+            "arguments": {
+              "requestId": "x",
+              "taskId": "x",
+              "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "message": "x"
+            }
+          },
+          {
+            "name": "tdev_operation",
+            "arguments": {
+              "action": "status",
+              "operationId": "operation"
+            }
+          },
+          {
+            "name": "tdev_artifact",
+            "arguments": {
+              "action": "inspectRecipe",
+              "validationId": "x"
+            }
+          },
+          {
+            "name": "tdev_artifact",
+            "arguments": {
+              "action": "prepare",
+              "validationId": "x",
+              "requestId": "x"
+            }
+          },
+          {
+            "name": "tdev_operation",
+            "arguments": {
+              "action": "status",
+              "operationId": "operation"
+            }
+          },
+          {
+            "name": "tdev_validate",
+            "arguments": {
+              "subject": "artifact",
+              "requestId": "x",
+              "artifactId": "x"
+            }
+          },
+          {
+            "name": "tdev_operation",
+            "arguments": {
+              "action": "status",
+              "operationId": "operation"
+            }
+          },
+          {
+            "name": "tdev_deploy",
+            "arguments": {
+              "action": "release",
+              "requestId": "x",
+              "validationId": "x",
+              "name": "x",
+              "health": {
+                "port": 1024,
+                "path": "/health"
+              },
+              "subject": "artifact"
+            }
+          },
+          {
+            "name": "tdev_deploy",
+            "arguments": {
+              "action": "inspect",
+              "deploymentId": "x"
+            }
+          },
+          {
+            "name": "tdev_deploy",
+            "arguments": {
+              "action": "rollback",
+              "requestId": "x",
+              "deploymentId": "x",
+              "expectedRevision": 0
+            }
+          },
+          {
+            "name": "tdev_deploy",
+            "arguments": {
+              "action": "inspect",
+              "deploymentId": "x"
+            }
+          }
+        ]
+      },
+      "B": {
+        "calls": 11,
+        "toolKinds": 4,
+        "trace": [
+          {
+            "name": "tdev_validate",
+            "arguments": {
+              "request": {
+                "requestId": "x",
+                "taskId": "x",
+                "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "message": "x"
+              }
+            }
+          },
+          {
+            "name": "tdev_operation",
+            "arguments": {
+              "request": {
+                "action": "status",
+                "operationId": "operation"
+              }
+            }
+          },
+          {
+            "name": "tdev_artifact",
+            "arguments": {
+              "request": {
+                "action": "inspectRecipe",
+                "validationId": "x"
+              }
+            }
+          },
+          {
+            "name": "tdev_artifact",
+            "arguments": {
+              "request": {
+                "action": "prepare",
+                "validationId": "x",
+                "requestId": "x"
+              }
+            }
+          },
+          {
+            "name": "tdev_operation",
+            "arguments": {
+              "request": {
+                "action": "status",
+                "operationId": "operation"
+              }
+            }
+          },
+          {
+            "name": "tdev_validate",
+            "arguments": {
+              "request": {
+                "subject": "artifact",
+                "requestId": "x",
+                "artifactId": "x"
+              }
+            }
+          },
+          {
+            "name": "tdev_operation",
+            "arguments": {
+              "request": {
+                "action": "status",
+                "operationId": "operation"
+              }
+            }
+          },
+          {
+            "name": "tdev_deploy",
+            "arguments": {
+              "request": {
+                "action": "release",
+                "requestId": "x",
+                "validationId": "x",
+                "name": "x",
+                "health": {
+                  "port": 1024,
+                  "path": "/health"
+                },
+                "subject": "artifact"
+              }
+            }
+          },
+          {
+            "name": "tdev_deploy",
+            "arguments": {
+              "request": {
+                "action": "inspect",
+                "deploymentId": "x"
+              }
+            }
+          },
+          {
+            "name": "tdev_deploy",
+            "arguments": {
+              "request": {
+                "action": "rollback",
+                "requestId": "x",
+                "deploymentId": "x",
+                "expectedRevision": 0
+              }
+            }
+          },
+          {
+            "name": "tdev_deploy",
+            "arguments": {
+              "request": {
+                "action": "inspect",
+                "deploymentId": "x"
+              }
+            }
+          }
+        ]
+      },
+      "C": {
+        "calls": 11,
+        "toolKinds": 8,
+        "trace": [
+          {
+            "name": "tdev_validate_source",
+            "arguments": {
+              "requestId": "x",
+              "taskId": "x",
+              "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "message": "x"
+            }
+          },
+          {
+            "name": "tdev_operation_status",
+            "arguments": {
+              "action": "status",
+              "operationId": "operation"
+            }
+          },
+          {
+            "name": "tdev_artifact_inspectRecipe",
+            "arguments": {
+              "action": "inspectRecipe",
+              "validationId": "x"
+            }
+          },
+          {
+            "name": "tdev_artifact_prepare",
+            "arguments": {
+              "action": "prepare",
+              "validationId": "x",
+              "requestId": "x"
+            }
+          },
+          {
+            "name": "tdev_operation_status",
+            "arguments": {
+              "action": "status",
+              "operationId": "operation"
+            }
+          },
+          {
+            "name": "tdev_validate_artifact",
+            "arguments": {
+              "subject": "artifact",
+              "requestId": "x",
+              "artifactId": "x"
+            }
+          },
+          {
+            "name": "tdev_operation_status",
+            "arguments": {
+              "action": "status",
+              "operationId": "operation"
+            }
+          },
+          {
+            "name": "tdev_deploy_release_artifact",
+            "arguments": {
+              "action": "release",
+              "requestId": "x",
+              "validationId": "x",
+              "name": "x",
+              "health": {
+                "port": 1024,
+                "path": "/health"
+              },
+              "subject": "artifact"
+            }
+          },
+          {
+            "name": "tdev_deploy_inspect",
+            "arguments": {
+              "action": "inspect",
+              "deploymentId": "x"
+            }
+          },
+          {
+            "name": "tdev_deploy_rollback",
+            "arguments": {
+              "action": "rollback",
+              "requestId": "x",
+              "deploymentId": "x",
+              "expectedRevision": 0
+            }
+          },
+          {
+            "name": "tdev_deploy_inspect",
+            "arguments": {
+              "action": "inspect",
+              "deploymentId": "x"
+            }
+          }
+        ]
+      },
+      "D": {
+        "calls": 11,
+        "toolKinds": 2,
+        "trace": [
+          {
+            "name": "tdev_release",
+            "arguments": {
+              "request": {
+                "intent": "validate.source",
+                "arguments": {
+                  "requestId": "x",
+                  "taskId": "x",
+                  "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                  "message": "x"
+                }
+              }
+            }
+          },
+          {
+            "name": "tdev_observe",
+            "arguments": {
+              "request": {
+                "intent": "operation.status",
+                "arguments": {
+                  "action": "status",
+                  "operationId": "operation"
+                }
+              }
+            }
+          },
+          {
+            "name": "tdev_observe",
+            "arguments": {
+              "request": {
+                "intent": "artifact.inspectRecipe",
+                "arguments": {
+                  "action": "inspectRecipe",
+                  "validationId": "x"
+                }
+              }
+            }
+          },
+          {
+            "name": "tdev_release",
+            "arguments": {
+              "request": {
+                "intent": "artifact.prepare",
+                "arguments": {
+                  "action": "prepare",
+                  "validationId": "x",
+                  "requestId": "x"
+                }
+              }
+            }
+          },
+          {
+            "name": "tdev_observe",
+            "arguments": {
+              "request": {
+                "intent": "operation.status",
+                "arguments": {
+                  "action": "status",
+                  "operationId": "operation"
+                }
+              }
+            }
+          },
+          {
+            "name": "tdev_release",
+            "arguments": {
+              "request": {
+                "intent": "validate.artifact",
+                "arguments": {
+                  "subject": "artifact",
+                  "requestId": "x",
+                  "artifactId": "x"
+                }
+              }
+            }
+          },
+          {
+            "name": "tdev_observe",
+            "arguments": {
+              "request": {
+                "intent": "operation.status",
+                "arguments": {
+                  "action": "status",
+                  "operationId": "operation"
+                }
+              }
+            }
+          },
+          {
+            "name": "tdev_release",
+            "arguments": {
+              "request": {
+                "intent": "deploy.release_artifact",
+                "arguments": {
+                  "action": "release",
+                  "requestId": "x",
+                  "validationId": "x",
+                  "name": "x",
+                  "health": {
+                    "port": 1024,
+                    "path": "/health"
+                  },
+                  "subject": "artifact"
+                }
+              }
+            }
+          },
+          {
+            "name": "tdev_observe",
+            "arguments": {
+              "request": {
+                "intent": "deploy.inspect",
+                "arguments": {
+                  "action": "inspect",
+                  "deploymentId": "x"
+                }
+              }
+            }
+          },
+          {
+            "name": "tdev_release",
+            "arguments": {
+              "request": {
+                "intent": "deploy.rollback",
+                "arguments": {
+                  "action": "rollback",
+                  "requestId": "x",
+                  "deploymentId": "x",
+                  "expectedRevision": 0
+                }
+              }
+            }
+          },
+          {
+            "name": "tdev_observe",
+            "arguments": {
+              "request": {
+                "intent": "deploy.inspect",
+                "arguments": {
+                  "action": "inspect",
+                  "deploymentId": "x"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "B2": {
+        "calls": 11,
+        "toolKinds": 4,
+        "trace": [
+          {
+            "name": "tdev_validate",
+            "arguments": {
+              "request": {
+                "requestId": "x",
+                "taskId": "x",
+                "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "message": "x"
+              }
+            }
+          },
+          {
+            "name": "tdev_operation",
+            "arguments": {
+              "request": {
+                "action": "status",
+                "operationId": "operation"
+              }
+            }
+          },
+          {
+            "name": "tdev_artifact",
+            "arguments": {
+              "request": {
+                "action": "inspectRecipe",
+                "validationId": "x"
+              }
+            }
+          },
+          {
+            "name": "tdev_artifact",
+            "arguments": {
+              "request": {
+                "action": "prepare",
+                "validationId": "x",
+                "requestId": "x"
+              }
+            }
+          },
+          {
+            "name": "tdev_operation",
+            "arguments": {
+              "request": {
+                "action": "status",
+                "operationId": "operation"
+              }
+            }
+          },
+          {
+            "name": "tdev_validate",
+            "arguments": {
+              "request": {
+                "subject": "artifact",
+                "requestId": "x",
+                "artifactId": "x"
+              }
+            }
+          },
+          {
+            "name": "tdev_operation",
+            "arguments": {
+              "request": {
+                "action": "status",
+                "operationId": "operation"
+              }
+            }
+          },
+          {
+            "name": "tdev_deploy",
+            "arguments": {
+              "request": {
+                "action": "release",
+                "requestId": "x",
+                "validationId": "x",
+                "name": "x",
+                "health": {
+                  "port": 1024,
+                  "path": "/health"
+                },
+                "subject": "artifact"
+              }
+            }
+          },
+          {
+            "name": "tdev_deploy",
+            "arguments": {
+              "request": {
+                "action": "inspect",
+                "deploymentId": "x"
+              }
+            }
+          },
+          {
+            "name": "tdev_deploy",
+            "arguments": {
+              "request": {
+                "action": "rollback",
+                "requestId": "x",
+                "deploymentId": "x",
+                "expectedRevision": 0
+              }
+            }
+          },
+          {
+            "name": "tdev_deploy",
+            "arguments": {
+              "request": {
+                "action": "inspect",
+                "deploymentId": "x"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "lost_provider_reply": {
+      "A": {
+        "calls": 2,
+        "toolKinds": 2,
+        "trace": [
+          {
+            "name": "tdev_publish",
+            "arguments": {
+              "requestId": "x",
+              "validationId": "x"
+            }
+          },
+          {
+            "name": "tdev_operation",
+            "arguments": {
+              "action": "status",
+              "lookupRequestId": "lost-reply"
+            }
+          }
+        ]
+      },
+      "B": {
+        "calls": 2,
+        "toolKinds": 2,
+        "trace": [
+          {
+            "name": "tdev_publish",
+            "arguments": {
+              "request": {
+                "requestId": "x",
+                "validationId": "x"
+              }
+            }
+          },
+          {
+            "name": "tdev_operation",
+            "arguments": {
+              "request": {
+                "action": "status",
+                "lookupRequestId": "lost-reply"
+              }
+            }
+          }
+        ]
+      },
+      "C": {
+        "calls": 2,
+        "toolKinds": 2,
+        "trace": [
+          {
+            "name": "tdev_publish",
+            "arguments": {
+              "requestId": "x",
+              "validationId": "x"
+            }
+          },
+          {
+            "name": "tdev_operation_status",
+            "arguments": {
+              "action": "status",
+              "lookupRequestId": "lost-reply"
+            }
+          }
+        ]
+      },
+      "D": {
+        "calls": 2,
+        "toolKinds": 2,
+        "trace": [
+          {
+            "name": "tdev_release",
+            "arguments": {
+              "request": {
+                "intent": "publish.call",
+                "arguments": {
+                  "requestId": "x",
+                  "validationId": "x"
+                }
+              }
+            }
+          },
+          {
+            "name": "tdev_observe",
+            "arguments": {
+              "request": {
+                "intent": "operation.status",
+                "arguments": {
+                  "action": "status",
+                  "lookupRequestId": "lost-reply"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "B2": {
+        "calls": 2,
+        "toolKinds": 2,
+        "trace": [
+          {
+            "name": "tdev_publish",
+            "arguments": {
+              "request": {
+                "requestId": "x",
+                "validationId": "x"
+              }
+            }
+          },
+          {
+            "name": "tdev_operation",
+            "arguments": {
+              "request": {
+                "action": "status",
+                "lookupRequestId": "lost-reply"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "multiple_tasks": {
+      "A": {
+        "calls": 3,
+        "toolKinds": 2,
+        "trace": [
+          {
+            "name": "tdev_task",
+            "arguments": {
+              "action": "list"
+            }
+          },
+          {
+            "name": "tdev_task",
+            "arguments": {
+              "action": "inspect",
+              "taskId": "x"
+            }
+          },
+          {
+            "name": "tdev_operation",
+            "arguments": {
+              "action": "status",
+              "operationId": "operation"
+            }
+          }
+        ]
+      },
+      "B": {
+        "calls": 3,
+        "toolKinds": 2,
+        "trace": [
+          {
+            "name": "tdev_task",
+            "arguments": {
+              "request": {
+                "action": "list"
+              }
+            }
+          },
+          {
+            "name": "tdev_task",
+            "arguments": {
+              "request": {
+                "action": "inspect",
+                "taskId": "x"
+              }
+            }
+          },
+          {
+            "name": "tdev_operation",
+            "arguments": {
+              "request": {
+                "action": "status",
+                "operationId": "operation"
+              }
+            }
+          }
+        ]
+      },
+      "C": {
+        "calls": 3,
+        "toolKinds": 3,
+        "trace": [
+          {
+            "name": "tdev_task_list",
+            "arguments": {
+              "action": "list"
+            }
+          },
+          {
+            "name": "tdev_task_inspect",
+            "arguments": {
+              "action": "inspect",
+              "taskId": "x"
+            }
+          },
+          {
+            "name": "tdev_operation_status",
+            "arguments": {
+              "action": "status",
+              "operationId": "operation"
+            }
+          }
+        ]
+      },
+      "D": {
+        "calls": 3,
+        "toolKinds": 1,
+        "trace": [
+          {
+            "name": "tdev_observe",
+            "arguments": {
+              "request": {
+                "intent": "task.list",
+                "arguments": {
+                  "action": "list"
+                }
+              }
+            }
+          },
+          {
+            "name": "tdev_observe",
+            "arguments": {
+              "request": {
+                "intent": "task.inspect",
+                "arguments": {
+                  "action": "inspect",
+                  "taskId": "x"
+                }
+              }
+            }
+          },
+          {
+            "name": "tdev_observe",
+            "arguments": {
+              "request": {
+                "intent": "operation.status",
+                "arguments": {
+                  "action": "status",
+                  "operationId": "operation"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "B2": {
+        "calls": 3,
+        "toolKinds": 2,
+        "trace": [
+          {
+            "name": "tdev_task",
+            "arguments": {
+              "request": {
+                "action": "list"
+              }
+            }
+          },
+          {
+            "name": "tdev_task",
+            "arguments": {
+              "request": {
+                "action": "inspect",
+                "taskId": "x"
+              }
+            }
+          },
+          {
+            "name": "tdev_operation",
+            "arguments": {
+              "request": {
+                "action": "status",
+                "operationId": "operation"
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

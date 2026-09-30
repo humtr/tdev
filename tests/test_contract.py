@@ -30,15 +30,16 @@ class ContractTest(unittest.TestCase):
             Draft202012Validator.check_schema(tool["outputSchema"])
 
         exec_schema = tools["tdev_exec"]["inputSchema"]
-        self.assertNotIn("network", exec_schema["properties"])
+        for branch in exec_schema['properties']['request']['oneOf']:
+            self.assertNotIn('network', branch['properties'])
         self.assertFalse(validator.is_valid({"tool": "tdev_exec", "input": {
             "requestId": "exec-network", "taskId": wid, "expected": oid,
             "command": "true", "network": "none"}}))
 
         operation_schema = tools["tdev_operation"]["inputSchema"]
         self.assertNotIn("oneOf", operation_schema)
-        self.assertEqual(operation_schema["properties"]["action"]["enum"],
-                         ["status", "stdin", "cancel", "retire"])
+        self.assertEqual(operation_schema['required'], ['request'])
+        self.assertIn('oneOf', operation_schema['properties']['request'])
         advertised = Draft202012Validator(operation_schema)
         for value in (
             {"action": "status", "operationId": "exec", "waitMs": 30000},
@@ -48,7 +49,7 @@ class ContractTest(unittest.TestCase):
             {"action": "cancel", "requestId": "cancel", "operationId": "exec"},
             {"action": "retire", "requestId": "retire", "operationId": "exec"},
         ):
-            self.assertTrue(advertised.is_valid(value))
+            self.assertTrue(advertised.is_valid({"request": value}))
             validator.validate({"tool": "tdev_operation", "input": value})
         for value in (
             {"action": "status"},
@@ -57,71 +58,18 @@ class ContractTest(unittest.TestCase):
             {"action": "cancel", "requestId": "cancel", "operationId": "exec", "waitMs": 1},
         ):
             self.assertFalse(validator.is_valid({"tool": "tdev_operation", "input": value}))
+            self.assertFalse(advertised.is_valid({'request': value}))
         self.assertFalse(advertised.is_valid({"action": "status", "operationId": "exec",
                                               "unexpected": True}))
 
-        host_inputs = {
-            "tdev_workspace": ("workspaceInput", "workspaceToolInput"),
-            "tdev_task": ("taskInput", "taskToolInput"),
-            "tdev_validate": ("validateInput", "validateToolInput"),
-            "tdev_project": ("projectInput", "projectToolInput"),
-            "tdev_deploy": ("deployInput", "deployToolInput"),
-            "tdev_artifact": ("artifactInput", "artifactToolInput"),
-            "tdev_diagnostics": ("diagnosticsInput", "diagnosticsToolInput"),
-        }
-        wrapper_refs = {
-            branch["properties"]["tool"]["const"]: branch["properties"]["input"]["$ref"]
-            for branch in s["oneOf"]
-        }
-        for tool_name, (canonical_name, advertised_name) in host_inputs.items():
-            schema = tools[tool_name]["inputSchema"]
-            canonical = s["$defs"][canonical_name]
-            self.assertEqual(schema, expanded(s, {"$ref": f"#/$defs/{advertised_name}"}))
-            self.assertNotIn("oneOf", schema)
-            self.assertTrue(schema["properties"])
-            self.assertFalse(schema["additionalProperties"])
-            self.assertEqual(wrapper_refs[tool_name], f"#/$defs/{canonical_name}")
-            canonical_properties = {
-                name for arm in canonical["oneOf"] for name in arm.get("properties", {})
-            }
-            self.assertEqual(set(schema["properties"]), canonical_properties)
-            canonical_required = set.intersection(
-                *(set(arm.get("required", [])) for arm in canonical["oneOf"]))
-            self.assertEqual(set(schema.get("required", [])), canonical_required)
-            actions = []
-            for arm in canonical["oneOf"]:
-                action = arm.get("properties", {}).get("action", {})
-                if "const" in action and action["const"] not in actions:
-                    actions.append(action["const"])
-                for value in action.get("enum", []):
-                    if value not in actions:
-                        actions.append(value)
-            if actions:
-                self.assertEqual(schema["properties"]["action"]["enum"], actions)
-
-        def contains_keyword(value, keyword):
-            if isinstance(value, dict):
-                return keyword in value or any(contains_keyword(v, keyword)
-                                               for v in value.values())
-            if isinstance(value, list):
-                return any(contains_keyword(v, keyword) for v in value)
-            return False
-
-        task_schema = tools["tdev_task"]["inputSchema"]
-        self.assertTrue(contains_keyword(task_schema["properties"]["resolutions"], "oneOf"))
-        task_advertised = Draft202012Validator(task_schema)
-        loose_task = {"action": "list", "taskId": "task"}
-        self.assertTrue(task_advertised.is_valid(loose_task))
-        self.assertFalse(validator.is_valid({"tool": "tdev_task", "input": loose_task}))
-
-        validate_schema = tools["tdev_validate"]["inputSchema"]
-        validate_advertised = Draft202012Validator(validate_schema)
-        self.assertTrue(validate_advertised.is_valid({"requestId": "v"}))
-        self.assertFalse(validator.is_valid({"tool": "tdev_validate",
-                                             "input": {"requestId": "v"}}))
-
-        config = json.loads((Path(__file__).resolve().parents[1] / "contracts/config.schema.json").read_bytes())
-        Draft202012Validator.check_schema(config)
+        for tool_name, tool in tools.items():
+            family = tool_name.removeprefix('tdev_')
+            schema = tool['inputSchema']
+            self.assertEqual(schema['properties']['request'],
+                             expanded(s, {'$ref': f'#/$defs/{family}Input'}))
+            self.assertEqual(set(schema['properties']), {'request'})
+            self.assertEqual(schema['required'], ['request'])
+            self.assertFalse(schema['additionalProperties'])
 
     def test_native_default_and_optional_ssh_config(self):
         root = Path(__file__).resolve().parents[1]
@@ -162,7 +110,7 @@ class ContractTest(unittest.TestCase):
         for tool in s["x-tools"]:
             self.assertEqual(tool["annotations"], expected_annotations)
         self.assertEqual([t["name"].removeprefix("tdev_") for t in s["x-tools"]],
-                         ["workspace", "task", "read", "edit", "exec", "operation", "validate", "publish", "project", "deploy", "artifact", "diagnostics"])
+                         ["find", "workspace", "task", "read", "edit", "exec", "operation", "validate", "publish", "project", "deploy", "artifact", "diagnostics"])
         architecture = (root / "ARCHITECTURE.md").read_text()
         self.assertIn("task/read/edit/exec/operation/validate/publish", architecture)
         plan = (root / "IMPLEMENTATION_PLAN.md").read_text()

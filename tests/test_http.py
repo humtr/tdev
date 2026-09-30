@@ -27,9 +27,12 @@ class HTTPTest(unittest.TestCase):
         self.controller.close()
         self.tmp.cleanup()
 
-    def request(self, method="tools/list", args=None, headers=None, ident=1):
+    def request(self, method="tools/list", args=None, headers=None, ident=1, raw_wire=False):
         conn = http.client.HTTPConnection("127.0.0.1", self.server.server_port, timeout=5)
         params = {"_meta": {META + "protocolVersion": VERSION, META + "clientCapabilities": {}}, **(args or {})}
+        # Domain fixtures describe semantic inputs. Wire rejection tests bypass this.
+        if method == 'tools/call' and 'arguments' in params and not raw_wire:
+            params['arguments'] = {'request': params['arguments']}
         h = {"Authorization": "Bearer alice-secret", "Content-Type": "application/json",
              "Accept": "application/json, text/event-stream", "MCP-Protocol-Version": VERSION,
              "Mcp-Method": method}
@@ -51,7 +54,7 @@ class HTTPTest(unittest.TestCase):
         meta = {META + "protocolVersion": VERSION, META + "clientCapabilities": {}}
         if progress_token is not None:
             meta["progressToken"] = progress_token
-        params = {"_meta": meta, "name": "tdev_operation", "arguments": arguments}
+        params = {"_meta": meta, "name": "tdev_operation", "arguments": {"request": arguments}}
         headers = {"Authorization": "Bearer alice-secret", "Content-Type": "application/json",
                    "Accept": "application/json, text/event-stream", "MCP-Protocol-Version": VERSION,
                    "Mcp-Method": "tools/call", "Mcp-Name": "tdev_operation"}
@@ -79,7 +82,7 @@ class HTTPTest(unittest.TestCase):
         self.assertEqual(self.request(headers={"Host": "evil.example"})[0], 403)
         code, value = self.request()
         self.assertEqual(code, 200)
-        self.assertEqual(len(value["result"]["tools"]), 12)
+        self.assertEqual(len(value["result"]["tools"]), 13)
         self.assertNotIn("$ref", json.dumps(value["result"]))
 
     def test_oauth_well_known_is_optional_public_404(self):
@@ -90,17 +93,16 @@ class HTTPTest(unittest.TestCase):
             self.assertEqual(self.get(path)[0], 404)
         self.assertEqual(self.get("/mcp")[0], 401)
 
-    def test_caller_guidance_survives_http_and_bridge_discovery_without_new_wire_fields(self):
+    def test_effect_guidance_and_exact_schema_survive_http_and_bridge_discovery(self):
         from tdev.codex_bridge import Bridge
         direct = self.request()[1]['result']['tools']
         bridge = Bridge(f'http://127.0.0.1:{self.server.server_port}/mcp', 'alice-secret')
         forwarded = bridge.handle({'jsonrpc':'2.0', 'id':1, 'method':'tools/list', 'params':{}})['result']['tools']
         self.assertEqual(direct, forwarded)
         operation = next(tool for tool in direct if tool['name'] == 'tdev_operation')
-        self.assertIn('not a server limit', operation['description'])
-        self.assertIn('after receiving it', operation['description'])
-        self.assertIn('including failures and diagnostics', operation['description'])
+        self.assertIn('journaled deployment restoration', operation['description'])
         self.assertIn('Never retry ambiguous effects', operation['description'])
+        self.assertEqual(operation['inputSchema']['required'], ['request'])
 
     def test_protocol_and_reconnect(self):
         _, discovery = self.request("server/discover")
@@ -178,8 +180,8 @@ class HTTPTest(unittest.TestCase):
         from tdev.codex_bridge import Bridge
         bridge = Bridge(f"http://127.0.0.1:{self.server.server_port}/mcp", "alice-secret")
         bridged = bridge.handle({"jsonrpc": "2.0", "id": 9, "method": "tools/call",
-                                 "params": {"name": "tdev_operation", "arguments": {
-                                     "action": "status", "operationId": op2["id"], "waitMs": 5000}}})
+                                 "params": {"name": "tdev_operation", "arguments": {"request": {
+                                     "action": "status", "operationId": op2["id"], "waitMs": 5000}}}})
         bridged_status = bridged["result"]["structuredContent"]["result"]
         self.assertEqual((bridged_status["status"], bridged_status["result"]["exitCode"]), ("succeeded", 0))
 
@@ -189,8 +191,8 @@ class HTTPTest(unittest.TestCase):
         conn = http.client.HTTPConnection("127.0.0.1", self.server.server_port, timeout=5)
         meta = {META + "protocolVersion": VERSION, META + "clientCapabilities": {},
                 "progressToken": "disconnect-progress"}
-        params = {"_meta": meta, "name": "tdev_operation", "arguments": {
-            "action": "status", "operationId": op3["id"], "waitMs": 5000}}
+        params = {"_meta": meta, "name": "tdev_operation", "arguments": {"request": {
+            "action": "status", "operationId": op3["id"], "waitMs": 5000}}}
         headers = {"Authorization": "Bearer alice-secret", "Content-Type": "application/json",
                    "Accept": "application/json, text/event-stream", "MCP-Protocol-Version": VERSION,
                    "Mcp-Method": "tools/call", "Mcp-Name": "tdev_operation"}

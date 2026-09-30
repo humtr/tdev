@@ -1,0 +1,25 @@
+✔ fresh cells execute 40 unique steps with 16/16/8 total calls (10.438281ms)
+✔ witnesses consume budget, reserve closing probes, preserve generation and sequence (2.692448ms)
+✔ probe throws or structured errors do not retry/cancel work and still cost calls (1.890833ms)
+✔ lost operational reply stops successors without retry or false success (1.473333ms)
+✔ structured error, pending operation, or decoder failure stop for review (2.697917ms)
+✔ caller output failure cannot replay the fulfilled effect (0.990105ms)
+✔ elapsed budget checked between awaits; no overlapping or detached work (1.162448ms)
+✔ slow entry probe yields review instead of an infinite empty rollover (0.989167ms)
+✔ no work emits no probes; invalid plan/budget fails before any invocation (4.961667ms)
+✔ lower host budget works without server policy; absent metadata is not invented (4.222188ms)
+✔ operation monitor stays in one cell until terminal failure is observed (1.803907ms)
+✔ operation monitor default performs one bounded wait per physical cell before rollover (1.073021ms)
+✔ operation monitor stops safely on unknown or unavailable status (1.767083ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 262.262396
+----------------------------------------------------------------------
+Ran 14 tests in 10.900s
+
+OK

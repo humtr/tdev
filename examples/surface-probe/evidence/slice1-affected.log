@@ -1,0 +1,15 @@
+======================================================================
+FAIL: test_client_report_summary_contract_grants_and_server_errors (test_diagnostic_policy.DiagnosticHTTPTest.test_client_report_summary_contract_grants_and_server_errors)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/data/com.termux/files/home/prj/tdev-surface-redesign/tests/test_diagnostic_policy.py", line 465, in test_client_report_summary_contract_grants_and_server_errors
+    self.assertEqual({'tool_error':1,'protocol_error':1}, summary['result']['summary']['server'])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'tool_error': 1, 'protocol_error': 1} != {'protocol_error': 1}
+- {'protocol_error': 1, 'tool_error': 1}
++ {'protocol_error': 1}
+
+----------------------------------------------------------------------
+Ran 85 tests in 123.880s
+
+FAILED (failures=1)

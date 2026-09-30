@@ -1,0 +1,17 @@
+{
+  "observedAt": "2026-09-30T05:53:56.817082+00:00",
+  "active": "635c8080c9e21a459099bc4e10f0e14d36515ad606d89094a87f7799583f8441",
+  "unknownOperationId": "2531fb0f9bbd4aa584865f62898e1010",
+  "unknownRowSha256": "322a53944bb455defc204d4ca0b9083a34252f8113cc690908a26cffb25e3ee8",
+  "outstanding": [
+    {
+      "id": "2531fb0f9bbd4aa584865f62898e1010",
+      "kind": "publish",
+      "status": "unknown",
+      "effect": "unknown"
+    }
+  ],
+  "compatibleMaintenanceWithExactExemption": true,
+  "selectedSourceBundle": "ec6d43eb2e842b99203202e0deadb82c1a2abe2862546186dd753a71c8bb7c33",
+  "preservedFileCount": 12
+}

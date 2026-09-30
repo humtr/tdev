@@ -1,0 +1,25 @@
+======================================================================
+ERROR: test_advertisement_and_all_input_families (test_contract.ContractTest.test_advertisement_and_all_input_families)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/data/com.termux/files/home/prj/tdev-surface-redesign/tests/test_contract.py", line 80, in test_advertisement_and_all_input_families
+    self.assertEqual(schema, expanded(s, {"$ref": f"#/$defs/{advertised_name}"}))
+                             ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/data/com.termux/files/home/prj/tdev-surface-redesign/src/tdev/server.py", line 24, in expanded
+    return expanded(schema, schema["$defs"][value["$ref"].split("/")[-1]])
+                            ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyError: 'workspaceToolInput'
+
+======================================================================
+FAIL: test_explicit_connection_without_legacy_secret_uses_same_principal_and_no_writes (test_cli.CLITest.test_explicit_connection_without_legacy_secret_uses_same_principal_and_no_writes)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/data/com.termux/files/home/prj/tdev-surface-redesign/tests/test_cli.py", line 144, in test_explicit_connection_without_legacy_secret_uses_same_principal_and_no_writes
+    code,legacy=self.run_cli('call','workspace','--input',str(args)); self.assertEqual(code,0)
+                                                                      ~~~~~~~~~~~~~~~~^^^^^^^^
+AssertionError: 1 != 0
+
+----------------------------------------------------------------------
+Ran 38 tests in 56.305s
+
+FAILED (failures=1, errors=1)

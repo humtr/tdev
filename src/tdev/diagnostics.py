@@ -66,6 +66,7 @@ class Recorder:
         if not isinstance(params, dict):
             params = {}
         args = params.get('arguments')
+        args = args.get('request') if isinstance(args, dict) else None
         if not isinstance(args, dict):
             args = {}
         meta = params.get('_meta')

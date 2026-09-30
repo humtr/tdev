@@ -492,7 +492,7 @@ class DiagnosticHTTPTest(unittest.TestCase):
         bridge = Bridge(f'http://127.0.0.1:{self.server.server_port}/mcp', 'alice-secret')
         later = p.clock() + 16
         p.clock = lambda: later
-        wrapped = bridge.handle({'jsonrpc':'2.0','id':7,'method':'tools/call','params':{'name':'tdev_diagnostics','arguments':{'action':'inspect'}}})
+        wrapped = bridge.handle({'jsonrpc':'2.0','id':7,'method':'tools/call','params':{'name':'tdev_diagnostics','arguments':{'request':{'action':'inspect'}}}})
         self.assertIn('io.tdev/diagnostics', wrapped['result']['_meta'])
         self.assertGreater(len(wrapped['result']['content']), 1)
 

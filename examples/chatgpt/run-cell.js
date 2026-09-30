@@ -33,7 +33,7 @@ async function runTdevCell({tools, steps, nextIndex = 0, classify, onReply,
     const args = {action: 'mark', instance: witness.instance, runId: witness.runId,
       cellId: witness.cellId, sequence: ++sequence, phase, ...fields};
     try {
-      const reply = await invoke(witness.tool, args);
+      const reply = await invoke(witness.tool, {request: args});
       // Keep actual responses, including structured errors; fulfilled await is not mark success.
       witnesses.push({phase, sequence, reply});
     } catch {
@@ -88,7 +88,7 @@ async function runTdevCell({tools, steps, nextIndex = 0, classify, onReply,
 }
 
 // Monitor one already-admitted operation inside a single physical cell. This is intentionally
-// read-only: it never replays the effect, cancels it, or invents a new request identity.
+// It observes/reconciles the original receipt; never cancels or invents a request identity.
 async function runTdevOperationCell({tools, tool, operationId = null, lookupRequestId = null,
   offset = 0, limit = 24000, onStatus = () => {}, maxCalls = 1,
   maxElapsedMs = 35000, statusWaitMs = 30000, pollAfterMs = 0, now = () => Date.now(),
@@ -108,7 +108,7 @@ async function runTdevOperationCell({tools, tool, operationId = null, lookupRequ
   const started = now();
   const packet = (status, reason, operationStatus = last?.status ?? null) => ({
     status, reason, operationStatus, attempted, elapsedMs: Math.max(0, now() - started),
-    nextArgs: {action: 'status', ...target, offset: currentOffset, limit, waitMs: statusWaitMs}, operation: last
+    nextArgs: {request: {action: 'status', ...target, offset: currentOffset, limit, waitMs: statusWaitMs}}, operation: last
   });
 
   while (true) {
@@ -120,9 +120,9 @@ async function runTdevOperationCell({tools, tool, operationId = null, lookupRequ
       attempted++;
       const callWaitMs = Math.min(statusWaitMs,
         Math.max(0, Math.floor(maxElapsedMs - (now() - started))));
-      reply = await tools[tool]({action: 'status', ...target, offset: currentOffset, limit, waitMs: callWaitMs});
+      reply = await tools[tool]({request: {action: 'status', ...target, offset: currentOffset, limit, waitMs: callWaitMs}});
     } catch {
-      // Status is read-only and may be re-issued later, but do not hammer a rejected host call.
+      // Original-effect observation may be re-issued later; do not hammer a rejected host call.
       return packet('review', 'status_reply_unavailable');
     }
     const body = reply?.structuredContent ?? reply;
