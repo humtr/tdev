@@ -31,7 +31,8 @@ def apply_projects(config, store):
         require(row['id'] not in config['repositories'], 'CONFIG', 'Static repository shadows a delegated project')
         repo = json.loads(row['config'])
         repo.pop('artifactValidation', None)
-        repo.update({k: copy.deepcopy(policy[k]) for k in ('validation', 'artifactValidation', 'executor', 'toolingEnvironment', 'networks') if k in policy})
+        repo.pop('validationTimeoutSeconds', None)
+        repo.update({k: copy.deepcopy(policy[k]) for k in ('validation', 'artifactValidation', 'validationTimeoutSeconds', 'executor', 'toolingEnvironment', 'networks') if k in policy})
         repo['managedRefNamespaces'] = [policy['managedRefNamespace']]
         repo['_projectPolicy'] = row['policy']
         config['repositories'][row['id']] = repo
@@ -83,7 +84,8 @@ class Projects:
             default = ''
         return {'repo': repo, 'name': self.display_name(cfg), 'identity': cfg['identity'],
                 'defaultRef': default, 'managedRefNamespaces': self.c.namespaces(principal, repo),
-                'policy': cfg.get('_projectPolicy'), 'provider': cfg['kind'], 'checkout': cfg.get('checkout')}
+                'policy': cfg.get('_projectPolicy'), 'provider': cfg['kind'], 'checkout': cfg.get('checkout'),
+                'validationTimeoutSeconds': cfg.get('validationTimeoutSeconds', 300)}
 
     def display_name(self, cfg):
         if 'name' in cfg:
@@ -209,7 +211,7 @@ class Projects:
         expected = intent.get('createdIdentity')
         require(expected is None or cfg['identity'] == expected, 'REPOSITORY_IDENTITY')
         repo = 'p-' + digest([row['owner'], cfg['identity']])[:24]
-        effective = {**cfg, **{k: copy.deepcopy(policy[k]) for k in ('validation', 'artifactValidation', 'executor', 'toolingEnvironment', 'networks') if k in policy},
+        effective = {**cfg, **{k: copy.deepcopy(policy[k]) for k in ('validation', 'artifactValidation', 'validationTimeoutSeconds', 'executor', 'toolingEnvironment', 'networks') if k in policy},
                      'managedRefNamespaces': [policy['managedRefNamespace']]}
         Git(self.c.store.root / 'objects' / (repo + '.git'), effective).head(cfg['defaultRef'])
         with self.c.store.tx() as db:
@@ -226,7 +228,8 @@ class Projects:
             value = {'repo': repo, 'name': self.display_name({**cfg, '_projectPolicy': intent['input']['policy']}),
                      'identity': cfg['identity'],
                      'defaultRef': cfg['defaultRef'], 'managedRefNamespaces': [policy['managedRefNamespace']],
-                     'policy': intent['input']['policy'], 'provider': cfg['kind'], 'checkout': cfg.get('checkout')}
+                     'policy': intent['input']['policy'], 'provider': cfg['kind'], 'checkout': cfg.get('checkout'),
+                     'validationTimeoutSeconds': policy.get('validationTimeoutSeconds', 300)}
             db.execute("UPDATE operation SET status='succeeded',effect='committed',result=?,error=NULL WHERE id=?",
                        (canonical(value).decode(), row['id']))
         self.c.config = self.c.load_config()

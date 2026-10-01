@@ -88,6 +88,18 @@ goal also requires the work below.
 
 ## Next implementation sequence
 
+2026-10-01 user priority: repair confirmed Host/operation boundary defects on fresh canonical
+source. First fix no-op capture and terminal-write races, add repository source-validation
+budget/readback and enforce caller result consumption, then qualify bounded admission-before-use
+reconciliation with fresh CAS/unknown fences. Run focused/affected/full validation before
+closeout. Preserve the fixed annotation profile and all resident/provider/observer state;
+source qualification does not establish installed or ChatGPT UI acceptance. No workflow engine,
+conversation store, terminal resume, automatic retry or periodic reconciler is part of this slice.
+The subsequent user authorization now permits 0.1.25 inactive qualification, canonical
+publication and recoverable resident activation with exact historical unknown-publication
+preservation. Installed readback precedes separate refreshed ChatGPT Host/UI acceptance;
+observer/diagnostic policy and credential/config bytes remain unchanged.
+
 2026-09-30 user priority: re-evaluate the complete model-facing development surface from
 workloads and recovery, without preserving experimental names/count. First rebind current
 canonical/resident state, record the surface/decision audits and compare at least grouped,

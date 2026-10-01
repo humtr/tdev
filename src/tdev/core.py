@@ -233,6 +233,9 @@ class Controller:
                 mutation_args = dict(args)
                 mutation_args.pop('waitMs', None)
             result = self.mutate(principal, kind, mutation_args)
+            execution = self.execution_description(self.operation(principal, result['id']))
+            if execution is not None:
+                result['execution'] = execution
             observe("operation_admitted", {"ok": True, "result": result})
             if wait_ms:
                 result = self.status(principal, {'operationId': result['id'], 'offset': 0,
@@ -489,6 +492,13 @@ class Controller:
             w = self.task(principal, args["taskId"])
             repo, ref = w["repo"], w["ref"]
         self.authorize(principal, repo, ref)
+        if w and w['busy']:
+            # Observe one existing effect before using this task. Never dispatch
+            # it again or scan unrelated jobs, and recheck fresh CAS in the tx.
+            self.reconcile(self.operation(principal, w['busy']))
+            w = self.task(principal, w['id'])
+            if validation is not None:
+                validation = self.operation(principal, validation['id'])
         if kind == 'task' and args['action'] == 'integrate':
             source = self.task(principal, args['sourceTaskId'])
             require(source['repo'] == repo and source['id'] != w['id'], 'INTEGRATION_SOURCE')
@@ -575,8 +585,10 @@ class Controller:
 
     def save_intent(self, opid, **changes):
         with self.store.tx() as db:
-            row = db.execute("SELECT intent FROM operation WHERE id=?", (opid,)).fetchone()
+            row = db.execute("SELECT intent,status FROM operation WHERE id=?", (opid,)).fetchone()
             value = json.loads(row[0])
+            if row['status'] in ('succeeded', 'failed', 'cancelled'):
+                return value
             value.update(changes)
             db.execute("UPDATE operation SET intent=?,effect='unknown' WHERE id=?", (canonical(value).decode(), opid))
         return value
@@ -602,6 +614,9 @@ class Controller:
     def fail(self, opid, fault):
         unknown = fault.value["effect"] == "unknown"
         with self.store.tx() as db:
+            row = db.execute('SELECT status FROM operation WHERE id=?', (opid,)).fetchone()
+            if row['status'] in ('succeeded', 'failed', 'cancelled'):
+                return
             db.execute("UPDATE operation SET status=?,effect=?,error=? WHERE id=?",
                        ("unknown" if unknown else "failed", fault.value["effect"], canonical(fault.value).decode(), opid))
             if not unknown:
@@ -753,11 +768,17 @@ class Controller:
                 require(g.head(w['ref']) == w['base'], 'STALE_HEAD')
             candidate = g.commit(g.tree(w["checkpoint"]), w["base"], args["message"] + "\n\ntdev-validation: " + opid)
         source_commit = candidate or w["checkpoint"]
+        if 'timeout' in args:
+            timeout, timeout_source = args['timeout'], 'request'
+        elif kind == 'validate' and 'validationTimeoutSeconds' in config:
+            timeout, timeout_source = config['validationTimeoutSeconds'], 'repository'
+        else:
+            timeout, timeout_source = None if process else 300, 'default'
         payload = {"id": opid, "checkpoint": source_commit, "candidate": candidate,
                    "files": g.export(source_commit), "command": config["validation"] if kind == "validate" else args["command"],
                    "cwd": path(args.get("cwd", "."), dot=True), "env": execution_env,
                    "stdin": args.get("stdin", ""), "network": network,
-                   "timeout": args.get("timeout", None if process else 300), "readonly": kind == "validate",
+                   "timeout": timeout, "readonly": kind == "validate",
                    "capturePaths": args.get("capturePaths", []), "gitPack": g.execution_pack(source_commit),
                    "networkPolicyDigest": executor.get("networkPolicyDigest")}
         if native:
@@ -769,6 +790,7 @@ class Controller:
         execution = {k: v for k, v in payload.items() if k not in ("files", "gitPack")}
         intent = self.save_intent(opid, execution=execution, inputDigest=digest(payload),
                                   executor=executor, policy=self.validation_policy(config), candidate=candidate,
+                                  timeoutSource=timeout_source,
                                   **({'validationSubject': 'source'} if kind == 'validate' else {}))
         self.backend(intent).submit(payload)
 
@@ -878,6 +900,21 @@ class Controller:
                 # Invalid/missing receipt is never promoted to terminal proof.
                 self.fail(row["id"], Fault(e.value["code"], e.value["message"], "unknown"))
 
+    @staticmethod
+    def execution_description(row):
+        intent = json.loads(row['intent'])
+        if row['kind'] not in ('exec', 'validate', 'artifact') or 'execution' not in intent:
+            return None
+        execution = intent['execution']
+        value = {'mode': execution.get('mode', 'command'), 'checkpoint': execution['checkpoint'],
+                 'environment': 'task' if execution.get('environmentId') else 'fresh',
+                 'timeout': execution['timeout']}
+        # Old receipts keep their facts; never infer historical default policy
+        # from current config or rewrite the accepted intent.
+        if 'timeoutSource' in intent:
+            value['timeoutSource'] = intent['timeoutSource']
+        return value
+
     def status(self, principal, args, cancelled=None):
         require(bool(args.get("operationId")) != bool(args.get("lookupRequestId")), "STATUS_TARGET")
         if "lookupRequestId" in args:
@@ -895,11 +932,9 @@ class Controller:
         if row['kind'] == 'artifact':
             result['artifactStorage'] = self.artifacts.retention.description(row['id'])
         intent = json.loads(row['intent'])
-        if row['kind'] in ('exec', 'validate', 'artifact') and 'execution' in intent:
-            execution = intent['execution']
-            result['execution'] = {'mode': execution.get('mode', 'command'), 'checkpoint': execution['checkpoint'],
-                                   'environment': 'task' if execution.get('environmentId') else 'fresh',
-                                   'timeout': execution['timeout']}
+        execution = self.execution_description(row)
+        if execution is not None:
+            result['execution'] = execution
         if row["kind"] in ("exec", "validate", "artifact") and "execution" in json.loads(row["intent"]):
             try:
                 result["output"] = self.backend(json.loads(row["intent"])).logs(row["id"], args.get("offset", 0), args.get("limit", 24000))

@@ -234,6 +234,9 @@ tracked files, nonignored new files under STARTING ignore rules and explicit ext
 Candidate index/config cannot change selection. Nonzero exit, timeout or cancellation may
 still capture safely stopped native work. Capture overflow/failure keeps the previous
 checkpoint and reports why. Native copies persist until explicit terminal retirement.
+An unchanged captured tree retains the starting checkpoint, including on command failure;
+execution history is retained in the operation receipt. Actual A→B→A source changes still
+produce distinct checkpoint OIDs. A no-op command cannot invalidate a successful validation.
 A command's local git commit/rebase produces file changes for capture; it does not replace
 the controller's canonical source identity.
 
@@ -450,6 +453,14 @@ and issue a new physical cell; the adapter cannot schedule that cell, extend a t
 visible delivery. Unknown operational replies stop for reconciliation of the original identity;
 diagnostic failure never retries the effect. This adapter imports no runtime diagnostics and adds
 no operational-core dependency.
+The reference `classifyTdevReply` distinguishes successful RPC processing from successful
+durable operations. `ok=true`/MCP `isError=false` does not prove an operation passed;
+`effect=committed` describes certainty, including failed execution. Monitor `status=terminal`
+must be consumed with `operationStatus` and the domain receipt. Failed exec may capture partial
+source changes; failed validation never authorizes publication. The Host owns the goal and
+strategy, not operation truth. Another attempt after terminal failure is an explicitly selected
+new admission, never resumption or automatic rerun of the terminal operation. UI history is
+not durable execution authority and caller Stop does not establish executor stop proof.
 The operation tool's description explains receipt observation, control and effect uncertainty.
 Physical-cell budgets and orchestration defaults belong in the separate ChatGPT caller adapter,
 not discovery prose or server admission limits; the server cannot force host scheduling.
@@ -499,6 +510,15 @@ re-investigate completed predecessors or invent unrelated security diagnoses.
 Every mutation uses principal/request identity. Auth precedes replay; dedup precedes stale
 checks. Same identity with changed input conflicts. Local pointer and result commit together.
 Dispatch/stdin/cancel/publication have durable intent before effects. Reads need no journal.
+Terminal operation status/result/intent remain immutable even if dispatch later reports an
+error. No late failure or intent update may replace already reconciled terminal evidence.
+Before a new source-task mutation uses a busy task, admission reconciles only that retained
+busy operation once, outside the SQLite transaction. It rereads the task and then rechecks
+busy/CAS inside the admission transaction; a changed capture makes an old expected checkpoint
+stale, and an unknown/running predecessor remains fenced. No background worker, global scan,
+new dispatch or caller-goal decision is implied. Find remains a retained-state-only projection;
+executor completion without an observer may still precede SQLite terminalization until status,
+inspect, same-request replay or this bounded admission-before-use observation.
 
 | Certainty | Meaning |
 |---|---|
@@ -662,6 +682,15 @@ Supervisor records actual exit, not candidate PASS/JSON. Success requires zero e
 cancellation/timeout/capture/source failure and proved supervised termination. Passing tests
 proves their execution under the selected trust model, not universal code correctness.
 Native mode does not claim unforgeable receipts against same-UID attacks.
+
+Source-validation execution budget resolves from explicit request timeout, then current
+repository/project-policy `validationTimeoutSeconds`, then the legacy 300-second default.
+The 1..3600-second budget is frozen at admission with its origin and exposed in the admission/
+status execution projection. Project list/inspect exposes the current default. Caller `waitMs`
+is only observation time and remains outside mutation identity. Changing an accepted timeout
+requires a new request identity; replay never reinterprets old intent using current config.
+This default is execution budget, not validation acceptance policy: changing it alone does
+not invalidate a successful exact candidate. Command/process/artifact deadlines are unchanged.
 
 Publish rechecks scope/policy, successful validation, unchanged checkpoint and expected
 old head. Publish the frozen commit, never regenerate it. Unique publication per validation

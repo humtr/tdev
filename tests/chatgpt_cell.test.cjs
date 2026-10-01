@@ -6,6 +6,7 @@ const path = require('node:path');
 const source = fs.readFileSync(path.join(__dirname, '../examples/chatgpt/run-cell.js'), 'utf8');
 const fresh = () => vm.runInNewContext(source + '\nrunTdevCell;');
 const freshMonitor = () => vm.runInNewContext(source + '\nrunTdevOperationCell;');
+const freshClassifier = () => vm.runInNewContext(source + '\nclassifyTdevReply;');
 const plan = n => Array.from({length:n}, (_, i) => ({id:`s${i}`, tool:'work', args:{requestId:`r${i}`}}));
 const witness = {tool:'mark', instance:'a'.repeat(16), runId:'b'.repeat(32), cellId:'c'.repeat(32), sequence:0};
 const options = (n, tools) => ({steps:plan(n), tools, now:()=>0,
@@ -144,4 +145,34 @@ test('operation monitor stops safely on unknown or unavailable status', async ()
   const unavailable=await freshMonitor()({tools:{status:async()=>{throw Error('transport');}},tool:'status',lookupRequestId:'req1'});
   assert.equal(unavailable.status,'review'); assert.equal(unavailable.reason,'status_reply_unavailable'); assert.equal(unavailable.attempted,1);
   assert.equal(unavailable.nextArgs.request.lookupRequestId,'req1');
+});
+
+test('RPC success and committed failure stop a selected validate/publish plan', async () => {
+  for (const state of ['running', 'unknown', 'failed', 'cancelled']) {
+    const calls = [];
+    const result = await fresh()({tools: {
+      validate: async () => { calls.push('validate'); return {structuredContent: {ok:true, result:{
+        id:'original', kind:'validate', status:state, effect:'committed', error:null,
+        result:{terminal:true, stopped:true, exitCode:-9, timedOut:true}}}}; },
+      publish: async () => { calls.push('publish'); throw Error('must not publish'); }
+    }, steps:[{id:'validation',tool:'validate',args:{request:{requestId:'one'}}},
+              {id:'publication',tool:'publish',args:{request:{requestId:'two'}}}],
+    classify:freshClassifier(),onReply:()=>{}});
+    assert.equal(result.status,'review'); assert.equal(result.nextIndex,1); // The reply was consumed; review blocks its successor.
+    assert.deepEqual(calls,['validate']); // No automatic retry, replacement or successor mutation.
+  }
+});
+
+test('classifier distinguishes reads, valid domain completion and contradictory success', () => {
+  const classify = freshClassifier();
+  const receipt = {terminal:true,stopped:true,exitCode:0,cancelled:false,timedOut:false};
+  const op = {id:'original',kind:'validate',status:'succeeded',effect:'committed',result:receipt,error:null};
+  assert.equal(classify({ok:true,result:{projects:[]}}),'continue');
+  assert.equal(classify({structuredContent:{ok:true,result:op}}),'continue');
+  for (const result of [{...op,effect:'unknown'}, {...op,result:null},
+    {...op,result:{...receipt,stopped:false}}, {...op,result:{...receipt,timedOut:true}},
+    {...op,result:{...receipt,exitCode:1}}]) assert.equal(classify({ok:true,result}),'review');
+  assert.equal(classify({isError:true,structuredContent:{ok:true,result:op}}),'review');
+  assert.equal(classify({ok:true}),'review');
+  assert.equal(classify({ok:true,result:null}),'review');
 });

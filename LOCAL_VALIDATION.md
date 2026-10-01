@@ -3475,3 +3475,103 @@ work uniquely without replaying an effect. Host-side negative controls rejected 
 `expectedRevision`, process mode with `waitMs:0`, and process mode with `capturePaths:[]` before dispatch. This is installed
 and refreshed ChatGPT surface acceptance, not the still-separate complete development/deploy/reconnect journey.
 The bounded evidence summary is `examples/surface-probe/evidence/host-installed-acceptance-20260930.md`.
+# Host/exact-operation boundary repair — 2026-10-01
+
+Fresh root navigation/README, relevant ARCHITECTURE and contracts, and IMPLEMENTATION_PLAN
+were rebound before editing. Remote `refs/heads/tdev` and the clean qualified source base were
+`94a7e2e2de1c72bd2b5aca331528021454bf124d`; changes are isolated on
+`fix/host-operation-boundary-20261001` in `tdev-surface-redesign`. The original dirty
+`prj/tdev` checkout and its unrelated changes were not edited. Source is **0.1.25**;
+resident remains **0.1.24**, active bundle
+`34e0b9234eacfd8948c73b0a6c257b75f13503c50a587f9c7fa987d116609e56`.
+Read-only resident SQLite inspection confirmed historical publication
+`2531fb0f9bbd4aa584865f62898e1010` still `unknown/unknown` and schema version 5.
+No resident/config/provider/Tunnel/observer/diagnostic control action or publication was performed.
+
+## Confirmed defects and selected repairs
+
+- **Source identity:** unchanged command capture made a new checkpoint. A pre-fix regression
+  failed because a read-like failed exec changed the source validated for publication. Capture
+  now keeps the starting checkpoint for an identical tree. Real changed capture and A→B→A
+  retain Git-history CAS semantics; execution history remains in durable operation receipts.
+- **Terminal overwrite:** fault injection submitted one command, reconciled its terminal
+  result, then raised an unknown dispatch-reply fault. Pre-fix `fail()` changed succeeded to
+  unknown despite retained success. Terminal guards now cover `fail()` and `save_intent()`
+  as well as `finish()`; original identity/result/intent survive late errors and replay.
+- **Completion/admission friction:** a sealed backend result with an unreconciled busy row
+  rejected useful next work. Admission now observes only that task's busy predecessor once,
+  outside the SQLite transaction, then rereads the task and rechecks busy/CAS in the transaction.
+  Source-changing capture rejects old expected state; unknown stays fenced. Publication also
+  refreshes its validation row before the exact candidate join. This is not a background
+  terminalizer or a new dispatch/retry.
+- **Budget ownership:** repository/project policy can express `validationTimeoutSeconds`.
+  Explicit request timeout overrides it, with legacy fallback 300 seconds. Admission/status
+  reports the frozen deadline and origin; project inspection reports the current default.
+  Existing receipt bytes are not rewritten and old origins are not inferred. Budget changes
+  alone do not invalidate a successful candidate or change command/process/artifact budgets.
+- **Consumer boundary:** pure `classifyTdevReply` distinguishes RPC processing from durable
+  outcome and prevents a failed/running/unknown result from advancing the selected plan.
+  Monitor terminal packets still expose operationStatus/full receipt. CONTROLLER now states
+  the actual one-wait-per-default-cell behavior and separates goal continuation/new admission.
+
+The choice keeps thirteen tools and the exact fixed annotation profile. It adds no workflow
+engine, conversation store, attempt-key cache, terminal resume, automatic retry or periodic
+reconciler. There is no state schema migration, cleanup or historical receipt repair.
+
+## Executed qualification
+
+Private logs are under `.artifacts/host-control-plane-boundary-review-20261001/`.
+
+| Check | Actual result | Evidence |
+|---|---|---|
+| Pre-fix no-op, terminal-overwrite and unobserved-completion regressions | 3 expected failures; reproduced before implementation | Recorded test output in this Codex turn |
+| Focused final selection | 14 Python tests PASS, 50.064 s; includes 16 Node controller tests | `focused-qualified.log` |
+| Additional exact publication/admission reconciliation | 1 test PASS, 3.325 s | `publish-reconciliation.log` |
+| Affected core/native/recovery/progress/projects/contracts/surface/caller checks | 78 tests PASS, 309.485 s | `affected.log` |
+| Current `sh scripts/check.sh` | **346 tests PASS**, 530.115 s, and `git diff --check` PASS | `full.log` |
+| Fixed tool count/hints readback | 13 tools; all annotations equal to source base | Local contract comparison |
+
+The first focused run had a test-authoring mistake: it expected nextIndex=0 on review, but the
+adapter consumes the received reply and returns nextIndex=1 while blocking the successor.
+That assertion was corrected; no publish or automatic retry had occurred. The later focused,
+affected and full results above are the successful runs, not a relabeling of that failed run.
+The full suite includes all added cases, HTTP/MCP, packaging/deployment, installer/resident,
+lost-response recovery and ABA checks. The extra focused publication case and authorization/
+legacy-origin cases supplement the earlier affected selection and are all included in full.
+
+## Acceptance limits
+
+This is source/local qualification, not canonical publication, resident activation, a new
+ChatGPT execution trial or visible-history acceptance. Goal strategy remains Host-owned;
+exact effect truth/idempotency/CAS remain tdev-owned. UI/history and server HTTP completion
+cannot prove each other. The reported 300-second Host threshold, activity-summary replacement
+and UI history disappearance still have no established root cause or causal link to these
+repairs. Changing validation budget may avoid a proved execution timeout; it does not establish
+that the Host/UI stall is repaired.
+
+
+## 0.1.25 inactive delivery qualification — 2026-10-01
+
+Fresh rebind found canonical `94a7e2e2de1c72bd2b5aca331528021454bf124d`,
+resident 0.1.24 and no changed bytes among the 17 source-qualified owned files.
+The explicit subsequent user instruction authorizes installation and canonical publication.
+The original dirty checkout remains untouched.
+
+`PYTHONPATH=src:.tdev-deps python scripts/rehearse.py` passed using staged bundle
+`f1d10cf548ff2cbc1169db2ab239b3c772a0b8264e61ad8b31bffad777877ee7`.
+Actual isolated bundle HTTP/restart, native SIGKILL receipt recovery, exact publication,
+artifact preparation/validation/export/prune passed with 13 tools; no production services
+were touched. `scripts/rehearse_services.py` also passed on an isolated real runit graph,
+covering install/update/recovery/desired-down/uninstall and connection registration.
+The fake Tunnel process in that second rehearsal does not prove external delivery.
+Private logs are `inactive-install.log` and `inactive-services.log` beside the source
+qualification evidence. Existing focused/affected/full results remain the source gate.
+
+Fresh resident readback confirmed controller 0.1.24 and both enabled connections polling.
+The only outstanding operation is historical managed-create publication
+`2531fb0f9bbd4aa584865f62898e1010`, still `unknown/unknown`. The bounded installation
+exemption validates its retained identity without retry or outcome resolution.
+Before activation, a private read-only snapshot retained all 7 state tables (123 tasks,
+2669 operations, 13 projects, 20 artifacts, 6 deployments), config/connection/credential
+and diagnostic correlation-key hashes. Production activation and actual Host acceptance
+are not claimed by these inactive results.

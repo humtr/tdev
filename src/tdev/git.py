@@ -191,7 +191,10 @@ class Git:
             total += len(data)
             require(total <= 32 * 1024 * 1024, "CAPTURE_LIMIT")
             entries[name] = (f["mode"], self.call("hash-object", "-w", "--stdin", data=data).stdout.decode().strip())
-        return self.commit(self.write_tree(entries), checkpoint, "capture " + marker)
+        tree = self.write_tree(entries)
+        # Execution history lives in its operation receipt. Only changed source
+        # needs a new CAS token; real A->B->A changes still make distinct commits.
+        return checkpoint if tree == self.tree(checkpoint) else self.commit(tree, checkpoint, "capture " + marker)
 
     def publish(self, ref, old, new):
         require(self.head(ref) == old, "STALE_HEAD")

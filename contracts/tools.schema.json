@@ -1235,7 +1235,7 @@
               "type": "integer",
               "minimum": 1,
               "maximum": 3600,
-              "description": "Validation deadline in seconds; default 300. Increase for a longer adopted test suite, up to 3600."
+              "description": "Explicit hard execution deadline in seconds for this new source-validation attempt. Omission uses the project validationTimeoutSeconds (legacy default 300); changing the budget requires a new requestId, not resuming a terminal operation."
             },
             "waitMs": {
               "type": "integer",
@@ -1374,14 +1374,16 @@
             "succeeded",
             "failed",
             "cancelled"
-          ]
+          ],
+          "description": "Durable operation lifecycle, independent of RPC success. A terminal operation never resumes; another attempt requires an explicit new admission."
         },
         "effect": {
           "enum": [
             "none",
             "committed",
             "unknown"
-          ]
+          ],
+          "description": "Effect/result certainty, not business success. Committed means durably known and can accompany failed execution."
         },
         "result": {
           "anyOf": [
@@ -1503,6 +1505,14 @@
               ],
               "minimum": 1,
               "maximum": 3600
+            },
+            "timeoutSource": {
+              "enum": [
+                "request",
+                "repository",
+                "default"
+              ],
+              "description": "Frozen deadline origin for this accepted execution. Historical receipts may omit it."
             }
           },
           "required": [
@@ -2441,6 +2451,12 @@
             "string",
             "null"
           ]
+        },
+        "validationTimeoutSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3600,
+          "description": "Current default source-validation execution budget. An explicit validation request timeout overrides it."
         }
       },
       "required": [
@@ -6761,7 +6777,7 @@
       "cwd": ".",
       "env": {},
       "stdin": "",
-      "timeout": "300 seconds for command/validation; process has no deadline unless supplied",
+      "timeout": "Command defaults to 300 seconds; source validation uses request timeout, then repository validationTimeoutSeconds, then 300 seconds; process has no deadline unless supplied. Accepted deadlines are frozen and independent of observation waitMs.",
       "capturePaths": [],
       "encoding": "utf8",
       "mode": "100644",
@@ -6771,7 +6787,7 @@
       "execMode": "command"
     },
     "processStatus": "Exactly one of operationId and lookupRequestId is required; neither/both rejected.",
-    "result": "Task list/open/edit results, bounded query items, or retained operation. Operation contains id, kind, status, effect, result/error; running is independent of certainty. Output evidence fields are server-owned, never accepted as validation input.",
+    "result": "Task list/open/edit results, bounded query items, or retained operation. Operation contains id, kind, status, effect, result/error; running is independent of certainty. Output evidence fields are server-owned, never accepted as validation input. RPC ok/isError describes request processing, not domain success; committed means a known result, including failure. Terminal operations never resume. Goal continuation belongs to the caller and another execution is an explicit new admission.",
     "execution": {
       "sourceLimitBytes": 33554432,
       "transferLimitBytes": 50331648,
@@ -6785,7 +6801,7 @@
       "nativeLimits": "1 MiB retained output; optional process deadline (required bounded command/validation deadline); CPU limit when a deadline is selected; 256 file-descriptor limit. Operator artifactLimits.workingBytes (default 128 MiB) is frozen for each new native command/process/source validation and bounds child file size and sampled working storage, with a final storage check; inherited lower OS hard limits still apply. Task dependency budget remains 2 GiB (100000 files); source capture/transfer limits are separate. No hard aggregate memory/PID/disk quota. At most eight outstanding process-mode operations per task.",
       "nativeRecovery": "Detached subreaper supervisor survives controller restart. Lost supervisor after dispatch without a sealed result remains uncertain, never automatically relaunched."
     },
-    "progress": "task inspect reconciles its busy operation and up to eight outstanding snapshot processes independently of history pagination, then reads bounded operation page and live remote head. Observation cursor hashes the returned facts, timestamps delimit observation (not atomic cross-provider snapshot). since equal means checked now/no change, not stalled proof; wait at least pollAfterMs or do independent work. Mutation prerequisites are rechecked at admission. Closed tasks discoverable with includeClosed. Process status since opts into freshness. Replaying a mutation reconciles original identity, never repeats the effect.",
+    "progress": "task inspect reconciles its busy operation and up to eight outstanding snapshot processes independently of history pagination, then reads bounded operation page and live remote head. Observation cursor hashes the returned facts, timestamps delimit observation (not atomic cross-provider snapshot). since equal means checked now/no change, not stalled proof; wait at least pollAfterMs or do independent work. Mutation prerequisites are rechecked at admission. Closed tasks discoverable with includeClosed. Process status since opts into freshness. Replaying a mutation reconciles original identity, never repeats the effect. Before a new source-task mutation, only its busy predecessor is reconciled once outside the admission transaction; fresh busy/CAS are then checked. This is observation of an existing effect, not retry or a background scan.",
     "annotations": "Fixed tmcp host hints: all advertised tools set readOnlyHint=true and the other hints=false. Hints do not grant authority; core still enforces mutation identity, authorization, validation and publication.",
     "managedProjects": "Policies delegate local-root or GitHub-owner project connect/create with current operator validation/tooling. Start resolves defaults once; first publish uses absence CAS. Close retains refs; cleanup needs ownership and exact last published OID, works after close, and never adopts existing refs. Delegated projects publish only managed branches.",
     "composition": "Workspace membership binds enrolled project identity without granting permissions. taskId selects a source task; workspaceId selects composition. Omitted workspaceId creates/reuses the principal default workspace atomically during task admission. Explicit membership/defaults are rechecked at admission. close/detach reject open or pending tasks; closed tasks and cleanup evidence remain inspectable. Workspace mutations commit state and replay result together with expectedRevision CAS.",

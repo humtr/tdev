@@ -402,9 +402,19 @@ PYTHONPATH=src:.tdev-deps python -m tdev.admin delegate-deployments \
 
 ChatGPT can then call `tdev_deploy targets` and `list`.
 
-Validation defaults to 300 seconds. For longer test suites, pass `timeout` (1–3600 seconds)
-to `tdev_validate`; this changes only the deadline, not the adopted validation command or
-exact-source checks. A timeout remains a failed validation and cannot authorize deployment.
+Source validation uses the explicit request `timeout`, otherwise the repository/delegated
+project policy's optional `validationTimeoutSeconds`, otherwise 300 seconds. Set that default
+in the operator-owned `repositories` entry or `projectPolicies` entry (see the config contract);
+project list/inspect returns the current default. The accepted operation's `execution` returns
+the actual deadline and its frozen `timeoutSource`, including on immediate admission/replay.
+Existing receipts may omit the origin; current config cannot reconstruct historical policy.
+The 1–3600-second budget changes neither the adopted command nor exact-source acceptance.
+Changing only the default does not invalidate an already successful candidate. A timed-out
+validation remains failed and cannot authorize publication/deployment. After observing its
+stop/effect/source facts, the Host may explicitly choose a new attempt with a new requestId;
+the terminal operation never resumes and the controller never automatically reruns it.
+`waitMs` is bounded observation, not this execution deadline. Command/process/artifact
+deadlines keep their existing semantics.
 
 After a successful `tdev_validate`, call:
 

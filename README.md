@@ -55,10 +55,22 @@ isolation. See the [trust boundary](ARCHITECTURE.md#3-native-trust-and-containme
 
 ## Current work
 
-Live resident and qualified source are **0.1.24**, bundle
+Live resident is **0.1.24**, bundle
 `34e0b9234eacfd8948c73b0a6c257b75f13503c50a587f9c7fa987d116609e56`.
 Both existing connections are healthy/running, and the Termux `tdev` shortcut now uses the
 qualified checkout; the original dirty checkout remains untouched.
+
+Source **0.1.25** repairs the Host/exact-operation boundary: no-op command capture retains
+its source checkpoint; late dispatch failures cannot overwrite a terminal result; a new source
+mutation reconciles only its busy predecessor before checking fresh CAS. Repository/project
+policy can supply `validationTimeoutSeconds`, with explicit request override, frozen admission
+budget/origin and project readback. The caller adapter supplies a pure outcome classifier and
+documents one default monitor wait per physical cell. Goal continuation stays Host-owned;
+terminal operations never resume or rerun automatically. Fixed host hints are unchanged.
+Focused **15**, affected **78**, and full **346 tests** pass; see the
+[boundary qualification](LOCAL_VALIDATION.md#hostexact-operation-boundary-repair--2026-10-01). Resident activation and actual
+ChatGPT visible-history/continuity acceptance are separate; this source repair does not claim
+to explain or fix the reported UI stall.
 
 The reported ChatGPT run recovered the completed source work in **3 read calls**
 using only project name and label, with **0 user-supplied internal IDs** and no new effects.

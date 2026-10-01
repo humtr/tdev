@@ -12,6 +12,34 @@ from tdev.projects import Projects
 
 
 class ProjectTest(Base):
+    def test_delegated_validation_budget_tracks_current_policy_not_enrollment(self):
+        policy = self.policy()
+        policy['validationTimeoutSeconds'] = 700
+        args = {'action': 'create', 'requestId': 'budget-project', 'policy': 'dev', 'name': 'budget-project'}
+        created = self.call('project', args)
+        repo = created['result']['repo']
+        self.assertEqual(created['result']['validationTimeoutSeconds'], 700)
+        self.assertEqual(self.call('project', {'action': 'inspect', 'repo': repo})['validationTimeoutSeconds'], 700)
+        task = self.start(repo=repo)
+        v = self.call('validate', {'requestId': 'policy-budget', 'taskId': task['taskId'],
+                                  'expected': task['checkpoint'], 'message': 'current policy'})
+        self.assertEqual(v['execution']['timeout'], 700)
+        self.assertEqual(v['execution']['timeoutSource'], 'repository')
+        self.wait(v['id'])
+        policy.pop('validationTimeoutSeconds')
+        # A historical enrolled config must not supply a removed policy default.
+        row = self.c.store.one('SELECT config FROM project WHERE id=?', (repo,))
+        stored = json.loads(row['config'])
+        stored['validationTimeoutSeconds'] = 700
+        with self.c.store.tx() as db:
+            db.execute('UPDATE project SET config=? WHERE id=?', (json.dumps(stored), repo))
+        self.assertEqual(self.call('project', {'action': 'inspect', 'repo': repo})['validationTimeoutSeconds'], 300)
+        self.assertEqual(self.call('project', args), created)  # Existing acceptance receipt is not rewritten.
+        again = self.call('validate', {'requestId': 'legacy-budget', 'taskId': task['taskId'],
+                                      'expected': task['checkpoint'], 'message': 'default'})
+        self.assertEqual(again['execution']['timeout'], 300)
+        self.wait(again['id'])
+
     def test_local_human_name_resolves_after_restart_without_rewriting_old_receipt(self):
         self.policy()
         # Model an already accepted pre-fix receipt; its bytes remain authoritative

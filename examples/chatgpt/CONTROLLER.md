@@ -1,6 +1,6 @@
 # ChatGPT bounded-cell controller
 
-Use this policy with the function in `run-cell.js`, pasted verbatim into each fresh
+Use this policy with the selected helpers in `run-cell.js`, pasted verbatim into each fresh
 `functions.exec` body. This is a caller-side reference adapter, not an installed host hook.
 The server cannot install it into ChatGPT or schedule the next cell. No import, Node API,
 resident update or new MCP contract is needed. Pure-JS setup does not dispatch tools.
@@ -36,8 +36,9 @@ resident update or new MCP contract is needed. Pure-JS setup does not dispatch t
    set `waitMs=0` so the caller receives the retained handle before delivering later stdin; process
    mode returns immediately and its request rejects `waitMs` and `capturePaths`. If admission still returns `running`, switch to
    `runTdevOperationCell`. By default each monitor cell makes exactly one original-operation status call with `waitMs=30000`
-   for that exact operation/request identity before returning or rolling over. This keeps multiple 30-second terminal waits inside one physical cell instead
-   of requiring a fresh host-scheduled cell after every wait. The server returns immediately on
+   for that exact operation/request identity before returning or rolling over. A nonterminal reply
+   ends the default physical cell; the assistant must receive it and schedule another cell. Explicit
+   larger caller budgets may permit multiple waits, but are not the default or a host guarantee. The server returns immediately on
    terminal reconciliation or after the bounded wait with the freshest status/log page; nonterminal
    log growth alone does not end the wait. The helper advances the output offset and surfaces terminal
    `failed`/`cancelled` state before return. `unknown`, malformed or unavailable status stops for
@@ -49,6 +50,15 @@ resident update or new MCP contract is needed. Pure-JS setup does not dispatch t
 
 `classify` must return exactly `continue` only when the actual decoded response permits the next
 planned step. Running/unknown operations, semantic errors or unreadable wrappers require review.
+Use the supplied pure `classifyTdevReply` for the tdev envelope, with any additional domain checks
+the selected plan needs. RPC `ok:true` and MCP `isError:false` mean request processing, not successful
+execution. Operation `effect=committed` means a known durable result, including failed execution.
+The monitor packet's `status=terminal` covers success, failure and cancellation; inspect its
+`operationStatus` and full receipt. It never authorizes the next mutation by itself.
+The Host owns user-goal continuation. A terminal operation never resumes; another execution is an
+explicit new admission with a new requestId, after observing stop/effect/source facts and checking
+current authorization. A failed exec may already have captured partial source edits. Observation
+timeout, transport loss and missing UI history do not establish execution failure or permit replay.
 `onReply` should print the relevant operational receipt/result promptly and retain IDs needed for
 recovery. Both callbacks are pure caller JS: no tools, retries or long-running work. Do not reduce
 an operation result to transport success. The runner never infers success from a fulfilled await.
@@ -61,10 +71,7 @@ const packet = await runTdevCell({
   tools,
   steps: [{id: "projects", tool: "ACTUAL_TDEV_PROJECT", args: {request: {action: "list"}}}],
   onReply: reply => text(reply),
-  classify: reply => {
-    const body = reply?.structuredContent; // If absent, review; never guess success.
-    return !reply?.isError && body?.ok === true ? "continue" : "review";
-  }
+  classify: classifyTdevReply
 });
 text(packet);
 // End this functions.exec here. The assistant decides the next invocation.

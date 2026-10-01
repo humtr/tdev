@@ -1,5 +1,22 @@
-// Paste this function into each fresh Code Mode cell; no imports or server dependency.
+// Paste the selected helpers into each fresh Code Mode cell; no imports or server dependency.
 // Every tools invocation in that physical cell must pass through this runner.
+function classifyTdevReply(reply) {
+  const body = reply?.structuredContent ?? reply;
+  if (reply?.isError === true || !body || body.ok !== true || !Object.hasOwn(body, 'result')) return 'review';
+  const op = body.result;
+  if (!op || typeof op !== 'object') return 'review';
+  if (typeof op.status !== 'string') return 'continue'; // A successful domain read.
+  if (op.status !== 'succeeded' || op.effect !== 'committed' || !op.result || op.error != null) return 'review';
+  if (op.kind === 'exec' || op.kind === 'validate') {
+    const receipt = op.result;
+    if (receipt.terminal !== true || receipt.stopped !== true || receipt.exitCode !== 0 ||
+        receipt.cancelled || receipt.timedOut || receipt.captureError) return 'review';
+  }
+  // This permits the caller's already-selected next step; it does not establish
+  // the user goal, live health, authorization, or permission to rerun a failure.
+  return 'continue';
+}
+
 async function runTdevCell({tools, steps, nextIndex = 0, classify, onReply,
   maxCalls = 16, maxElapsedMs = 15000, now = () => Date.now(), witness = null}) {
   if (!Array.isArray(steps) || !Number.isSafeInteger(nextIndex) || nextIndex < 0 ||
@@ -126,7 +143,7 @@ async function runTdevOperationCell({tools, tool, operationId = null, lookupRequ
       return packet('review', 'status_reply_unavailable');
     }
     const body = reply?.structuredContent ?? reply;
-    if (!body || body.ok !== true || !body.result || typeof body.result.status !== 'string') {
+    if (reply?.isError === true || !body || body.ok !== true || !body.result || typeof body.result.status !== 'string') {
       last = body?.ok === false ? {error: body.error ?? null} : null;
       return packet('review', body?.ok === false ? 'status_error' : 'status_unreadable');
     }

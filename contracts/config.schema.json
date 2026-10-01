@@ -257,6 +257,12 @@
             "maxLength": 4096,
             "pattern": "^[^\\u0000]+$",
             "description": "Adopted command for later sealed-artifact verification. Defaults to validation, executed against the artifact layout. Recipes cannot replace this policy. Not executed by inspectRecipe."
+          },
+          "validationTimeoutSeconds": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3600,
+            "description": "Default hard execution deadline in seconds for source validation. A request timeout overrides it; omission keeps the legacy 300-second default. This execution budget is not a validation acceptance-policy change."
           }
         },
         "additionalProperties": false,
@@ -420,6 +426,12 @@
             "maxLength": 4096,
             "pattern": "^[^\\u0000]+$",
             "description": "Adopted command for later sealed-artifact verification. Defaults to validation, executed against the artifact layout. Recipes cannot replace this policy. Not executed by inspectRecipe."
+          },
+          "validationTimeoutSeconds": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3600,
+            "description": "Default hard execution deadline in seconds for source validation. A request timeout overrides it; omission keeps the legacy 300-second default. This execution budget is not a validation acceptance-policy change."
           }
         },
         "required": [

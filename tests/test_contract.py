@@ -97,6 +97,18 @@ class ContractTest(unittest.TestCase):
         repo["executor"]["kind"] = "native"
         self.assertFalse(validator.is_valid(config))
 
+    def test_source_validation_budget_configuration_ranges(self):
+        from jsonschema import Draft202012Validator
+        root = Path(__file__).resolve().parents[1]
+        schema = json.loads((root / 'contracts/config.schema.json').read_text())
+        for section in ('repositories', 'projectPolicies'):
+            field = schema['properties'][section]['additionalProperties']['properties']['validationTimeoutSeconds']
+            validator = Draft202012Validator(field)
+            for value in (1, 300, 1800, 3600):
+                self.assertTrue(validator.is_valid(value))
+            for value in (0, -1, 3601, None, '300', True, 1.5):
+                self.assertFalse(validator.is_valid(value), value)
+
     def test_document_surface_and_sequence(self):
         root = Path(__file__).resolve().parents[1]
         s, _ = load_contract()
