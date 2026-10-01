@@ -55,10 +55,13 @@ isolation. See the [trust boundary](ARCHITECTURE.md#3-native-trust-and-containme
 
 ## Current work
 
-Live resident is **0.1.24**, bundle
-`34e0b9234eacfd8948c73b0a6c257b75f13503c50a587f9c7fa987d116609e56`.
-Both existing connections are healthy/running, and the Termux `tdev` shortcut now uses the
-qualified checkout; the original dirty checkout remains untouched.
+Live resident is **0.1.25**, bundle
+`f1d10cf548ff2cbc1169db2ab239b3c772a0b8264e61ad8b31bffad777877ee7`.
+Qualified source commit `983f4559ac1f79526cd8bd59558ed496d67773e9` is published on
+`refs/heads/tdev`. Both existing connections are healthy/running after the owned recoverable
+update. Existing state/config/credentials/profiles and the historical unknown publication
+are unchanged. The Termux `tdev` shortcut uses the qualified checkout; the original dirty
+checkout remains untouched.
 
 Source **0.1.25** repairs the Host/exact-operation boundary: no-op command capture retains
 its source checkpoint; late dispatch failures cannot overwrite a terminal result; a new source
@@ -68,9 +71,15 @@ budget/origin and project readback. The caller adapter supplies a pure outcome c
 documents one default monitor wait per physical cell. Goal continuation stays Host-owned;
 terminal operations never resume or rerun automatically. Fixed host hints are unchanged.
 Focused **15**, affected **78**, and full **346 tests** pass; see the
-[boundary qualification](LOCAL_VALIDATION.md#hostexact-operation-boundary-repair--2026-10-01). Resident activation and actual
-ChatGPT visible-history/continuity acceptance are separate; this source repair does not claim
-to explain or fix the reported UI stall.
+[boundary qualification](LOCAL_VALIDATION.md#hostexact-operation-boundary-repair--2026-10-01).
+Inactive bundle and real isolated runit rehearsals passed. Installed localhost MCP confirmed
+13 typed tools/fixed hints, human-name lookup, no-op capture, durable nonzero failure despite
+successful RPC, and frozen source-validation budget/result readback. The owned acceptance
+task is closed/cleaned; its receipts remain discoverable. Existing config has no repository
+budget override, so the fallback remains 300 seconds. Activation does not change that policy.
+Actual refreshed ChatGPT Host/UI acceptance remains separate: the 300-second boundary,
+`monitored…` stall and disappearing visible history are still unqualified; see the
+[installed closeout](LOCAL_VALIDATION.md#0125-resident-activation-and-live-readback--2026-10-01).
 
 The reported ChatGPT run recovered the completed source work in **3 read calls**
 using only project name and label, with **0 user-supplied internal IDs** and no new effects.

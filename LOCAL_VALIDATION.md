@@ -3575,3 +3575,83 @@ Before activation, a private read-only snapshot retained all 7 state tables (123
 2669 operations, 13 projects, 20 artifacts, 6 deployments), config/connection/credential
 and diagnostic correlation-key hashes. Production activation and actual Host acceptance
 are not claimed by these inactive results.
+
+
+## 0.1.25 resident activation and live readback — 2026-10-01
+
+The user explicitly authorized canonical publication and resident activation after source
+qualification. The fresh remote was `94a7e2e2de1c72bd2b5aca331528021454bf124d`.
+Only the 17 qualified owned files were staged; executable/schema/test bytes matched the
+source-qualification manifest (delivery notes were the only subsequent changes). Commit
+`983f4559ac1f79526cd8bd59558ed496d67773e9` was pushed non-force to `refs/heads/tdev`
+and independently read back. The original dirty checkout and unrelated untracked artifacts
+were excluded. Focused 15 / affected 78 / full 346 source tests remain the source gate; both
+inactive rehearsals passed separately. No full-suite result is relabeled as Host acceptance.
+
+The production root remains
+`/data/data/com.termux/files/home/.local/share/tdev/composition-upgrade-53vwtpp8`.
+`admin.stage` verified inactive bundle
+`f1d10cf548ff2cbc1169db2ab239b3c772a0b8264e61ad8b31bffad777877ee7`,
+compatible config/state schema and existing pinned profiles before activation.
+`Installation.install` used its existing locks/journal/maintenance fence, supplied no new
+config and exempted only historical managed-create publication
+`2531fb0f9bbd4aa584865f62898e1010`. It did not resolve or retry that publication.
+The old 0.1.24 bundle remains retained for compatible rollback. Journal/fence cleared.
+
+Actual supervised readback: controller PID **20349**, version **0.1.25**, exact active
+bundle above; `tdev_janmori` PID **20403** and `default` PID **20449**, native CGO and
+successful control-plane poll. Immediate post-switch polling initially reported both
+connections not ready; subsequent observation confirmed both healthy without extra restart.
+Only installer-owned controller/Tunnel cutover occurred. No observer was started or
+restarted, no diagnostic activation/stop/key rotation was called. Health remains `watch`;
+config and diagnostic correlation key hashes are unchanged. A new controller process
+naturally has a new runtime instance; this is not a new diagnostic-key generation.
+
+Before acceptance mutations, read-only SQLite comparison confirmed exact equality of every
+preexisting row in all seven tables (2669 operations, 123 tasks, 13 projects, 20 artifacts,
+6 deployments, 7 workspaces, 16 memberships). State version remains **5**. Config, resident
+connection collection, both profiles, runtime/authorization key files and diagnostic
+correlation key all matched their pre-activation hashes; pinned Tunnel binary unchanged.
+After owned acceptance, every preexisting row still matches. Only **one task and nine
+operation receipts** were added; no project/artifact/deployment was added or altered.
+The unknown publication remains byte-for-byte `unknown/unknown`, the sole outstanding effect.
+
+Actual installed **localhost HTTP MCP** acceptance (2026-07-28; not a ChatGPT call):
+
+- `/healthz` bound 0.1.25/bundle/PID; installed config passed its active schema.
+- Raw `tools/list` returned 13 tools, required typed `{request: ...}` roots and unchanged
+  fixed annotation profile. Raw declaration fixture is retained privately.
+- `tdev_project list` returned `validationTimeoutSeconds` for enrolled projects;
+  `tdev_find` resolved the closed published `a1-source` predecessor by human locators,
+  without receiving a user-supplied internal ID or replaying any prior effect.
+- An explicitly new managed task `boundary025-installed-readback-20261001` started from
+  that predecessor. Its `true` command succeeded and retained the exact source checkpoint.
+  A separately admitted `exit 7` returned RPC/tool `ok:true`, durable `status:failed`,
+  `effect:committed`, exit 7, and the same checkpoint. Later status still reports failed.
+- The fixture's original mandatory source checks passed in validation
+  `3b858ce2e59d4df6893a38a2159977cb`, candidate
+  `2c027556b33071ba873dbe03d26c026ba2213715`. Admission and subsequent status both expose
+  timeout **300** / origin **default**; terminal evidence has exit 0. This creates no
+  source publication or deployment. Validation candidate and source checkpoint remain
+  distinct concepts. Existing budget policy bytes were deliberately preserved.
+- The qualified pure caller classifier consumed those actual packets: failed → `review`,
+  successful terminal validation → `continue`; no automatic retry occurred.
+- Owned command/validation scratch was retired and the task closed/cleaned; human-name
+  discovery still returns its closed terminal frontier with no outstanding effect.
+
+Private evidence: `activation-result.json`, `preservation-result.json`,
+`resident-readback.json`, `installed-tools-list.json`, `live-mcp-readback.json`,
+`live-classifier-readback.json` and `final-installed-state.json`, alongside previous logs.
+A local harness-generation typo (`NameError: S`) occurred before any validation dispatch;
+correcting the harness did not repeat an admitted effect.
+
+**Next actual Host gate:** user Connector Refresh, then a new conversation. Existing
+conversations may retain old injected catalogs. Inspect actual injected execution/budget
+fields and use `pkg-chatgpt-20260930-a1` / label
+`boundary025-installed-readback-20261001` / `state:all` to recover these receipts.
+Observe the succeeded validation and the distinct failed exit-7 predecessor; do not execute
+either again. Long-running acceptance must separately choose an adequate execution budget
+(existing `tdev`/delegated policies omit the new optional repository default, so fallback
+300 persists). Server HTTP return, Tunnel poll and pure local classifier success prove no
+ChatGPT scheduling, visible delivery or history persistence outcome. The reported 300-second
+Host boundary, `monitored…` stall and UI/history rollback remain unresolved.

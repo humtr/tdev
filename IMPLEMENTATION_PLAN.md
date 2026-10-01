@@ -99,6 +99,13 @@ The subsequent user authorization now permits 0.1.25 inactive qualification, can
 publication and recoverable resident activation with exact historical unknown-publication
 preservation. Installed readback precedes separate refreshed ChatGPT Host/UI acceptance;
 observer/diagnostic policy and credential/config bytes remain unchanged.
+0.1.25 inactive bundle/runit qualification, canonical source publication, resident activation
+and installed localhost MCP readback are now complete. The exact historical unknown receipt
+and all preexisting DB rows/config/security bytes are unchanged. Next: Refresh and use a new
+ChatGPT conversation to qualify installed declaration/result consumption and long-running
+continuity. Existing repository defaults remain unset (300-second fallback); select an explicit
+suitable execution budget for a planned long-running acceptance rather than confuse a known
+execution deadline with Host/UI delivery. Do not replay a completed or ambiguous operation.
 
 2026-09-30 user priority: re-evaluate the complete model-facing development surface from
 workloads and recovery, without preserving experimental names/count. First rebind current
