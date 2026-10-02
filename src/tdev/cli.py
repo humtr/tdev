@@ -36,7 +36,7 @@ ALL_HELP = '''tdev — local development and connection management
   tdev diagnostics inspect
   tdev call TOOL --input FILE   any existing MCP tool, JSON arguments; '-' reads stdin
   tdev schema TOOL             exact local tool input schema
-  tdev observer status|start|stop
+  tdev observer status|start|stop|keep
   tdev admin ...               existing local grants/configuration commands
   tdev link                    install tdev shortcut in Termux bin (or ~/.local/bin)
 
@@ -66,6 +66,23 @@ MCP 인증 연결 지정: tdev --connection NAME workspace list
 
 def source_root():
     return Path(__file__).resolve().parents[2]
+
+
+def observer_directory(root):
+    """Persistent operator evidence follows installation ownership, never task HOME."""
+    if 'TDEV_OBSERVE_DIR' in os.environ:
+        require(bool(os.environ['TDEV_OBSERVE_DIR']), 'OBSERVER_DIRECTORY',
+                'TDEV_OBSERVE_DIR must not be empty')
+        return Path(os.environ['TDEV_OBSERVE_DIR']).absolute()
+    try:
+        settings = json.loads(private_file(root/'resident.json'))
+        home = settings['home']
+        require(isinstance(home, str) and Path(home).is_absolute(), 'OBSERVER_OWNER',
+                'Installation resident.json.home must be absolute; or set TDEV_OBSERVE_DIR explicitly')
+    except (OSError, ValueError, KeyError, TypeError):
+        raise Fault('OBSERVER_OWNER',
+                    'Cannot resolve installation operator home; select --root or set TDEV_OBSERVE_DIR explicitly') from None
+    return Path(home)/'tdev-observations'
 
 
 def installer(root, action, source=None, controller_only=False):
@@ -263,7 +280,9 @@ def main(argv=None):
     elif command == 'observer':
         source = source_root()/'scripts/tdev-observe'
         require(source.is_file(),'OBSERVER_COMMAND','Run from the source CLI checkout')
-        return subprocess.call([sys.executable,str(source),*rest],env={**os.environ,'TDEV_OBSERVE_ROOT':str(root)})
+        return subprocess.call([sys.executable,str(source),*rest,*(['--json'] if options.json else [])],
+                               env={**os.environ,'TDEV_OBSERVE_ROOT':str(root),
+                                    'TDEV_OBSERVE_DIR':str(observer_directory(root))})
     elif command == 'admin':
         return subprocess.call([sys.executable,'-m','tdev.admin',*rest,'--root',str(root)],env={**os.environ,'PYTHONPATH':str(source_root()/'src')+':'+str(source_root()/'.tdev-deps')})
     elif command == 'schema':

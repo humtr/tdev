@@ -5,6 +5,51 @@ projects and execution environments. ChatGPT chooses strategy and tools within t
 delegated authority. **Android + Termux is the default development and operating environment**,
 not just a controller for another machine.
 
+## 처음 설치하기
+
+새 Termux 터미널에서 아래 두 방법 중 하나를 선택합니다. Python/Git 사전 설치는
+필요하지 않습니다. `curl: command not found`가 나오면 `pkg install -y curl`을 한 번
+실행하고 재시도합니다.
+
+### 간편 설치
+
+다운로드한 설치 진입점을 바로 실행합니다.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/humtr/tdev/setup/i | bash
+```
+
+### 내용을 확인한 뒤 설치 — 더 안전한 방법
+
+본 설치기를 임시 파일로 모두 내려받은 뒤 내용을 표시합니다. 이 단계에서는 설치기를
+실행하지 않습니다. 다운로드가 성공해야 실행용 파일 이름으로 바꾸므로, 실패한 다운로드의
+일부 내용이 다음 단계에서 실행되는 것을 방지합니다.
+
+```bash
+tdev_setup_dir=$(mktemp -d) &&
+curl -fSL --proto '=https' https://raw.githubusercontent.com/humtr/tdev/install/termux-bootstrap/bootstrap.sh -o "$tdev_setup_dir/bootstrap.part" &&
+mv "$tdev_setup_dir/bootstrap.part" "$tdev_setup_dir/bootstrap.sh" &&
+cat "$tdev_setup_dir/bootstrap.sh"
+```
+
+오류 없이 다운로드가 끝나고 내용을 확인했다면, 같은 터미널에서 직접 실행합니다.
+
+```bash
+bash "$tdev_setup_dir/bootstrap.sh" --ref install/termux-bootstrap
+```
+
+이 방법도 실행 후에는 설치 브랜치의 소스와 외부 패키지를 내려받습니다. 파일을 먼저
+확인할 기회를 제공하는 방식이며, 코드 신뢰성이나 의존성 안전성을 보증하지는 않습니다.
+
+### 설치 후 안내
+
+필요한 Termux 패키지와 서비스를 준비한 뒤 Tunnel ID와 런타임 키를 입력받습니다.
+키는 화면에 표시하지 않습니다. Tunnel은 미리 준비해야 하며, 설치 후 프로젝트 접근
+범위는 사용자가 지정합니다. [처음 설치·연결·첫 프로젝트 안내](INSTALL.md)를 따라가세요.
+이 명령은 공개된 설치 브랜치의 코드를 실행합니다. 이전 작업 데이터 복원 명령은 아닙니다.
+
+## Product purpose
+
 The first development goal is complete Git/local development, validation and deployment:
 create/connect projects → inspect/edit/debug → test → build/package → commit/integrate/publish → deploy →
 verify live behaviour → recover and clean up. A successful Git push is not deployment.
@@ -55,6 +100,28 @@ isolation. See the [trust boundary](ARCHITECTURE.md#3-native-trust-and-containme
 
 ## Current work
 
+The observer CLI now binds its default evidence directory to the selected installation's
+persisted operator HOME, preserving custom `TDEV_OBSERVE_DIR` overrides and native task HOME
+isolation. `tdev observer status --json` reads both modes without creating files or controlling
+processes, and distinguishes missing evidence, stopped/stale records and invalid roots. The
+existing revision-2 collector can be inspected without replacement; new collectors from this
+source record revision 3 and explicit root identity. See [operator usage](OPERATIONS.md#caller-execution-witnesses)
+and [context qualification](LOCAL_VALIDATION.md#observer-context-binding--2026-09-28).
+The user reports successful fresh-session rediscovery, completed-effect recognition, new forward
+work/readback and visible handoff/final delivery in the 2026-09-28 reconnect trial. Local read-only
+checks independently confirmed the running observer and sample/runtime association; they did
+not replay that host trial or qualify remaining broader baseline gates.
+At final read-only closeout the old observer had stopped at 13:24:01 UTC, with its 316-sample
+segment intact. No observer control command was issued in this work; the initiating actor is
+unverified and no automatic restart was performed. The timestamped qualification above records
+both the earlier live observations and this later stopped state.
+
+Source **0.1.16** adds a Termux bootstrap for first-time users, including package preparation,
+version-checked private Python dependencies, stock termux-services compatibility and the command
+shortcut. The bootstrap preserves terminal input for the existing guided Tunnel setup and reuses
+matching clean source checkouts without resetting or pulling them. See [installation](INSTALL.md).
+The current resident is not replaced by this source change; qualification is recorded separately.
+
 Installed native packaging acceptance now passes on resident **0.1.14** through authenticated
 local HTTP: pinned public dependency, generated asset, source/build/validation scratch retirement,
 dependency-environment removal, artifact verification, live release, update/rollback, failed-switch
@@ -63,8 +130,13 @@ A non-service ZIP also builds/verifies/exports without a health port or deployme
 trial service is removed, trial task environments/refs are retired, and no pending effects remain;
 data, project registration, historical releases and evidence are intentionally retained.
 See [installed evidence](LOCAL_VALIDATION.md#installed-packaging-lifecycle-acceptance--2026-09-27).
-Real ChatGPT one-/two-project journey and visible continuity remain outstanding; the
-[baseline execution guide](examples/chatgpt/JOURNEY.md) is prepared for the actual host.
+A two-project baseline now completes across the connected-tool start and a local CLI resume:
+source integration/publication, retained packages, live consumer checks, update/rollback and
+cleanup all pass. The connector was unavailable after resume, so complete real ChatGPT journey
+and visible-continuity acceptance remain outstanding. All five trial tasks and the workspace
+are closed, both artifacts pruned, and the trial service removed with data/history preserved.
+See [journey evidence](LOCAL_VALIDATION.md#two-project-journey-with-local-resume--2026-09-27)
+and the [baseline execution guide](examples/chatgpt/JOURNEY.md).
 Source **0.1.15** fixes the observed CLI credential-selection gap: `--connection NAME` uses
 that registered connection's local credential for MCP calls. If connector.secret is missing,
 terminal users can select a connection by number; automation receives an actionable error.

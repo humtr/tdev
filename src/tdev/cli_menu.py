@@ -34,6 +34,7 @@ MENUS = {
         ('기록 상태 조회', ['observer', 'status']),
         ('연속 기록 시작', ['observer', 'start']),
         ('연속 기록 중지', ['observer', 'stop']),
+        ('최근 구간 보존', ['observer', 'keep']),
     ]),
     'work': ('작업 조회', [
         ('작업', ['task']), ('프로젝트', ['project']),

@@ -92,6 +92,25 @@ class ResidentTest(unittest.TestCase):
         (self.backend.svdir / 'tdev/run').write_text('changed')
         with self.assertRaises(Fault) as e: self.i.install(self.one)
         self.assertEqual(e.exception.value['code'], 'SERVICE_CHANGED')
+
+    def test_update_preserves_operator_home_and_observer_evidence(self):
+        from tdev.cli import observer_directory
+        home = self.parent/'operator'
+        settings = self.i.settings()
+        settings['home'] = str(home)
+        atomic_write(self.root/'resident.json', canonical(settings))
+        with patch.dict(os.environ, {}, clear=True):
+            evidence = observer_directory(self.root)
+            segment = evidence/'continuous-v1/segments/fixture-coarse-retained'
+            atomic_write(segment/'samples.jsonl', b'{"retained":true}\n')
+            atomic_write(segment/'KEEP', b'')
+            before = {p:p.read_bytes() for p in evidence.rglob('*') if p.is_file()}
+            self.i.install(self.one)
+            with patch.dict(os.environ, {'HOME':str(self.parent/'task-home')}):
+                self.i.install(self.next_bundle())
+                self.assertEqual(evidence, observer_directory(self.root))
+            self.assertEqual(before, {p:p.read_bytes() for p in evidence.rglob('*') if p.is_file()})
+            self.assertEqual(str(home), self.i.settings()['home'])
     def test_config_update_is_journaled_and_failure_or_crash_restores_credentials(self):
         self.i.install(self.one)
         before = (self.root / 'config.json').read_bytes()

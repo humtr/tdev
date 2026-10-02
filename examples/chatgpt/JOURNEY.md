@@ -69,8 +69,24 @@ prune 가능한 artifact를 정상 API로 정리한다. 앱 데이터·역사 �
 
 ## Observation and completion
 
-The existing independent local observer is a server-side witness. Before the actual host run,
-Local Codex can record its current availability/coverage and retain the matching time window;
+On resume, rediscover the current tool catalog before attributing further calls to the original
+client path. If the connected tdev tools are unavailable, record that boundary. Authorized local
+CLI work can continue with an explicitly selected connection, but it remains local HTTP evidence.
+Recover the original task frontier and accepted request/operation identities before any effect;
+an older caller checkpoint file is not proof that later publication/build calls never happened.
+Use the frontier's completed receipts to choose the next action, fetching individual operation
+details only when needed. Count redundant audit reads separately from necessary recovery calls.
+The 2026-09-27 run recovered its intent without new semantic notes; it does not establish fresh
+ChatGPT conversation recovery or justify adding notes solely because the tool catalog changed.
+
+The existing independent local observer has a separate evidence timeline from `tdev_diagnostics`.
+Before the actual host run, bind `tdev --root /absolute/installation observer status --json`
+to the intended installation and recording root, retaining any explicit `TDEV_OBSERVE_DIR`.
+The CLI uses installation-owned operator HOME even inside task exec; do not use a direct script's
+current-HOME default or treat absence at a different root as lack of capture. Record mode,
+PID/start, segment, sample age, script identity, installation binding and coverage counters.
+Unknown legacy binding needs a join to the sample's runtime identity. This diagnostic binding
+is part of acceptance validity. Local Codex can record current availability/coverage and retain the matching time window;
 if it is stopped or stale, record the coverage gap and arrange an explicitly selected local
 observer start before claiming independent live capture. A path containing old samples is not
 evidence of a running observer. Useful development may proceed with that limitation explicit;

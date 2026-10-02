@@ -276,11 +276,12 @@ class MenuTest(unittest.TestCase):
             bridge.return_value.forward.return_value={'result':{}}
             self.assertEqual(self.main(['diagnostics'], ['1']), 0)
         bridge.return_value.forward.assert_called_once_with(1,'tools/call',{'name':'tdev_diagnostics','arguments':{'action':'inspect'}})
-        with patch.object(cli.subprocess, 'call', return_value=0) as process:
+        with patch.object(cli.subprocess, 'call', return_value=0) as process, patch.object(cli, 'observer_directory', return_value=Path('/operator/evidence')):
             self.assertEqual(self.main(['observer'], ['1']), 0)
         self.assertEqual(process.call_count,1)
         self.assertEqual(process.call_args.args[0][-1],'status')
         self.assertEqual(process.call_args.kwargs['env']['TDEV_OBSERVE_ROOT'],'/unused-menu-fixture')
+        self.assertEqual(process.call_args.kwargs['env']['TDEV_OBSERVE_DIR'],'/operator/evidence')
 
     def test_observation_menu_arguments_follow_wire_contract(self):
         from jsonschema import Draft202012Validator

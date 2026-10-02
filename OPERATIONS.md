@@ -2,6 +2,10 @@
 
 Operator actions, not production authorization. Current status lives in README.
 
+New users: start with [INSTALL.md](INSTALL.md). Its one-line bootstrap prepares a fresh Termux
+environment and enters the guided installer. The inactive staging/rehearsal sequence below is
+for development and qualification, not a prerequisite for ordinary first-time users.
+
 ## On-device prerequisites and inactive install
 
 Use Termux Python, Git and the development CLIs required by the enrolled repositories
@@ -54,7 +58,7 @@ In a terminal, enter just a category to select an action by number:
 tdev                 # overall menu
 tdev connection      # connections, authentication mode, token copying
 tdev diagnostics     # server diagnostics and local observer
-tdev observer        # recording status/start/stop
+tdev observer        # recording status/start/stop/keep
 tdev work            # task/project/workspace/operation queries
 tdev maintenance     # installation, update, verification and recovery
 ```
@@ -181,7 +185,10 @@ tdev connection add business --tunnel-id tunnel_0123456789abcdef0123456789abcdef
 `$PREFIX/var/service`, starts the controller before the tunnel and checks live identity/health.
 It discovers the existing owned installation (or an unambiguous running packaged controller).
 Use `--root /absolute/private/root` or TDEV_ROOT to select another installation explicitly.
-Pinned Python dependencies are bootstrapped into .tdev-deps when missing. Existing credentials,
+Pinned Python dependencies are checked for exact versions and isolated imports; incomplete or
+outdated sets are staged before replacing .tdev-deps. On Android, a matching Termux
+python-rpds-py package supplies the native extension. Use bootstrap.sh for prerequisite setup.
+Existing credentials,
 project delegation, state and Tunnel identity are retained; install does not create remote
 Tunnels or expand project grants.
 
@@ -1060,14 +1067,43 @@ The resident advertises compact caller guidance in `tdev_operation`'s descriptio
 ChatGPT discovery after an authorized update; a server deployment cannot install an assistant
 policy or attest that the host follows it.
 
-The independent continuous command is maintained at `scripts/tdev-observe`. Copy it into the
-operator's private bin directory after validating the installed observer module. It discovers
-the owned installation through the runit ownership marker, or accepts `TDEV_OBSERVE_ROOT`.
-`TDEV_OBSERVE_DIR` selects a separate recording root. `start`, `status`, `keep` and `stop` operate
-coarse collection (10 seconds, hourly/64 MiB segments); `--fine` selects a separate 1-second,
-5-minute/64 MiB collector. Both continue until stopped. Retention targets 24 hours/512 MiB across
-the two modes, preserving active/KEEP segments and foreign files. Preserve significant evidence
-with `keep` before controlled changes. Do not use the production observer for retention tests.
+Use `tdev observer status|start|stop|keep` as the operator interface. `--root PATH` or
+`TDEV_ROOT` selects the installation; the CLI passes that root and the recording root explicitly
+to the independent `scripts/tdev-observe` collector. The default recording root is
+`<selected installation resident.json.home>/tdev-observations`, preserving existing operator
+recordings even when the caller's HOME is a disposable native task directory. Missing/invalid
+installation ownership fails with `OBSERVER_OWNER`; it never silently selects task HOME.
+
+`TDEV_OBSERVE_DIR=/absolute/evidence tdev --root /absolute/installation observer status`
+selects an existing custom recording root. Use the same override for every command and acceptance
+check; it is not saved implicitly or discovered by scanning disks. Relative overrides retain
+caller-cwd meaning, so use absolute paths across contexts. Installations with the same operator
+HOME share the historical default; assign separate custom roots for simultaneous collectors.
+A known installation mismatch is reported and blocks start/stop/keep against that mode's record.
+
+`status` reads both coarse and fine records; `status --fine` selects fine alone. `start`, `keep`
+and `stop` operate coarse collection (10 seconds, hourly/64 MiB segments); `--fine` selects a
+separate 1-second, 5-minute/64 MiB collector. Both continue until stopped. Retention targets
+24 hours/512 MiB across the two modes, preserving active/KEEP segments and foreign files.
+Preserve significant evidence with `tdev observer keep` (also `--fine` when applicable) before
+controlled changes. Do not use the production observer for retention tests.
+
+`status --json` is suitable for read-only ChatGPT/native exec checks: no directories/locks are
+created, no process is signalled, and no socket/MCP request is sent. It includes installation,
+recording and status roots, mode, running/PID/start identity, segment/start time, latest sample
+age, recorded script hash/revision/bundle and unavailable/storage/event-gap counters. States are
+`running`, `stale_status` (live but delayed samples), `stale_pid_or_status`,
+`stopped_evidence_exists`, `evidence_without_status`, `no_state_or_evidence`,
+`installation_mismatch` and `inaccessible_or_invalid_recording_root`. The last two return a
+nonzero exit code; other states are observations, not a health exit-code assertion. A legacy
+record can report `installationBinding=unknown_legacy`; do not claim an installation binding
+from its PID alone. Verify the recorded sample runtime identity for the acceptance interval.
+
+Direct `scripts/tdev-observe` or a previously copied private-bin command remains available for
+standalone diagnostics/compatibility. That path retains the historical current-HOME default;
+pass both `TDEV_OBSERVE_ROOT` and `TDEV_OBSERVE_DIR` explicitly in isolated contexts. A copied
+script is independently versioned and does not update when the CLI source changes. Routine
+operator instructions use `tdev observer`; copying a private-bin script is no longer required.
 
 `status` shows fresh-sample age, storage/availability, generation and the latest four run
 witnesses; each sample and the local mode status file retain up to 32 run frontiers. First-sample
@@ -1077,11 +1113,20 @@ marker requests, and cannot prove Code Mode call admission or visible progress. 
 remain the source for exact interval joins. Missing events, regressions, invalid records and
 unavailable samples qualify the summary. No missing-witness timeout declares a ChatGPT stall.
 
-For an authorized observer upgrade, preserve the old script and significant segments, keep
-collection running through the resident switch, then gracefully close the old worker, replace
-the command and restart with its previous mode/interval/segment settings. Verify a new sample,
-script/bundle identity and the cutover gap. The collector remains separate from tdev's service
-graph; upgrading it does not register a boot service or change Android power policy.
+A CLI/status-only upgrade needs no collector or resident restart. First record `status --json`
+with the selected installation/custom directory, then invoke the qualified source CLI with normal
+and temporary HOME. Confirm the same recording root, PID/start, segment and increasing samples;
+old running workers keep their recorded revision and script identity. Do not stop/start merely
+because the canonical command or status output changed.
+
+For a separately authorized collector upgrade, preserve the old script and significant segments
+with `keep`, and record the previous mode/interval/segment settings and last sample. Keep
+collection running through any authorized resident switch. Then gracefully stop each selected
+mode using its original installation/recording root and start from the qualified CLI with the
+saved settings. Verify new samples and script/bundle/root identity, and measure the gap between
+the last old sample and first new sample (including unavailable/coverage counters). Preserve
+both timelines and report any gap; do not delete old segments or silently label a cutover
+continuous. The collector remains outside tdev's service graph and Android power policy.
 
 This is opt-in investigation, not a required development workflow. `mark` adds no operational
 receipt, task mutation, incident, capture lease or acknowledgement. The exact input/receipt and

@@ -1637,6 +1637,155 @@ with the independent observer covering the entire workload. Verify whether the h
 response metadata and collect actual visible progress/Stop/successor/resume separately. Local
 authenticated installed MCP success does not qualify ChatGPT UI continuity or its private runner.
 
+## One-line Termux first installation — 2026-09-28
+
+Source base `0f6b78e18ec6abfad830bfd8e65917c7c128149a`, candidate **0.1.16**.
+The user selected first-time installation ahead of the remaining host journey gate.
+README now leads to INSTALL.md and a Bash command selecting repository URL and the separate
+`install/termux-bootstrap` source branch. bootstrap.sh prepares Termux packages, a persistent
+checkout, private dependencies, the shared service daemon and the existing interactive installer.
+There is no new MCP/config schema, remote Tunnel provisioning or automatic project delegation.
+
+Two fresh-install prerequisites were missing from the previous operating-environment evidence:
+stock termux-services has no `service-daemon status`, and PyPI has no Android wheel for the pinned
+rpds-py version. Preflight now observes one exact runsvdir executable/service-directory identity.
+The explicit bootstrap starts it only when absent; ambiguous/foreign graphs fail. Dependencies
+reuse only the matching native Termux distribution, then validate all exact versions and imports
+without global site-packages. Existing dependencies remain intact until staging succeeds.
+An existing owned tdev service skips system package preparation. The resident installer keeps
+its original ownership, outstanding-effect, credential and update-recovery checks.
+
+Evidence: `.artifacts/bootstrap-20260928/`. Focused bootstrap checks: **13 tests, OK, 5.477s**,
+exit 0. Affected `test_installer_setup test_resident test_cli test_admin`: **58 tests, OK, 82.125s**,
+exit 0. Coverage includes a real temporary Git clone and terminal stdin, unchanged clean retry,
+dirty/foreign/symlink checkout preservation, package/clone/installer failure, refused maintenance
+actions, wrong SVDIR, existing-service package preservation, exact native dependency selection,
+staging failure/retry and a real isolated runsvdir. The first broad run was interrupted with exit
+130 after the final service-path guard and fixture environment correction; it is not counted as PASS.
+The final complete `scripts/check.sh` run passes: **320 tests, OK, 962.282s**, exit 0
+(`check-final.log` / `check-final.exit`).
+
+The real Termux `python-rpds-py 2026.6.3` aarch64 package was downloaded and extracted only into
+the evidence directory, not installed into the operating environment. Package SHA-256:
+`a0345ca41cdcb357a311c345da227439f733e46bcf8d738d224e8b4585ab88b4`.
+A fresh private dependency directory seeded from that package plus actual pinned pip acquisition
+passes isolated imports and version checks on Python 3.14/Android arm64; a second preparation
+reuses the verified set. The original documented Bash command was tested with a failing downloader:
+exit 22 propagates and partial downloaded shell text is never executed. Shell syntax and diff
+whitespace checks pass. Current source preflight also recognizes the existing shared runsvdir.
+The user subsequently requested a shorter command: documentation now uses the bootstrap
+default repository and an AND-list around download/execution (286 to 171 characters).
+This documentation-only simplification did not change runtime source or rerun the suite.
+
+No package-manager install/update, service start/restart, resident replacement, credential change,
+observer change or project grant was performed on the operating installation during qualification.
+It remains **0.1.14 / up**, both existing connections locally healthy. Full first-install acceptance
+on a wiped/new Termux environment, new Tunnel credentials and actual ChatGPT invocation still
+requires that environment; fake package/service steps are not claimed as this acceptance.
+INSTALL.md records the separate first-device, interruption/retry and connection acceptance procedure.
+This delivers installation; deleted configuration/workspaces/application data still need backups
+for restoration. Other Android ABIs and future native-package/Python combinations are unqualified.
+
+## Two-project journey with local resume — 2026-09-27
+
+Source base `0f6b78e18ec6abfad830bfd8e65917c7c128149a`, source CLI 0.1.15; resident 0.1.14,
+bundle `e356a2c6aea607050e9124ef6be8276c779a2721f033ef8ac092423f27f2dbe3`.
+Evidence: `.artifacts/journey-d1283cf13321/` contains the initial caller snapshot, append-only
+local call log, continuation script/state, exported files, operation receipts and final audit.
+The final config SHA-256 is `dcc86d5de0b556e061160e0a9062bd5fc0e3efe1c7bf91ac984d142798d63cf8`;
+it is an end observation, not a measured before/after equality claim. No config, credentials,
+controller, Tunnel or observer lifecycle was changed by this run.
+
+The initial session used the discovered `mcp__codex_apps__tdev_*` tools: delegated project
+creation, a dedicated workspace, source edits/execution, integration of a separate documentation
+task, source validation, exact managed-branch publication and retained-build admission. Caller
+markers used instance `2e2e0deeed4fa5b0`. After the user's `resume`, that tool family was absent
+from the available catalog and the function store was empty. The existing source CLI continued
+through `--connection tdev_janmori`, selecting its local credential without exposing or changing it.
+These are distinct client paths; the latter is localhost HTTP, not a Tunnel/ChatGPT host test.
+
+The first read found original build `c7b7dc31698f4e22b0516eb20fc9feb5` succeeded. Current task
+inspection exposed its completed build/publication and exact remote commit. The saved caller
+snapshot ended before those completions; recovery used server receipts rather than repeating
+source validation, publication or build. No user-supplied internal IDs, config edits, new semantic
+notes or handoff essay were required. This resumed the existing conversation context; it does not
+prove recovery of working intent in a fresh ChatGPT conversation.
+
+Executed workload:
+
+- New API and consumer projects under `local-projects`, in workspace
+  `c987259e5cb449ecb660b45e90ba7b87`. Source checks use the existing adopted `sh scripts/check.sh`.
+  The API vendors hash-pinned `packaging==25.0`, generates an asset and serves a versioned JSON
+  contract with a release header/body and a persistent data sentinel.
+- An independent task's contract document integrates without conflict. Both API versions and
+  the consumer validate and publish; task inspection confirms each exact published commit before
+  managed-ref cleanup. Source publication and the two repositories remain independent effects.
+- Both retained packages pass actual entrypoint/artifact checks. Source/build/check scratch and
+  task dependency environments are retired before each release. Version two is built and verified
+  while version one serves. A separate consumer task checks the live version two response, then
+  the retained version one response after rollback. Its source tests also accept two valid
+  payloads and reject eight incompatible schema/value/version/release combinations.
+- Active/previous artifacts refuse prune in both UP and DOWN states. Stop/start preserves the
+  sentinel; its final modification time remains within the first release's dispatch/return
+  interval, excluding recreation by this app on a later start. Removal reaches revision 6,
+  desired=removed and no running process. Both 86-byte
+  protocol files export in two 64-byte pages each and match their returned whole-file SHA-256.
+  Explicit pruning follows removal. No additional build is admitted for rollback/restart.
+  No network isolation or new failure-injection result is claimed; previous isolated/installed
+  failed-switch evidence remains applicable.
+
+Exact identities (full results are retained in the evidence packet):
+
+| Result | First API version | Second API version |
+|---|---|---|
+| Published source | `e7b1dd42718cf1d3c07de51fbd270a11ddd96f61` | `801d325ac913106b93da20f11469c926899f0ec1` |
+| Source validation | `e341b4bda86c41a7891ce5e96f81feef` | `bdf47409725747caad67216d79cfd7d0` |
+| Retained build | `c7b7dc31698f4e22b0516eb20fc9feb5` | `c2d983d521f645229cba66df8dac4cba` |
+| Content SHA-256 | `e648edd0323bfd1f8a286702ed5f8be4297592299a91f7e5246f4360d0644cb0` | `a5f11ae6684e80859fc536156acf1414990d4ff30883673e1b02d0bb83f0e3a5` |
+| Artifact validation | `4880fc11c54f4ca9ad44229c8a04fcca` | `9b151c7bb1ac44149dc8e44be2e8d838` |
+| Live release | `f06082bc9e86a1aad9acc7b9b734dc15015d49436b2d8f0606ac5cef4190e91e` | `bd6ecd6e5d757f49b90e7d32fc7d1ab544339ab7514459a5870c655f71e5a7d3` |
+
+Consumer source `90ec26993078c4727b1f4ee1e0016ac6fa03824b` has validation
+`edee59a260484876bc7f9e77c90e3f2f`. Deployment `d5fcdaa0096239655f439000d4ae3222`
+owns the trial service and preserved data at the installation's
+`state/deployments/d5fcdaa0096239655f439000d4ae3222/data`.
+Final read-only audit finds **60/60 trial operations succeeded**, no global running/unknown
+operations, all five tasks closed, all owned refs deleted, workspace closed, two artifacts pruned,
+no execution scratch and no task dependency environments. The two enrolled local repositories,
+Git/SQLite history, data, logs and historical release copies remain intentionally retained.
+The release copies contain **632,834 file bytes**; the whole deployment directory contains
+**638,923 file bytes**. Eleven retired native receipt/log directories retain **8,999 file bytes**.
+These are logical file lengths, not filesystem allocation or whole-installation usage. Artifact
+metadata measured **316,026 bytes per object** before pruning; release copies have independent
+retention. The audit initially treated retained native receipt directories as leftover scratch;
+inspection of retirement semantics corrected that assertion without deleting evidence.
+
+Measurements and limits:
+
+- Local continuation recorded **92 calls**, **221,262 UTF-8 stdout bytes** and **246.48 seconds**
+  from its first journaled dispatch to last reply, including phase gaps. One preceding build-status
+  call is outside that journal. Stdout includes the CLI JSON wrappers/duplicate content; it is not
+  model-token or wire-byte accounting. Seven observations preceded the first new useful effect
+  (artifact verification was call eight), including redundant audit reads. This is not a minimal
+  recovery-call result or proof of the proposed three-call target.
+- Each tiny two-page export took **1.26 / 1.66 seconds** locally. This does not characterize
+  large exports or establish a need for a streaming implementation. The initial persisted snapshot
+  contains nine bounded cells/40 attempts through witness sequence 27; later source-status and
+  publish/build replies appear in the conversation and durable server receipts. It is not a
+  complete archived connected-client timing/byte series.
+- The independent observer remained stopped; its samples were already stale at entry. Caller
+  markers establish their receipt only. No user report establishes screen-delivery times, visible
+  continuity, a visible stall, Stop behavior or actual ChatGPT reconnection. Full real ChatGPT
+  journey acceptance remains open because the connected path did not continue after resume.
+- All local continuation phases and the corrected final audit exited 0. Product implementation
+  and public schema are unchanged. Focused CLI/progress/contract checks: **30 tests, OK, 36.360s**,
+  exit 0. Full `sh scripts/check.sh`: **307 tests, OK, 671.155s**, exit 0, including the
+  documentation whitespace check. Logs and exit receipts are retained alongside the journey
+  evidence. An SQLite unclosed-connection `ResourceWarning` appeared during fixture collection;
+  this is not a warning-free claim. The baseline does not demonstrate a semantic
+  recovery defect requiring notes; step 3 remains selected, with bounded frontier use and accurate
+  client-path attribution clarified in `examples/chatgpt/JOURNEY.md`.
+
 ## Explicit local CLI credential selection — 2026-09-27
 
 Source base `650e1dd3843b3c74fc6e78ce91b23bfbdb6f7b33`, source candidate 0.1.15.
@@ -2090,3 +2239,124 @@ publishes caller guidance; it cannot force the assistant to use the helper, issu
 or update the visible UI. Existing full controller instructions and helper remain the executable
 reference. Real ChatGPT scheduling/visible continuity remains outstanding and is to be assessed
 during normal authorized work, not another density or Stop experiment.
+
+## Short piped installation entry — 2026-09-28
+
+The user requested the conventional short `curl … | bash` form. `i` is a single parsed
+shell block which downloads the full bootstrap, propagates its download failure and opens
+`/dev/tty` for the setup wizard before executing it. The `setup` branch exposes the short URL;
+the selected repository/source branch and existing bootstrap behaviour remain unchanged.
+README and INSTALL now show the 70-character command plus missing-curl recovery.
+No new tests or suite runs were performed for this entry point; the earlier 320-test result
+applies to the bootstrap implementation before this wrapper. The operating resident is unchanged.
+
+## Baseline journey resumption preflight — 2026-09-28
+
+The user selected implementation-plan step 3 after first-install documentation. Current tool
+discovery exposes no tdev connector tools in this session. Local CLI observation uses the explicit
+`tdev_janmori` connection and is not a ChatGPT/Tunnel acceptance run. Controller **0.1.14 / up**
+and both registered connections report healthy/running. Current bundle remains
+`e356a2c6aea607050e9124ef6be8276c779a2721f033ef8ac092423f27f2dbe3`; config SHA-256 remains
+`dcc86d5de0b556e061160e0a9062bd5fc0e3efe1c7bf91ac984d142798d63cf8`, matching the earlier audit.
+Read-only SQLite observation finds no running/unknown operations, all five prior trial tasks
+closed with managed refs deleted, and all 60 trial operations succeeded. Closed trial effects
+were not relaunched. Evidence: `.artifacts/journey-resume-20260928/snapshot.json` and status files.
+
+Diagnostic inspection reports watch, instance `2e2e0deeed4fa5b0`, and zero storage errors.
+The independent observer is stopped; its last sample was about 26 hours old at observation.
+Historical samples do not cover a new host trial. No observer, controller, credentials, grants or
+service lifecycle was changed. No tests were run: this turn only prepared acceptance and recorded
+current observations. Actual host development/reconnect and screen progress remain unverified.
+
+Next dependent action: open a ChatGPT conversation exposing the tdev tools and follow
+`examples/chatgpt/JOURNEY.md` from a new owned trial identity. Prior closed tasks remain historical
+evidence. That guide contains the complete working prompt; existing local success need not be
+repeated merely because the host tools are absent. Independent capture requires a separately
+selected observer start if desired; lack of capture must be recorded, not inferred away.
+
+## Observer context binding — 2026-09-28
+
+Fresh rebind used README/current development navigation, installation/native/diagnostic semantics
+in ARCHITECTURE, the diagnostic contract and current installer/resident/CLI/collector code.
+The source baseline is recorded in `.artifacts/observer-context-20260928/read-only-validation.json`;
+qualification includes the working changes, not a claim of a committed release. Existing dirty
+bootstrap/install work is preserved. No resident/provider/credential changes or live collector control commands were issued.
+
+The defect reproduced: the HEAD collector invoked with a temporary HOME and the actual selected
+installation printed “기록된 연속 observer가 없습니다.” It created its empty status directory in
+that disposable HOME. The revised CLI, from ordinary and temporary HOME with explicit `--root`
+and with `TDEV_ROOT`, instead read the same operator evidence root and existing coarse PID
+10748 / process start 172536607 / segment `20260928-213106-coarse-b1f96cb7`. Its recording root
+was `/data/data/com.termux/files/home/tdev-observations`; the selected installation was
+`/data/data/com.termux/files/home/.local/share/tdev/composition-upgrade-53vwtpp8`.
+This establishes an invocation-context false negative, not a failed collector.
+
+Root cause: the CLI only passed `TDEV_OBSERVE_ROOT`; the collector defaulted its independent
+recording root to caller `Path.home()`. The existing normative owner for operator HOME is
+`resident.json.home`, captured by installation and reused by service launchers/updates. The CLI
+now explicitly passes its default evidence path from that owner, preserving `TDEV_OBSERVE_DIR`
+overrides without evidence moves or native HOME changes. No MCP wire type or server diagnostic
+owner changed. Source collector revision 3 adds recorded root identity; the live collector stays
+revision 2. Its process identity is verified, but installation binding is honestly
+`unknown_legacy` because neither its old record nor process environment contains an explicit
+root. A separate bounded tail read joined a current sample's server PID 24176 and instance
+`2e2e0deeed4fa5b0` to that live server's `--state`/`--config` under the selected installation.
+This verifies the observed sample's runtime association without inventing missing legacy worker
+metadata. A later read kept the same observer PID/start/segment and samples advanced 236 → 263;
+unavailable/storageErrors/eventGaps/missingEvents/regressions remained zero.
+
+Status now reads bounded regular mode files without creating directories/locks, sending signals,
+pruning evidence or calling the server. It shows both modes and distinct absence, retained/stale,
+invalid/inaccessible and installation-mismatch outcomes, plus root/process/script/sample/coverage
+identity. This is independent local observation, not a new `tdev_diagnostics` surface.
+
+Initial focused/affected checks passed 53 tests. Expanded affected checks passed 61 tests
+(observer continuous/frontier/bounded sampler, CLI, resident). Final focused checks passed
+21 tests (continuous observer and CLI menus). The resumed full `sh scripts/check.sh` passed
+**326 tests in 745.786 seconds**, exit **0**, including `git diff --check`. Logs and the exit-code
+receipt are `check-resumed.log` and `check-resumed-result.json` in the evidence directory. The
+first full run was interrupted before its summary (186th test in progress); `check.log` is
+retained as incomplete, not PASS. Tests cover ordinary/isolated HOME, explicit/env/marker root
+selection, custom directory/alias and missing owner, live/stale PID/status, stopped and orphaned
+evidence, coarse/fine coexistence, read-only status including missing directories, corrupt/link/
+FIFO/inaccessible records, cross-installation control refusal, and retained bytes/operator HOME
+across a staged installation update using the fake runit backend. Real installed update was not run.
+
+The user reports actual ChatGPT reconnect/visible acceptance: fresh-session name discovery of
+project/workspace/task; bounded frontier recovery recognizing completed effects without replay;
+new `resume-proof.txt` forward effect/readback; user-confirmed prior-session handoff visibility
+and new-session final delivery; independent observer coverage and a matching caller witness.
+These are user-supplied host/visible results, not independently recreated by this local CLI test.
+They supersede the earlier pending assessment for that reported reconnect trial, without claiming
+all broader one-/two-project baseline gates. The earlier “observer stopped” preparation entry
+must not be reused as this trial's coverage verdict without binding its recording root/time.
+Keep server, caller, independent observer and user-visible timelines distinct.
+
+Deployment/verification: use the qualified source-backed CLI with the original installation and
+custom directory (if any), compare normal versus isolated HOME JSON, then confirm unchanged
+PID/start/segment and increasing samples. This status-only adoption requires no resident update
+or collector restart. The installed `/data/data/com.termux/files/usr/bin/tdev` shortcut already
+points to this checkout; invoking that actual command from temporary HOME also found PID 10748
+and the same root, with samples at 291. The shortcut itself was not rewritten. Existing
+private-bin collector was still running at revision 2 at that read; see the final observation below.
+Only a separately authorized collector upgrade needs evidence KEEP/script preservation, graceful
+mode-by-mode cutover with saved settings, new sample/identity verification and measured old-last
+to new-first sample gap, as specified in OPERATIONS. No cutover was performed in this work.
+
+Final read-only confirmation found a later state change: PID 10748 no longer exists and the
+original coarse record reports `stopped_evidence_exists`, revision 2, 316 samples. Its last
+sample is **2026-09-28 13:23:53.636 UTC** and graceful stop receipt is **13:24:01.187 UTC**
+(22:24:01 local +09:00). The original segment `20260928-213106-coarse-b1f96cb7` remains intact;
+its `observation.json` reports `stopReason=stopped`, and a streamed SHA-256 check matches the
+retained sample bytes. Unavailable/storageErrors/eventGaps/missingEvents/regressions are all zero
+for those retained samples. They do not establish coverage after the last sample.
+
+No operational observer stop/start was issued by this work. This stop predates the resumed
+full suite (started 13:32:37 UTC); the initiating actor/signal is not established by the stored
+receipt, so do not attribute it to the CLI change or infer continued capture. The source repair
+and earlier live read-only acceptance remain valid; current capture is stopped. No automatic
+restart, collector upgrade or runtime repair was attempted. If capture is resumed, explicitly
+select the original root/directory and saved coarse settings (10 seconds, 3600-second/64 MiB
+segments), preserve this closed segment, verify the new process/sample identity and report the
+coverage gap from 13:23:53.636 UTC. That is a separate operator action, not a prerequisite for
+using the corrected read-only CLI.

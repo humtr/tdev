@@ -2,8 +2,6 @@
 set -eu
 cd "$(dirname "$0")"
 export PYTHONPATH="$PWD/src:$PWD/.tdev-deps"
-# Bootstrap pinned controller dependencies only when the private bundle is absent.
-if [ ! -d .tdev-deps/jsonschema ]; then
-    python -m pip install --target .tdev-deps -r requirements.txt >&2
-fi
+# Validate the complete private dependency set; interrupted installs are retryable.
+python -m tdev.bootstrap dependencies >&2
 exec python -m tdev.installer "$@"
