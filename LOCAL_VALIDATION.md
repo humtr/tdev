@@ -3655,3 +3655,102 @@ either again. Long-running acceptance must separately choose an adequate executi
 300 persists). Server HTTP return, Tunnel poll and pure local classifier success prove no
 ChatGPT scheduling, visible delivery or history persistence outcome. The reported 300-second
 Host boundary, `monitored…` stall and UI/history rollback remain unresolved.
+
+
+## Repository budget and fresh Host follow-up — 2026-10-02
+
+Fresh root navigation rebound canonical `7f3032badeb97ff6af305ad9558a5308a1f7ebbb`,
+resident 0.1.25 / bundle `f1d10cf548ff2cbc1169db2ab239b3c772a0b8264e61ad8b31bffad777877ee7`,
+controller PID 20349 and two healthy polling connections. The original dirty checkout is
+not development authority and remains untouched. No source/runtime code changes or version
+bump are required. User authorization “남은 순서 진행” covers the outstanding tdev budget
+configuration/readback and Host follow-up.
+
+### Received Host report and independent retained corroboration
+
+The user supplied a fresh ChatGPT Host acceptance report (total turn 12m48s). It reports
+13 injected tools, correct outer `ok:true` versus exit-7 failure consumption, one ~420-second
+command with explicit timeout 900, same-turn cell returns around admission-relative 287s
+and 326s, terminal delivery ~440s and final rediscovery ~504s. Output cursor advances and
+V1–V15 commentary are caller-reported; they were not independently reconstructed here.
+The report explicitly executed no source validate/publish/deploy.
+
+Current SQLite independently matches task `b1cb57ef413648b98724b3b6aac8930a`, label
+`host025-chatgpt-20261002`, checkpoint 7f3032b, closed/busy-null/deleted ref. Its long command
+`3d60fa9b436144e59b998c99ca9b8134` remains committed/succeeded/exit0/timedOut:false,
+with frozen request timeout900. Its exit-7 predecessor remains committed/failed/exit7.
+No original effect was replayed. Read-only live diagnostics inspection reports watch,
+39 retained witnesses / 1 run / zero witness eviction, instance `0f100d213d53f05c`,
+key generation `7ca33a31371bbfad`; no activate/stop/acknowledge was issued. Disk event
+retention contains only 15 witness events across historical logs and does not independently
+reconstruct all 39 receipts or full physical-cell timing.
+
+This is positive actual Host evidence against a universal fixed 300-second successor-cell
+cutoff under the tested conditions. Visible stall/history rollback is **not reproduced in
+this reported run**, not proven permanently fixed. The Host/model-side history report is
+not independent Android UI persistence attestation. Earlier incidents retain their unknown
+root cause. No repeat of the completed 420-second workload is needed.
+
+### Authorized repository budget configuration
+
+The previous activation deliberately preserved config, leaving tdev's default unset.
+The operator follow-up adds only `repositories.tdev.validationTimeoutSeconds=1800`.
+Prior source full suite was ~530s; 1800 gives measured headroom for this repository without
+turning it into a global/delegated default. Public per-attempt timeout overrides remain.
+Under `config.lock`, the exact previous bytes were checked against a private backup; active
+config-schema validation and an equality check after removing this single field passed.
+The source validation acceptance-policy digest remains equal before/after; credentials,
+connections, validation command, tooling policy and all other config values are unchanged.
+Atomic mode-0600 replacement is durable and the controller reloads it at the next call.
+No controller, Tunnel, observer or diagnostics restart/change was performed. Live
+`tdev_project inspect` reads 1800 on the same resident.
+
+Focused four budget tests pass (16.002s): repository precedence/frozen replay/new attempt,
+successful candidate validity after default change, delegated policy refresh and config ranges.
+The first local test selection mistakenly named two tests under `BoundaryTest` rather than
+`NativeBoundaryTest`; those two did not execute and the failed selection is retained as
+`focused.log`. Correct selection is `focused-qualified.log`; no product change was made.
+
+An explicitly new owned task `tdev025-budget-readback-20261002` starts at canonical 7f3032b.
+Source validation `61e84d6ae0944343b65c1eaba7de6a5b` deliberately omits caller timeout.
+Actual resident admission freezes `timeout:1800 / timeoutSource:repository`, candidate
+`cad2983f3a859a93d5fe97f3bdcf06ebea36cc6d`. Its adopted command remains
+`sh scripts/check.sh`; this is separate installed source-suite evidence, not another
+ChatGPT Host run. Observe that exact ID only; no hidden retry, terminal resume or publication.
+
+Private evidence is `.artifacts/budget-host-closeout-20261002/`: received report summary,
+retained-state/corroboration snapshots, private config backup/hash/change receipt, focused
+logs and actual MCP admission/status packets. Terminal result/owned cleanup follow below.
+
+### Installed source-suite terminal and closeout
+
+The one new source-validation operation above completed `sh scripts/check.sh`:
+**346 tests PASS in 834.517s**, followed by successful `git diff --check`. Retained operation
+truth is committed/succeeded/terminal/stopped/exit0/timedOut:false/cancelled:false.
+The accepted budget remains **1800 / repository**, source checkpoint remains 7f3032b,
+candidate remains cad2983f. The polling helper observed completion at admission-return-relative
+843.2s; this sampling time is not the suite duration or a ChatGPT visible-delivery measurement.
+The real 834.5s suite strengthens the need for a repository-specific budget above 300.
+
+Owned task `e39bf6d5e2f14d63823ac92fe5d2d527` was closed at its unchanged source checkpoint,
+validation scratch retired and task cleanup completed. Human-name rediscovery returns unique
+closed work and no outstanding effect. No source candidate was published or deployed.
+All preexisting DB rows are still identical, including the Host report's original operations
+and the historical `unknown/unknown` publication. This slice added one owned task and five
+operation receipts. The snapshot also observed six new independent Codex/shared-server exec
+receipts from a concurrent actor; they are not attributed to this acceptance and were not
+controlled or cleaned up. Attribution is retained in `new-operation-attribution.json`.
+Config differs semantically in exactly the authorized tdev budget field;
+credentials, connections, diagnostic key and resident settings remain unchanged. Controller
+PID20349 and Tunnel PIDs20403/20449 are unchanged and healthy/polling on the same bundle.
+
+Evidence adds `validation-admission.json`, `validation-terminal.json`,
+`installed-full-validation.log`, `validation-monitor.log`, `cleanup-result.json` and
+`final-preservation.json`. Full validation ran in the actual resident's native executor;
+it is not a claim that the supplied ChatGPT Host executed source validation. Documentation
+closeout changes no executable/schema/test bytes and requires no new bundle or version.
+
+The remaining general uncertainty is intermittent Host/UI behavior outside this one
+successful reported Host run. Resume ordinary useful development with the configured budget
+and retained effect identities; open another targeted Host investigation only if new evidence
+identifies a gap. A permanently fixed UI/history defect is not asserted.

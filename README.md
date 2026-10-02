@@ -75,11 +75,18 @@ Focused **15**, affected **78**, and full **346 tests** pass; see the
 Inactive bundle and real isolated runit rehearsals passed. Installed localhost MCP confirmed
 13 typed tools/fixed hints, human-name lookup, no-op capture, durable nonzero failure despite
 successful RPC, and frozen source-validation budget/result readback. The owned acceptance
-task is closed/cleaned; its receipts remain discoverable. Existing config has no repository
-budget override, so the fallback remains 300 seconds. Activation does not change that policy.
-Actual refreshed ChatGPT Host/UI acceptance remains separate: the 300-second boundary,
-`monitored…` stall and disappearing visible history are still unqualified; see the
-[installed closeout](LOCAL_VALIDATION.md#0125-resident-activation-and-live-readback--2026-10-01).
+task is closed/cleaned; its receipts remain discoverable. The subsequent authorized operator
+configuration sets **tdev source validation to 1800 seconds**; other project policies retain
+300-second fallback. Caller timeout remains an explicit per-attempt override. Config hot readback
+and a new timeout-omitted admission confirm `1800 / repository` without restarting services.
+That installed source validation completed **346 tests in 834.517s**, succeeded with exit0
+and no timeout; its task/scratch is closed/cleaned with the receipt retained.
+The supplied fresh ChatGPT Host run consumed exit-7 correctly and observed one ~420-second
+command through terminal in the same turn, crossing ~287/~326-second cells with 39 witnesses.
+Resident receipts/cleanup and the live 39-witness/1-run summary corroborate the report. The
+previous stall/history rollback did not reproduce in that run; permanent UI persistence and
+causal resolution remain unproved. See the [installed closeout](LOCAL_VALIDATION.md#0125-resident-activation-and-live-readback--2026-10-01)
+and [budget/Host follow-up](LOCAL_VALIDATION.md#repository-budget-and-fresh-host-follow-up--2026-10-02).
 
 The reported ChatGPT run recovered the completed source work in **3 read calls**
 using only project name and label, with **0 user-supplied internal IDs** and no new effects.

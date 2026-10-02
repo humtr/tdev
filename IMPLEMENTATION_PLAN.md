@@ -101,11 +101,18 @@ preservation. Installed readback precedes separate refreshed ChatGPT Host/UI acc
 observer/diagnostic policy and credential/config bytes remain unchanged.
 0.1.25 inactive bundle/runit qualification, canonical source publication, resident activation
 and installed localhost MCP readback are now complete. The exact historical unknown receipt
-and all preexisting DB rows/config/security bytes are unchanged. Next: Refresh and use a new
-ChatGPT conversation to qualify installed declaration/result consumption and long-running
-continuity. Existing repository defaults remain unset (300-second fallback); select an explicit
-suitable execution budget for a planned long-running acceptance rather than confuse a known
-execution deadline with Host/UI delivery. Do not replay a completed or ambiguous operation.
+and all preexisting DB rows/config/security bytes were unchanged by activation.
+The subsequent user-supplied fresh ChatGPT Host report passes schema/result consumption and
+same-turn bounded rollover through a ~420-second command; current retained terminal/cleanup
+receipts and live 39-witness/1-run summary corroborate it. The stall/history rollback did not
+reproduce in that run; this is not a permanent UI fix or proof of earlier causality.
+The authorized follow-up sets only `repositories.tdev.validationTimeoutSeconds=1800`, with
+unchanged command/acceptance policy, security, delegated project defaults and service identities.
+A new timeout-omitted source-validation admission reads `1800 / repository` and has completed
+346 tests in 834.517s, terminal succeeded/exit0/no timeout. Its owned task is closed/cleaned;
+original receipts remain discoverable. Long-running Host/schema and
+source validation remain separate acceptance classes. Do not replay a completed or ambiguous
+operation, and do not repeat a fixed-duration stall trial without a discriminating evidence gap.
 
 2026-09-30 user priority: re-evaluate the complete model-facing development surface from
 workloads and recovery, without preserving experimental names/count. First rebind current
