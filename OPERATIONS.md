@@ -200,6 +200,26 @@ bash install.sh --recover
 bash install.sh --uninstall
 ```
 
+Resident maintenance normally refuses to start while any accepted operation is still
+`running` or `unknown`. Do not cancel, replay or force-terminalize work merely to install an
+update. A special case exists for a historical **managed branch create publication** whose
+provider reply was lost and whose outcome therefore remains permanently ambiguous even after
+independent readback. After reviewing that exact publication, an operator may preserve the
+receipt and exempt only that operation from the maintenance frontier:
+
+```sh
+tdev update /qualified/source --allow-unknown-publish OPERATION_ID
+# or, when invoking the source installer directly:
+bash install.sh --root /absolute/private/root --allow-unknown-publish OPERATION_ID
+```
+
+The option does **not** resolve, retry, delete or change the publication receipt. The named
+operation must be the exact stored managed-create publication; every other running/unknown
+operation continues to block maintenance. The exemption is stored in the installation journal
+so crash recovery uses the same bounded exception when restoring the previous bundle. Do not use
+this option for exec, validation, deployment, artifact work, or a publication whose identity has
+not been independently reconciled.
+
 For a fresh installation in an interactive terminal, `bash install.sh` asks for the missing
 Tunnel ID and a hidden runtime API key, then offers connector authentication: **OpenAI Tunnel
 authorization** (the fresh default) or **Connector-provided Bearer**. Create the Tunnel and runtime
@@ -389,9 +409,19 @@ PYTHONPATH=src:.tdev-deps python -m tdev.admin delegate-deployments \
 
 ChatGPT can then call `tdev_deploy targets` and `list`.
 
-Validation defaults to 300 seconds. For longer test suites, pass `timeout` (1–3600 seconds)
-to `tdev_validate`; this changes only the deadline, not the adopted validation command or
-exact-source checks. A timeout remains a failed validation and cannot authorize deployment.
+Source validation uses the explicit request `timeout`, otherwise the repository/delegated
+project policy's optional `validationTimeoutSeconds`, otherwise 300 seconds. Set that default
+in the operator-owned `repositories` entry or `projectPolicies` entry (see the config contract);
+project list/inspect returns the current default. The accepted operation's `execution` returns
+the actual deadline and its frozen `timeoutSource`, including on immediate admission/replay.
+Existing receipts may omit the origin; current config cannot reconstruct historical policy.
+The 1–3600-second budget changes neither the adopted command nor exact-source acceptance.
+Changing only the default does not invalidate an already successful candidate. A timed-out
+validation remains failed and cannot authorize publication/deployment. After observing its
+stop/effect/source facts, the Host may explicitly choose a new attempt with a new requestId;
+the terminal operation never resumes and the controller never automatically reruns it.
+`waitMs` is bounded observation, not this execution deadline. Command/process/artifact
+deadlines keep their existing semantics.
 
 After a successful `tdev_validate`, call:
 
@@ -722,20 +752,19 @@ New DOWN Tunnel service templates write their randomly assigned health address t
 An old foreground runtime without that file needs separate observation; do not infer its
 health from a guessed fixed port or restart it just to create the file.
 
-## Optional SSH/OCI backend
+## Dormant SSH/OCI backend
 
-Only users who choose stronger isolation need a separate Linux host, rootless Podman with
-cgroup v2/seccomp, pinned image and SSH key/host enrollment. Set executor kind=ssh with
-target, script, digest, spool, image, identityFile and knownHosts (legacy omission of kind
-also works). Install the standalone src/tdev/executor.py at an immutable versioned remote
-path and pin its SHA-256; pre-pull the image. None is its default network. Internet requires
-the adopted private network-policy.json and matching networkPolicyDigest, plus live egress
-qualification. See ARCHITECTURE for its distinct security guarantees.
+The authored SSH/rootless-Podman backend is retained for possible later use, but it is not
+part of the current MCP coding surface and is not a native installation requirement. Normal
+ChatGPT/Codex development runs in Termux with the app UID's host network; callers do not
+select a network mode. Existing operator-side executor configuration and accepted operation
+identity remain readable so retained evidence is not reinterpreted.
 
-Do not claim optional OCI host isolation/resource/network acceptance from local fixture
-tests. Those tests remain useful but are not a native installation gate. A failing explicit
-remote backend never falls back to a less-isolated native run. Accepted operation intents
-continue using their recorded backend even after configuration changes.
+Reactivating this backend as a supported product path requires an explicit product decision,
+a dedicated public contract, and real Linux SSH/Podman isolation plus network qualification.
+The existing mocked control-flow tests are preservation evidence only. Never infer remote
+support from their PASS status, and never fall back from an explicitly retained remote intent
+to native execution.
 
 ## Activation and rollback
 
@@ -956,12 +985,12 @@ previous config receipt; concurrent edits cause an explicit conflict. Do not han
 ChatGPT can use the following `tdev_diagnostics` arguments:
 
 ```json
-{"action":"inspect"}
-{"action":"inspect","view":"summary"}
-{"action":"report","requestId":"observed-transport-error-1","category":"transport_error"}
-{"action":"activate","requestId":"investigate-freeze-1","seconds":120}
-{"action":"acknowledge","incidentId":"RETURNED_INCIDENT_ID"}
-{"action":"stop"}
+{"request":{"action":"inspect"}}
+{"request":{"action":"inspect","view":"summary"}}
+{"request":{"action":"report","requestId":"observed-transport-error-1","category":"transport_error"}}
+{"request":{"action":"activate","requestId":"investigate-freeze-1","seconds":120}}
+{"request":{"action":"acknowledge","incidentId":"RETURNED_INCIDENT_ID"}}
+{"request":{"action":"stop"}}
 ```
 
 `report`/`activate`/`stop` require that principal's `diagnostics: true` grant. Inspection and acknowledgment
@@ -1171,7 +1200,7 @@ async function probe(phase, fields = {}) {
   const args = {action: "mark", instance: generation, runId, cellId,
                 sequence: ++sequence, phase, ...fields};
   try {
-    const reply = await tools.ACTUAL_TDEV_DIAGNOSTICS(args);
+    const reply = await tools.ACTUAL_TDEV_DIAGNOSTICS({request: args});
     // Preserve this reply in the host transcript. Check structured ok/error as exposed.
     text(reply);
   } catch {
@@ -1179,7 +1208,7 @@ async function probe(phase, fields = {}) {
   }
 }
 await probe("cell_enter");
-const reply = await tools.ACTUAL_TDEV_TASK({action: "list"});
+const reply = await tools.ACTUAL_TDEV_TASK({request: {action: "list"}});
 // This point follows a fulfilled target-tool await, never a finally block or deferred replay.
 const receipt = reply?._meta?.["io.tdev/diagnosticReceipt"];
 await probe("tool_return", {callOrdinal: 1,
@@ -1218,3 +1247,12 @@ ChatGPT client identity, or proof the user saw progress. Match the external user
 visible progress, Stop pressed, Stopped thinking, successor message and resumed progress. Compare
 a similarly bounded uninstrumented workload to assess observer effects. Local direct MCP/bridge
 success qualifies the tdev boundary only; actual Codex agent-loop and ChatGPT acceptance are separate.
+
+### Source redesign request envelope
+
+In the redesign source, MCP tool arguments use `{"request":{...}}`. `tdev schema TOOL`
+prints that exact schema. Terminal convenience commands such as `tdev task list` construct
+the envelope; `tdev call TOOL --input FILE` sends the file unchanged and therefore requires
+the envelope in FILE. The installed resident may still expose its previous catalog; inspect
+that installation's `tools/list` before using source-client syntax against it. Never retry a
+failed or lost mutation with a new request identity because a catalog changed.

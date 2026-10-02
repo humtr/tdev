@@ -89,7 +89,7 @@ def exercise(binary, mode):
                 params={'_meta':{META+'protocolVersion':VERSION,META+'clientCapabilities':{}}}
                 headers={'Mcp-Protocol-Version':[VERSION],'Mcp-Method':[method]}
                 if method=='tools/call':
-                    params.update(name='tdev_project',arguments={'action':'list'})
+                    params.update(name='tdev_project',arguments={'request':{'action':'list'}})
                     headers['Mcp-Name']=['tdev_project']
                 if auth is not None: headers['authorization']=[auth]
                 pending.put({'request_id':ident,'shard_token':'fixture-shard','command_type':'jsonrpc',

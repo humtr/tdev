@@ -94,6 +94,9 @@
                 },
                 {
                   "$ref": "#/$defs/ArtifactPrunedInspection"
+                },
+                {
+                  "$ref": "#/$defs/ContinuationResult"
                 }
               ]
             }
@@ -309,75 +312,94 @@
           "additionalProperties": false
         },
         {
-          "type": "object",
-          "properties": {
-            "action": {
-              "const": "start"
-            },
-            "requestId": {
-              "type": "string",
-              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
-            },
-            "repo": {
-              "type": "string",
-              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
-            },
-            "baseRef": {
-              "type": "string",
-              "pattern": "^refs/heads/[^\\s~^:?*\\[\\\\]+$"
-            },
-            "expectedHead": {
-              "type": "string",
-              "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
-            },
-            "label": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 80
-            },
-            "fromTaskId": {
-              "type": "string",
-              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
-            },
-            "workspaceId": {
-              "type": "string",
-              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
-            },
-            "localChanges": {
-              "type": "boolean",
-              "description": "Capture the enrolled checkout final working-tree bytes into a new task; preserve its index/files/refs. Requires a matching checked-out source branch."
-            }
-          },
-          "required": [
-            "action",
-            "requestId"
-          ],
-          "additionalProperties": false,
-          "not": {
-            "required": [
-              "fromTaskId",
-              "baseRef"
-            ]
-          },
-          "allOf": [
+          "oneOf": [
             {
-              "if": {
-                "properties": {
-                  "localChanges": {
-                    "const": true
-                  }
+              "type": "object",
+              "properties": {
+                "action": {
+                  "const": "start"
                 },
-                "required": [
-                  "localChanges"
-                ]
+                "requestId": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                },
+                "repo": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                },
+                "expectedHead": {
+                  "type": "string",
+                  "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+                },
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80
+                },
+                "workspaceId": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                },
+                "baseRef": {
+                  "type": "string",
+                  "pattern": "^refs/heads/[^\\s~^:?*\\[\\\\]+$"
+                },
+                "localChanges": {
+                  "type": "boolean",
+                  "description": "Capture the enrolled checkout final working-tree bytes into a new task; preserve its index/files/refs. Requires a matching checked-out source branch."
+                }
               },
-              "then": {
-                "not": {
-                  "required": [
-                    "fromTaskId"
+              "required": [
+                "action",
+                "requestId"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "action": {
+                  "const": "start"
+                },
+                "requestId": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                },
+                "repo": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                },
+                "expectedHead": {
+                  "type": "string",
+                  "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+                },
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80
+                },
+                "workspaceId": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                },
+                "fromTaskId": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                },
+                "localChanges": {
+                  "type": "boolean",
+                  "description": "Capture the enrolled checkout final working-tree bytes into a new task; preserve its index/files/refs. Requires a matching checked-out source branch.",
+                  "enum": [
+                    false
                   ]
                 }
-              }
+              },
+              "required": [
+                "action",
+                "fromTaskId",
+                "requestId"
+              ],
+              "additionalProperties": false
             }
           ]
         },
@@ -868,144 +890,231 @@
       "additionalProperties": false
     },
     "execInput": {
-      "type": "object",
-      "properties": {
-        "requestId": {
-          "type": "string",
-          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
-        },
-        "taskId": {
-          "type": "string",
-          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
-        },
-        "expected": {
-          "type": "string",
-          "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
-        },
-        "command": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 65536
-        },
-        "cwd": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 4096
-        },
-        "env": {
-          "type": "object",
-          "maxProperties": 64,
-          "propertyNames": {
-            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
-          },
-          "additionalProperties": {
-            "type": "string",
-            "maxLength": 8192
-          }
-        },
-        "stdin": {
-          "type": "string",
-          "maxLength": 65536
-        },
-        "network": {
-          "enum": [
-            "host",
-            "none",
-            "internet"
-          ]
-        },
-        "timeout": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 3600
-        },
-        "capturePaths": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 4096
-          },
-          "minItems": 0,
-          "maxItems": 64
-        },
-        "mode": {
-          "enum": [
-            "command",
-            "process"
-          ],
-          "description": "command captures stopped source and defaults to 300s. Native process keeps a fixed source copy, permits task edits, never captures source and runs until stop/exit unless timeout is supplied."
-        },
-        "environment": {
-          "enum": [
-            "task",
-            "fresh"
-          ],
-          "description": "Native default task reuses private dependency/cache storage; fresh uses only this operation. Remote supports fresh only. HOME and source remain per-operation."
-        }
-      },
-      "required": [
-        "requestId",
-        "taskId",
-        "expected",
-        "command"
-      ],
-      "additionalProperties": false
-    },
-    "operationInput": {
       "oneOf": [
         {
           "type": "object",
           "properties": {
-            "action": {
-              "const": "status"
-            },
-            "operationId": {
+            "requestId": {
               "type": "string",
               "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
             },
-            "lookupRequestId": {
+            "taskId": {
               "type": "string",
               "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
             },
-            "offset": {
-              "type": "integer",
-              "minimum": 0
+            "expected": {
+              "type": "string",
+              "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
             },
-            "limit": {
+            "command": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 65536
+            },
+            "cwd": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096
+            },
+            "env": {
+              "type": "object",
+              "maxProperties": 64,
+              "propertyNames": {
+                "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+              },
+              "additionalProperties": {
+                "type": "string",
+                "maxLength": 8192
+              }
+            },
+            "stdin": {
+              "type": "string",
+              "maxLength": 65536
+            },
+            "timeout": {
               "type": "integer",
               "minimum": 1,
-              "maximum": 65536
+              "maximum": 3600
             },
-            "since": {
-              "type": "string",
-              "maxLength": 64
+            "waitMs": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 30000,
+              "description": "Bounded observation after admission; 0 returns the receipt immediately. Not part of effect identity. Staged stdin requires immediate admission."
+            },
+            "capturePaths": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4096
+              },
+              "minItems": 0,
+              "maxItems": 64
+            },
+            "mode": {
+              "const": "command",
+              "description": "Finite command; stopped changes may be captured. Default mode."
+            },
+            "environment": {
+              "enum": [
+                "task",
+                "fresh"
+              ],
+              "description": "Default task reuses the task's private dependency/cache storage; fresh uses only this operation. HOME and source remain per-operation."
             }
           },
           "required": [
-            "action"
+            "requestId",
+            "taskId",
+            "expected",
+            "command"
           ],
-          "additionalProperties": false,
-          "oneOf": [
-            {
-              "required": [
-                "operationId"
-              ],
-              "not": {
-                "required": [
-                  "lookupRequestId"
-                ]
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "requestId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "taskId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "expected": {
+              "type": "string",
+              "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+            },
+            "command": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 65536
+            },
+            "cwd": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096
+            },
+            "env": {
+              "type": "object",
+              "maxProperties": 64,
+              "propertyNames": {
+                "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+              },
+              "additionalProperties": {
+                "type": "string",
+                "maxLength": 8192
               }
             },
+            "stdin": {
+              "type": "string",
+              "maxLength": 65536
+            },
+            "timeout": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3600
+            },
+            "mode": {
+              "const": "process",
+              "description": "Persistent fixed-source process. No capture or admission wait; no default deadline."
+            },
+            "environment": {
+              "enum": [
+                "task",
+                "fresh"
+              ],
+              "description": "Default task reuses the task's private dependency/cache storage; fresh uses only this operation. HOME and source remain per-operation."
+            }
+          },
+          "required": [
+            "requestId",
+            "taskId",
+            "expected",
+            "command",
+            "mode"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "operationInput": {
+      "oneOf": [
+        {
+          "oneOf": [
             {
+              "type": "object",
+              "properties": {
+                "action": {
+                  "const": "status"
+                },
+                "offset": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "limit": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 65536
+                },
+                "since": {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                "waitMs": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 30000,
+                  "description": "Bounded terminal observation of the original operation; 0 returns immediately. Waiting never creates a new effect. A positive wait may return nonterminal state."
+                },
+                "operationId": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                }
+              },
               "required": [
+                "action",
+                "operationId"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "action": {
+                  "const": "status"
+                },
+                "offset": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "limit": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 65536
+                },
+                "since": {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                "waitMs": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 30000,
+                  "description": "Bounded terminal observation of the original operation; 0 returns immediately. Waiting never creates a new effect. A positive wait may return nonterminal state."
+                },
+                "lookupRequestId": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                }
+              },
+              "required": [
+                "action",
                 "lookupRequestId"
               ],
-              "not": {
-                "required": [
-                  "operationId"
-                ]
-              }
+              "additionalProperties": false
             }
           ]
         },
@@ -1120,13 +1229,19 @@
                 "task",
                 "fresh"
               ],
-              "description": "Native default task reuses private dependency/cache storage; fresh uses only this operation. Remote supports fresh only. HOME and source remain per-operation."
+              "description": "Default task reuses the task's private dependency/cache storage; fresh uses only this operation. HOME and source remain per-operation."
             },
             "timeout": {
               "type": "integer",
               "minimum": 1,
               "maximum": 3600,
-              "description": "Validation deadline in seconds; default 300. Increase for a longer adopted test suite, up to 3600."
+              "description": "Explicit hard execution deadline in seconds for this new source-validation attempt. Omission uses the project validationTimeoutSeconds (legacy default 300); changing the budget requires a new requestId, not resuming a terminal operation."
+            },
+            "waitMs": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 30000,
+              "description": "Bounded terminal observation of the original operation; 0 returns immediately. Waiting never creates a new effect. A positive wait may return nonterminal state."
             }
           },
           "required": [
@@ -1259,14 +1374,16 @@
             "succeeded",
             "failed",
             "cancelled"
-          ]
+          ],
+          "description": "Durable operation lifecycle, independent of RPC success. A terminal operation never resumes; another attempt requires an explicit new admission."
         },
         "effect": {
           "enum": [
             "none",
             "committed",
             "unknown"
-          ]
+          ],
+          "description": "Effect/result certainty, not business success. Committed means durably known and can accompany failed execution."
         },
         "result": {
           "anyOf": [
@@ -1388,6 +1505,14 @@
               ],
               "minimum": 1,
               "maximum": 3600
+            },
+            "timeoutSource": {
+              "enum": [
+                "request",
+                "repository",
+                "default"
+              ],
+              "description": "Frozen deadline origin for this accepted execution. Historical receipts may omit it."
             }
           },
           "required": [
@@ -2326,6 +2451,12 @@
             "string",
             "null"
           ]
+        },
+        "validationTimeoutSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3600,
+          "description": "Current default source-validation execution budget. An explicit validation request timeout overrides it."
         }
       },
       "required": [
@@ -2824,52 +2955,79 @@
           "additionalProperties": false
         },
         {
-          "type": "object",
-          "properties": {
-            "action": {
-              "const": "configure"
-            },
-            "requestId": {
-              "type": "string",
-              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
-            },
-            "workspaceId": {
-              "type": "string",
-              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
-            },
-            "expectedRevision": {
-              "type": "integer",
-              "minimum": 1
-            },
-            "name": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 160
-            },
-            "defaultRepo": {
-              "type": [
-                "string",
-                "null"
-              ]
-            }
-          },
-          "required": [
-            "action",
-            "requestId",
-            "workspaceId",
-            "expectedRevision"
-          ],
-          "additionalProperties": false,
-          "anyOf": [
+          "oneOf": [
             {
+              "type": "object",
+              "properties": {
+                "action": {
+                  "const": "configure"
+                },
+                "requestId": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                },
+                "workspaceId": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                },
+                "expectedRevision": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "defaultRepo": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 160
+                }
+              },
               "required": [
-                "name"
-              ]
+                "action",
+                "expectedRevision",
+                "name",
+                "requestId",
+                "workspaceId"
+              ],
+              "additionalProperties": false
             },
             {
+              "type": "object",
+              "properties": {
+                "action": {
+                  "const": "configure"
+                },
+                "requestId": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                },
+                "workspaceId": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                },
+                "expectedRevision": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "defaultRepo": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
               "required": [
-                "defaultRepo"
-              ]
+                "action",
+                "defaultRepo",
+                "expectedRevision",
+                "requestId",
+                "workspaceId"
+              ],
+              "additionalProperties": false
             }
           ]
         },
@@ -3145,7 +3303,7 @@
             "expectedRevision": {
               "type": "integer",
               "minimum": 0,
-              "description": "Supply the inspected revision for an update. Omitted resolves the current revision during admission; concurrent changes are still checked."
+              "description": "0 creates a new service only. A positive value updates exactly that inspected revision. Never infer an update from a matching service name."
             },
             "command": {
               "type": "string",
@@ -3181,7 +3339,8 @@
             "validationId",
             "name",
             "command",
-            "health"
+            "health",
+            "expectedRevision"
           ],
           "additionalProperties": false
         },
@@ -3210,7 +3369,7 @@
             "expectedRevision": {
               "type": "integer",
               "minimum": 0,
-              "description": "Supply the inspected revision for an update. Omitted resolves the current revision during admission; concurrent changes are still checked."
+              "description": "0 creates a new service only. A positive value updates exactly that inspected revision. Never infer an update from a matching service name."
             },
             "health": {
               "type": "object",
@@ -3243,7 +3402,8 @@
             "validationId",
             "name",
             "health",
-            "subject"
+            "subject",
+            "expectedRevision"
           ],
           "additionalProperties": false
         },
@@ -4692,92 +4852,110 @@
           "additionalProperties": false
         },
         {
-          "type": "object",
-          "description": "Opt-in caller witness, not host attestation or UI proof. Identity is principal + instance + runId + sequence (no operational requestId). Sequence strictly increases per run, gaps allowed. Exact retained retry returns original receipt without another event; conflicting retained identity fails WITNESS_CONFLICT, old evicted sequence fails WITNESS_REPLAY_EXPIRED, stale instance fails WITNESS_INSTANCE_CHANGED. At most 32 runs per process and 256 cached receipts globally; run watermarks never evict, further new runs fail WITNESS_RUN_LIMIT. Off rejects without activation. Watch retains ring only; trace also queues bounded persistence. Never retry development work because marking failed. afterRequest is optional caller assertion referencing diagnosticReceipt.request from a returned response of the same instance; no validation of that prior response or claim of UI delivery.",
-          "properties": {
-            "action": {
-              "const": "mark"
-            },
-            "instance": {
-              "type": "string",
-              "pattern": "^[a-f0-9]{16}$",
-              "minLength": 16,
-              "maxLength": 16
-            },
-            "runId": {
-              "type": "string",
-              "pattern": "^[a-f0-9]{32}$",
-              "minLength": 32,
-              "maxLength": 32
-            },
-            "cellId": {
-              "type": "string",
-              "pattern": "^[a-f0-9]{32}$",
-              "minLength": 32,
-              "maxLength": 32
-            },
-            "sequence": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 9007199254740991
-            },
-            "phase": {
-              "enum": [
-                "cell_enter",
-                "tool_return",
-                "cell_exit"
-              ]
-            },
-            "callOrdinal": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 9007199254740991
-            },
-            "afterRequest": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 9007199254740991
-            }
-          },
-          "required": [
-            "action",
-            "instance",
-            "runId",
-            "cellId",
-            "sequence",
-            "phase"
-          ],
-          "additionalProperties": false,
-          "allOf": [
+          "oneOf": [
             {
-              "if": {
-                "properties": {
-                  "phase": {
-                    "const": "tool_return"
-                  }
-                }
-              },
-              "then": {
-                "required": [
-                  "callOrdinal"
-                ]
-              },
-              "else": {
-                "not": {
-                  "anyOf": [
-                    {
-                      "required": [
-                        "callOrdinal"
-                      ]
-                    },
-                    {
-                      "required": [
-                        "afterRequest"
-                      ]
-                    }
+              "type": "object",
+              "description": "Optional caller witness with increasing per-run sequence. Exact retained replay returns its original receipt; conflicts or expired identity fail. No host/UI attestation; failure never retries development work.",
+              "properties": {
+                "action": {
+                  "const": "mark"
+                },
+                "instance": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{16}$",
+                  "minLength": 16,
+                  "maxLength": 16
+                },
+                "runId": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{32}$",
+                  "minLength": 32,
+                  "maxLength": 32
+                },
+                "cellId": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{32}$",
+                  "minLength": 32,
+                  "maxLength": 32
+                },
+                "sequence": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                "phase": {
+                  "enum": [
+                    "cell_enter",
+                    "cell_exit"
                   ]
                 }
-              }
+              },
+              "required": [
+                "action",
+                "cellId",
+                "instance",
+                "phase",
+                "runId",
+                "sequence"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "description": "Optional caller witness with increasing per-run sequence. Exact retained replay returns its original receipt; conflicts or expired identity fail. No host/UI attestation; failure never retries development work.",
+              "properties": {
+                "action": {
+                  "const": "mark"
+                },
+                "instance": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{16}$",
+                  "minLength": 16,
+                  "maxLength": 16
+                },
+                "runId": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{32}$",
+                  "minLength": 32,
+                  "maxLength": 32
+                },
+                "cellId": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{32}$",
+                  "minLength": 32,
+                  "maxLength": 32
+                },
+                "sequence": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                "afterRequest": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                "callOrdinal": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                "phase": {
+                  "enum": [
+                    "tool_return"
+                  ]
+                }
+              },
+              "required": [
+                "action",
+                "callOrdinal",
+                "cellId",
+                "instance",
+                "phase",
+                "runId",
+                "sequence"
+              ],
+              "additionalProperties": false
             }
           ]
         }
@@ -5217,6 +5395,323 @@
         "phase"
       ],
       "additionalProperties": false
+    },
+    "findInput": {
+      "type": "object",
+      "properties": {
+        "project": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160,
+          "description": "Exact enrolled project key or display name; duplicate names are not auto-selected."
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "description": "Case-insensitive substring of retained task label."
+        },
+        "state": {
+          "enum": [
+            "all",
+            "open",
+            "closed"
+          ],
+          "default": "all",
+          "description": "Includes closed work by default so completed predecessors are not mistaken for missing work."
+        },
+        "after": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20
+        },
+        "since": {
+          "type": "string",
+          "maxLength": 64
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "ContinuationReceipt": {
+      "type": "object",
+      "properties": {
+        "operationId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "requestId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "kind": {
+          "enum": [
+            "workspace",
+            "task",
+            "edit",
+            "exec",
+            "operation",
+            "validate",
+            "publish",
+            "project",
+            "deploy",
+            "artifact"
+          ]
+        },
+        "status": {
+          "enum": [
+            "running",
+            "unknown",
+            "succeeded",
+            "failed",
+            "cancelled"
+          ]
+        },
+        "effect": {
+          "enum": [
+            "none",
+            "committed",
+            "unknown"
+          ]
+        },
+        "sourceCheckpoint": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "operationId",
+        "requestId",
+        "kind",
+        "status",
+        "effect"
+      ],
+      "additionalProperties": false
+    },
+    "ContinuationMatch": {
+      "type": "object",
+      "properties": {
+        "taskId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "project": {
+          "type": "string"
+        },
+        "workspaceId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "label": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "closed": {
+          "type": "boolean"
+        },
+        "checkpoint": {
+          "type": "string"
+        },
+        "busyOperationId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "publishedCheckpoint": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "refState": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "recent": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ContinuationReceipt"
+          }
+        },
+        "recentComplete": {
+          "type": "boolean"
+        },
+        "outstanding": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ContinuationReceipt"
+          }
+        },
+        "outstandingComplete": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "taskId",
+        "project",
+        "workspaceId",
+        "label",
+        "closed",
+        "checkpoint",
+        "busyOperationId",
+        "publishedCheckpoint",
+        "refState",
+        "recent",
+        "recentComplete",
+        "outstanding",
+        "outstandingComplete"
+      ],
+      "additionalProperties": false
+    },
+    "ContinuationResult": {
+      "type": "object",
+      "properties": {
+        "resolution": {
+          "enum": [
+            "none",
+            "unique",
+            "ambiguous",
+            "incomplete",
+            "unavailable"
+          ]
+        },
+        "projects": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "project": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "project",
+              "name"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "matches": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ContinuationMatch"
+          }
+        },
+        "pending": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "operationId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+              },
+              "requestId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+              },
+              "kind": {
+                "enum": [
+                  "workspace",
+                  "task",
+                  "edit",
+                  "exec",
+                  "operation",
+                  "validate",
+                  "publish",
+                  "project",
+                  "deploy",
+                  "artifact"
+                ]
+              },
+              "status": {
+                "enum": [
+                  "running",
+                  "unknown",
+                  "succeeded",
+                  "failed",
+                  "cancelled"
+                ]
+              },
+              "effect": {
+                "enum": [
+                  "none",
+                  "committed",
+                  "unknown"
+                ]
+              },
+              "sourceCheckpoint": {
+                "type": "string"
+              },
+              "project": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "label": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "projectName": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "operationId",
+              "requestId",
+              "kind",
+              "status",
+              "effect",
+              "project",
+              "label"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "nextAfter": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "pendingComplete": {
+          "type": "boolean"
+        },
+        "observation": {
+          "$ref": "#/$defs/Observation"
+        },
+        "unavailableMatches": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "resolution",
+        "projects",
+        "matches",
+        "pending",
+        "nextAfter",
+        "pendingComplete",
+        "observation",
+        "unavailableMatches"
+      ],
+      "additionalProperties": false
     }
   },
   "oneOf": [
@@ -5411,14 +5906,97 @@
         "input"
       ],
       "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "tool": {
+          "const": "tdev_find"
+        },
+        "input": {
+          "$ref": "#/$defs/findInput"
+        }
+      },
+      "required": [
+        "tool",
+        "input"
+      ],
+      "additionalProperties": false
     }
   ],
   "x-tools": [
     {
-      "name": "tdev_workspace",
-      "description": "Create, list and inspect development spaces; attach/detach enrolled projects, configure defaults and close. Membership selects projects, never grants authority. Empty spaces need no Git repository. Mutations use expectedRevision; close/detach retain source tasks and owned branches and require no open or uncertain tasks. Omit workspaceId when starting a task to use an automatic default space.",
+      "name": "tdev_find",
+      "description": "Find retained work by project name and task label before starting new work. Returns completed predecessors and running/unknown receipts without reconciling effects. Ambiguous or incomplete results never choose a task. Observe original outstanding receipts; do not replay them with new identities.",
       "inputSchema": {
-        "$ref": "#/$defs/workspaceInput"
+        "type": "object",
+        "properties": {
+          "request": {
+            "$ref": "#/$defs/findInput"
+          }
+        },
+        "required": [
+          "request"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "ok": {
+                "const": true
+              },
+              "result": {
+                "$ref": "#/$defs/ContinuationResult"
+              }
+            },
+            "required": [
+              "ok",
+              "result"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "ok": {
+                "const": false
+              },
+              "error": {
+                "$ref": "#/$defs/Error"
+              }
+            },
+            "required": [
+              "ok",
+              "error"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_workspace",
+      "description": "Compose enrolled projects without granting access. Inspect membership and current work; revision-CAS changes update only this workspace. Closing preserves tasks, receipts and resources.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "request": {
+            "$ref": "#/$defs/workspaceInput"
+          }
+        },
+        "required": [
+          "request"
+        ],
+        "additionalProperties": false
       },
       "annotations": {
         "readOnlyHint": true,
@@ -5476,9 +6054,18 @@
     },
     {
       "name": "tdev_task",
-      "description": "Start, inspect and manage an isolated source task for one project in a workspace. Start resolves project/base HEAD and owned branch naming. Omit workspaceId for an automatic default workspace; explicit workspaces use attached projects and their defaultRepo. Edit source with tdev_edit. Close retains branches; cleanup removes only an unchanged branch owned by this task. Continue a proved publication via start.fromTaskId. Start with localChanges=true to import the enrolled local checkout without writing to it. Integrate another same-project task delta with three-way merging; applied=false means the target is unchanged. Retry conflict resolution with new requestId and the returned sourceCheckpoint; keep prior resolutions if conflicts are truncated. Inspect includes outstanding processes independent of history pagination and dependency storage. resetEnvironment removes task dependencies/caches only after every execution is proved stopped; it also works after close. Close retains processes and dependencies.",
+      "description": "Manage isolated source work. Find existing work with tdev_find before starting again. start creates independent work; fromTaskId creates new work from a published predecessor, not a resume. Inspect returns checkpoint, operations and owned cleanup. Closing does not stop processes or clean resources.",
       "inputSchema": {
-        "$ref": "#/$defs/taskInput"
+        "type": "object",
+        "properties": {
+          "request": {
+            "$ref": "#/$defs/taskInput"
+          }
+        },
+        "required": [
+          "request"
+        ],
+        "additionalProperties": false
       },
       "outputSchema": {
         "type": "object",
@@ -5536,9 +6123,18 @@
     },
     {
       "name": "tdev_read",
-      "description": "Batch bounded immutable file/list/literal-search/diff/history reads at a checkpoint. Omit checkpoint to read the current committed task snapshot. Diff supports stat/patch/names, an accessible base checkpoint and byte pagination.",
+      "description": "Read files, search, diffs and history from a task checkpoint in one bounded batch. Omitted checkpoint resolves the current committed task source; use returned checkpoint for edits.",
       "inputSchema": {
-        "$ref": "#/$defs/readInput"
+        "type": "object",
+        "properties": {
+          "request": {
+            "$ref": "#/$defs/readInput"
+          }
+        },
+        "required": [
+          "request"
+        ],
+        "additionalProperties": false
       },
       "outputSchema": {
         "type": "object",
@@ -5586,9 +6182,18 @@
     },
     {
       "name": "tdev_edit",
-      "description": "Atomically edit files at expected checkpoint. Same request replays before stale checks.",
+      "description": "Atomically edit exact task source with checkpoint and file preconditions. Returns the retained effect receipt and new checkpoint.",
       "inputSchema": {
-        "$ref": "#/$defs/editInput"
+        "type": "object",
+        "properties": {
+          "request": {
+            "$ref": "#/$defs/editInput"
+          }
+        },
+        "required": [
+          "request"
+        ],
+        "additionalProperties": false
       },
       "outputSchema": {
         "type": "object",
@@ -5636,9 +6241,18 @@
     },
     {
       "name": "tdev_exec",
-      "description": "Run commands on Termux by default (same-UID developer authority, not a sandbox); explicit remote executor is optional. Returns a retained operation handle. Never resubmit with a new request after response loss. Native dependencies/caches persist per task through TDEV_ENV_DIR; use environment=fresh for a disposable environment. mode=process starts a foreground development server/debugger on a fixed checkpoint without blocking source edits or capturing its files; omit timeout to run until cancel/exit. Observe logs/stdin/cancel/retire through tdev_operation.",
+      "description": "Run natively on Termux at an exact task checkpoint. command is finite and may capture changes; process persists without capture or a default deadline. Admission is not command success. Observe the retained operation, then cancel/retire explicitly. No shell detachment or provider credentials needed.",
       "inputSchema": {
-        "$ref": "#/$defs/execInput"
+        "type": "object",
+        "properties": {
+          "request": {
+            "$ref": "#/$defs/execInput"
+          }
+        },
+        "required": [
+          "request"
+        ],
+        "additionalProperties": false
       },
       "outputSchema": {
         "type": "object",
@@ -5686,9 +6300,18 @@
     },
     {
       "name": "tdev_operation",
-      "description": "Inspect any accepted operation by operationId or original request ID, including project and workspace changes. Status observes current progress without repeating effects. For exec/validation processes only: deliver sequenced stdin, request cancellation or retire stopped resources. ChatGPT Code Mode caller guidance (not a server limit): use short physical functions.exec cells, conservatively at most 16 total nested attempts including failures and diagnostics, and check a soft 15-second elapsed budget before another call. Reserve closing markers within that budget. Return continuation state and end the cell normally; after receiving it, the assistant reports progress and issues a fresh functions.exec without waiting for user input unless blocked or interrupted. Never retry ambiguous effects or regenerate requestId; observe the original operation. Avoid repeated status calls just to fill a cell. These are adjustable caller defaults, not guaranteed host capabilities; server completion and markers do not prove visible UI delivery.",
+      "description": "Observe or control an original accepted operation. status by operationId or original lookupRequestId reconciles retained work, including journaled deployment restoration; it never admits a replacement effect. Check terminal result/exitCode. stdin is sequenced; cancel stops execution; retire removes stopped owned scratch while preserving receipts. Never retry ambiguous effects with a new requestId.",
       "inputSchema": {
-        "$ref": "#/$defs/operationInput"
+        "type": "object",
+        "properties": {
+          "request": {
+            "$ref": "#/$defs/operationInput"
+          }
+        },
+        "required": [
+          "request"
+        ],
+        "additionalProperties": false
       },
       "outputSchema": {
         "type": "object",
@@ -5736,9 +6359,18 @@
     },
     {
       "name": "tdev_validate",
-      "description": "Freeze an exact candidate commit and run the operator's mandatory command through trusted outer execution. With subject=artifact and artifactId, verifies retained bytes using adopted artifactValidation policy in fresh scratch; never alters source. Service packages additionally require a free loopback health port/path and exercise the manifest entrypoint with TDEV_PORT and X-Tdev-Release. Observe/log/cancel/retire through tdev_operation. Artifact validation cannot authorize source publication.",
+      "description": "Validate exact source into an immutable publication candidate, or validate a retained artifact. Source tests, artifact validation and deployment health are distinct. Check terminal success before using the validation identity. Does not publish or deploy.",
       "inputSchema": {
-        "$ref": "#/$defs/validateInput"
+        "type": "object",
+        "properties": {
+          "request": {
+            "$ref": "#/$defs/validateInput"
+          }
+        },
+        "required": [
+          "request"
+        ],
+        "additionalProperties": false
       },
       "outputSchema": {
         "type": "object",
@@ -5786,9 +6418,18 @@
     },
     {
       "name": "tdev_publish",
-      "description": "Publish exactly the validated commit. Expected remote state is derived from its task when omitted; managed tasks create their branch only on first publication. Provider authentication belongs to the controller, not tdev_exec.",
+      "description": "Publish exactly a successful source-validation candidate using remote-head CAS. Publication is not deployment. If the reply is lost, observe the original request; never send a replacement mutation.",
       "inputSchema": {
-        "$ref": "#/$defs/publishInput"
+        "type": "object",
+        "properties": {
+          "request": {
+            "$ref": "#/$defs/publishInput"
+          }
+        },
+        "required": [
+          "request"
+        ],
+        "additionalProperties": false
       },
       "outputSchema": {
         "type": "object",
@@ -5836,9 +6477,18 @@
     },
     {
       "name": "tdev_project",
-      "description": "List projects and delegated policies; connect existing local Git folders or GitHub repositories, or create initialized projects. Local names are relative to the policy root; GitHub names are repository names under the policy owner. GitHub creation is private. Uses controller provider credentials; no gh authentication in exec needed. No caller-supplied credentials, commands or executor settings. Inspect original mutations through tdev_operation status.",
+      "description": "List, inspect, connect or create enrolled projects within delegated policy. Use existing enrollments when available. The controller selects provider credentials; workspace membership never grants project authority.",
       "inputSchema": {
-        "$ref": "#/$defs/projectInput"
+        "type": "object",
+        "properties": {
+          "request": {
+            "$ref": "#/$defs/projectInput"
+          }
+        },
+        "required": [
+          "request"
+        ],
+        "additionalProperties": false
       },
       "outputSchema": {
         "type": "object",
@@ -5896,9 +6546,18 @@
     },
     {
       "name": "tdev_deploy",
-      "description": "Deploy a successfully validated native source candidate to a delegated Termux runit target. Release creates/updates a named owned service and checks process identity plus configured loopback HTTP readiness. Inspect returns current state and rotating logs; start/stop/rollback/remove require revision CAS. Remove preserves data/releases/logs. Observe interrupted effects through tdev_operation status before retrying. Source publication is separate; task dependency directories are not bundled. The app must return HTTP 200 with X-Tdev-Release equal to TDEV_RELEASE; writable state belongs in TDEV_DATA_DIR. Services must stay in the foreground. release subject=artifact uses a successful artifact validationId and manifest launch settings; command override is forbidden. health.port is the deployment port supplied as TDEV_PORT; health.path must match validation. Current artifact/runtime/policy checks precede stopping the previous service.",
+      "description": "Release validated source or artifact to an owned native service. expectedRevision 0 creates; a positive revision updates exactly the inspected service. Inspect live release identity/health separately from acceptance. Rollback uses retained previous bytes. remove preserves data; source publication is independent.",
       "inputSchema": {
-        "$ref": "#/$defs/deployInput"
+        "type": "object",
+        "properties": {
+          "request": {
+            "$ref": "#/$defs/deployInput"
+          }
+        },
+        "required": [
+          "request"
+        ],
+        "additionalProperties": false
       },
       "outputSchema": {
         "type": "object",
@@ -5959,9 +6618,18 @@
     },
     {
       "name": "tdev_artifact",
-      "description": "Inspect a recipe from successful source validation, prepare a retained native build, list builds or inspect sealed bytes. Default recipe path: tdev-package.json. prepare requires requestId and validationId; reuse the request after a lost reply. Uses fresh source, pinned public HTTPS dependencies and declared exports, independent of task caches and deployment targets. Observe/log/cancel/retire through tdev_operation; artifactId is the build operation id. list exposes outstanding builds regardless of history page. Build success is not artifact validation or deployment. Use tdev_validate subject=artifact for verification. Service inspect reports current declared runtime compatibility separately from retained-byte integrity; it never installs or starts a service. Export reads verified file bytes in bounded base64 pages, never writes caller paths. usage returns paged authorized retained-object counts, excluding scratch and deployment copies; shared digests can recur across pages. prunePreview reports live pins and retention policy; explicit prune requires its token and rechecks pins, journals retirement and preserves historical receipts. Active/previous deployments and unknown work cannot be pruned. No automatic GC.",
+      "description": "Inspect recipes, build from exact validated source, and inspect/export retained bytes. Build success is not artifact validation. usage/prunePreview expose retention and pins; prune requires its exact preview identity. Source scratch can retire without deleting retained artifacts.",
       "inputSchema": {
-        "$ref": "#/$defs/artifactInput"
+        "type": "object",
+        "properties": {
+          "request": {
+            "$ref": "#/$defs/artifactInput"
+          }
+        },
+        "required": [
+          "request"
+        ],
+        "additionalProperties": false
       },
       "outputSchema": {
         "type": "object",
@@ -6034,9 +6702,18 @@
     },
     {
       "name": "tdev_diagnostics",
-      "description": "Observe optional runtime diagnostics. inspect view=summary returns principal-scoped server error counts, separately counted client reports, pending and retry-exhausted incidents in one bounded response; default full also includes up to 32 incidents. report with a stable requestId and a category records a client-observed visible stall, transport error, call limit, unexpected turn end or control mismatch and starts a bounded capture; this is a report, not server/UI proof. Never include raw error messages, commands, auth or conversation text. Reuse requestId after a lost report/activation reply within retained history. activate starts a bounded trace; stop ends capture, not development work. report/activate/stop require the diagnostic grant. Acknowledge a received incidentId once; inspect remains available after automatic offers are exhausted. Notifications use fair selection, exponential backoff and at most eight offers per incident; failed writes do not acknowledge delivery. Counters are best effort, bounded and restart-persisted, not a complete audit. No retry/cancel/provider mutation, host wake-up or UI-delivery guarantee. mark requires the diagnostic grant and watch/trace; it records bounded caller execution witnesses without activating capture. Read inspect.witness.instance first; use fresh opaque hex run/cell IDs and increasing run sequence. tool_return requires callOrdinal and may reference the preceding response diagnosticReceipt.request as afterRequest. Marker arrival is caller assertion, not UI proof; mark failures must not retry/cancel development work. Reuse identical instance/runId/sequence only for a lost marker reply, within bounded process-local retention.",
+      "description": "Operator-granted diagnostics and optional caller witnesses. Inspect does not activate tracing. Diagnostic failure never justifies repeating development effects. Witness receipts are caller assertions, not proof of host scheduling or visible UI delivery.",
       "inputSchema": {
-        "$ref": "#/$defs/diagnosticsInput"
+        "type": "object",
+        "properties": {
+          "request": {
+            "$ref": "#/$defs/diagnosticsInput"
+          }
+        },
+        "required": [
+          "request"
+        ],
+        "additionalProperties": false
       },
       "outputSchema": {
         "type": "object",
@@ -6100,18 +6777,17 @@
       "cwd": ".",
       "env": {},
       "stdin": "",
-      "network": "backend default: host for native; none for SSH/OCI",
-      "timeout": "300 seconds for command/validation; process has no deadline unless supplied",
+      "timeout": "Command defaults to 300 seconds; source validation uses request timeout, then repository validationTimeoutSeconds, then 300 seconds; process has no deadline unless supplied. Accepted deadlines are frozen and independent of observation waitMs.",
       "capturePaths": [],
       "encoding": "utf8",
       "mode": "100644",
       "replaceCount": 1,
       "eof": false,
-      "environment": "task for native; fresh for remote",
+      "environment": "task by default; fresh for a disposable dependency/cache environment",
       "execMode": "command"
     },
     "processStatus": "Exactly one of operationId and lookupRequestId is required; neither/both rejected.",
-    "result": "Task list/open/edit results, bounded query items, or retained operation. Operation contains id, kind, status, effect, result/error; running is independent of certainty. Output evidence fields are server-owned, never accepted as validation input.",
+    "result": "Task list/open/edit results, bounded query items, or retained operation. Operation contains id, kind, status, effect, result/error; running is independent of certainty. Output evidence fields are server-owned, never accepted as validation input. RPC ok/isError describes request processing, not domain success; committed means a known result, including failure. Terminal operations never resume. Goal continuation belongs to the caller and another execution is an explicit new admission.",
     "execution": {
       "sourceLimitBytes": 33554432,
       "transferLimitBytes": 50331648,
@@ -6125,7 +6801,7 @@
       "nativeLimits": "1 MiB retained output; optional process deadline (required bounded command/validation deadline); CPU limit when a deadline is selected; 256 file-descriptor limit. Operator artifactLimits.workingBytes (default 128 MiB) is frozen for each new native command/process/source validation and bounds child file size and sampled working storage, with a final storage check; inherited lower OS hard limits still apply. Task dependency budget remains 2 GiB (100000 files); source capture/transfer limits are separate. No hard aggregate memory/PID/disk quota. At most eight outstanding process-mode operations per task.",
       "nativeRecovery": "Detached subreaper supervisor survives controller restart. Lost supervisor after dispatch without a sealed result remains uncertain, never automatically relaunched."
     },
-    "progress": "task inspect reconciles its busy operation and up to eight outstanding snapshot processes independently of history pagination, then reads bounded operation page and live remote head. Observation cursor hashes the returned facts, timestamps delimit observation (not atomic cross-provider snapshot). since equal means checked now/no change, not stalled proof; wait at least pollAfterMs or do independent work. Mutation prerequisites are rechecked at admission. Closed tasks discoverable with includeClosed. Process status since opts into freshness. Replaying a mutation reconciles original identity, never repeats the effect.",
+    "progress": "task inspect reconciles its busy operation and up to eight outstanding snapshot processes independently of history pagination, then reads bounded operation page and live remote head. Observation cursor hashes the returned facts, timestamps delimit observation (not atomic cross-provider snapshot). since equal means checked now/no change, not stalled proof; wait at least pollAfterMs or do independent work. Mutation prerequisites are rechecked at admission. Closed tasks discoverable with includeClosed. Process status since opts into freshness. Replaying a mutation reconciles original identity, never repeats the effect. Before a new source-task mutation, only its busy predecessor is reconciled once outside the admission transaction; fresh busy/CAS are then checked. This is observation of an existing effect, not retry or a background scan.",
     "annotations": "Fixed tmcp host hints: all advertised tools set readOnlyHint=true and the other hints=false. Hints do not grant authority; core still enforces mutation identity, authorization, validation and publication.",
     "managedProjects": "Policies delegate local-root or GitHub-owner project connect/create with current operator validation/tooling. Start resolves defaults once; first publish uses absence CAS. Close retains refs; cleanup needs ownership and exact last published OID, works after close, and never adopts existing refs. Delegated projects publish only managed branches.",
     "composition": "Workspace membership binds enrolled project identity without granting permissions. taskId selects a source task; workspaceId selects composition. Omitted workspaceId creates/reuses the principal default workspace atomically during task admission. Explicit membership/defaults are rechecked at admission. close/detach reject open or pending tasks; closed tasks and cleanup evidence remain inspectable. Workspace mutations commit state and replay result together with expectedRevision CAS.",
@@ -6259,7 +6935,7 @@
   ],
   "x-mcp": {
     "protocolVersion": "2026-07-28",
-    "transport": "Streamable HTTP POST /mcp; application/json responses",
+    "transport": "Streamable HTTP POST /mcp; application/json by default, request-scoped text/event-stream only when an explicit positive bounded wait also supplies _meta.progressToken",
     "methods": [
       "server/discover",
       "tools/list",
@@ -6268,7 +6944,8 @@
     "requestMetadata": {
       "io.modelcontextprotocol/protocolVersion": "required string; equal to protocolVersion header",
       "io.modelcontextprotocol/clientCapabilities": "required object; no client feature required by tdev",
-      "io.modelcontextprotocol/clientInfo": "optional self-reported implementation, never authority"
+      "io.modelcontextprotocol/clientInfo": "optional self-reported implementation, never authority",
+      "progressToken": "optional _meta string/number; with a positive bounded wait, requests request-scoped SSE carrying standard notifications/progress before the terminal response; never durable identity or authority"
     },
     "headers": {
       "Accept": "application/json, text/event-stream",
@@ -6279,7 +6956,9 @@
     "response": {
       "resultType": "complete",
       "serverInfo": "every successful result _meta",
-      "cache": "server/discover and tools/list: ttlMs 0, cacheScope private; HTTP no-store"
+      "cache": "server/discover and tools/list: ttlMs 0, cacheScope private; HTTP no-store",
+      "boundedWaitStream": "positive waitMs plus _meta.progressToken on command tdev_exec, source tdev_validate, or tdev_operation status: text/event-stream with immediate headers, X-Accel-Buffering no, standard notifications/progress, then the matching final JSON-RPC response; positive waitMs without progressToken remains one application/json response after bounded observation",
+      "disconnect": "cancels the bounded observation response only; an already accepted durable operation continues and is reconciled by identity without replay"
     },
     "errors": {
       "-32020": "HTTP 400 missing/malformed/mismatching headers",
@@ -6299,8 +6978,8 @@
         "$ref": "#/$defs/DiagnosticIncident"
       }
     },
-    "delivery": "At most eight automatic offers per incident with 15\u2013300 second exponential delay; failed writes do not acknowledge receipt. Retry exhaustion remains inspectable and acknowledgeable. Scope is the current authenticated principal; receipt is not UI delivery.",
-    "description": "Principal-scoped incident offers in tool result metadata and a compact text notice. At most three per response, eight total per incident, 15\u2013300 second exponential elapsed-time delay. Never-offered and least-offered eligible incidents first. Exhaustion is not acknowledgement; inspect/ack remain available. No unsolicited push or proof of visible delivery."
+    "delivery": "At most eight automatic offers per incident with 15–300 second exponential delay; failed writes do not acknowledge receipt. Retry exhaustion remains inspectable and acknowledgeable. Scope is the current authenticated principal; receipt is not UI delivery.",
+    "description": "Principal-scoped incident offers in tool result metadata and a compact text notice. At most three per response, eight total per incident, 15–300 second exponential elapsed-time delay. Never-offered and least-offered eligible incidents first. Exhaustion is not acknowledgement; inspect/ack remain available. No unsolicited push or proof of visible delivery."
   },
   "x-diagnostic-receipt": {
     "description": "Optional tools/call result _meta io.tdev/diagnosticReceipt in watch/trace, forwarded by the Local Codex bridge. Instance plus request joins server HTTP events. This is server identity only, not host receipt. The caller may echo request in a subsequent mark tool_return after verifying the same instance. Absent metadata means exact request correlation unavailable. No core operational receipt changes.",

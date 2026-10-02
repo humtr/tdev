@@ -283,6 +283,7 @@ class Deployments:
                        'service': target['servicePrefix'] + ident, 'revision': 0, 'desired': 'removed', 'release': None,
                        'previous': None, 'runner': str(Path(__file__).with_name('deployment_runtime.py').resolve())}
             old_record = json.loads(row['record']) if row else initial
+            require(old_record['revision'] == args['expectedRevision'], 'STALE_DEPLOYMENT')
             if packaged:
                 manifest = {'validationId': validation['id'], 'candidate': vi['candidate'],
                             'command': artifact_manifest['recipe']['service']['command'], 'health': args['health'],
@@ -324,7 +325,7 @@ class Deployments:
             current = db.execute('SELECT * FROM deployment WHERE id=?', (ident,)).fetchone()
             require(not current or not current['busy'], 'DEPLOYMENT_BUSY')
             revision = json.loads(current['record'])['revision'] if current else 0
-            require(revision == old_record['revision'] == args.get('expectedRevision', revision), 'STALE_DEPLOYMENT')
+            require(revision == old_record['revision'] == args['expectedRevision'], 'STALE_DEPLOYMENT')
             if not current:
                 db.execute('INSERT INTO deployment(id,owner,repo,ref,identity,target,target_digest,record) VALUES(?,?,?,?,?,?,?,?)',
                            (ident, principal, repo, ref, repository_identity, target_name, digest(target), canonical(old_record).decode()))

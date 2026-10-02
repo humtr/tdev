@@ -1,0 +1,77 @@
+{
+  "source": "user supplied fresh ChatGPT report (Worked for 25s), not a complete raw catalog capture",
+  "candidate": "product, 13 tools",
+  "checks": [
+    {
+      "tool": "tdev_find",
+      "arguments": {
+        "request": {
+          "project": "tdev",
+          "label": "surface",
+          "state": "all"
+        }
+      },
+      "receipt": {
+        "ok": true,
+        "probeOnly": true,
+        "effect": "none",
+        "code": "CANONICAL_VALID",
+        "canonicalTool": "tdev_find",
+        "inputDigest": "73ca0b05a9c3e8ab190f9f698fafd3dd6783fd8626d65cea5af75481fe12d579"
+      },
+      "matchesUserReportedDigest": true
+    },
+    {
+      "tool": "tdev_task",
+      "arguments": {
+        "request": {
+          "action": "start",
+          "requestId": "final-start-1"
+        }
+      },
+      "receipt": {
+        "ok": true,
+        "probeOnly": true,
+        "effect": "none",
+        "code": "CANONICAL_VALID",
+        "canonicalTool": "tdev_task",
+        "inputDigest": "3cdf625ed4c0f2bffa54af212eb047ca4f4c12d7ab2d99d3684261eccec9faad"
+      },
+      "matchesUserReportedDigest": true
+    },
+    {
+      "tool": "tdev_deploy",
+      "arguments": {
+        "request": {
+          "action": "release",
+          "subject": "artifact",
+          "requestId": "final-release-1",
+          "validationId": "fixture",
+          "name": "preview",
+          "expectedRevision": 0,
+          "health": {
+            "port": 18080,
+            "path": "/"
+          }
+        }
+      },
+      "receipt": {
+        "ok": true,
+        "probeOnly": true,
+        "effect": "none",
+        "code": "CANONICAL_VALID",
+        "canonicalTool": "tdev_deploy",
+        "inputDigest": "43c869575a7baabbba4748ea28ac4d298069edc8a03a6ef8a92cbbfa929354a4"
+      },
+      "matchesUserReportedDigest": true
+    }
+  ],
+  "missingExpectedRevisionRejectedBeforeProbeReceipt": true,
+  "declarationFidelity": {
+    "find": "typed project/label/state/pagination/cursor",
+    "taskStart": "two explicit positive alternatives; no Exclude",
+    "deployRelease": "expectedRevision required for source and artifact"
+  },
+  "uninstructedModelSelectionAccuracy": null,
+  "actualDevelopmentOrDeploymentEffects": false
+}

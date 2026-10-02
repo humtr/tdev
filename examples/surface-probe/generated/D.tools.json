@@ -1,0 +1,2929 @@
+{
+  "tools": [
+    {
+      "name": "tdev_observe",
+      "description": "observe workflow requests. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "request": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "workspace.list"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "list"
+                      },
+                      "after": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 50
+                      },
+                      "includeClosed": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "action"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "workspace.inspect"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "inspect"
+                      },
+                      "workspaceId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "after": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 50
+                      },
+                      "includeClosed": {
+                        "type": "boolean"
+                      },
+                      "since": {
+                        "type": "string",
+                        "maxLength": 64
+                      },
+                      "pendingAfter": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "workspaceId"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "task.list"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "list"
+                      },
+                      "after": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 50
+                      },
+                      "includeClosed": {
+                        "type": "boolean"
+                      },
+                      "workspaceId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      }
+                    },
+                    "required": [
+                      "action"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "task.inspect"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "inspect"
+                      },
+                      "taskId": {
+                        "type": "string"
+                      },
+                      "since": {
+                        "type": "string",
+                        "maxLength": 64
+                      },
+                      "before": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      },
+                      "limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 50
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "taskId"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "operation.status"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "status"
+                      },
+                      "operationId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "lookupRequestId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "offset": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 65536
+                      },
+                      "since": {
+                        "type": "string",
+                        "maxLength": 64
+                      },
+                      "waitMs": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 30000,
+                        "description": "Bounded read-only terminal wait. While the operation is running or unknown, status waits up to this many milliseconds for terminal reconciliation, then returns the freshest status/log page; nonterminal log growth does not end the wait. On MCP HTTP, a positive wait with _meta.progressToken uses request-scoped SSE with standard progress notifications; without progressToken the bounded wait returns one application/json response. Omission or 0 remains an immediate JSON response."
+                      }
+                    },
+                    "required": [
+                      "action"
+                    ],
+                    "additionalProperties": false,
+                    "oneOf": [
+                      {
+                        "required": [
+                          "operationId"
+                        ],
+                        "not": {
+                          "required": [
+                            "lookupRequestId"
+                          ]
+                        }
+                      },
+                      {
+                        "required": [
+                          "lookupRequestId"
+                        ],
+                        "not": {
+                          "required": [
+                            "operationId"
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "project.list"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "list"
+                      }
+                    },
+                    "required": [
+                      "action"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "project.inspect"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "inspect"
+                      },
+                      "repo": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "repo"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "deploy.targets"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "targets"
+                      }
+                    },
+                    "required": [
+                      "action"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "deploy.list"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "list"
+                      },
+                      "after": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 50
+                      }
+                    },
+                    "required": [
+                      "action"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "deploy.inspect"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "inspect"
+                      },
+                      "deploymentId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "offset": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 65536
+                      },
+                      "since": {
+                        "type": "string",
+                        "maxLength": 64
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "deploymentId"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "artifact.inspectRecipe"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "inspectRecipe"
+                      },
+                      "validationId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "path": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1024,
+                        "description": "Canonical relative path; no traversal, backslashes, control characters or .git components. Additional path/overlap checks are enforced by the controller."
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "validationId"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "artifact.inspect"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "inspect"
+                      },
+                      "artifactId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "artifactId"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "artifact.list"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "list"
+                      },
+                      "taskId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "before": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 50
+                      }
+                    },
+                    "required": [
+                      "action"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "artifact.usage"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "usage"
+                      },
+                      "before": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 50
+                      }
+                    },
+                    "required": [
+                      "action"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "artifact.export"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "export"
+                      },
+                      "artifactId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "path": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1024,
+                        "description": "Canonical relative path; no traversal, backslashes, control characters or .git components. Additional path/overlap checks are enforced by the controller."
+                      },
+                      "offset": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 65536
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "artifactId",
+                      "path"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "artifact.prunePreview"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "prunePreview"
+                      },
+                      "artifactId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "artifactId"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "required": [
+          "request"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_project",
+      "description": "project workflow requests. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "request": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "workspace.create"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "create"
+                      },
+                      "requestId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      },
+                      "projects": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                        },
+                        "uniqueItems": true,
+                        "maxItems": 64
+                      },
+                      "defaultRepo": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "requestId",
+                      "name"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "workspace.attach"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "attach"
+                      },
+                      "requestId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "workspaceId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "expectedRevision": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "repo": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "requestId",
+                      "workspaceId",
+                      "expectedRevision",
+                      "repo"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "workspace.detach"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "detach"
+                      },
+                      "requestId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "workspaceId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "expectedRevision": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "repo": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "requestId",
+                      "workspaceId",
+                      "expectedRevision",
+                      "repo"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "workspace.configure"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "configure"
+                      },
+                      "requestId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "workspaceId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "expectedRevision": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      },
+                      "defaultRepo": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "requestId",
+                      "workspaceId",
+                      "expectedRevision"
+                    ],
+                    "additionalProperties": false,
+                    "anyOf": [
+                      {
+                        "required": [
+                          "name"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "defaultRepo"
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "workspace.close"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "close"
+                      },
+                      "requestId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "workspaceId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "expectedRevision": {
+                        "type": "integer",
+                        "minimum": 1
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "requestId",
+                      "workspaceId",
+                      "expectedRevision"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "project.connect"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "connect"
+                      },
+                      "requestId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "policy": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 4096
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "requestId",
+                      "policy",
+                      "name"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "project.create"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "create"
+                      },
+                      "requestId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "policy": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 4096
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "requestId",
+                      "policy",
+                      "name"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "required": [
+          "request"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_source",
+      "description": "source workflow requests. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "request": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "task.open"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "open"
+                      },
+                      "requestId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "repo": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "ref": {
+                        "type": "string",
+                        "pattern": "^refs/heads/[^\\s~^:?*\\[\\\\]+$"
+                      },
+                      "expectedHead": {
+                        "type": "string",
+                        "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+                      },
+                      "workspaceId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "requestId",
+                      "repo",
+                      "ref",
+                      "expectedHead"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "task.compose"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "compose"
+                      },
+                      "requestId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "repo": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "ref": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 4096
+                      },
+                      "expectedHead": {
+                        "type": "string",
+                        "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+                      },
+                      "sources": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "taskId": {
+                              "type": "string",
+                              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                            },
+                            "checkpoint": {
+                              "type": "string",
+                              "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+                            }
+                          },
+                          "required": [
+                            "taskId",
+                            "checkpoint"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "minItems": 1,
+                        "maxItems": 16
+                      },
+                      "workspaceId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "requestId",
+                      "repo",
+                      "ref",
+                      "expectedHead",
+                      "sources"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "task.close"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "close"
+                      },
+                      "requestId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "taskId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "expected": {
+                        "type": "string",
+                        "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "requestId",
+                      "taskId",
+                      "expected"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "task.start"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "start"
+                      },
+                      "requestId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "repo": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "baseRef": {
+                        "type": "string",
+                        "pattern": "^refs/heads/[^\\s~^:?*\\[\\\\]+$"
+                      },
+                      "expectedHead": {
+                        "type": "string",
+                        "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+                      },
+                      "label": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 80
+                      },
+                      "fromTaskId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "workspaceId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "localChanges": {
+                        "type": "boolean",
+                        "description": "Capture the enrolled checkout final working-tree bytes into a new task; preserve its index/files/refs. Requires a matching checked-out source branch."
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "requestId"
+                    ],
+                    "additionalProperties": false,
+                    "not": {
+                      "required": [
+                        "fromTaskId",
+                        "baseRef"
+                      ]
+                    },
+                    "allOf": [
+                      {
+                        "if": {
+                          "properties": {
+                            "localChanges": {
+                              "const": true
+                            }
+                          },
+                          "required": [
+                            "localChanges"
+                          ]
+                        },
+                        "then": {
+                          "not": {
+                            "required": [
+                              "fromTaskId"
+                            ]
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "task.cleanup"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "cleanup"
+                      },
+                      "requestId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "taskId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "requestId",
+                      "taskId"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "task.integrate"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "integrate"
+                      },
+                      "requestId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "taskId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "expected": {
+                        "type": "string",
+                        "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+                      },
+                      "sourceTaskId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "sourceCheckpoint": {
+                        "type": "string",
+                        "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+                      },
+                      "resolutions": {
+                        "type": "array",
+                        "maxItems": 1000,
+                        "items": {
+                          "oneOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "path": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 4096
+                                },
+                                "choice": {
+                                  "enum": [
+                                    "current",
+                                    "incoming",
+                                    "base",
+                                    "delete"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "path",
+                                "choice"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "path": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 4096
+                                },
+                                "choice": {
+                                  "const": "content"
+                                },
+                                "content": {
+                                  "type": "string",
+                                  "maxLength": 1048576
+                                },
+                                "encoding": {
+                                  "enum": [
+                                    "utf8",
+                                    "base64"
+                                  ]
+                                },
+                                "mode": {
+                                  "enum": [
+                                    "100644",
+                                    "100755"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "path",
+                                "choice",
+                                "content"
+                              ],
+                              "additionalProperties": false
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "requestId",
+                      "taskId",
+                      "expected",
+                      "sourceTaskId"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "task.resetEnvironment"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "resetEnvironment"
+                      },
+                      "requestId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "taskId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "expected": {
+                        "type": "string",
+                        "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "requestId",
+                      "taskId",
+                      "expected"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "read.call"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "taskId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "checkpoint": {
+                        "type": "string",
+                        "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+                      },
+                      "queries": {
+                        "type": "array",
+                        "items": {
+                          "oneOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "action": {
+                                  "const": "file"
+                                },
+                                "path": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 4096
+                                },
+                                "offset": {
+                                  "type": "integer",
+                                  "minimum": 0
+                                },
+                                "limit": {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 65536
+                                }
+                              },
+                              "required": [
+                                "action",
+                                "path"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "action": {
+                                  "const": "list"
+                                },
+                                "path": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 4096
+                                },
+                                "offset": {
+                                  "type": "integer",
+                                  "minimum": 0
+                                }
+                              },
+                              "required": [
+                                "action"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "action": {
+                                  "const": "search"
+                                },
+                                "text": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 2048
+                                },
+                                "path": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 4096
+                                },
+                                "offset": {
+                                  "type": "integer",
+                                  "minimum": 0
+                                }
+                              },
+                              "required": [
+                                "action",
+                                "text"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "action": {
+                                  "const": "diff"
+                                },
+                                "offset": {
+                                  "type": "integer",
+                                  "minimum": 0
+                                },
+                                "limit": {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 65536
+                                },
+                                "format": {
+                                  "enum": [
+                                    "stat",
+                                    "patch",
+                                    "names"
+                                  ]
+                                },
+                                "base": {
+                                  "type": "string",
+                                  "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+                                },
+                                "path": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 4096
+                                }
+                              },
+                              "required": [
+                                "action"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "action": {
+                                  "const": "history"
+                                },
+                                "offset": {
+                                  "type": "integer",
+                                  "minimum": 0
+                                },
+                                "limit": {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 65536
+                                }
+                              },
+                              "required": [
+                                "action"
+                              ],
+                              "additionalProperties": false
+                            }
+                          ]
+                        },
+                        "minItems": 1,
+                        "maxItems": 32
+                      },
+                      "budget": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 65536
+                      }
+                    },
+                    "required": [
+                      "taskId",
+                      "queries"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "edit.call"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "requestId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "taskId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "expected": {
+                        "type": "string",
+                        "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+                      },
+                      "edits": {
+                        "type": "array",
+                        "items": {
+                          "oneOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "action": {
+                                  "const": "put"
+                                },
+                                "path": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 4096
+                                },
+                                "content": {
+                                  "type": "string",
+                                  "maxLength": 1048576
+                                },
+                                "encoding": {
+                                  "enum": [
+                                    "utf8",
+                                    "base64"
+                                  ]
+                                },
+                                "mode": {
+                                  "enum": [
+                                    "100644",
+                                    "100755",
+                                    "120000"
+                                  ]
+                                },
+                                "before": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "action",
+                                "path",
+                                "content",
+                                "before"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "action": {
+                                  "const": "replace"
+                                },
+                                "path": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 4096
+                                },
+                                "old": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 1048576
+                                },
+                                "text": {
+                                  "type": "string",
+                                  "maxLength": 1048576
+                                },
+                                "count": {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 10000
+                                }
+                              },
+                              "required": [
+                                "action",
+                                "path",
+                                "old",
+                                "text"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "action": {
+                                  "const": "delete"
+                                },
+                                "path": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 4096
+                                },
+                                "before": {
+                                  "type": "string",
+                                  "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+                                }
+                              },
+                              "required": [
+                                "action",
+                                "path",
+                                "before"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "action": {
+                                  "const": "move"
+                                },
+                                "path": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 4096
+                                },
+                                "to": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 4096
+                                },
+                                "before": {
+                                  "type": "string",
+                                  "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+                                }
+                              },
+                              "required": [
+                                "action",
+                                "path",
+                                "to",
+                                "before"
+                              ],
+                              "additionalProperties": false
+                            }
+                          ]
+                        },
+                        "minItems": 1,
+                        "maxItems": 256
+                      }
+                    },
+                    "required": [
+                      "requestId",
+                      "taskId",
+                      "expected",
+                      "edits"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "required": [
+          "request"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_run",
+      "description": "run workflow requests. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "request": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "exec.call"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "requestId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "taskId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "expected": {
+                        "type": "string",
+                        "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+                      },
+                      "command": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 65536
+                      },
+                      "cwd": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 4096
+                      },
+                      "env": {
+                        "type": "object",
+                        "maxProperties": 64,
+                        "propertyNames": {
+                          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                        },
+                        "additionalProperties": {
+                          "type": "string",
+                          "maxLength": 8192
+                        }
+                      },
+                      "stdin": {
+                        "type": "string",
+                        "maxLength": 65536
+                      },
+                      "timeout": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 3600
+                      },
+                      "waitMs": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 30000,
+                        "description": "Bounded terminal observation after command admission. Omit or set 0 for an immediate retained handle; set a positive value to wait up to this many milliseconds for the exact admitted operation and return the freshest status/log page. This observation-only field does not change mutation identity and is ignored for process mode. On MCP HTTP, a positive command wait with _meta.progressToken uses request-scoped SSE with standard progress notifications; without progressToken the bounded wait returns one application/json response."
+                      },
+                      "capturePaths": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 4096
+                        },
+                        "minItems": 0,
+                        "maxItems": 64
+                      },
+                      "mode": {
+                        "enum": [
+                          "command",
+                          "process"
+                        ],
+                        "description": "command captures stopped source and defaults to 300s. Native process keeps a fixed source copy, permits task edits, never captures source and runs until stop/exit unless timeout is supplied."
+                      },
+                      "environment": {
+                        "enum": [
+                          "task",
+                          "fresh"
+                        ],
+                        "description": "Default task reuses the task's private dependency/cache storage; fresh uses only this operation. HOME and source remain per-operation."
+                      }
+                    },
+                    "required": [
+                      "requestId",
+                      "taskId",
+                      "expected",
+                      "command"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "operation.stdin"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "stdin"
+                      },
+                      "requestId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "operationId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "sequence": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 1023
+                      },
+                      "text": {
+                        "type": "string",
+                        "maxLength": 65536
+                      },
+                      "eof": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "requestId",
+                      "operationId",
+                      "sequence",
+                      "text"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "operation.cancel"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "cancel"
+                      },
+                      "requestId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "operationId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "requestId",
+                      "operationId"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "operation.retire"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "required": [
+                      "action",
+                      "requestId",
+                      "operationId"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "action": {
+                        "const": "retire"
+                      },
+                      "requestId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "operationId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      }
+                    }
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "required": [
+          "request"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_release",
+      "description": "release workflow requests. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "request": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "validate.source"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "requestId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "taskId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "expected": {
+                        "type": "string",
+                        "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+                      },
+                      "message": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 4096
+                      },
+                      "environment": {
+                        "enum": [
+                          "task",
+                          "fresh"
+                        ],
+                        "description": "Default task reuses the task's private dependency/cache storage; fresh uses only this operation. HOME and source remain per-operation."
+                      },
+                      "timeout": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 3600,
+                        "description": "Validation deadline in seconds; default 300. Increase for a longer adopted test suite, up to 3600."
+                      },
+                      "waitMs": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 30000,
+                        "description": "Bounded terminal observation after source-validation admission. Omit or set 0 for an immediate retained handle; set a positive value to wait up to this many milliseconds for the exact admitted validation and return the freshest status/log page. This observation-only field does not change mutation identity. On MCP HTTP, a positive source-validation wait with _meta.progressToken uses request-scoped SSE with standard progress notifications; without progressToken the bounded wait returns one application/json response."
+                      }
+                    },
+                    "required": [
+                      "requestId",
+                      "taskId",
+                      "expected",
+                      "message"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "validate.artifact"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "subject": {
+                        "const": "artifact"
+                      },
+                      "requestId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "artifactId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "health": {
+                        "type": "object",
+                        "properties": {
+                          "port": {
+                            "type": "integer",
+                            "minimum": 1024,
+                            "maximum": 65535
+                          },
+                          "path": {
+                            "type": "string",
+                            "pattern": "^/[^\\r\\n ]*$",
+                            "maxLength": 2048
+                          }
+                        },
+                        "required": [
+                          "port",
+                          "path"
+                        ],
+                        "additionalProperties": false,
+                        "description": "Readiness requires HTTP 200 from 127.0.0.1:port/path with X-Tdev-Release equal to the process TDEV_RELEASE environment value."
+                      },
+                      "timeout": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 3600,
+                        "description": "Validation deadline in seconds; default 300. Increase for a longer adopted test suite, up to 3600."
+                      }
+                    },
+                    "required": [
+                      "subject",
+                      "requestId",
+                      "artifactId"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "publish.call"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "requestId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "validationId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "expectedHead": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "requestId",
+                      "validationId"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "deploy.release_source"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "release"
+                      },
+                      "requestId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "validationId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "target": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "name": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9-]{0,62}$"
+                      },
+                      "expectedRevision": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "Supply the inspected revision for an update. Omitted resolves the current revision during admission; concurrent changes are still checked."
+                      },
+                      "command": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 65536,
+                        "description": "Foreground command in the exact source release; use TDEV_DATA_DIR for persistent writable data. Task venv/cache and build outputs are not packaged."
+                      },
+                      "health": {
+                        "type": "object",
+                        "properties": {
+                          "port": {
+                            "type": "integer",
+                            "minimum": 1024,
+                            "maximum": 65535
+                          },
+                          "path": {
+                            "type": "string",
+                            "pattern": "^/[^\\r\\n ]*$",
+                            "maxLength": 2048
+                          }
+                        },
+                        "required": [
+                          "port",
+                          "path"
+                        ],
+                        "additionalProperties": false,
+                        "description": "Readiness requires HTTP 200 from 127.0.0.1:port/path with X-Tdev-Release equal to the process TDEV_RELEASE environment value."
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "requestId",
+                      "validationId",
+                      "name",
+                      "command",
+                      "health"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "deploy.release_artifact"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "release"
+                      },
+                      "requestId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "validationId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "target": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "name": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9-]{0,62}$"
+                      },
+                      "expectedRevision": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "Supply the inspected revision for an update. Omitted resolves the current revision during admission; concurrent changes are still checked."
+                      },
+                      "health": {
+                        "type": "object",
+                        "properties": {
+                          "port": {
+                            "type": "integer",
+                            "minimum": 1024,
+                            "maximum": 65535
+                          },
+                          "path": {
+                            "type": "string",
+                            "pattern": "^/[^\\r\\n ]*$",
+                            "maxLength": 2048
+                          }
+                        },
+                        "required": [
+                          "port",
+                          "path"
+                        ],
+                        "additionalProperties": false,
+                        "description": "Readiness requires HTTP 200 from 127.0.0.1:port/path with X-Tdev-Release equal to the process TDEV_RELEASE environment value."
+                      },
+                      "subject": {
+                        "const": "artifact"
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "requestId",
+                      "validationId",
+                      "name",
+                      "health",
+                      "subject"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "deploy.start"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "start"
+                      },
+                      "requestId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "deploymentId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "expectedRevision": {
+                        "type": "integer",
+                        "minimum": 0
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "requestId",
+                      "deploymentId",
+                      "expectedRevision"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "deploy.stop"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "stop"
+                      },
+                      "requestId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "deploymentId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "expectedRevision": {
+                        "type": "integer",
+                        "minimum": 0
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "requestId",
+                      "deploymentId",
+                      "expectedRevision"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "deploy.rollback"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "rollback"
+                      },
+                      "requestId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "deploymentId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "expectedRevision": {
+                        "type": "integer",
+                        "minimum": 0
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "requestId",
+                      "deploymentId",
+                      "expectedRevision"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "deploy.remove"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "remove"
+                      },
+                      "requestId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "deploymentId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "expectedRevision": {
+                        "type": "integer",
+                        "minimum": 0
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "requestId",
+                      "deploymentId",
+                      "expectedRevision"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "artifact.prepare"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "prepare"
+                      },
+                      "validationId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "path": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1024,
+                        "description": "Canonical relative path; no traversal, backslashes, control characters or .git components. Additional path/overlap checks are enforced by the controller."
+                      },
+                      "requestId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "timeout": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 3600
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "validationId",
+                      "requestId"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "artifact.prune"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "prune"
+                      },
+                      "artifactId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "requestId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                      },
+                      "expectedPreview": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{64}$"
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "artifactId",
+                      "requestId",
+                      "expectedPreview"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "required": [
+          "request"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_diagnostics",
+      "description": "diagnostics workflow requests. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "request": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "diagnostics.inspect"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "inspect"
+                      },
+                      "view": {
+                        "enum": [
+                          "full",
+                          "summary"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "action"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "diagnostics.activate"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "activate"
+                      },
+                      "requestId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 128
+                      },
+                      "seconds": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 300
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "requestId"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "diagnostics.stop"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "stop"
+                      }
+                    },
+                    "required": [
+                      "action"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "diagnostics.acknowledge"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "acknowledge"
+                      },
+                      "incidentId": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{32}$"
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "incidentId"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "diagnostics.report"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "const": "report"
+                      },
+                      "requestId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 128
+                      },
+                      "category": {
+                        "enum": [
+                          "visible_stall",
+                          "transport_error",
+                          "call_limit",
+                          "unexpected_turn_end",
+                          "control_mismatch"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "requestId",
+                      "category"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "const": "diagnostics.mark"
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "description": "Opt-in caller witness, not host attestation or UI proof. Identity is principal + instance + runId + sequence (no operational requestId). Sequence strictly increases per run, gaps allowed. Exact retained retry returns original receipt without another event; conflicting retained identity fails WITNESS_CONFLICT, old evicted sequence fails WITNESS_REPLAY_EXPIRED, stale instance fails WITNESS_INSTANCE_CHANGED. At most 32 runs per process and 256 cached receipts globally; run watermarks never evict, further new runs fail WITNESS_RUN_LIMIT. Off rejects without activation. Watch retains ring only; trace also queues bounded persistence. Never retry development work because marking failed. afterRequest is optional caller assertion referencing diagnosticReceipt.request from a returned response of the same instance; no validation of that prior response or claim of UI delivery.",
+                    "properties": {
+                      "action": {
+                        "const": "mark"
+                      },
+                      "instance": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{16}$",
+                        "minLength": 16,
+                        "maxLength": 16
+                      },
+                      "runId": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{32}$",
+                        "minLength": 32,
+                        "maxLength": 32
+                      },
+                      "cellId": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{32}$",
+                        "minLength": 32,
+                        "maxLength": 32
+                      },
+                      "sequence": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      },
+                      "phase": {
+                        "enum": [
+                          "cell_enter",
+                          "tool_return",
+                          "cell_exit"
+                        ]
+                      },
+                      "callOrdinal": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      },
+                      "afterRequest": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "instance",
+                      "runId",
+                      "cellId",
+                      "sequence",
+                      "phase"
+                    ],
+                    "additionalProperties": false,
+                    "allOf": [
+                      {
+                        "if": {
+                          "properties": {
+                            "phase": {
+                              "const": "tool_return"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "callOrdinal"
+                          ]
+                        },
+                        "else": {
+                          "not": {
+                            "anyOf": [
+                              {
+                                "required": [
+                                  "callOrdinal"
+                                ]
+                              },
+                              {
+                                "required": [
+                                  "afterRequest"
+                                ]
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "intent",
+                  "arguments"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "required": [
+          "request"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    }
+  ]
+}

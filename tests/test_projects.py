@@ -12,6 +12,56 @@ from tdev.projects import Projects
 
 
 class ProjectTest(Base):
+    def test_delegated_validation_budget_tracks_current_policy_not_enrollment(self):
+        policy = self.policy()
+        policy['validationTimeoutSeconds'] = 700
+        args = {'action': 'create', 'requestId': 'budget-project', 'policy': 'dev', 'name': 'budget-project'}
+        created = self.call('project', args)
+        repo = created['result']['repo']
+        self.assertEqual(created['result']['validationTimeoutSeconds'], 700)
+        self.assertEqual(self.call('project', {'action': 'inspect', 'repo': repo})['validationTimeoutSeconds'], 700)
+        task = self.start(repo=repo)
+        v = self.call('validate', {'requestId': 'policy-budget', 'taskId': task['taskId'],
+                                  'expected': task['checkpoint'], 'message': 'current policy'})
+        self.assertEqual(v['execution']['timeout'], 700)
+        self.assertEqual(v['execution']['timeoutSource'], 'repository')
+        self.wait(v['id'])
+        policy.pop('validationTimeoutSeconds')
+        # A historical enrolled config must not supply a removed policy default.
+        row = self.c.store.one('SELECT config FROM project WHERE id=?', (repo,))
+        stored = json.loads(row['config'])
+        stored['validationTimeoutSeconds'] = 700
+        with self.c.store.tx() as db:
+            db.execute('UPDATE project SET config=? WHERE id=?', (json.dumps(stored), repo))
+        self.assertEqual(self.call('project', {'action': 'inspect', 'repo': repo})['validationTimeoutSeconds'], 300)
+        self.assertEqual(self.call('project', args), created)  # Existing acceptance receipt is not rewritten.
+        again = self.call('validate', {'requestId': 'legacy-budget', 'taskId': task['taskId'],
+                                      'expected': task['checkpoint'], 'message': 'default'})
+        self.assertEqual(again['execution']['timeout'], 300)
+        self.wait(again['id'])
+
+    def test_local_human_name_resolves_after_restart_without_rewriting_old_receipt(self):
+        self.policy()
+        # Model an already accepted pre-fix receipt; its bytes remain authoritative
+        # even though current list/find projections now use the human name.
+        with patch.object(self.c.projects, 'display_name', side_effect=lambda cfg: cfg.get('name', cfg['remote'])):
+            created = self.call('project', {'action': 'create', 'requestId': 'named-project',
+                                            'policy': 'dev', 'name': 'human-project'})
+        self.assertEqual(created['result']['name'], str(self.root / 'human-project/.git'))
+        repo = created['result']['repo']
+        task = self.start(repo=repo, label='continue me')
+        self.c.close()
+        self.c = Controller(self.root / 'state', self.repo.config, self.executor)
+        with patch.object(self.c, 'reconcile', side_effect=AssertionError('lookup cannot reconcile')):
+            found = self.call('find', {'project': 'human-project', 'label': 'continue me'})
+            legacy = self.call('find', {'project': str(self.root / 'human-project/.git')})
+        self.assertEqual(found['resolution'], 'unique')
+        self.assertEqual(found['matches'][0]['taskId'], task['taskId'])
+        self.assertEqual(found['projects'], [{'project': repo, 'name': 'human-project'}])
+        self.assertEqual(legacy['matches'][0]['taskId'], task['taskId'])
+        self.assertEqual(self.call('project', {'action': 'create', 'requestId': 'named-project',
+                                              'policy': 'dev', 'name': 'human-project'}), created)
+
     def policy(self, kind='local'):
         p = {'kind': kind, 'validation': 'test -f README.md', 'allowCreate': True,
              'managedRefNamespace': 'refs/heads/tdev-work/'}
@@ -50,6 +100,7 @@ class ProjectTest(Base):
         linked = self.call('project', args)
         self.assertEqual(linked['status'], 'succeeded', linked)
         project = linked['result']
+        self.assertEqual(project['name'], 'authored')
         self.assertEqual(self.call('project', args), linked)
         self.repo.config['projectPolicies']['dev']['validation'] = 'test -f a.txt'
         w = self.start(repo=project['repo'])
@@ -63,6 +114,7 @@ class ProjectTest(Base):
         self.assertEqual(git('status', '--porcelain', cwd=self.repo.work), before)
         self.repo.config['projectPolicies']['dev']['validation'] = 'test -f README.md'
         created = self.call('project', {'action': 'create', 'requestId': 'new', 'policy': 'dev', 'name': 'new-project'})
+        self.assertEqual(created['result']['name'], 'new-project')
         self.assertEqual(created['status'], 'succeeded', created)
         self.assertTrue((self.root / 'new-project/README.md').is_file())
         self.assertEqual(self.call('project', {'action': 'inspect', 'repo': created['result']['repo']})['head'],
@@ -223,6 +275,13 @@ class ProjectTest(Base):
         self.assertEqual(unknown['status'], 'unknown')
         self.c.close(); self.c = Controller(self.root / 'state', self.repo.config, self.executor)
         with patch.object(Projects, 'github', side_effect=AssertionError('Never retry creation based on name')):
+            found = self.call('find', {'project': 'example/lost'})
+            self.assertEqual(found['resolution'], 'unique')
+            self.assertEqual(found['matches'], [])
+            self.assertEqual(found['pending'][0]['operationId'], unknown['id'])
+            self.assertEqual(found['pending'][0]['requestId'], 'lost')
+            self.assertEqual(found['pending'][0]['projectName'], 'example/lost')
+            self.assertEqual(found['pending'][0]['status'], 'unknown')
             self.assertEqual(self.call('project', {**args, 'requestId': 'lost', 'name': 'lost'})['status'], 'unknown')
         with patch.object(Projects, 'github', side_effect=Fault('PROVIDER_AUTH_REQUIRED', 'Controller credential missing')):
             denied = self.call('project', {**args, 'requestId': 'denied', 'name': 'denied'})

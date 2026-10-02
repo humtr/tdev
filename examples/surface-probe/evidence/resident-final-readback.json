@@ -1,0 +1,65 @@
+{
+  "observedAt": "2026-09-30T05:38:47.252914+00:00",
+  "activeBundle": "635c8080c9e21a459099bc4e10f0e14d36515ad606d89094a87f7799583f8441",
+  "versionSource": "\"\"\"Command-first, exact-source MCP controller.\"\"\"\n__version__ = \"0.1.21\"",
+  "residentContractSha256": "35ea0a5ed2d7d7d85957117e85e72d2fb7f0e0640156cf2e4908ea54adf9bebf",
+  "liveToolCount": 12,
+  "operationCounts": [
+    {
+      "status": "failed",
+      "count": 338
+    },
+    {
+      "status": "running",
+      "count": 1
+    },
+    {
+      "status": "succeeded",
+      "count": 2123
+    },
+    {
+      "status": "unknown",
+      "count": 1
+    }
+  ],
+  "taskCounts": [
+    {
+      "closed": 0,
+      "count": 44
+    },
+    {
+      "closed": 1,
+      "count": 72
+    }
+  ],
+  "outstanding": [
+    {
+      "id": "2531fb0f9bbd4aa584865f62898e1010",
+      "kind": "publish",
+      "task": "0fc0709559c940589a0a54808dfa849c",
+      "status": "unknown"
+    },
+    {
+      "id": "71b23ff3bc3948059fb2cc88f690425f",
+      "kind": "exec",
+      "task": "a38113bfaaac410f975d2e151cc7a9eb",
+      "status": "running"
+    }
+  ],
+  "connections": [
+    {
+      "name": "tdev_janmori",
+      "authMode": "tunnel",
+      "enabled": true,
+      "healthy": true,
+      "process": "running"
+    },
+    {
+      "name": "default",
+      "authMode": "bearer",
+      "enabled": true,
+      "healthy": true,
+      "process": "running"
+    }
+  ]
+}

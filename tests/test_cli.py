@@ -39,10 +39,16 @@ class CLITest(unittest.TestCase):
     def test_help_schema_and_read_only_tools_use_real_authenticated_http(self):
         code,help=self.run_cli('help', 'all'); self.assertEqual(code,0); self.assertIn('connection mode',help)
         code,output=self.run_cli('tools'); self.assertEqual(code,0)
-        self.assertEqual(len(json.loads(output)['result']['tools']),12)
+        self.assertEqual(len(json.loads(output)['result']['tools']),13)
         code,output=self.run_cli('workspace','list'); self.assertEqual(code,0)
         self.assertTrue(json.loads(output)['result']['structuredContent']['ok'])
-        code,schema=self.run_cli('schema','workspace'); self.assertEqual(code,0); self.assertIn('oneOf',json.loads(schema)); self.assertNotIn('$ref',schema)
+        code,schema=self.run_cli('schema','workspace'); self.assertEqual(code,0)
+        workspace_schema=json.loads(schema)
+        self.assertNotIn('oneOf',workspace_schema)
+        self.assertEqual(workspace_schema['required'], ['request'])
+        self.assertIn('oneOf', workspace_schema['properties']['request'])
+        self.assertFalse(workspace_schema['additionalProperties'])
+        self.assertNotIn('$ref',schema)
         self.assertNotIn((self.root/'connector.secret').read_text(),output)
 
     def test_status_does_not_claim_an_unowned_listener_as_healthy(self):
@@ -51,7 +57,7 @@ class CLITest(unittest.TestCase):
         self.assertEqual(json.loads(output)['controller']['status'],'unavailable')
 
     def test_generic_call_preserves_request_identity_no_automatic_retry(self):
-        file=self.root/'arguments.json'; atomic_write(file,canonical({'action':'create','requestId':'cli-create','name':'from-cli'}))
+        file=self.root/'arguments.json'; atomic_write(file,canonical({'request':{'action':'create','requestId':'cli-create','name':'from-cli'}}))
         code,first=self.run_cli('call','workspace','--input',str(file)); self.assertEqual(code,0)
         code,second=self.run_cli('call','workspace','--input',str(file)); self.assertEqual(code,0)
         self.assertEqual(json.loads(first),json.loads(second))
@@ -66,7 +72,7 @@ class CLITest(unittest.TestCase):
         atomic_write(self.root/'config.json',canonical(cfg))
         url=f'http://127.0.0.1:{self.server.server_port}/mcp'
         a,b=Bridge(url,'fixture-a'),Bridge(url,'fixture-b')
-        args={'name':'tdev_workspace','arguments':{'action':'create','requestId':'same-owner','name':'shared'}}
+        args={'name':'tdev_workspace','arguments':{'request':{'action':'create','requestId':'same-owner','name':'shared'}}}
         self.assertEqual(a.forward(1,'tools/call',args),b.forward(1,'tools/call',args))
         cfg['credentials']['cred_'+'a'*32]['state']='revoked'; atomic_write(self.root/'config.json',canonical(cfg))
         with self.assertRaises(Fault): a.forward(1,'tools/list',{})
@@ -110,10 +116,15 @@ class CLITest(unittest.TestCase):
         other=self.root/'fresh'
         with patch('tdev.cli.installer') as install, patch('tdev.cli.interactive',return_value=True), patch('tdev.cli.answer',return_value='n'):
             cli.main(['--root',str(other),'install'])
-        install.assert_called_once_with(other,'install',None,controller_only=True)
+        install.assert_called_once_with(other,'install',None,controller_only=True,allow_unknown_publish=None)
         with patch('tdev.cli.installer') as install:
             cli.main(['--root',str(self.root),'update'])
-        install.assert_called_once_with(self.root,'update',None,controller_only=False)
+        install.assert_called_once_with(self.root,'update',None,controller_only=False,allow_unknown_publish=None)
+        with patch('tdev.cli.installer') as install:
+            cli.main(['--root',str(self.root),'update','/qualified/source',
+                      '--allow-unknown-publish','publish-op'])
+        install.assert_called_once_with(self.root,'update','/qualified/source',controller_only=False,
+                                        allow_unknown_publish='publish-op')
 
     def dedicated_connection(self):
         ident='conn_'+'a'*32; cred='cred_'+'b'*32; token=b'fixture-dedicated-secret'
@@ -129,7 +140,7 @@ class CLITest(unittest.TestCase):
 
     def test_explicit_connection_without_legacy_secret_uses_same_principal_and_no_writes(self):
         ident,cred,file=self.dedicated_connection()
-        args=self.root/'create.json'; atomic_write(args,canonical({'action':'create','requestId':'owner-replay','name':'shared'}))
+        args=self.root/'create.json'; atomic_write(args,canonical({'request':{'action':'create','requestId':'owner-replay','name':'shared'}}))
         code,legacy=self.run_cli('call','workspace','--input',str(args)); self.assertEqual(code,0)
         (self.root/'connector.secret').unlink()
         originals={p:p.read_bytes() for p in (self.root/'config.json',self.root/'resident.json',file)}
@@ -151,7 +162,7 @@ class CLITest(unittest.TestCase):
         self.dedicated_connection(); (self.root/'connector.secret').unlink()
         with patch.object(cli,'interactive',return_value=True), patch.object(cli,'answer',return_value='1'), contextlib.redirect_stderr(io.StringIO()) as err:
             code,value=self.run_cli('tools')
-        self.assertEqual(code,0); self.assertEqual(len(json.loads(value)['result']['tools']),12)
+        self.assertEqual(code,0); self.assertEqual(len(json.loads(value)['result']['tools']),13)
         self.assertNotIn('fixture-dedicated-secret',err.getvalue())
         for choice in ('0','q'):
             with patch.object(cli,'interactive',return_value=True), patch.object(cli,'answer',return_value=choice), patch.object(Bridge,'forward') as forward, contextlib.redirect_stderr(io.StringIO()):
@@ -269,13 +280,13 @@ class MenuTest(unittest.TestCase):
             self.assertEqual(self.main(['maintenance'], ['6', '', '0']), 0)
             install.assert_not_called()
             self.assertEqual(self.main(['maintenance'], ['6', 'y']), 0)
-            install.assert_called_once_with(Path('/unused-menu-fixture'),'uninstall',None,controller_only=False)
+            install.assert_called_once_with(Path('/unused-menu-fixture'),'uninstall',None,controller_only=False,allow_unknown_publish=None)
 
     def test_diagnostics_and_observer_dispatch_once(self):
         with patch.object(cli, 'bridge') as bridge:
             bridge.return_value.forward.return_value={'result':{}}
             self.assertEqual(self.main(['diagnostics'], ['1']), 0)
-        bridge.return_value.forward.assert_called_once_with(1,'tools/call',{'name':'tdev_diagnostics','arguments':{'action':'inspect'}})
+        bridge.return_value.forward.assert_called_once_with(1,'tools/call',{'name':'tdev_diagnostics','arguments':{'request':{'action':'inspect'}}})
         with patch.object(cli.subprocess, 'call', return_value=0) as process, patch.object(cli, 'observer_directory', return_value=Path('/operator/evidence')):
             self.assertEqual(self.main(['observer'], ['1']), 0)
         self.assertEqual(process.call_count,1)
@@ -291,4 +302,4 @@ class MenuTest(unittest.TestCase):
             with contextlib.redirect_stderr(io.StringIO()):
                 command=navigate(group,lambda _: next(responses),lambda: None)
             arguments={'action':command[1],field:command[2]}
-            self.assertTrue(Draft202012Validator(cli.tool_schema('tdev_'+group)).is_valid(arguments),arguments)
+            self.assertTrue(Draft202012Validator(cli.tool_schema('tdev_'+group)).is_valid({"request":arguments}),arguments)

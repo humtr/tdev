@@ -1,6 +1,6 @@
 # ChatGPT bounded-cell controller
 
-Use this policy with the function in `run-cell.js`, pasted verbatim into each fresh
+Use this policy with the selected helpers in `run-cell.js`, pasted verbatim into each fresh
 `functions.exec` body. This is a caller-side reference adapter, not an installed host hook.
 The server cannot install it into ChatGPT or schedule the next cell. No import, Node API,
 resident update or new MCP contract is needed. Pure-JS setup does not dispatch tools.
@@ -8,7 +8,7 @@ resident update or new MCP contract is needed. Pure-JS setup does not dispatch t
 ## Assistant policy
 
 1. Bind current task, tools and authority. Prepare a small ordered plan of already authorized
-   steps. Use stable step IDs and retain the exact original mutation requestId/arguments before
+   steps. Each step.args is exact public JSON, `{request:{...}}`. Use stable step IDs and retain the exact original mutation requestId/arguments before
    dispatch. Do not pre-plan dependent mutations against an unknown future checkpoint. Setup
    discovery belongs in a separate bounded cell; do not spend uncounted calls before the runner.
 2. Pass all nested calls in the work cell through one `runTdevCell` invocation. Its default
@@ -28,14 +28,37 @@ resident update or new MCP contract is needed. Pure-JS setup does not dispatch t
    in a fresh bounded cell. Never automatically rerun it or invent a replacement requestId.
    These statuses are not automatic rollover. A plan being `complete` means only its listed
    calls returned and were classified; establish actual command/validation success separately.
-6. For ongoing operations, return operationId and a bounded current status/log cursor. Avoid
-   building a plan of repeated status calls merely to fill the budget. Choose useful independent
-   work or a bounded observation after reviewing current progress. A no-change response is not
-   permission for an unbounded same-turn polling loop. A new session must rebind durable task/
-   operation state; the cell packet is transient caller context, not durable tdev resume storage.
+6. For ordinary non-interactive `tdev_exec` command work and source `tdev_validate`, include
+   `waitMs=30000` on the admission call. The controller excludes this observation-only field from
+   mutation identity, admits or replays the exact request once, then performs one bounded terminal/log
+   observation before returning that same nested tool call. This removes the admission-to-monitor
+   physical-cell scheduling gap for short success/failure. For staged-stdin workflows, explicitly
+   set `waitMs=0` so the caller receives the retained handle before delivering later stdin; process
+   mode returns immediately and its request rejects `waitMs` and `capturePaths`. If admission still returns `running`, switch to
+   `runTdevOperationCell`. By default each monitor cell makes exactly one original-operation status call with `waitMs=30000`
+   for that exact operation/request identity before returning or rolling over. A nonterminal reply
+   ends the default physical cell; the assistant must receive it and schedule another cell. Explicit
+   larger caller budgets may permit multiple waits, but are not the default or a host guarantee. The server returns immediately on
+   terminal reconciliation or after the bounded wait with the freshest status/log page; nonterminal
+   log growth alone does not end the wait. The helper advances the output offset and surfaces terminal
+   `failed`/`cancelled` state before return. `unknown`, malformed or unavailable status stops for
+   review rather than looping. On `rollover`, give the user a brief progress update and issue a fresh
+   monitor cell in the same turn with `nextArgs.request` spread into its options; do not wait for user input. This removes dense
+   polling and bounds the normal visible quiet interval, but cannot guarantee that the host schedules
+   the next physical cell. A new session must still rebind durable task/operation state; monitor
+   packets are transient caller context, not durable tdev resume storage.
 
 `classify` must return exactly `continue` only when the actual decoded response permits the next
 planned step. Running/unknown operations, semantic errors or unreadable wrappers require review.
+Use the supplied pure `classifyTdevReply` for the tdev envelope, with any additional domain checks
+the selected plan needs. RPC `ok:true` and MCP `isError:false` mean request processing, not successful
+execution. Operation `effect=committed` means a known durable result, including failed execution.
+The monitor packet's `status=terminal` covers success, failure and cancellation; inspect its
+`operationStatus` and full receipt. It never authorizes the next mutation by itself.
+The Host owns user-goal continuation. A terminal operation never resumes; another execution is an
+explicit new admission with a new requestId, after observing stop/effect/source facts and checking
+current authorization. A failed exec may already have captured partial source edits. Observation
+timeout, transport loss and missing UI history do not establish execution failure or permit replay.
 `onReply` should print the relevant operational receipt/result promptly and retain IDs needed for
 recovery. Both callbacks are pure caller JS: no tools, retries or long-running work. Do not reduce
 an operation result to transport success. The runner never infers success from a fulfilled await.
@@ -46,12 +69,9 @@ Example tail after pasting the function and selecting the actual discovered tool
 // A read-only usage example, not a density experiment. Adapt decoding to the real host wrapper.
 const packet = await runTdevCell({
   tools,
-  steps: [{id: "projects", tool: "ACTUAL_TDEV_PROJECT", args: {action: "list"}}],
+  steps: [{id: "projects", tool: "ACTUAL_TDEV_PROJECT", args: {request: {action: "list"}}}],
   onReply: reply => text(reply),
-  classify: reply => {
-    const body = reply?.structuredContent; // If absent, review; never guess success.
-    return !reply?.isError && body?.ok === true ? "continue" : "review";
-  }
+  classify: classifyTdevReply
 });
 text(packet);
 // End this functions.exec here. The assistant decides the next invocation.
@@ -87,3 +107,32 @@ Local tests prove the JS gate, fresh-instance counters and no automatic ambiguou
 do not prove that ChatGPT schedules the next cell, obeys cancellation or updates its visible UI.
 Keep server, caller-witness, independent-observer and user-visible timelines distinct. Normal
 usage acceptance should measure time between visible updates, not just backend completion.
+
+## Isolating a reported visible stall
+
+The agent owns collection of any exposed physical-cell code and host error/result. Do not make
+the user extract Code Mode internals or treat their absence as a permission blocker. Use the
+user's approximate wall time with timezone and independently available logs. An existing
+authorization to diagnose continues to apply; do not ask for the same grant again. If this
+client exposes no ChatGPT execution-history API, record that capability boundary and continue
+authorized investigation/work from durable state rather than waiting for inaccessible material.
+Export existing local server evidence before rotation;
+record coverage gaps and the incident's runtime generation separately from the current one.
+Inspect retained state and observe the original effect only. A terminal receipt eliminates a
+reason to re-execute it, but an HTTP flush does not establish Tunnel delivery or a fulfilled await.
+
+For the next explicitly authorized host diagnostic run, use a read-only comparison, not another
+validation/build. In the first physical cell make exactly one read call, emit a compact returned
+packet and end the cell. After the assistant receives that packet, send a short commentary update
+and make one read in a fresh cell. Record each received packet and the user's observed progress.
+This isolates the boundary without a density/ceiling search or detached calls. It cannot retroactively
+prove why the old cell stalled, and a short successful run does not qualify a long workload.
+
+If current diagnostic grant, session authorization and generation permit witnesses, separately repeat
+with one operational read plus the runner's three sparse markers (`maxCalls:4`). Preserve actual
+marker replies and metadata; absent/failed markers remain inconclusive. Do not change the resident
+or claim retroactive coverage to manufacture missing evidence. An authorized independent observer or
+bounded trace can capture new server evidence; state its duration/storage limits and avoid claiming
+retroactive coverage. If the host cell
+does not return, retain that failure and reconcile in the next user-authorized turn; a caller timeout
+must not pretend to cancel the effect or repair host scheduling.

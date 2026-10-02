@@ -1,0 +1,626 @@
+[
+  {
+    "tool": "tdev_find",
+    "arguments": {
+      "request": {}
+    }
+  },
+  {
+    "tool": "tdev_workspace",
+    "arguments": {
+      "request": {
+        "action": "list"
+      }
+    }
+  },
+  {
+    "tool": "tdev_workspace",
+    "arguments": {
+      "request": {
+        "action": "inspect",
+        "workspaceId": "x"
+      }
+    }
+  },
+  {
+    "tool": "tdev_workspace",
+    "arguments": {
+      "request": {
+        "action": "create",
+        "requestId": "x",
+        "name": "x"
+      }
+    }
+  },
+  {
+    "tool": "tdev_workspace",
+    "arguments": {
+      "request": {
+        "action": "attach",
+        "requestId": "x",
+        "workspaceId": "x",
+        "expectedRevision": 1,
+        "repo": "x"
+      }
+    }
+  },
+  {
+    "tool": "tdev_workspace",
+    "arguments": {
+      "request": {
+        "action": "detach",
+        "requestId": "x",
+        "workspaceId": "x",
+        "expectedRevision": 1,
+        "repo": "x"
+      }
+    }
+  },
+  {
+    "tool": "tdev_workspace",
+    "arguments": {
+      "request": {
+        "action": "configure",
+        "expectedRevision": 1,
+        "name": "x",
+        "requestId": "x",
+        "workspaceId": "x"
+      }
+    }
+  },
+  {
+    "tool": "tdev_workspace",
+    "arguments": {
+      "request": {
+        "action": "configure",
+        "defaultRepo": "x",
+        "expectedRevision": 1,
+        "requestId": "x",
+        "workspaceId": "x"
+      }
+    }
+  },
+  {
+    "tool": "tdev_workspace",
+    "arguments": {
+      "request": {
+        "action": "close",
+        "requestId": "x",
+        "workspaceId": "x",
+        "expectedRevision": 1
+      }
+    }
+  },
+  {
+    "tool": "tdev_task",
+    "arguments": {
+      "request": {
+        "action": "list"
+      }
+    }
+  },
+  {
+    "tool": "tdev_task",
+    "arguments": {
+      "request": {
+        "action": "open",
+        "requestId": "x",
+        "repo": "x",
+        "ref": "refs/heads/main",
+        "expectedHead": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    }
+  },
+  {
+    "tool": "tdev_task",
+    "arguments": {
+      "request": {
+        "action": "compose",
+        "requestId": "x",
+        "repo": "x",
+        "ref": "refs/heads/main",
+        "expectedHead": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "sources": [
+          {
+            "taskId": "x",
+            "checkpoint": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "tool": "tdev_task",
+    "arguments": {
+      "request": {
+        "action": "close",
+        "requestId": "x",
+        "taskId": "x",
+        "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    }
+  },
+  {
+    "tool": "tdev_task",
+    "arguments": {
+      "request": {
+        "action": "inspect",
+        "taskId": "x"
+      }
+    }
+  },
+  {
+    "tool": "tdev_task",
+    "arguments": {
+      "request": {
+        "action": "start",
+        "requestId": "x"
+      }
+    }
+  },
+  {
+    "tool": "tdev_task",
+    "arguments": {
+      "request": {
+        "action": "start",
+        "fromTaskId": "x",
+        "requestId": "x"
+      }
+    }
+  },
+  {
+    "tool": "tdev_task",
+    "arguments": {
+      "request": {
+        "action": "cleanup",
+        "requestId": "x",
+        "taskId": "x"
+      }
+    }
+  },
+  {
+    "tool": "tdev_task",
+    "arguments": {
+      "request": {
+        "action": "integrate",
+        "requestId": "x",
+        "taskId": "x",
+        "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "sourceTaskId": "x"
+      }
+    }
+  },
+  {
+    "tool": "tdev_task",
+    "arguments": {
+      "request": {
+        "action": "resetEnvironment",
+        "requestId": "x",
+        "taskId": "x",
+        "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    }
+  },
+  {
+    "tool": "tdev_read",
+    "arguments": {
+      "request": {
+        "taskId": "x",
+        "queries": [
+          {
+            "action": "file",
+            "path": "x"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "tool": "tdev_edit",
+    "arguments": {
+      "request": {
+        "requestId": "x",
+        "taskId": "x",
+        "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "edits": [
+          {
+            "action": "put",
+            "path": "x",
+            "content": "x",
+            "before": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "tool": "tdev_exec",
+    "arguments": {
+      "request": {
+        "requestId": "x",
+        "taskId": "x",
+        "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "command": "x"
+      }
+    }
+  },
+  {
+    "tool": "tdev_exec",
+    "arguments": {
+      "request": {
+        "requestId": "x",
+        "taskId": "x",
+        "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "command": "x",
+        "mode": "process"
+      }
+    }
+  },
+  {
+    "tool": "tdev_operation",
+    "arguments": {
+      "request": {
+        "action": "status",
+        "operationId": "operation"
+      }
+    }
+  },
+  {
+    "tool": "tdev_operation",
+    "arguments": {
+      "request": {
+        "action": "status",
+        "lookupRequestId": "x"
+      }
+    }
+  },
+  {
+    "tool": "tdev_operation",
+    "arguments": {
+      "request": {
+        "action": "stdin",
+        "requestId": "x",
+        "operationId": "x",
+        "sequence": 0,
+        "text": "x"
+      }
+    }
+  },
+  {
+    "tool": "tdev_operation",
+    "arguments": {
+      "request": {
+        "action": "cancel",
+        "requestId": "x",
+        "operationId": "x"
+      }
+    }
+  },
+  {
+    "tool": "tdev_operation",
+    "arguments": {
+      "request": {
+        "action": "retire",
+        "requestId": "x",
+        "operationId": "x"
+      }
+    }
+  },
+  {
+    "tool": "tdev_validate",
+    "arguments": {
+      "request": {
+        "requestId": "x",
+        "taskId": "x",
+        "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "message": "x"
+      }
+    }
+  },
+  {
+    "tool": "tdev_validate",
+    "arguments": {
+      "request": {
+        "subject": "artifact",
+        "requestId": "x",
+        "artifactId": "x"
+      }
+    }
+  },
+  {
+    "tool": "tdev_publish",
+    "arguments": {
+      "request": {
+        "requestId": "x",
+        "validationId": "x"
+      }
+    }
+  },
+  {
+    "tool": "tdev_project",
+    "arguments": {
+      "request": {
+        "action": "list"
+      }
+    }
+  },
+  {
+    "tool": "tdev_project",
+    "arguments": {
+      "request": {
+        "action": "inspect",
+        "repo": "x"
+      }
+    }
+  },
+  {
+    "tool": "tdev_project",
+    "arguments": {
+      "request": {
+        "action": "connect",
+        "requestId": "x",
+        "policy": "x",
+        "name": "x"
+      }
+    }
+  },
+  {
+    "tool": "tdev_project",
+    "arguments": {
+      "request": {
+        "action": "create",
+        "requestId": "x",
+        "policy": "x",
+        "name": "x"
+      }
+    }
+  },
+  {
+    "tool": "tdev_deploy",
+    "arguments": {
+      "request": {
+        "action": "targets"
+      }
+    }
+  },
+  {
+    "tool": "tdev_deploy",
+    "arguments": {
+      "request": {
+        "action": "list"
+      }
+    }
+  },
+  {
+    "tool": "tdev_deploy",
+    "arguments": {
+      "request": {
+        "action": "inspect",
+        "deploymentId": "x"
+      }
+    }
+  },
+  {
+    "tool": "tdev_deploy",
+    "arguments": {
+      "request": {
+        "action": "release",
+        "requestId": "x",
+        "validationId": "x",
+        "name": "x",
+        "command": "x",
+        "health": {
+          "port": 1024,
+          "path": "/health"
+        },
+        "expectedRevision": 0
+      }
+    }
+  },
+  {
+    "tool": "tdev_deploy",
+    "arguments": {
+      "request": {
+        "action": "release",
+        "requestId": "x",
+        "validationId": "x",
+        "name": "x",
+        "health": {
+          "port": 1024,
+          "path": "/health"
+        },
+        "subject": "artifact",
+        "expectedRevision": 0
+      }
+    }
+  },
+  {
+    "tool": "tdev_deploy",
+    "arguments": {
+      "request": {
+        "action": "start",
+        "requestId": "x",
+        "deploymentId": "x",
+        "expectedRevision": 0
+      }
+    }
+  },
+  {
+    "tool": "tdev_deploy",
+    "arguments": {
+      "request": {
+        "action": "stop",
+        "requestId": "x",
+        "deploymentId": "x",
+        "expectedRevision": 0
+      }
+    }
+  },
+  {
+    "tool": "tdev_deploy",
+    "arguments": {
+      "request": {
+        "action": "rollback",
+        "requestId": "x",
+        "deploymentId": "x",
+        "expectedRevision": 0
+      }
+    }
+  },
+  {
+    "tool": "tdev_deploy",
+    "arguments": {
+      "request": {
+        "action": "remove",
+        "requestId": "x",
+        "deploymentId": "x",
+        "expectedRevision": 0
+      }
+    }
+  },
+  {
+    "tool": "tdev_artifact",
+    "arguments": {
+      "request": {
+        "action": "inspectRecipe",
+        "validationId": "x"
+      }
+    }
+  },
+  {
+    "tool": "tdev_artifact",
+    "arguments": {
+      "request": {
+        "action": "prepare",
+        "validationId": "x",
+        "requestId": "x"
+      }
+    }
+  },
+  {
+    "tool": "tdev_artifact",
+    "arguments": {
+      "request": {
+        "action": "inspect",
+        "artifactId": "x"
+      }
+    }
+  },
+  {
+    "tool": "tdev_artifact",
+    "arguments": {
+      "request": {
+        "action": "list"
+      }
+    }
+  },
+  {
+    "tool": "tdev_artifact",
+    "arguments": {
+      "request": {
+        "action": "usage"
+      }
+    }
+  },
+  {
+    "tool": "tdev_artifact",
+    "arguments": {
+      "request": {
+        "action": "export",
+        "artifactId": "x",
+        "path": "x"
+      }
+    }
+  },
+  {
+    "tool": "tdev_artifact",
+    "arguments": {
+      "request": {
+        "action": "prunePreview",
+        "artifactId": "x"
+      }
+    }
+  },
+  {
+    "tool": "tdev_artifact",
+    "arguments": {
+      "request": {
+        "action": "prune",
+        "artifactId": "x",
+        "requestId": "x",
+        "expectedPreview": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    }
+  },
+  {
+    "tool": "tdev_diagnostics",
+    "arguments": {
+      "request": {
+        "action": "inspect"
+      }
+    }
+  },
+  {
+    "tool": "tdev_diagnostics",
+    "arguments": {
+      "request": {
+        "action": "activate",
+        "requestId": "x"
+      }
+    }
+  },
+  {
+    "tool": "tdev_diagnostics",
+    "arguments": {
+      "request": {
+        "action": "stop"
+      }
+    }
+  },
+  {
+    "tool": "tdev_diagnostics",
+    "arguments": {
+      "request": {
+        "action": "acknowledge",
+        "incidentId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    }
+  },
+  {
+    "tool": "tdev_diagnostics",
+    "arguments": {
+      "request": {
+        "action": "report",
+        "requestId": "x",
+        "category": "visible_stall"
+      }
+    }
+  },
+  {
+    "tool": "tdev_diagnostics",
+    "arguments": {
+      "request": {
+        "action": "mark",
+        "cellId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "instance": "aaaaaaaaaaaaaaaa",
+        "phase": "cell_enter",
+        "runId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "sequence": 1
+      }
+    }
+  },
+  {
+    "tool": "tdev_diagnostics",
+    "arguments": {
+      "request": {
+        "action": "mark",
+        "callOrdinal": 1,
+        "cellId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "instance": "aaaaaaaaaaaaaaaa",
+        "phase": "tool_return",
+        "runId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "sequence": 1
+      }
+    }
+  }
+]

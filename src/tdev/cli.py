@@ -20,7 +20,7 @@ ALL_HELP = '''tdev — local development and connection management
   tdev connection|diagnostics|observer|work|maintenance   category menus
   tdev status                  controller and connection status
   tdev install                 guided installation; optionally add first Tunnel
-  tdev update [SOURCE]          install a qualified local source checkout
+  tdev update [SOURCE]          install a qualified local source checkout; optional --allow-unknown-publish OPERATION_ID
   tdev check | recover | rollback | uninstall
   tdev connection list
   tdev connection add           prompt for name, Tunnel ID, hidden runtime key, mode
@@ -85,13 +85,14 @@ def observer_directory(root):
     return Path(home)/'tdev-observations'
 
 
-def installer(root, action, source=None, controller_only=False):
+def installer(root, action, source=None, controller_only=False, allow_unknown_publish=None):
     source = Path(source).resolve() if source else source_root()
     require((source/'src/tdev/installer.py').is_file(), 'SOURCE_REQUIRED')
     argv = ([shutil_shell(),str(source/'install.sh')] if (source/'install.sh').is_file()
             else [sys.executable,'-m','tdev.installer']) + ['--root',str(root)]
     if action in ('check','recover','rollback','uninstall'): argv.append('--'+action)
     if controller_only: argv.append('--controller-only')
+    if allow_unknown_publish: argv.extend(['--allow-unknown-publish', allow_unknown_publish])
     env = {**os.environ,'PYTHONPATH':str(source/'src')+':'+str(source/'.tdev-deps')}
     completed = subprocess.run(argv,env=env)
     require(completed.returncode == 0,'INSTALLER_FAILED','See installer error above; no automatic retry')
@@ -230,7 +231,15 @@ def main(argv=None):
         result = {'command':str(target),'pathReady':str(target.parent) in os.environ.get('PATH','').split(os.pathsep)}
     elif command in ('install','update','check','recover','rollback','uninstall'):
         fresh = not (root/'resident.json').exists()
-        installer(root,command,rest[0] if rest else None,controller_only=command=='install' and fresh)
+        source, allow_unknown_publish = (rest[0] if rest else None), None
+        if command == 'update':
+            p = argparse.ArgumentParser(prog='tdev update')
+            p.add_argument('source', nargs='?')
+            p.add_argument('--allow-unknown-publish', metavar='OPERATION_ID')
+            a = p.parse_args(rest)
+            source, allow_unknown_publish = a.source, a.allow_unknown_publish
+        installer(root,command,source,controller_only=command=='install' and fresh,
+                  allow_unknown_publish=allow_unknown_publish)
         if command=='install' and fresh and interactive() and (answer('Add an OpenAI Tunnel connection now? [Y/n]: ') or 'y').lower() in ('y','yes'):
             from .connections import Connections
             result = add_connection(Connections(root))
@@ -303,7 +312,7 @@ def main(argv=None):
                 field = {'operation':'operationId','task':'taskId','workspace':'workspaceId','project':'repo'}.get(command)
                 require(field,'CLI_ARGUMENT','Use --input for this tool'); values[field] = a.identity
         tool_schema(tool)  # Reject typos before reading a credential or calling HTTP.
-        result = forward(root,options.connection,'tools/call',{'name':tool,'arguments':values})
+        result = forward(root,options.connection,'tools/call',{'name':tool,'arguments':values if command == 'call' else {'request':values}})
     if result is not None:
         if not options.json and 'connections' in result:
             if 'controller' in result:

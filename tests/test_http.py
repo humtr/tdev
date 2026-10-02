@@ -27,9 +27,12 @@ class HTTPTest(unittest.TestCase):
         self.controller.close()
         self.tmp.cleanup()
 
-    def request(self, method="tools/list", args=None, headers=None, ident=1):
+    def request(self, method="tools/list", args=None, headers=None, ident=1, raw_wire=False):
         conn = http.client.HTTPConnection("127.0.0.1", self.server.server_port, timeout=5)
         params = {"_meta": {META + "protocolVersion": VERSION, META + "clientCapabilities": {}}, **(args or {})}
+        # Domain fixtures describe semantic inputs. Wire rejection tests bypass this.
+        if method == 'tools/call' and 'arguments' in params and not raw_wire:
+            params['arguments'] = {'request': params['arguments']}
         h = {"Authorization": "Bearer alice-secret", "Content-Type": "application/json",
              "Accept": "application/json, text/event-stream", "MCP-Protocol-Version": VERSION,
              "Mcp-Method": method}
@@ -46,6 +49,24 @@ class HTTPTest(unittest.TestCase):
         conn.close()
         return response.status, json.loads(data) if data else None
 
+    def stream(self, arguments, progress_token=None, ident=77):
+        conn = http.client.HTTPConnection("127.0.0.1", self.server.server_port, timeout=10)
+        meta = {META + "protocolVersion": VERSION, META + "clientCapabilities": {}}
+        if progress_token is not None:
+            meta["progressToken"] = progress_token
+        params = {"_meta": meta, "name": "tdev_operation", "arguments": {"request": arguments}}
+        headers = {"Authorization": "Bearer alice-secret", "Content-Type": "application/json",
+                   "Accept": "application/json, text/event-stream", "MCP-Protocol-Version": VERSION,
+                   "Mcp-Method": "tools/call", "Mcp-Name": "tdev_operation"}
+        payload = {"jsonrpc": "2.0", "id": ident, "method": "tools/call", "params": params}
+        conn.request("POST", "/mcp", json.dumps(payload), headers)
+        response = conn.getresponse()
+        data = response.read()
+        result = (response.status, response.getheader("Content-Type", "").split(";", 1)[0],
+                  response.getheader("X-Accel-Buffering"), data)
+        conn.close()
+        return result
+
     def get(self, path, headers=None):
         conn = http.client.HTTPConnection("127.0.0.1", self.server.server_port, timeout=5)
         conn.request("GET", path, headers=headers or {})
@@ -61,7 +82,7 @@ class HTTPTest(unittest.TestCase):
         self.assertEqual(self.request(headers={"Host": "evil.example"})[0], 403)
         code, value = self.request()
         self.assertEqual(code, 200)
-        self.assertEqual(len(value["result"]["tools"]), 12)
+        self.assertEqual(len(value["result"]["tools"]), 13)
         self.assertNotIn("$ref", json.dumps(value["result"]))
 
     def test_oauth_well_known_is_optional_public_404(self):
@@ -72,17 +93,16 @@ class HTTPTest(unittest.TestCase):
             self.assertEqual(self.get(path)[0], 404)
         self.assertEqual(self.get("/mcp")[0], 401)
 
-    def test_caller_guidance_survives_http_and_bridge_discovery_without_new_wire_fields(self):
+    def test_effect_guidance_and_exact_schema_survive_http_and_bridge_discovery(self):
         from tdev.codex_bridge import Bridge
         direct = self.request()[1]['result']['tools']
         bridge = Bridge(f'http://127.0.0.1:{self.server.server_port}/mcp', 'alice-secret')
         forwarded = bridge.handle({'jsonrpc':'2.0', 'id':1, 'method':'tools/list', 'params':{}})['result']['tools']
         self.assertEqual(direct, forwarded)
         operation = next(tool for tool in direct if tool['name'] == 'tdev_operation')
-        self.assertIn('not a server limit', operation['description'])
-        self.assertIn('after receiving it', operation['description'])
-        self.assertIn('including failures and diagnostics', operation['description'])
+        self.assertIn('journaled deployment restoration', operation['description'])
         self.assertIn('Never retry ambiguous effects', operation['description'])
+        self.assertEqual(operation['inputSchema']['required'], ['request'])
 
     def test_protocol_and_reconnect(self):
         _, discovery = self.request("server/discover")
@@ -115,6 +135,80 @@ class HTTPTest(unittest.TestCase):
         self.assertEqual(code, 200)
         self.assertTrue(value["result"]["structuredContent"]["ok"])
         self.assertEqual(self.request(headers={"Accept": "application/json"})[0], 406)
+
+    def test_status_wait_uses_json_without_progress_and_sse_with_progress(self):
+        def call(tool, args):
+            code, response = self.request("tools/call", {"name": "tdev_" + tool, "arguments": args})
+            self.assertEqual(code, 200)
+            value = response["result"]["structuredContent"]
+            self.assertTrue(value["ok"], value)
+            return value["result"]
+
+        w = call("task", {"action": "open", "requestId": "sse-open", "repo": "test",
+                          "ref": "refs/heads/main", "expectedHead": self.repo.head})["result"]
+        op = call("exec", {"requestId": "sse-exec", "taskId": w["taskId"], "expected": w["checkpoint"],
+                           "command": "sleep 1.3; printf streamed", "timeout": 5})
+        code, content_type, buffering, data = self.stream(
+            {"action": "status", "operationId": op["id"], "waitMs": 5000}, progress_token="progress-1")
+        self.assertEqual((code, content_type, buffering), (200, "text/event-stream", "no"))
+        self.assertIn(b": tdev-stream\n\n", data)
+        messages = [json.loads(line[5:].strip()) for line in data.splitlines() if line.startswith(b"data:")]
+        progress = [m for m in messages if m.get("method") == "notifications/progress"]
+        self.assertTrue(progress, messages)
+        self.assertEqual(progress[0]["params"]["progressToken"], "progress-1")
+        final = next(m for m in messages if m.get("id") == 77)
+        finished = final["result"]["structuredContent"]["result"]
+        self.assertEqual((finished["status"], finished["result"]["exitCode"]), ("succeeded", 0))
+
+        code, response = self.request("tools/call", {"name": "tdev_operation", "arguments": {
+            "action": "status", "operationId": op["id"], "waitMs": 0}})
+        self.assertEqual(code, 200)
+        self.assertEqual(response["result"]["structuredContent"]["result"]["status"], "succeeded")
+
+        op_json = call("exec", {"requestId": "sse-json", "taskId": w["taskId"],
+                                "expected": finished["result"]["checkpoint"],
+                                "command": "sleep .1; printf json", "timeout": 5})
+        code, content_type, buffering, data = self.stream(
+            {"action": "status", "operationId": op_json["id"], "waitMs": 5000})
+        self.assertEqual((code, content_type, buffering), (200, "application/json", None))
+        json_wait = json.loads(data)["result"]["structuredContent"]["result"]
+        self.assertEqual((json_wait["status"], json_wait["result"]["exitCode"]), ("succeeded", 0))
+
+        op2 = call("exec", {"requestId": "sse-bridge", "taskId": w["taskId"],
+                            "expected": json_wait["result"]["checkpoint"],
+                            "command": "sleep .1; printf bridge", "timeout": 5})
+        from tdev.codex_bridge import Bridge
+        bridge = Bridge(f"http://127.0.0.1:{self.server.server_port}/mcp", "alice-secret")
+        bridged = bridge.handle({"jsonrpc": "2.0", "id": 9, "method": "tools/call",
+                                 "params": {"name": "tdev_operation", "arguments": {"request": {
+                                     "action": "status", "operationId": op2["id"], "waitMs": 5000}}}})
+        bridged_status = bridged["result"]["structuredContent"]["result"]
+        self.assertEqual((bridged_status["status"], bridged_status["result"]["exitCode"]), ("succeeded", 0))
+
+        op3 = call("exec", {"requestId": "sse-disconnect", "taskId": w["taskId"],
+                            "expected": bridged_status["result"]["checkpoint"],
+                            "command": "sleep .4; printf durable", "timeout": 5})
+        conn = http.client.HTTPConnection("127.0.0.1", self.server.server_port, timeout=5)
+        meta = {META + "protocolVersion": VERSION, META + "clientCapabilities": {},
+                "progressToken": "disconnect-progress"}
+        params = {"_meta": meta, "name": "tdev_operation", "arguments": {"request": {
+            "action": "status", "operationId": op3["id"], "waitMs": 5000}}}
+        headers = {"Authorization": "Bearer alice-secret", "Content-Type": "application/json",
+                   "Accept": "application/json, text/event-stream", "MCP-Protocol-Version": VERSION,
+                   "Mcp-Method": "tools/call", "Mcp-Name": "tdev_operation"}
+        conn.request("POST", "/mcp", json.dumps({"jsonrpc": "2.0", "id": 88,
+                                                  "method": "tools/call", "params": params}), headers)
+        response = conn.getresponse()
+        self.assertEqual(response.getheader("Content-Type").split(";", 1)[0], "text/event-stream")
+        self.assertTrue(response.fp.readline().startswith(b": tdev-stream"))
+        conn.close()
+        terminal = None
+        for _ in range(50):
+            terminal = call("operation", {"action": "status", "operationId": op3["id"]})
+            if terminal["status"] not in ("running", "unknown"):
+                break
+            time.sleep(.05)
+        self.assertEqual((terminal["status"], terminal["result"]["exitCode"]), ("succeeded", 0))
 
     def test_native_full_coding_path_over_http_without_executor_config(self):
         def call(tool, args):

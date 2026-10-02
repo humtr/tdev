@@ -198,7 +198,7 @@ class ArtifactTest(Base):
         result = self.c.call('alice', 'tdev_publish', {'requestId': 'wrong-proof', 'validationId': validation})
         self.assertEqual(result['error']['code'], 'SOURCE_VALIDATION_REQUIRED')
         self.assertIsNone(self.c.store.one('SELECT id FROM operation WHERE request=?', ('wrong-proof',)))
-        result = self.c.call('alice', 'tdev_deploy', {'action': 'release', 'requestId': 'wrong-deploy', 'name': 'demo',
+        result = self.c.call('alice', 'tdev_deploy', {'expectedRevision': 0, 'action': 'release', 'requestId': 'wrong-deploy', 'name': 'demo',
                          'validationId': validation, 'command': 'true', 'health': {'port': 18080, 'path': '/'}})
         self.assertEqual(result['error']['code'], 'SOURCE_VALIDATION_REQUIRED')
 

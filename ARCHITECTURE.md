@@ -29,9 +29,34 @@ in README; wire types live in the contract.
 | Source task | Isolated source state for one project within a workspace; a multi-project objective uses multiple tasks. |
 | Operation | An accepted execution or effect with identity, progress, result and recovery evidence. |
 
+`tdev_find` resolves retained source work from human project names and task labels.
+Delegated local project display names derive from the enrolled checkout relative to its current
+policy root; explicit configured names remain authoritative. The old exact remote locator also
+resolves, without guessing a basename, changing enrollment or rewriting accepted receipts.
+New create/connect receipts use the same name projection; replay returns the originally accepted
+receipt, even when its historical display name differs from the current projection.
+Duplicate names remain ambiguous. It performs bounded local reads, not executor/provider
+reconciliation. Retained creation intents
+supply labels; no transcript store, per-conversation current-task pointer or state migration is
+needed. Multiple matches, incomplete pages and unavailable historical bindings never select a
+task. Closed work remains visible by default. Returned checkpoints and receipts are a local
+frontier, not live provider health or permission to mutate; exact CAS/current authority still
+apply on admission. Use domain inspection for older history and detailed resource ownership.
+
 `tdev_workspace` owns composition; `tdev_task` owns source-task lifecycle. `tdev_edit` changes
 source. `tdev_operation` inspects every accepted operation and controls exec/validation
-processes where applicable. No old-name aliases are provided for experimental contracts.
+processes where applicable. Every MCP input is a closed typed root object with a
+required `request` property. Its exact alternatives reuse the canonical semantic input
+schemas; no flat discovery vocabulary is maintained separately. Presence/exclusion rules
+use explicit positive object alternatives, because the qualified ChatGPT host lost some
+negative/conditional branches even inside nested unions. The HTTP edge validates the envelope
+before streaming/dispatch, then passes unchanged semantic arguments to the controller.
+The controller rechecks authority and semantic validation before replay/admission. Stored
+request hashes and receipts do not include the transport envelope; old accepted effects
+remain recoverable without rewriting state. The terminal CLI constructs the envelope for
+convenience commands; `tdev call --input` accepts exact public JSON. There is no public flat
+syntax alias. Fixed host-hint annotations remain unchanged at the user's direction; these
+hints do not authorize effects or describe reconciliation purity.
 Workspace create/list/inspect/attach/detach/configure/close need no Git source task. A workspace
 may be empty. Each project membership captures its enrolled identity and never grants authority.
 
@@ -87,7 +112,7 @@ registry or planner before there is a usable development loop.
 |---|---|---|---|
 | Shell in the user's existing checkout | minimal copying | partial writes, unrelated dirty state and candidate config affect controller operations | rejected as default |
 | Native subprocess in a per-operation copy | installed Termux CLIs, no provisioning/cold remote startup | same UID, no hostile-code filesystem/network isolation; materialization/capture cost | default |
-| SSH + rootless OCI outer runner | OS isolation and enforceable network/resource controls after qualification | external host/image/SSH maintenance, transfer/cold start and more failure points | optional explicit backend |
+| SSH + rootless OCI outer runner | preserved isolation design for possible later qualification | external host/image/SSH maintenance, transfer/cold start and more failure points | dormant experimental backend; not advertised by the current MCP coding surface |
 
 The source surface is task/read/edit/exec/operation/validate/publish; workspace supplies
 composition and project supplies delegated local/GitHub enrollment. CLI adapters need no
@@ -98,7 +123,7 @@ native programs nevertheless have the real app UID's authority (§3).
 `tdev_artifact inspectRecipe` supplies the first packaging surface described in §8; it reads
 validated source metadata and does not produce or release an artifact.
 
-Tool annotations use the fixed tmcp host-hint scope: all twelve public tools advertise
+Tool annotations use the fixed tmcp host-hint scope: all public tools advertise
 `readOnlyHint=true`, with `destructiveHint=false`, `idempotentHint=false` and
 `openWorldHint=false`. These annotations are host hints, not effect semantics, admission
 authority or a safety boundary. The actual task mutation, owner-trusted execution,
@@ -209,6 +234,9 @@ tracked files, nonignored new files under STARTING ignore rules and explicit ext
 Candidate index/config cannot change selection. Nonzero exit, timeout or cancellation may
 still capture safely stopped native work. Capture overflow/failure keeps the previous
 checkpoint and reports why. Native copies persist until explicit terminal retirement.
+An unchanged captured tree retains the starting checkpoint, including on command failure;
+execution history is retained in the operation receipt. Actual A→B→A source changes still
+produce distinct checkpoint OIDs. A no-op command cannot invalidate a successful validation.
 A command's local git commit/rebase produces file changes for capture; it does not replace
 the controller's canonical source identity.
 
@@ -405,22 +433,45 @@ updates, while unrelated source editing remains possible.
 
 Host-specific call budgeting belongs in a caller adapter, not server admission. The optional
 ChatGPT reference runner in `examples/chatgpt/run-cell.js` bounds total nested attempts, including
-diagnostics/failures, and checks elapsed time before another call. It returns a continuation to
-the assistant, which must receive the outer result and issue a new physical cell. It cannot
-schedule that cell, extend a turn or guarantee visible delivery. Unknown operational replies
-stop for reconciliation of the original identity; diagnostic failure never retries the effect.
-This adapter imports no runtime diagnostics and adds no operational-core dependency or wire type.
-The operation tool's discovery description carries compact ChatGPT caller guidance. These are
-adjustable orchestration defaults, not server admission limits; discovery cannot force the host
-to follow them. The full caller helper remains separate from the resident's operational core.
+diagnostics/failures, and checks elapsed time before another call. Ordinary non-interactive command/source-validation
+admission may include an explicit bounded terminal observation (normally `waitMs=30000` for the ChatGPT path): the controller strips the
+observation-only `waitMs` field before mutation identity/admission, starts or replays the exact
+operation, then performs one bounded status/log observation before returning from the same tool
+call. Staged-stdin workflows must set `waitMs=0` to receive the retained handle before later stdin;
+process mode returns immediately and rejects `waitMs` and `capturePaths` in its request branch.
+The command branch alone supports those observation/capture choices. This closes the
+admission-to-monitor physical-cell gap for short terminal
+success/failure without replaying the effect. For an operation that remains running, the
+operation-monitor helper uses bounded server-side terminal waiting on that exact admitted operation;
+the default physical cell performs one read-only status call with a wait of at most 30 seconds, advances the output cursor, surfaces terminal failure
+before return, and rolls over with exact continuation arguments only if the operation is still
+nonterminal after that in-cell budget. This reduces host successor-cell scheduling points while
+keeping each individual server wait bounded. Nonterminal log growth does not prematurely end
+those server waits. Unknown/unreadable status stops for review; the helper never replays, cancels or
+replaces the underlying effect. A rollover still requires the assistant to receive the outer result
+and issue a new physical cell; the adapter cannot schedule that cell, extend a turn or guarantee
+visible delivery. Unknown operational replies stop for reconciliation of the original identity;
+diagnostic failure never retries the effect. This adapter imports no runtime diagnostics and adds
+no operational-core dependency.
+The reference `classifyTdevReply` distinguishes successful RPC processing from successful
+durable operations. `ok=true`/MCP `isError=false` does not prove an operation passed;
+`effect=committed` describes certainty, including failed execution. Monitor `status=terminal`
+must be consumed with `operationStatus` and the domain receipt. Failed exec may capture partial
+source changes; failed validation never authorizes publication. The Host owns the goal and
+strategy, not operation truth. Another attempt after terminal failure is an explicitly selected
+new admission, never resumption or automatic rerun of the terminal operation. UI history is
+not durable execution authority and caller Stop does not establish executor stop proof.
+The operation tool's description explains receipt observation, control and effect uncertainty.
+Physical-cell budgets and orchestration defaults belong in the separate ChatGPT caller adapter,
+not discovery prose or server admission limits; the server cannot force host scheduling.
 
 The controller must surface underlying completion within the same turn and after reconnect,
 including when the caller missed the completion response. Replaying a mutation reconciles
 the original operation before returning; it never starts the effect again. Process status
 reads the supervisor's current result/log evidence, not a cached admission response.
 
-Use task list (bounded task pages, includeClosed for cleanup) then task
-inspect for a known task. Inspect reconciles its busy operation and returns current
+Use find for human-name continuation; task list remains the explicit domain inventory.
+Use task inspect for a known task when live reconciliation or older history is needed. Inspect reconciles its busy operation and returns current
 checkpoint/base, live remote head or a provider error, a bounded newest-first operation page
 (including related controls), original request IDs, cleanup state and mutationReady.
 Older predecessors are available by before cursor; the response does not claim the entire
@@ -459,6 +510,15 @@ re-investigate completed predecessors or invent unrelated security diagnoses.
 Every mutation uses principal/request identity. Auth precedes replay; dedup precedes stale
 checks. Same identity with changed input conflicts. Local pointer and result commit together.
 Dispatch/stdin/cancel/publication have durable intent before effects. Reads need no journal.
+Terminal operation status/result/intent remain immutable even if dispatch later reports an
+error. No late failure or intent update may replace already reconciled terminal evidence.
+Before a new source-task mutation uses a busy task, admission reconciles only that retained
+busy operation once, outside the SQLite transaction. It rereads the task and then rechecks
+busy/CAS inside the admission transaction; a changed capture makes an old expected checkpoint
+stale, and an unknown/running predecessor remains fenced. No background worker, global scan,
+new dispatch or caller-goal decision is implied. Find remains a retained-state-only projection;
+executor completion without an observer may still precede SQLite terminalization until status,
+inspect, same-request replay or this bounded admission-before-use observation.
 
 | Certainty | Meaning |
 |---|---|
@@ -623,6 +683,15 @@ cancellation/timeout/capture/source failure and proved supervised termination. P
 proves their execution under the selected trust model, not universal code correctness.
 Native mode does not claim unforgeable receipts against same-UID attacks.
 
+Source-validation execution budget resolves from explicit request timeout, then current
+repository/project-policy `validationTimeoutSeconds`, then the legacy 300-second default.
+The 1..3600-second budget is frozen at admission with its origin and exposed in the admission/
+status execution projection. Project list/inspect exposes the current default. Caller `waitMs`
+is only observation time and remains outside mutation identity. Changing an accepted timeout
+requires a new request identity; replay never reinterprets old intent using current config.
+This default is execution budget, not validation acceptance policy: changing it alone does
+not invalidate a successful exact candidate. Command/process/artifact deadlines are unchanged.
+
 Publish rechecks scope/policy, successful validation, unchanged checkpoint and expected
 old head. Publish the frozen commit, never regenerate it. Unique publication per validation
 survives different request IDs. GitHub identity is immutable repository ID plus exact HTTPS
@@ -648,16 +717,26 @@ Default topology: Termux Python/Git/SQLite/controller + native supervisors + loc
 + outbound OpenAI Secure MCP Tunnel. MCP is pinned to **2026-07-28**, not a relabeled
 legacy initialize protocol. Each authenticated POST carries version/capability metadata
 and matching method/version/name headers; header mismatches fail before tool admission.
-server/discover is optional for clients, not a required handshake. Results are complete
-JSON envelopes; discovery/tool lists carry explicit private zero-TTL cache metadata.
-The exact envelope/error profile is in contracts/tools.schema.json x-mcp.
+server/discover is optional for clients, not a required handshake. Ordinary responses remain
+complete JSON envelopes, including positive bounded waits when `_meta.progressToken` is absent.
+An explicit positive `waitMs` on command-mode `tdev_exec`, source `tdev_validate`, or
+`tdev_operation status` uses the same POST's request-scoped `text/event-stream` only when the
+request also opts into `_meta.progressToken`: headers are committed immediately with buffering
+disabled, standard `notifications/progress` are emitted while waiting, and the matching final
+JSON-RPC response terminates the stream. This follows auto response shaping rather than forcing
+a comment-only SSE stream merely because the server-side bounded wait is positive. Discovery/tool
+lists carry explicit private zero-TTL cache metadata. The exact envelope/error profile is in
+contracts/tools.schema.json x-mcp.
 
-Core HTTP has no initialize/initialized, transport session, GET/DELETE stream, SSE resume or automatic
-protocol downgrade. Unimplemented client notifications are rejected. The server does not
-advertise subscriptions, sampling, elicitation, tasks or MRTR input requests. GET healthz
-is liveness, not MCP. HTTP request IDs and clientInfo are not durable mutation identity or
-authority. Reconnect never cancels/relaunches an already accepted operation: these calls
-return durable operation handles, not request-scoped SSE jobs. No generic transport framework.
+Core HTTP has no initialize/initialized, transport session, GET/DELETE stream, SSE event-id
+resume or automatic protocol downgrade. Unimplemented client notifications are rejected.
+The server does not advertise subscriptions, sampling, elicitation, tasks or MRTR input
+requests. GET healthz is liveness, not MCP. HTTP request IDs, progress tokens and clientInfo
+are not durable mutation identity or authority. Stream disconnect cancels only the bounded
+observation response; an already accepted durable operation is not cancelled or relaunched.
+Reconnect reconciles that retained operation and never replays its completed effect. SSE
+comments are transport keepalives, not protocol progress or proof of ChatGPT/UI delivery.
+No generic transport framework or transport-owned execution lifecycle is introduced.
 
 OpenAI documents Streamable HTTP and private Secure MCP Tunnel, but that does not establish
 a live ChatGPT host's acceptance of this exact protocol revision or bearer forwarding.
@@ -964,7 +1043,10 @@ once per principal. Project authority and current target identity gate admission
 and replay. Targets cannot address arbitrary service names or replace tdev/tdev-tunnel. A named
 principal/target deployment owns one generated service name and a persistent deployment row;
 source tasks can close while that service continues independently. Deployment mutations are
-retained operations, with per-deployment writer ownership and revision CAS. `targets`, paged
+retained operations, with per-deployment writer ownership and revision CAS. Release requires
+an explicit expected revision: zero admits an initial service, and a positive value updates
+exactly that inspected revision. Matching an existing name never silently authorizes updating
+its current revision. The revision is checked before preparation and again inside admission. `targets`, paged
 `list`, and `inspect` require no source task. A sole delegated target resolves automatically.
 
 Release selects a succeeded validation and its exact frozen candidate, rechecks the adopted

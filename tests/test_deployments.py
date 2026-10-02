@@ -35,8 +35,25 @@ class DeploymentTest(Base):
         return w, v['id'], done['result']['candidate']
 
     def release(self, validation, request='release', **extra):
-        return self.call('deploy', {'action': 'release', 'requestId': request, 'name': 'demo', 'validationId': validation,
+        return self.call('deploy', {'expectedRevision': 0, 'action': 'release', 'requestId': request, 'name': 'demo', 'validationId': validation,
                                    'command': 'exec python app.py', 'health': {'port': 18080, 'path': '/healthz'}, **extra})
+
+    def test_release_requires_create_or_exact_update_intent_before_effect(self):
+        _, validation, _ = self.validated()
+        first = self.release(validation)
+        args = {'action': 'release', 'requestId': 'unintended-update', 'name': 'demo',
+                'validationId': validation, 'command': 'exec python app.py',
+                'health': {'port': 18080, 'path': '/healthz'}}
+        before = list(self.runit.events)
+        missing = self.c.call('alice', 'tdev_deploy', args)
+        self.assertEqual(missing['error']['code'], 'SCHEMA')
+        create = self.c.call('alice', 'tdev_deploy', {**args, 'expectedRevision': 0})
+        self.assertEqual(create['error']['code'], 'STALE_DEPLOYMENT')
+        self.assertEqual(before, self.runit.events)
+        self.assertIsNone(self.c.store.one('SELECT id FROM operation WHERE request=?', ('unintended-update',)))
+        update = self.release(validation, 'explicit-update', expectedRevision=1)
+        self.assertEqual(update['result']['revision'], 2)
+        self.assertEqual(self.release(validation), first)  # replay still precedes CAS
 
     def inspect(self, ident):
         return self.call('deploy', {'action': 'inspect', 'deploymentId': ident})
@@ -89,13 +106,13 @@ class DeploymentTest(Base):
         ident = first['result']['deploymentId']
         stale = self.c.call('alice', 'tdev_deploy', {'action': 'stop', 'requestId': 'stale', 'deploymentId': ident, 'expectedRevision': 0})
         self.assertEqual(stale['error']['code'], 'STALE_DEPLOYMENT')
-        mismatch = self.c.call('alice', 'tdev_deploy', {'action': 'release', 'requestId': 'release', 'name': 'different', 'validationId': validation, 'command': 'true', 'health': {'port': 18080, 'path': '/'}})
+        mismatch = self.c.call('alice', 'tdev_deploy', {'expectedRevision': 0, 'action': 'release', 'requestId': 'release', 'name': 'different', 'validationId': validation, 'command': 'true', 'health': {'port': 18080, 'path': '/'}})
         self.assertEqual(mismatch['error']['code'], 'IDEMPOTENCY_MISMATCH')
 
     def test_readiness_failure_restores_previous_and_does_not_claim_success(self):
         _, validation, _ = self.validated()
         good = self.release(validation)
-        bad = self.release(validation, 'bad-release', command='unready')
+        bad = self.release(validation, 'bad-release', expectedRevision=1, command='unready')
         self.assertEqual(bad['status'], 'failed', bad)
         self.assertTrue(bad['result']['rolledBack'])
         self.assertEqual(bad['result']['release'], good['result']['release'])
@@ -113,7 +130,7 @@ class DeploymentTest(Base):
             raise KeyboardInterrupt()
         with patch.object(self.c.deployments.backend, 'apply', crash):
             with self.assertRaises(KeyboardInterrupt):
-                self.release(validation, 'crash-release', command='new-command')
+                self.release(validation, 'crash-release', expectedRevision=1, command='new-command')
         self.restart()
         recovered = self.call('operation', {'action': 'status', 'lookupRequestId': 'crash-release'})
         self.assertEqual(recovered['status'], 'failed', recovered)
@@ -166,7 +183,7 @@ class DeploymentTest(Base):
     def test_validation_policy_change_rejected_before_service_creation(self):
         _, validation, _ = self.validated()
         self.repo.config['repositories']['test']['validation'] = 'changed-policy'
-        result = self.c.call('alice', 'tdev_deploy', {'action': 'release', 'requestId': 'bad', 'name': 'demo', 'validationId': validation, 'command': 'true', 'health': {'port': 18080, 'path': '/'}})
+        result = self.c.call('alice', 'tdev_deploy', {'expectedRevision': 0, 'action': 'release', 'requestId': 'bad', 'name': 'demo', 'validationId': validation, 'command': 'true', 'health': {'port': 18080, 'path': '/'}})
         self.assertEqual(result['error']['code'], 'VALIDATION_POLICY_CHANGED')
         self.assertEqual(self.runit.events, [])
 
@@ -202,7 +219,7 @@ class DeploymentTest(Base):
         good = self.release(validation)
         original = self.c.deployments.backend.apply
         with patch.object(self.c.deployments.backend, 'apply', side_effect=Fault('FIXTURE_DOWN')):
-            failed = self.release(validation, 'recover-later', command='new-command')
+            failed = self.release(validation, 'recover-later', expectedRevision=1, command='new-command')
         self.assertEqual(failed['status'], 'unknown')
         self.assertEqual(self.c.store.one('SELECT busy FROM deployment')['busy'], failed['id'])
         self.assertIsNotNone(original)

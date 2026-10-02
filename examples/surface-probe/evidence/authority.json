@@ -1,0 +1,45 @@
+{
+  "observedAt": "2026-09-30T03:40:08Z",
+  "sourceHead": "b418c1ddb97af052f80430f3d55802cf3060cfe2",
+  "canonicalRef": "refs/heads/tdev",
+  "residentBundle": "635c8080c9e21a459099bc4e10f0e14d36515ad606d89094a87f7799583f8441",
+  "residentVersion": "0.1.21",
+  "contractSha256": "35ea0a5ed2d7d7d85957117e85e72d2fb7f0e0640156cf2e4908ea54adf9bebf",
+  "residentContractSha256": "35ea0a5ed2d7d7d85957117e85e72d2fb7f0e0640156cf2e4908ea54adf9bebf",
+  "rawEqualsBridge": true,
+  "sourceEqualsResident": true,
+  "taskCounts": [
+    {
+      "closed": 0,
+      "count": 43
+    },
+    {
+      "closed": 1,
+      "count": 72
+    }
+  ],
+  "operationCounts": [
+    {
+      "status": "failed",
+      "count": 322
+    },
+    {
+      "status": "succeeded",
+      "count": 2088
+    },
+    {
+      "status": "unknown",
+      "count": 1
+    }
+  ],
+  "pending": [
+    {
+      "id": "2531fb0f9bbd4aa584865f62898e1010",
+      "kind": "publish",
+      "task": "0fc0709559c940589a0a54808dfa849c",
+      "status": "unknown"
+    }
+  ],
+  "chatgptInjectedDeclaration": null,
+  "chatgptFreshSessionAcceptance": "unavailable: no tdev tools in current host catalog"
+}

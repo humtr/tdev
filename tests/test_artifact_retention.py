@@ -122,7 +122,7 @@ class RetentionTest(Base):
         self.assertEqual(first['status'], 'succeeded', first)
         _, _, two = self.prepare(True, 'two')
         _, v2 = self.verify(two, True, 'check-two')
-        second = self.release(v2, 'update')
+        second = self.release(v2, 'update', expectedRevision=1)
         self.assertEqual(second['status'], 'succeeded', second)
         self.assertIn('deployment_previous', self.preview(one)['pins'])
         self.assertIn('deployment_release', self.preview(two)['pins'])
@@ -157,7 +157,7 @@ class RetentionTest(Base):
         _, _, build = self.prepare(True)
         _, check = self.verify(build, True)
         prune_args = self.prune_args(build)
-        release_args = {'action': 'release', 'subject': 'artifact', 'requestId': 'release', 'name': 'package',
+        release_args = {'expectedRevision': 0, 'action': 'release', 'subject': 'artifact', 'requestId': 'release', 'name': 'package',
                         'validationId': check['id'], 'health': {'port': 18180, 'path': '/healthz'}}
         with ThreadPoolExecutor(2) as pool:
             a = pool.submit(self.c.call, 'alice', 'tdev_artifact', prune_args)
@@ -179,7 +179,7 @@ class RetentionTest(Base):
         _, v2 = self.verify(two, True, 'second-check')
         stale = self.prune_args(two)
         with patch.object(self.c.deployments.backend, 'apply', side_effect=OSError('ambiguous switch')):
-            result = self.release(v2, 'switch')
+            result = self.release(v2, 'switch', expectedRevision=1)
         self.assertEqual(result['status'], 'unknown', result)
         self.assertIn('deployment_in_flight', self.preview(one)['pins'])
         self.assertIn('deployment_in_flight', self.preview(two)['pins'])

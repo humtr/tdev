@@ -1,0 +1,12 @@
+test_all_branches_roundtrip_and_no_mutation_dispatch (test_surface_probe.SurfaceProbeTest.test_all_branches_roundtrip_and_no_mutation_dispatch) ... ok
+test_measurement_is_reproducible_and_does_not_claim_model_accuracy (test_surface_probe.SurfaceProbeTest.test_measurement_is_reproducible_and_does_not_claim_model_accuracy) ... ok
+test_mixed_catalog_routes_controls_without_effects (test_surface_probe.SurfaceProbeTest.test_mixed_catalog_routes_controls_without_effects) ... ok
+test_nested_contract_keeps_conditionals_and_identity_exclusion (test_surface_probe.SurfaceProbeTest.test_nested_contract_keeps_conditionals_and_identity_exclusion) ... ok
+test_positive_branches_preserve_presence_and_value_constraints (test_surface_probe.SurfaceProbeTest.test_positive_branches_preserve_presence_and_value_constraints) ... ok
+test_positive_expansion_fails_closed_for_unhandled_constraints (test_surface_probe.SurfaceProbeTest.test_positive_expansion_fails_closed_for_unhandled_constraints) ... ok
+test_stdio_is_effect_free_even_when_requested_call_is_a_mutation (test_surface_probe.SurfaceProbeTest.test_stdio_is_effect_free_even_when_requested_call_is_a_mutation) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 8.696s
+
+OK

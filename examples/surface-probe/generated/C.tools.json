@@ -1,0 +1,2632 @@
+{
+  "tools": [
+    {
+      "name": "tdev_workspace_list",
+      "description": "workspace: list. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "list"
+          },
+          "after": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          },
+          "includeClosed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_workspace_inspect",
+      "description": "workspace: inspect. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "inspect"
+          },
+          "workspaceId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "after": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          },
+          "includeClosed": {
+            "type": "boolean"
+          },
+          "since": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "pendingAfter": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "action",
+          "workspaceId"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_workspace_create",
+      "description": "workspace: create. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "create"
+          },
+          "requestId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "projects": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            },
+            "uniqueItems": true,
+            "maxItems": 64
+          },
+          "defaultRepo": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          }
+        },
+        "required": [
+          "action",
+          "requestId",
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_workspace_attach",
+      "description": "workspace: attach. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "attach"
+          },
+          "requestId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "workspaceId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "repo": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          }
+        },
+        "required": [
+          "action",
+          "requestId",
+          "workspaceId",
+          "expectedRevision",
+          "repo"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_workspace_detach",
+      "description": "workspace: detach. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "detach"
+          },
+          "requestId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "workspaceId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "repo": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          }
+        },
+        "required": [
+          "action",
+          "requestId",
+          "workspaceId",
+          "expectedRevision",
+          "repo"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_workspace_configure",
+      "description": "workspace: configure. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "configure"
+          },
+          "requestId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "workspaceId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "defaultRepo": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "action",
+          "requestId",
+          "workspaceId",
+          "expectedRevision"
+        ],
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "name"
+            ]
+          },
+          {
+            "required": [
+              "defaultRepo"
+            ]
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_workspace_close",
+      "description": "workspace: close. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "close"
+          },
+          "requestId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "workspaceId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "action",
+          "requestId",
+          "workspaceId",
+          "expectedRevision"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_task_list",
+      "description": "task: list. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "list"
+          },
+          "after": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          },
+          "includeClosed": {
+            "type": "boolean"
+          },
+          "workspaceId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_task_open",
+      "description": "task: open. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "open"
+          },
+          "requestId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "repo": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "ref": {
+            "type": "string",
+            "pattern": "^refs/heads/[^\\s~^:?*\\[\\\\]+$"
+          },
+          "expectedHead": {
+            "type": "string",
+            "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+          },
+          "workspaceId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          }
+        },
+        "required": [
+          "action",
+          "requestId",
+          "repo",
+          "ref",
+          "expectedHead"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_task_compose",
+      "description": "task: compose. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "compose"
+          },
+          "requestId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "repo": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "ref": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "expectedHead": {
+            "type": "string",
+            "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "taskId": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                },
+                "checkpoint": {
+                  "type": "string",
+                  "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+                }
+              },
+              "required": [
+                "taskId",
+                "checkpoint"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 1,
+            "maxItems": 16
+          },
+          "workspaceId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          }
+        },
+        "required": [
+          "action",
+          "requestId",
+          "repo",
+          "ref",
+          "expectedHead",
+          "sources"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_task_close",
+      "description": "task: close. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "close"
+          },
+          "requestId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "taskId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "expected": {
+            "type": "string",
+            "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+          }
+        },
+        "required": [
+          "action",
+          "requestId",
+          "taskId",
+          "expected"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_task_inspect",
+      "description": "task: inspect. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "inspect"
+          },
+          "taskId": {
+            "type": "string"
+          },
+          "since": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "before": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          }
+        },
+        "required": [
+          "action",
+          "taskId"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_task_start",
+      "description": "task: start. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "start"
+          },
+          "requestId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "repo": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "baseRef": {
+            "type": "string",
+            "pattern": "^refs/heads/[^\\s~^:?*\\[\\\\]+$"
+          },
+          "expectedHead": {
+            "type": "string",
+            "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "fromTaskId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "workspaceId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "localChanges": {
+            "type": "boolean",
+            "description": "Capture the enrolled checkout final working-tree bytes into a new task; preserve its index/files/refs. Requires a matching checked-out source branch."
+          }
+        },
+        "required": [
+          "action",
+          "requestId"
+        ],
+        "additionalProperties": false,
+        "not": {
+          "required": [
+            "fromTaskId",
+            "baseRef"
+          ]
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "localChanges": {
+                  "const": true
+                }
+              },
+              "required": [
+                "localChanges"
+              ]
+            },
+            "then": {
+              "not": {
+                "required": [
+                  "fromTaskId"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_task_cleanup",
+      "description": "task: cleanup. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "cleanup"
+          },
+          "requestId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "taskId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          }
+        },
+        "required": [
+          "action",
+          "requestId",
+          "taskId"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_task_integrate",
+      "description": "task: integrate. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "integrate"
+          },
+          "requestId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "taskId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "expected": {
+            "type": "string",
+            "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+          },
+          "sourceTaskId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "sourceCheckpoint": {
+            "type": "string",
+            "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+          },
+          "resolutions": {
+            "type": "array",
+            "maxItems": 1000,
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "path": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 4096
+                    },
+                    "choice": {
+                      "enum": [
+                        "current",
+                        "incoming",
+                        "base",
+                        "delete"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "path",
+                    "choice"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "path": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 4096
+                    },
+                    "choice": {
+                      "const": "content"
+                    },
+                    "content": {
+                      "type": "string",
+                      "maxLength": 1048576
+                    },
+                    "encoding": {
+                      "enum": [
+                        "utf8",
+                        "base64"
+                      ]
+                    },
+                    "mode": {
+                      "enum": [
+                        "100644",
+                        "100755"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "path",
+                    "choice",
+                    "content"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          }
+        },
+        "required": [
+          "action",
+          "requestId",
+          "taskId",
+          "expected",
+          "sourceTaskId"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_task_resetEnvironment",
+      "description": "task: resetEnvironment. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "resetEnvironment"
+          },
+          "requestId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "taskId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "expected": {
+            "type": "string",
+            "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+          }
+        },
+        "required": [
+          "action",
+          "requestId",
+          "taskId",
+          "expected"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_read",
+      "description": "read: call. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "taskId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "checkpoint": {
+            "type": "string",
+            "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+          },
+          "queries": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "action": {
+                      "const": "file"
+                    },
+                    "path": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 4096
+                    },
+                    "offset": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "limit": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 65536
+                    }
+                  },
+                  "required": [
+                    "action",
+                    "path"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "action": {
+                      "const": "list"
+                    },
+                    "path": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 4096
+                    },
+                    "offset": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "action"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "action": {
+                      "const": "search"
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 2048
+                    },
+                    "path": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 4096
+                    },
+                    "offset": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "action",
+                    "text"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "action": {
+                      "const": "diff"
+                    },
+                    "offset": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "limit": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 65536
+                    },
+                    "format": {
+                      "enum": [
+                        "stat",
+                        "patch",
+                        "names"
+                      ]
+                    },
+                    "base": {
+                      "type": "string",
+                      "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+                    },
+                    "path": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 4096
+                    }
+                  },
+                  "required": [
+                    "action"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "action": {
+                      "const": "history"
+                    },
+                    "offset": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "limit": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 65536
+                    }
+                  },
+                  "required": [
+                    "action"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "minItems": 1,
+            "maxItems": 32
+          },
+          "budget": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65536
+          }
+        },
+        "required": [
+          "taskId",
+          "queries"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_edit",
+      "description": "edit: call. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "requestId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "taskId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "expected": {
+            "type": "string",
+            "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+          },
+          "edits": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "action": {
+                      "const": "put"
+                    },
+                    "path": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 4096
+                    },
+                    "content": {
+                      "type": "string",
+                      "maxLength": 1048576
+                    },
+                    "encoding": {
+                      "enum": [
+                        "utf8",
+                        "base64"
+                      ]
+                    },
+                    "mode": {
+                      "enum": [
+                        "100644",
+                        "100755",
+                        "120000"
+                      ]
+                    },
+                    "before": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "action",
+                    "path",
+                    "content",
+                    "before"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "action": {
+                      "const": "replace"
+                    },
+                    "path": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 4096
+                    },
+                    "old": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1048576
+                    },
+                    "text": {
+                      "type": "string",
+                      "maxLength": 1048576
+                    },
+                    "count": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 10000
+                    }
+                  },
+                  "required": [
+                    "action",
+                    "path",
+                    "old",
+                    "text"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "action": {
+                      "const": "delete"
+                    },
+                    "path": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 4096
+                    },
+                    "before": {
+                      "type": "string",
+                      "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+                    }
+                  },
+                  "required": [
+                    "action",
+                    "path",
+                    "before"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "action": {
+                      "const": "move"
+                    },
+                    "path": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 4096
+                    },
+                    "to": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 4096
+                    },
+                    "before": {
+                      "type": "string",
+                      "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+                    }
+                  },
+                  "required": [
+                    "action",
+                    "path",
+                    "to",
+                    "before"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "minItems": 1,
+            "maxItems": 256
+          }
+        },
+        "required": [
+          "requestId",
+          "taskId",
+          "expected",
+          "edits"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_exec",
+      "description": "exec: call. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "requestId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "taskId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "expected": {
+            "type": "string",
+            "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+          },
+          "command": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 65536
+          },
+          "cwd": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "env": {
+            "type": "object",
+            "maxProperties": 64,
+            "propertyNames": {
+              "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+            },
+            "additionalProperties": {
+              "type": "string",
+              "maxLength": 8192
+            }
+          },
+          "stdin": {
+            "type": "string",
+            "maxLength": 65536
+          },
+          "timeout": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3600
+          },
+          "waitMs": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 30000,
+            "description": "Bounded terminal observation after command admission. Omit or set 0 for an immediate retained handle; set a positive value to wait up to this many milliseconds for the exact admitted operation and return the freshest status/log page. This observation-only field does not change mutation identity and is ignored for process mode. On MCP HTTP, a positive command wait with _meta.progressToken uses request-scoped SSE with standard progress notifications; without progressToken the bounded wait returns one application/json response."
+          },
+          "capturePaths": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096
+            },
+            "minItems": 0,
+            "maxItems": 64
+          },
+          "mode": {
+            "enum": [
+              "command",
+              "process"
+            ],
+            "description": "command captures stopped source and defaults to 300s. Native process keeps a fixed source copy, permits task edits, never captures source and runs until stop/exit unless timeout is supplied."
+          },
+          "environment": {
+            "enum": [
+              "task",
+              "fresh"
+            ],
+            "description": "Default task reuses the task's private dependency/cache storage; fresh uses only this operation. HOME and source remain per-operation."
+          }
+        },
+        "required": [
+          "requestId",
+          "taskId",
+          "expected",
+          "command"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_operation_status",
+      "description": "operation: status. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "status"
+          },
+          "operationId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "lookupRequestId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65536
+          },
+          "since": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "waitMs": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 30000,
+            "description": "Bounded read-only terminal wait. While the operation is running or unknown, status waits up to this many milliseconds for terminal reconciliation, then returns the freshest status/log page; nonterminal log growth does not end the wait. On MCP HTTP, a positive wait with _meta.progressToken uses request-scoped SSE with standard progress notifications; without progressToken the bounded wait returns one application/json response. Omission or 0 remains an immediate JSON response."
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "additionalProperties": false,
+        "oneOf": [
+          {
+            "required": [
+              "operationId"
+            ],
+            "not": {
+              "required": [
+                "lookupRequestId"
+              ]
+            }
+          },
+          {
+            "required": [
+              "lookupRequestId"
+            ],
+            "not": {
+              "required": [
+                "operationId"
+              ]
+            }
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_operation_stdin",
+      "description": "operation: stdin. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "stdin"
+          },
+          "requestId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "operationId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "sequence": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1023
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 65536
+          },
+          "eof": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "action",
+          "requestId",
+          "operationId",
+          "sequence",
+          "text"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_operation_cancel",
+      "description": "operation: cancel. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "cancel"
+          },
+          "requestId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "operationId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          }
+        },
+        "required": [
+          "action",
+          "requestId",
+          "operationId"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_operation_retire",
+      "description": "operation: retire. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "action",
+          "requestId",
+          "operationId"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "const": "retire"
+          },
+          "requestId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "operationId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          }
+        }
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_validate_source",
+      "description": "validate: source. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "requestId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "taskId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "expected": {
+            "type": "string",
+            "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "environment": {
+            "enum": [
+              "task",
+              "fresh"
+            ],
+            "description": "Default task reuses the task's private dependency/cache storage; fresh uses only this operation. HOME and source remain per-operation."
+          },
+          "timeout": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3600,
+            "description": "Validation deadline in seconds; default 300. Increase for a longer adopted test suite, up to 3600."
+          },
+          "waitMs": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 30000,
+            "description": "Bounded terminal observation after source-validation admission. Omit or set 0 for an immediate retained handle; set a positive value to wait up to this many milliseconds for the exact admitted validation and return the freshest status/log page. This observation-only field does not change mutation identity. On MCP HTTP, a positive source-validation wait with _meta.progressToken uses request-scoped SSE with standard progress notifications; without progressToken the bounded wait returns one application/json response."
+          }
+        },
+        "required": [
+          "requestId",
+          "taskId",
+          "expected",
+          "message"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_validate_artifact",
+      "description": "validate: artifact. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "subject": {
+            "const": "artifact"
+          },
+          "requestId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "artifactId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "health": {
+            "type": "object",
+            "properties": {
+              "port": {
+                "type": "integer",
+                "minimum": 1024,
+                "maximum": 65535
+              },
+              "path": {
+                "type": "string",
+                "pattern": "^/[^\\r\\n ]*$",
+                "maxLength": 2048
+              }
+            },
+            "required": [
+              "port",
+              "path"
+            ],
+            "additionalProperties": false,
+            "description": "Readiness requires HTTP 200 from 127.0.0.1:port/path with X-Tdev-Release equal to the process TDEV_RELEASE environment value."
+          },
+          "timeout": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3600,
+            "description": "Validation deadline in seconds; default 300. Increase for a longer adopted test suite, up to 3600."
+          }
+        },
+        "required": [
+          "subject",
+          "requestId",
+          "artifactId"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_publish",
+      "description": "publish: call. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "requestId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "validationId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "expectedHead": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "requestId",
+          "validationId"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_project_list",
+      "description": "project: list. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "list"
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_project_inspect",
+      "description": "project: inspect. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "inspect"
+          },
+          "repo": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          }
+        },
+        "required": [
+          "action",
+          "repo"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_project_connect",
+      "description": "project: connect. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "connect"
+          },
+          "requestId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "policy": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        },
+        "required": [
+          "action",
+          "requestId",
+          "policy",
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_project_create",
+      "description": "project: create. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "create"
+          },
+          "requestId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "policy": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        },
+        "required": [
+          "action",
+          "requestId",
+          "policy",
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_deploy_targets",
+      "description": "deploy: targets. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "targets"
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_deploy_list",
+      "description": "deploy: list. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "list"
+          },
+          "after": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_deploy_inspect",
+      "description": "deploy: inspect. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "inspect"
+          },
+          "deploymentId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65536
+          },
+          "since": {
+            "type": "string",
+            "maxLength": 64
+          }
+        },
+        "required": [
+          "action",
+          "deploymentId"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_deploy_release_source",
+      "description": "deploy: release_source. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "release"
+          },
+          "requestId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "validationId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "target": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{0,62}$"
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Supply the inspected revision for an update. Omitted resolves the current revision during admission; concurrent changes are still checked."
+          },
+          "command": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 65536,
+            "description": "Foreground command in the exact source release; use TDEV_DATA_DIR for persistent writable data. Task venv/cache and build outputs are not packaged."
+          },
+          "health": {
+            "type": "object",
+            "properties": {
+              "port": {
+                "type": "integer",
+                "minimum": 1024,
+                "maximum": 65535
+              },
+              "path": {
+                "type": "string",
+                "pattern": "^/[^\\r\\n ]*$",
+                "maxLength": 2048
+              }
+            },
+            "required": [
+              "port",
+              "path"
+            ],
+            "additionalProperties": false,
+            "description": "Readiness requires HTTP 200 from 127.0.0.1:port/path with X-Tdev-Release equal to the process TDEV_RELEASE environment value."
+          }
+        },
+        "required": [
+          "action",
+          "requestId",
+          "validationId",
+          "name",
+          "command",
+          "health"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_deploy_release_artifact",
+      "description": "deploy: release_artifact. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "release"
+          },
+          "requestId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "validationId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "target": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{0,62}$"
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Supply the inspected revision for an update. Omitted resolves the current revision during admission; concurrent changes are still checked."
+          },
+          "health": {
+            "type": "object",
+            "properties": {
+              "port": {
+                "type": "integer",
+                "minimum": 1024,
+                "maximum": 65535
+              },
+              "path": {
+                "type": "string",
+                "pattern": "^/[^\\r\\n ]*$",
+                "maxLength": 2048
+              }
+            },
+            "required": [
+              "port",
+              "path"
+            ],
+            "additionalProperties": false,
+            "description": "Readiness requires HTTP 200 from 127.0.0.1:port/path with X-Tdev-Release equal to the process TDEV_RELEASE environment value."
+          },
+          "subject": {
+            "const": "artifact"
+          }
+        },
+        "required": [
+          "action",
+          "requestId",
+          "validationId",
+          "name",
+          "health",
+          "subject"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_deploy_start",
+      "description": "deploy: start. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "start"
+          },
+          "requestId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "deploymentId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "action",
+          "requestId",
+          "deploymentId",
+          "expectedRevision"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_deploy_stop",
+      "description": "deploy: stop. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "stop"
+          },
+          "requestId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "deploymentId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "action",
+          "requestId",
+          "deploymentId",
+          "expectedRevision"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_deploy_rollback",
+      "description": "deploy: rollback. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "rollback"
+          },
+          "requestId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "deploymentId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "action",
+          "requestId",
+          "deploymentId",
+          "expectedRevision"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_deploy_remove",
+      "description": "deploy: remove. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "remove"
+          },
+          "requestId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "deploymentId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "action",
+          "requestId",
+          "deploymentId",
+          "expectedRevision"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_artifact_inspectRecipe",
+      "description": "artifact: inspectRecipe. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "inspectRecipe"
+          },
+          "validationId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024,
+            "description": "Canonical relative path; no traversal, backslashes, control characters or .git components. Additional path/overlap checks are enforced by the controller."
+          }
+        },
+        "required": [
+          "action",
+          "validationId"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_artifact_prepare",
+      "description": "artifact: prepare. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "prepare"
+          },
+          "validationId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024,
+            "description": "Canonical relative path; no traversal, backslashes, control characters or .git components. Additional path/overlap checks are enforced by the controller."
+          },
+          "requestId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "timeout": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3600
+          }
+        },
+        "required": [
+          "action",
+          "validationId",
+          "requestId"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_artifact_inspect",
+      "description": "artifact: inspect. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "inspect"
+          },
+          "artifactId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          }
+        },
+        "required": [
+          "action",
+          "artifactId"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_artifact_list",
+      "description": "artifact: list. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "list"
+          },
+          "taskId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "before": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_artifact_usage",
+      "description": "artifact: usage. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "usage"
+          },
+          "before": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_artifact_export",
+      "description": "artifact: export. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "export"
+          },
+          "artifactId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024,
+            "description": "Canonical relative path; no traversal, backslashes, control characters or .git components. Additional path/overlap checks are enforced by the controller."
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65536
+          }
+        },
+        "required": [
+          "action",
+          "artifactId",
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_artifact_prunePreview",
+      "description": "artifact: prunePreview. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "prunePreview"
+          },
+          "artifactId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          }
+        },
+        "required": [
+          "action",
+          "artifactId"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_artifact_prune",
+      "description": "artifact: prune. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "prune"
+          },
+          "artifactId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "requestId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "expectedPreview": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "required": [
+          "action",
+          "artifactId",
+          "requestId",
+          "expectedPreview"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_diagnostics_inspect",
+      "description": "diagnostics: inspect. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "inspect"
+          },
+          "view": {
+            "enum": [
+              "full",
+              "summary"
+            ]
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_diagnostics_activate",
+      "description": "diagnostics: activate. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "activate"
+          },
+          "requestId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "seconds": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 300
+          }
+        },
+        "required": [
+          "action",
+          "requestId"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_diagnostics_stop",
+      "description": "diagnostics: stop. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "stop"
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_diagnostics_acknowledge",
+      "description": "diagnostics: acknowledge. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "acknowledge"
+          },
+          "incidentId": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{32}$"
+          }
+        },
+        "required": [
+          "action",
+          "incidentId"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_diagnostics_report",
+      "description": "diagnostics: report. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "report"
+          },
+          "requestId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "category": {
+            "enum": [
+              "visible_stall",
+              "transport_error",
+              "call_limit",
+              "unexpected_turn_end",
+              "control_mismatch"
+            ]
+          }
+        },
+        "required": [
+          "action",
+          "requestId",
+          "category"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "tdev_diagnostics_mark",
+      "description": "diagnostics: mark. Schema probe; no effects.",
+      "inputSchema": {
+        "type": "object",
+        "description": "Opt-in caller witness, not host attestation or UI proof. Identity is principal + instance + runId + sequence (no operational requestId). Sequence strictly increases per run, gaps allowed. Exact retained retry returns original receipt without another event; conflicting retained identity fails WITNESS_CONFLICT, old evicted sequence fails WITNESS_REPLAY_EXPIRED, stale instance fails WITNESS_INSTANCE_CHANGED. At most 32 runs per process and 256 cached receipts globally; run watermarks never evict, further new runs fail WITNESS_RUN_LIMIT. Off rejects without activation. Watch retains ring only; trace also queues bounded persistence. Never retry development work because marking failed. afterRequest is optional caller assertion referencing diagnosticReceipt.request from a returned response of the same instance; no validation of that prior response or claim of UI delivery.",
+        "properties": {
+          "action": {
+            "const": "mark"
+          },
+          "instance": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{16}$",
+            "minLength": 16,
+            "maxLength": 16
+          },
+          "runId": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{32}$",
+            "minLength": 32,
+            "maxLength": 32
+          },
+          "cellId": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{32}$",
+            "minLength": 32,
+            "maxLength": 32
+          },
+          "sequence": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "phase": {
+            "enum": [
+              "cell_enter",
+              "tool_return",
+              "cell_exit"
+            ]
+          },
+          "callOrdinal": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "afterRequest": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "action",
+          "instance",
+          "runId",
+          "cellId",
+          "sequence",
+          "phase"
+        ],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "phase": {
+                  "const": "tool_return"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "callOrdinal"
+              ]
+            },
+            "else": {
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "callOrdinal"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "afterRequest"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    }
+  ]
+}

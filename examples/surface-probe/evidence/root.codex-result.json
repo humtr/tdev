@@ -1,0 +1,38 @@
+{
+  "candidate": "root",
+  "loaderSchemaEqual": true,
+  "tools": 12,
+  "calls": [
+    {
+      "tool": "tdev_task",
+      "arguments": {
+        "action": "list"
+      },
+      "receipt": {
+        "canonicalTool": "tdev_task",
+        "code": "CANONICAL_VALID",
+        "effect": "none",
+        "inputDigest": "584e7600815c4c752e42f8f3c00aa4bf1597f13bb08ed5de443b33097e1a1751",
+        "ok": true,
+        "probeOnly": true
+      }
+    },
+    {
+      "tool": "tdev_task",
+      "arguments": {
+        "action": "start",
+        "requestId": "probe-start"
+      },
+      "receipt": {
+        "canonicalTool": "tdev_task",
+        "code": "CANONICAL_VALID",
+        "effect": "none",
+        "inputDigest": "a68840fa44724871d514b02a80a183a1e33ffaa3a4dc6395f3b7c67d00fca445",
+        "ok": true,
+        "probeOnly": true
+      }
+    }
+  ],
+  "modelRun": false,
+  "chatgptAcceptance": false
+}

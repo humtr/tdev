@@ -59,7 +59,7 @@ class Codex:
                 raise TimeoutError(method)
 
     def call(self, tool, args):
-        value = self.rpc("mcpServer/tool/call", {"threadId": self.thread, "server": "tdev_smoke", "tool": "tdev_" + tool, "arguments": args})
+        value = self.rpc("mcpServer/tool/call", {"threadId": self.thread, "server": "tdev_smoke", "tool": "tdev_" + tool, "arguments": {"request": args}})
         result = value["structuredContent"]
         assert result["ok"], result
         return result["result"]
@@ -108,9 +108,10 @@ def main():
                     plugin = "discovered and read-only list called"
             if "--direct" in sys.argv:
                 client.call("task", {"action": "list"})
-            assert len(names) == 10, names
+            assert set(names) == {t['name'] for t in controller.schema['x-tools']}, names
             listing = client.call("task", {"action": "list"})
             assert listing["repositories"][0]["head"] == repo.head
+            assert client.call("find", {"project": "test"})["resolution"] == "none"
             space = client.call("workspace", {"action": "create", "requestId": "codex-space", "name": "Client qualification", "projects": ["test"]})["result"]
             w = client.call("task", {"action": "open", "requestId": "codex-open", "workspaceId": space["workspaceId"], "repo": "test", "ref": "refs/heads/main", "expectedHead": repo.head})["result"]
             client.call("read", {"taskId": w["taskId"], "checkpoint": w["checkpoint"], "queries": [{"action": "file", "path": "a.txt"}]})
@@ -119,6 +120,9 @@ def main():
             op = client.call("exec", args)
             client.close()
             client = Codex(f"http://127.0.0.1:{server.server_port}/mcp")
+            resumed = client.call("find", {"project": "test"})
+            assert resumed['resolution'] == 'unique' and resumed['matches'][0]['taskId'] == w['taskId'], resumed
+            assert resumed['matches'][0]['outstanding'][0]['operationId'] == op['id'], resumed
             assert client.call("exec", args)["id"] == op["id"]
             assert client.call("workspace", {"action": "inspect", "workspaceId": space["workspaceId"]})["tasks"][0]["taskId"] == w["taskId"]
             client.call("task", {"action": "inspect", "taskId": w["taskId"]})

@@ -1,0 +1,62 @@
+{
+  "source": "user-supplied fresh ChatGPT report; declaration excerpts, not raw complete catalog",
+  "candidate": "B2 with five controls",
+  "checks": [
+    {
+      "request": {
+        "action": "start",
+        "requestId": "b2-start-1"
+      },
+      "receipt": {
+        "ok": true,
+        "probeOnly": true,
+        "effect": "none",
+        "code": "CANONICAL_VALID",
+        "canonicalTool": "tdev_task",
+        "inputDigest": "6f389c13f860da77746f47e96344c13a618436264d3dadb72d5828437f1b3774"
+      },
+      "matchesUserReportedDigest": true
+    },
+    {
+      "request": {
+        "action": "start",
+        "requestId": "b2-start-2",
+        "fromTaskId": "old",
+        "localChanges": false
+      },
+      "receipt": {
+        "ok": true,
+        "probeOnly": true,
+        "effect": "none",
+        "code": "CANONICAL_VALID",
+        "canonicalTool": "tdev_task",
+        "inputDigest": "1d0970549d8769bc87f88bce1059785402a6404828bd15802593c792f0c430bf"
+      },
+      "matchesUserReportedDigest": true
+    }
+  ],
+  "invalidCall": {
+    "request": {
+      "action": "start",
+      "requestId": "b2-invalid-1",
+      "fromTaskId": "old",
+      "localChanges": true
+    }
+  },
+  "invalidRejectedBeforeProbeReceipt": true,
+  "declarationFidelity": {
+    "task.start": "two positive alternatives; no Exclude",
+    "operation.status": "exclusive required operationId or lookupRequestId",
+    "workspace.configure": "required name or defaultRepo",
+    "diagnostics.mark": "tool_return requires callOrdinal"
+  },
+  "controls": {
+    "root": "generic map",
+    "flat": "typed vocabulary without branch requirements",
+    "nested": "start Exclude<any, any>",
+    "actionStart": "generic map",
+    "workflow": "task.start arguments Exclude<any, any>"
+  },
+  "uninstructedModelSelectionAccuracy": null,
+  "productResidentAcceptance": false
+}

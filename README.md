@@ -81,7 +81,7 @@ credentials and in-flight effects still require deliberate handling.
 
 ## Implementation status
 
-Twelve MCP tools separate composition (`tdev_workspace`), source tasks (`tdev_task`), projects
+Thirteen MCP tools include human-name continuation lookup (`tdev_find`) and separate composition (`tdev_workspace`), source tasks (`tdev_task`), projects
 (`tdev_project`), source read/edit, execution, general operation observation/control
 (`tdev_operation`), validation, publication, project deployment (`tdev_deploy`) and artifact
 recipe inspection and retained builds (`tdev_artifact`), plus runtime diagnostics
@@ -90,15 +90,119 @@ checkpoints; SQLite holds workspace composition, source tasks, enrolled projects
 the experimental source-workspace/process names without aliases.
 
 Core HTTP MCP is pinned to **2026-07-28**. Local Codex has an explicitly selected legacy stdio
-adapter; it does not downgrade core HTTP. Commands/tests run natively on Termux by default.
-Explicit remote execution remains optional and never silently falls back to native. No SSH
-host, VPS, OCI, root, systemd or Docker prerequisite is imposed on local development.
+adapter; it does not downgrade core HTTP. Commands/tests in the public coding surface run natively on Termux. The authored SSH/rootless-Podman
+backend is retained dormant for possible later qualification and is not advertised as a caller-selectable
+execution/network mode. No SSH host, VPS, OCI, root, systemd or Docker prerequisite is imposed on development.
 
 Native execution carries ordinary Termux app-UID authority. Source copies, private HOME,
 clean environment and API grants are useful safeguards, not hostile-code or credential
 isolation. See the [trust boundary](ARCHITECTURE.md#3-native-trust-and-containment).
 
 ## Current work
+
+Live resident is **0.1.25**, bundle
+`f1d10cf548ff2cbc1169db2ab239b3c772a0b8264e61ad8b31bffad777877ee7`.
+Qualified source commit `983f4559ac1f79526cd8bd59558ed496d67773e9` is published on
+`refs/heads/tdev`. Both existing connections are healthy/running after the owned recoverable
+update. Existing state/config/credentials/profiles and the historical unknown publication
+are unchanged. The Termux `tdev` shortcut uses the qualified checkout; the original dirty
+checkout remains untouched.
+
+Source **0.1.25** repairs the Host/exact-operation boundary: no-op command capture retains
+its source checkpoint; late dispatch failures cannot overwrite a terminal result; a new source
+mutation reconciles only its busy predecessor before checking fresh CAS. Repository/project
+policy can supply `validationTimeoutSeconds`, with explicit request override, frozen admission
+budget/origin and project readback. The caller adapter supplies a pure outcome classifier and
+documents one default monitor wait per physical cell. Goal continuation stays Host-owned;
+terminal operations never resume or rerun automatically. Fixed host hints are unchanged.
+Focused **15**, affected **78**, and full **346 tests** pass; see the
+[boundary qualification](LOCAL_VALIDATION.md#hostexact-operation-boundary-repair--2026-10-01).
+Inactive bundle and real isolated runit rehearsals passed. Installed localhost MCP confirmed
+13 typed tools/fixed hints, human-name lookup, no-op capture, durable nonzero failure despite
+successful RPC, and frozen source-validation budget/result readback. The owned acceptance
+task is closed/cleaned; its receipts remain discoverable. The subsequent authorized operator
+configuration sets **tdev source validation to 1800 seconds**; other project policies retain
+300-second fallback. Caller timeout remains an explicit per-attempt override. Config hot readback
+and a new timeout-omitted admission confirm `1800 / repository` without restarting services.
+That installed source validation completed **346 tests in 834.517s**, succeeded with exit0
+and no timeout; its task/scratch is closed/cleaned with the receipt retained.
+The supplied fresh ChatGPT Host run consumed exit-7 correctly and observed one ~420-second
+command through terminal in the same turn, crossing ~287/~326-second cells with 39 witnesses.
+Resident receipts/cleanup and the live 39-witness/1-run summary corroborate the report. The
+previous stall/history rollback did not reproduce in that run; permanent UI persistence and
+causal resolution remain unproved. See the [installed closeout](LOCAL_VALIDATION.md#0125-resident-activation-and-live-readback--2026-10-01)
+and [budget/Host follow-up](LOCAL_VALIDATION.md#repository-budget-and-fresh-host-follow-up--2026-10-02).
+
+The reported ChatGPT run recovered the completed source work in **3 read calls**
+using only project name and label, with **0 user-supplied internal IDs** and no new effects.
+Project-only lookup remained ambiguous; label filtering selected the closed published predecessor,
+and task inspection confirmed the exact validation/publication commit. Installed state independently
+matched. This confirms bounded material rediscovery. The user's subsequent report of a visible
+stall around 18:30 KST, followed by a new turn, leaves host continuity unresolved; a new turn
+alone does not establish a fresh conversation. The complete two-project workload remains separate. See
+[the actual host report](LOCAL_VALIDATION.md#actual-fresh-chatgpt-material-recovery-report--2026-09-30).
+
+Source **0.1.24** completes the same human-name rule in newly accepted project create/connect
+responses. Previously retained receipts keep their original bytes, including old path-valued names;
+current listing/discovery is a separate projection. Focused **8**, affected **33** and full **332 tests** plus inactive bundle qualification pass.
+Final activation/readback are recorded in the takeover review. The thirteen-tool input surface and fixed host hints are unchanged.
+
+Source **0.1.23** fixes a measured human-name continuation gap: delegated local projects now
+show their enrolled checkout relative to the current policy root, so `tdev_find` can resolve
+`pkg-chatgpt-20260930-a1` directly. Old exact remote locators still work. It does not rewrite
+project/effect receipts, reconcile on discovery, select ambiguous work or change tool inputs/hints.
+Focused **7**, affected **33**, full **332 tests**, inactive bundle and actual Codex schema-loader
+checks pass. The takeover also completed the handed-off service/artifact lifecycle through
+authenticated local MCP, with fresh data preservation, supervisor crash recovery, failed-switch
+restoration, export and explicit pruning. This is independent backend acceptance, not a new
+ChatGPT/UI measurement. Resident activation is recorded separately below. See
+[the takeover review](LOCAL_VALIDATION.md#installed-handoff-review-and-human-name-recovery--2026-09-30).
+
+Source **0.1.22** implements the selected thirteen-tool surface after root/flat/nested/action/
+workflow comparisons. Exact positive request alternatives replace eight duplicated flat discovery
+schemas. `tdev_find` resolves human-name source continuation from retained intents and receipts,
+without replaying effects or choosing an ambiguous/truncated result. Deployment release now
+requires explicit create/update revision intent. Finite command and persistent process use
+mode-specific branches, rejecting ineffective process wait/capture choices. Tool descriptions are shorter; fixed host hints,
+including `readOnlyHint=true`, remain unchanged.
+
+Fresh ChatGPT input probes preserve find fields, task-start alternatives, mandatory deployment
+revision and command/process branches. Missing revision and process wait/capture inputs are rejected. Actual Codex and official MCP SDK checks exercise the new
+input envelope. Final full validation passes **331 tests**, alongside the actual Codex journey,
+pinned MCP SDK and inactive bundle rehearsal. Final command/process ChatGPT typing and both
+negative controls also pass their reported checks; no actual process runs in that probe.
+
+The qualified source was canonically published at `593d57a65d76c90f49cdf999d603e1c53a986477` and bundle
+`ec6d43eb2e842b99203202e0deadb82c1a2abe2862546186dd753a71c8bb7c33` was activated as resident **0.1.22** at that qualification.
+The owned recoverable update preserved the exact historical unknown publication receipt and both configured connections.
+After the user refreshed the ChatGPT connector, the actual injected catalog exposed all thirteen tools with the required
+`request` envelope. Live `tdev_project` list and `tdev_find` calls succeeded, while missing deployment revision and
+process `waitMs`/`capturePaths` controls were rejected by the host schema before dispatch. This establishes installed
+surface acceptance; the complete ChatGPT development/deploy/reconnect journey remains a separate acceptance target.
+See [the dated review](LOCAL_VALIDATION.md#surface-redesign-review--2026-09-30),
+[the activation record](LOCAL_VALIDATION.md#n-authorized-canonical-publication-and-resident-activation--2026-09-30), and
+[reproducible probe](examples/surface-probe/README.md).
+
+Source **0.1.21** makes every remaining root-composed MCP tool host-friendly for ChatGPT discovery. The strict canonical root unions remain the runtime validators, while `tdev_workspace`, `tdev_task`, `tdev_validate`, `tdev_project`, `tdev_deploy`, `tdev_artifact` and `tdev_diagnostics` advertise typed root objects whose fields are the union vocabulary of their canonical arms. Nested composition inside fields remains intact (including `tdev_task.resolutions`), so only the tool-input root avoids a composition-only schema. Runtime action requirements and replay semantics are unchanged. Connector acceptance checks the actual host-visible declaration in a fresh ChatGPT session after Refresh because an already-open conversation may retain its previously injected tool catalog.
+
+Source **0.1.20** adds a narrow resident-maintenance escape hatch for one exact historical managed-branch publication whose provider outcome remains `unknown`. Normal updates still reject every running/unknown operation. An operator who has independently reconciled the historical publication can name its exact operation ID with `--allow-unknown-publish`; tdev verifies that the row is an unknown managed create publication, preserves that receipt unchanged, and excludes only that row from the maintenance frontier. Any other uncertain operation still blocks the update. The exact exemption is journaled so interrupted service replacement can recover the previous bundle without reinterpreting or redispatching the publication.
+
+Source **0.1.19** makes `tdev_operation` typed in ChatGPT Code Mode without weakening the server's action-specific validation and keeps the normal MCP coding surface Termux-native. The advertised operation schema is a flat typed discovery object while the canonical discriminated union remains the call validator. `tdev_exec` no longer advertises or accepts a caller-selected `network`; native execution already resolves to the Termux app UID's host network. The existing SSH/rootless-Podman implementation, operator configuration and tests are retained as a dormant experimental backend for possible later qualification, but its network controls are not part of the current public coding surface. Installed ChatGPT acceptance requires updating the resident and Refreshing the connector.
+
+Source **0.1.18** changes modern HTTP response shaping after real ChatGPT host acceptance reproduced a transport-only stall on the 0.1.17 comment-only SSE path. The resident wrote and flushed HTTP 200 SSE headers, four keepalive comments, the terminal JSON-RPC response and stream close within about 3.4 seconds, while the ChatGPT tool call did not return to the assistant. Positive bounded waits now follow an auto profile: when the request includes `_meta.progressToken`, tdev uses request-scoped SSE with standard `notifications/progress`; without a progress token, the same bounded observation returns one `application/json` response and does not force a comment-only stream. Operation admission, durable identity, wait duration, disconnect semantics on the streamed path and replay rules are unchanged. Server write completion still does not prove Tunnel receipt or visible UI delivery.
+
+Source **0.1.17** directly measures the long-running MCP delivery boundary and adds
+2026-07-28 request-scoped SSE only for explicit positive waits on command `tdev_exec`,
+source `tdev_validate`, and `tdev_operation status`. The pre-change 0.1.16 profile was
+measured as a silent open HTTP request until terminal completion followed by one complete
+JSON response; it sent no intermediate response headers or bytes. The new path records
+request/JSON-RPC identity, dispatch, durable admission, response media type, each SSE
+chunk and flush, terminal observation, final response and close/write-failure boundary
+without logging bearer tokens or request bodies. Standard `notifications/progress` is sent
+only when the client supplies `_meta.progressToken`; otherwise SSE comments are keepalives.
+`waitMs` omission/zero, process/staged-stdin behavior, durable operation identity, requestId
+replay and publication semantics are unchanged. Server-side writes remain distinct from
+Tunnel/network receipt and user-visible ChatGPT rendering.
 
 The observer CLI now binds its default evidence directory to the selected installation's
 persisted operator HOME, preserving custom `TDEV_OBSERVE_DIR` overrides and native task HOME
@@ -116,19 +220,19 @@ segment intact. No observer control command was issued in this work; the initiat
 unverified and no automatic restart was performed. The timestamped qualification above records
 both the earlier live observations and this later stopped state.
 
-Source **0.1.16** adds a Termux bootstrap for first-time users, including package preparation,
+The locally qualified **0.1.16** bootstrap work adds a Termux bootstrap for first-time users, including package preparation,
 version-checked private Python dependencies, stock termux-services compatibility and the command
 shortcut. The bootstrap preserves terminal input for the existing guided Tunnel setup and reuses
 matching clean source checkouts without resetting or pulling them. See [installation](INSTALL.md).
 The current resident is not replaced by this source change; qualification is recorded separately.
 
-Installed native packaging acceptance now passes on resident **0.1.14** through authenticated
+Installed native packaging acceptance first passed on resident **0.1.14** through authenticated
 local HTTP: pinned public dependency, generated asset, source/build/validation scratch retirement,
 dependency-environment removal, artifact verification, live release, update/rollback, failed-switch
 restoration, data-preserving stop/start/remove, paged export/hash checks and explicit pruning.
 A non-service ZIP also builds/verifies/exports without a health port or deployment. The owned
-trial service is removed, trial task environments/refs are retired, and no pending effects remain;
-data, project registration, historical releases and evidence are intentionally retained.
+trial service was removed, trial task environments/refs were retired, and no pending effects remained;
+data, project registration, historical releases and evidence were intentionally retained.
 See [installed evidence](LOCAL_VALIDATION.md#installed-packaging-lifecycle-acceptance--2026-09-27).
 A two-project baseline now completes across the connected-tool start and a local CLI resume:
 source integration/publication, retained packages, live consumer checks, update/rollback and
@@ -137,6 +241,21 @@ and visible-continuity acceptance remain outstanding. All five trial tasks and t
 are closed, both artifacts pruned, and the trial service removed with data/history preserved.
 See [journey evidence](LOCAL_VALIDATION.md#two-project-journey-with-local-resume--2026-09-27)
 and the [baseline execution guide](examples/chatgpt/JOURNEY.md).
+
+
+The refreshed **0.1.22** ChatGPT surface now requalifies that installed packaging path with actual
+model-facing calls. A fresh service fixture completed source validation, retained artifact build and
+artifact validation, create/update, retained-byte rollback, failed-switch reconciliation, stop/start/remove,
+scratch/environment/ref cleanup and exact artifact pruning. The failed update first returned an unknown
+recovery receipt; observing that original operation reconciled it to a committed failed operation with
+`rolledBack:true`, while the previous release remained HTTP 200. A fresh non-service archive also
+validated and exported its 145-byte ZIP in three bounded pages with one stable SHA-256 before cleanup.
+This 0.1.22 run reuses the earlier data-sentinel result rather than claiming a second data-preservation
+measurement. Final retained artifact usage returned to zero. See
+[the dated requalification](LOCAL_VALIDATION.md#refreshed-chatgpt-packaginglifecycle-requalification--2026-09-30)
+and [bounded host evidence](examples/chatgpt/PACKAGING_ACCEPTANCE_20260930.md).
+The complete one-/two-project ChatGPT development journey and measured visible continuity remain separate;
+the [baseline execution guide](examples/chatgpt/JOURNEY.md) is prepared for that next step.
 Source **0.1.15** fixes the observed CLI credential-selection gap: `--connection NAME` uses
 that registered connection's local credential for MCP calls. If connector.secret is missing,
 terminal users can select a connection by number; automation receives an actionable error.

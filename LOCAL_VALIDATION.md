@@ -1886,6 +1886,360 @@ checks pass. Actual ChatGPT host execution, visible continuity, cross-workspace 
 controller crash qualification on the live installation, native-extension/Android packaging and
 host-wide offline execution are not claimed. Earlier isolated fault/SDK evidence remains separate.
 
+## Refreshed ChatGPT packaging/lifecycle requalification — 2026-09-30
+
+The retained ChatGPT closeout task `152c039f710c466a83a72933b81b63f8` reports this run through
+the actual refreshed thirteen-tool surface. On takeover, its terminal source/artifact validation,
+original failed-switch receipt, removed deployment and pruned archive were read back from the
+installed resident; those effects were not repeated. This verifies durable backend state, not
+an independent capture of its ChatGPT declaration or visible UI timeline. The reported runtime was **0.1.22** / bundle
+`ec6d43eb2e842b99203202e0deadb82c1a2abe2862546186dd753a71c8bb7c33`. It intentionally reuses the
+2026-09-27 data-sentinel and broader fault evidence where the invariant was already established; it does
+not relabel those older measurements as fresh. The purpose here was to prove the changed model-facing
+surface, explicit deployment revisions and original-operation recovery against the installed runtime.
+Bounded receipt details are in `examples/chatgpt/PACKAGING_ACCEPTANCE_20260930.md`.
+
+The disposable project was existing local enrollment `p-db2cad4ec9177b4edb395216`. Baseline artifact
+usage was zero and its historical deployment was already removed. A new managed service task
+`df48138d4e6240fb8f58804952302402` integrated the previously reviewed fixture delta from the same
+`9a335d2604fc2191c63f8d158a53da228cf155c7` base without replaying historical effects.
+Source validation `476f9b583e64410ab1eeea8cb2848b41`, artifact `c7280fe6a9df4a5ba8af44a72a2d6103`
+and artifact validation `ae2e4d7dc59b483988f8c8bd9e125e4d` succeeded. The retained artifact digest was
+`de01f132bd1a5ac6f8d86336d02fa9b9cb029a3398aeae88280228f547ce1a84`; release created deployment
+`f70af0ef214fc553722ce3fdf8b3ea6b` at revision 1 / release
+`a73747e463c982300156ebb2d5dd4e1e8f1ca97d257699f959df03d33766bf45`, with HTTP health 200.
+After source/build/artifact-validation scratch retirement and task environment reset, the same release
+remained healthy and retained `dist/asset.json` exported as 32 bytes with SHA-256
+`0ca9e98414b209833559f1c01bd92e29cc05a4ec2a69e1d2651244e33e3d8c78`.
+
+An updated source produced validated artifact `46f30864143a4f599cb11c15a63dd03d` and updated the same
+deployment with `expectedRevision:1` to revision 2 / release
+`f45071e4ae65f968fd50376a30bcd7d96833ca888ec53b7226ea46986b937140`, still HTTP 200. Rollback with
+`expectedRevision:2` restored the first retained release at revision 3 without a new build. A separately
+validated artifact `2f831b3a3b80423dabe0405b810a9ceb` was designed to pass artifact validation on its separate port
+but fail on the deployment port. Release operation `730a89f706e94c25ab6b070076de0782` initially returned
+`DEPLOYMENT_RECOVERY_REQUIRED` with unknown effect. No replacement release was admitted. Status on that
+same operation reconciled to `failed`, `effect:committed`, `DEPLOYMENT_INTERRUPTED` and `rolledBack:true`;
+inspect independently showed revision 3 still on the first release, running and HTTP 200.
+
+CAS lifecycle then stopped revision 3 to revision 4, started revision 4 to revision 5 with HTTP 200, and
+removed revision 5 to revision 6. All new source/build/artifact-validation scratch was retired; the task
+environment was reset, task closed and managed ref cleaned. All three service artifacts had empty pin
+sets, were pruned with their exact preview tokens, and retained artifact usage returned to zero.
+The earlier 2026-09-27 data-sentinel result remains the data-preservation evidence; this run did not
+create a second sentinel.
+
+A second managed task `5193628ef9b54e48b0b2804106090385` integrated the retained archive fixture on the
+same base. Source validation `7796c59179e640aebd236184ac50ef39`, archive artifact
+`b4c6e87b2eb1496181f4236fcd30eb50` and artifact validation `133336c54d2d4a1f857c58515c762b73`
+all succeeded without a service command or health port. Manifest `dist/hello.zip` was 145 bytes with
+SHA-256 `9eb80fac27052ec4a6bcb0fc6ed7542e200bbcd1be8de520cc4c4be59233eb85`; three 64-byte-bounded export
+calls advanced 0→64→128→145 and reported that same digest. Its execution scratch/environment/ref and
+retained artifact were then retired/reset/cleaned/pruned; final artifact usage again reported zero.
+
+This closes installed queue steps 0–2 for the current surface. It is actual ChatGPT tool execution, but
+it is not the separate whole one-/two-project development/deploy/reconnect journey and is not a
+quantitative visible-continuity measurement.
+
+## Installed handoff review and human-name recovery — 2026-09-30
+
+### Fresh authority and starting frontier
+
+The original `prj/tdev` checkout was old source with unrelated dirty changes; it was not changed.
+Root navigation, README, affected architecture/contracts, IMPLEMENTATION_PLAN and operator update
+rules were rebound in `prj/tdev-surface-redesign`, fast-forwarded to canonical
+`055b97d534e06504e3a7db1eaeee0287d852bdf4`. Installed runtime readback was 0.1.22 / bundle
+`ec6d43eb2e842b99203202e0deadb82c1a2abe2862546186dd753a71c8bb7c33`, with both connections healthy.
+The historical managed-create publication `2531fb0f9bbd4aa584865f62898e1010` remained unknown/unknown.
+The retained earlier ChatGPT closeout was reviewed and terminal receipts were read back, rather than
+recreating its service/archive work. Its open documentation task is preserved, not silently closed.
+
+### Fixture review and corrections
+
+The handed-off source task `fee2f0d9bd904f6e8b14fe3a80a73e7e` and successful retained artifact
+`f6307a0fe1a0479c8e4e498c29642cf2` were reused. The earlier literal-newline mistakes were already
+corrected; their failed exec/source-validation/build receipts remain terminal history. Including
+`check.py`, `test_app.py` and `scripts/check.sh` in the recipe is appropriate: the currently delegated
+source/artifact policy requires that entrypoint, with static source checks and separate live artifact
+checks. It is not a policy waiver or a build-success substitute for validation.
+
+The original lock substring check could overlook malformed final bytes, and live dependency locality
+was implicit. A genuinely strengthened second candidate checks exact lock bytes and rejects literal
+`\n`, incorrect hashes and duplicate requirements; checks recipe/input/service metadata; proves
+`packaging==25.0` imports from the artifact's Python directory; and verifies real HTTP status,
+`X-Tdev-Release`, body identity/version and generated asset bytes. Source publication and artifact
+validation remain independent receipts. The new candidate was validated/built normally; the successful
+first artifact was not discarded. One local edit harness initially supplied a SHA-256 instead of the
+Git blob OID for `before`; terminal `EDIT_CONFLICT` / effect none was retained, then corrected input
+was admitted under a new identity. This and the earlier newline errors are fixture-authoring mistakes,
+not product failures or ambiguous mutation retries.
+
+### Installed lifecycle results
+
+These calls used the authenticated localhost MCP bridge from Codex, not injected ChatGPT tools.
+Requests were persisted before one dispatch; admitted running/unknown work was observed by its
+original operation only. Private requests/responses and timestamps remain in
+`.artifacts/installed-journey-20260930`; the compact public record is
+[`installed-a1-20260930.json`](examples/chatgpt/installed-a1-20260930.json).
+
+| Stage | Fresh result |
+|---|---|
+| Reuse original artifact | Artifact validation `ff41967b1ffe465aa7eebb17a2ac6d86`, exit 0, actual health/header/dependency/asset checks |
+| Initial release | Deployment `1a7384347f050a137239369207c82093`, `expectedRevision:0` → revision 1; separate inspect and direct HTTP verify version one |
+| Strengthened second source | Validation `1262b65ffa39416d9bbf58363b7f5976`, candidate `b37c6933b482a7ece331af1075c0330f8a537fcc`; managed publication readback exact; main unchanged |
+| Second artifact | `5af26f5b3e8446a390ebc25cff16fe26`, digest `54872539bbfb7c83d4d7ed973cf582dd134a7e8e3b50ff585451af84139e80dd`; artifact validation `1c7adc5f1a864d0c96f3bc110fa2ec1d` exit 0 |
+| Previous service during validation | Distinct validation port; direct HTTP version one before/after validation. Continuous zero downtime is not inferred |
+| Update and rollback | Expected revisions 1→2→3, separate live identity/health readback; rollback reused retained first release without rebuilding |
+| Owned supervisor crash | Exact process command/deployment ownership checked before one SIGKILL; fresh supervisor and child restored same healthy release |
+| Bad activation | Separately validated artifact `ef52e8de66434bfbb7ade277241c5c34`; release `53de25feb715414ab42e9840af00c100` failed/committed, `DEPLOYMENT_NOT_READY`, `rolledBack:true`; original revision 3 healthy independently |
+| Scratch independence | All stopped original/second/bad source/build/validation scratch retired, both task environments reset; version one still HTTP 200 |
+| Stop/start/remove | CAS revisions 3→4→5→6; fresh `data/keep` sentinel preserved byte-for-byte after each stage; no running process after remove |
+| Pin/export/prune | Active artifact preview pinned; second asset exported in two 16-byte pages, 32 total, stable SHA-256 `0ca9e98414b209833559f1c01bd92e29cc05a4ec2a69e1d2651244e33e3d8c78`; all three artifacts pruned only after empty-pin exact-token previews |
+| Final owned state | Both source tasks closed and managed refs cleaned; retained usage 0. Project registration, data, release history, receipts and unrelated tasks preserved |
+
+### Measured defect, insight and decision ownership
+
+Observation: `find({project:"pkg-chatgpt-20260930-a1"})` returned none despite an enrolled project
+and retained task; the exact private `.git` path returned the correct frontier. Direct cause: project
+projection fell back to remote path instead of its policy-relative human name. Immediate fix:
+derive that name from the already enrolled checkout/current root; retain the old exact remote alias.
+General principle: a well-typed locator must refer to the same user-facing namespace at enrollment,
+listing and continuation. A schema probe cannot prove runtime identity resolution. Related surfaces:
+project list, terminal display and new-session task discovery. Architecture implication: derive names
+in the existing project owner, keep IDs/CAS for concurrency, and never add a mutable current-task
+pointer or fuzzy selection to conceal real ambiguity. Evidence strength: installed reproduction plus
+restart/replay regression; post-activation installed lookup remains a separate readback below.
+
+Removed choices: none in this patch; the earlier network/executor knobs remain absent. Added choices:
+none; project/objective lookup already expresses the intent. Retained choices: exact project key/name,
+label/state, explicit task start/predecessor, execution mode, revision/CAS and effect identity.
+Internalized choice: local project display-name derivation belongs to the controller's enrolled
+project/policy binding. No state or accepted receipt is rewritten, and duplicate names stay ambiguous.
+
+### Qualification and visibility limits
+
+Focused project/continuation tests: **7 passed**; affected project/continuation/surface/HTTP tests:
+**33 passed**. `scripts/check.sh`: **332 tests passed in 900.906 s**, plus diff whitespace check.
+Inactive bundle rehearsal passed with bundle
+`cfe8abe4fa0896e625ef024983ad6a2ad9bf330120cbd070987f513cad584dff`: authenticated HTTP/restart,
+retained artifact validation/export/prune, exact source publication and no production service changes.
+Actual Codex app-server loader matched all 13 input schemas and effect-free probe calls; this is not
+model-inference or ChatGPT rendering acceptance. Tool input schemas and the user's fixed annotations
+are unchanged. The owned disposable journey ran on installed 0.1.22; lookup implementation is 0.1.23.
+
+Backend receipts, local caller receive timestamps, MCP/Tunnel delivery and ChatGPT visible rendering
+are distinct. The existing `visible_stall` caller report `f9162b133388b3afde97a53ec3e8f462` is not
+converted into a backend failure. The independent observer reported stopped at takeover; this run
+therefore has no continuous independent observer or new ChatGPT witness/UI timeline. Fresh ChatGPT
+one-/two-project semantic continuation and measured visible progress remain open. A new API/admin
+key is not required for this local qualification or ordinary installed continuation.
+
+### Intermediate canonical publication and 0.1.23 resident readback
+
+Qualified implementation/evidence was committed and pushed to canonical as
+`aa3f60af318bd942a42cb0407319a61fb8b15597`. The owned resident update activated the qualified
+`cfe8abe4fa0896e625ef024983ad6a2ad9bf330120cbd070987f513cad584dff` bundle and controller 0.1.23.
+Both configured Tunnel connections subsequently reported healthy/running. Fresh bridge clients
+verified 13 exact request-envelope tools and unchanged fixed annotations. Direct project-name
+lookup returned both closed objectives as ambiguous; adding `label:"a1-source"` uniquely returned
+the published/cleaned predecessor with no outstanding effects. The exact legacy remote locator
+returned the same frontier. Configuration/profile hashes, enrollment count and the exact unknown
+publication row were preserved; no maintenance/install journal remained.
+
+A final cross-surface review then found new create/connect receipts still constructing `name` from
+remote path directly, despite corrected current list/find projections. The 0.1.24 follow-up applies
+the same project-owned projection at new receipt creation. Existing receipt bytes remain unchanged.
+The restart regression now explicitly seeds a pre-fix path-valued receipt and proves exact replay;
+existing create/connect tests also assert meaningful human names. Direct cause: two name projection
+sites. General insight: current observation and immutable accepted receipt are different kinds of
+truth; align new responses but never “repair” historical receipts by rewriting their bytes. No new
+field, default, state format or selection policy is introduced.
+
+### Terminal entrypoint finding
+
+The installed `tdev` shortcut still imported the original old/dirty `prj/tdev/src` checkout.
+A read-only `tdev ... --connection tdev_janmori project list` actually sent the old flat input and
+received `SCHEMA`, effect none, from resident 0.1.23. No mutation was admitted. The shortcut's
+old CLI also printed the MCP error without a failing shell status; the qualified CLI already has
+proper envelope/error handling. This is a deployment-entrypoint mismatch, not failure of the new
+runtime schema. The old source tree must stay untouched. After final qualification, relink only
+the recognized owned shortcut to the qualified checkout using the existing `tdev link` owner;
+keep its old bytes in private evidence and verify the same terminal read succeeds.
+General principle: source, resident, discovery and local command binding are independent version
+frontiers. Canonical publication or healthy server alone does not prove a human entrypoint is current.
+
+### Final 0.1.24 source qualification
+
+The receipt-alignment change passed focused **8 tests in 30.392 s**, affected **33 tests in
+129.468 s**, and a new complete `scripts/check.sh` run: **332 tests in 1009.823 s**, plus the
+whitespace check. No source changes followed that run. Its inactive bundle rehearsal passed as
+`34e0b9234eacfd8948c73b0a6c257b75f13503c50a587f9c7fa987d116609e56`, including HTTP/restart,
+retained validation/export/prune and exact source publication, with no production service changes.
+The tool contract is byte-identical to the earlier 0.1.22/0.1.23 thirteen-tool contract; the recorded
+actual Codex loader check is reused for that unchanged input surface, not claimed as a new model run.
+Private focused/affected/full and inactive receipts are under `name-receipt-*` in the takeover
+evidence directory. The existing actual host continuation guide now starts with a bounded
+read-only human-name check; the complete two-project workload remains separate.
+
+### Final canonical/resident/terminal acceptance
+
+Fresh canonical readback matched `dc743395726925b14e34720f6eea005e69a0b719` after the qualified
+0.1.24 implementation was pushed. Before activation, the staged file digest matched the inactive
+rehearsal exactly, and the maintenance frontier contained only the independently reviewed historical
+managed-create publication. Its repository identity was read back as `humtr/tdev`, GitHub ID
+1322208918, and its exact managed ref was absent; absence was not treated as failure or success.
+The authorized update exempted only `2531fb0f9bbd4aa584865f62898e1010` while preserving it unknown.
+
+The resident activated bundle
+`34e0b9234eacfd8948c73b0a6c257b75f13503c50a587f9c7fa987d116609e56` / controller **0.1.24**.
+Both configured connections were separately observed healthy/running after startup; each credential
+also successfully authenticated a local project-list MCP read. Before/after checks matched every
+captured configuration, connection credential/header/profile file, stable connection identity and
+runtime identity, and the entire historical unknown operation row. No other running/unknown effect,
+maintenance flag or install journal remained. The fresh owned app-data sentinel was still intact.
+Live tools/list was byte-equal to the 0.1.23 catalog, including the user's fixed annotations.
+
+Fresh bridge clients again resolved the human project + source label to the closed published
+predecessor with no outstanding operation, while the project-only query honestly remained ambiguous.
+The recognized owned Termux shortcut was backed up privately and relinked using the existing CLI
+owner to `prj/tdev-surface-redesign`; the same project-list command that previously returned SCHEMA
+then succeeded with a human project name. No original dirty source, credential, grant, unrelated project source,
+retained unknown effect or prior ChatGPT documentation task was overwritten/cleaned.
+
+These results are reflected in the compact public packet. This remains local installed control-plane
+readback; it does not claim a new actual ChatGPT call, successful Connector Refresh, host scheduling
+or visible UI progress. The actual fresh-session request was supplied to the user; its subsequent
+reported result is recorded separately below. The complete one-/two-project ChatGPT workload remains
+open. Ordinary continuation uses the existing installation; no new OpenAI admin key is needed.
+
+### Actual fresh ChatGPT material recovery report — 2026-09-30
+
+The user supplied the result of the requested new-conversation check after
+`Worked for 2m 30s`. This is host-reported execution evidence, separately corroborated by local
+installed state; Local Codex did not execute those three calls or capture raw ChatGPT events.
+Fresh rebind at receipt still showed canonical `11f8da4fa61e9ca836573219a82a2839efd4748e`, live
+0.1.24 / bundle `34e0b9234eacfd8948c73b0a6c257b75f13503c50a587f9c7fa987d116609e56`, both connections
+healthy/running. The bounded call/result record is in the public packet's `freshSessionHostReport`.
+
+| Reported call | Result |
+|---|---|
+| `tdev_find({request:{project:"pkg-chatgpt-20260930-a1",state:"all"}})` | One project, two task labels: source and failed-switch; `resolution:"ambiguous"` |
+| `tdev_find({request:{project:"pkg-chatgpt-20260930-a1",label:"a1-source",state:"all"}})` | Unique closed predecessor; `outstanding:[]`; checkpoint `b0417818e8619c9a63fee36d5b0a84f31e14ed2e`, published checkpoint `b37c6933b482a7ece331af1075c0330f8a537fcc` |
+| `tdev_task` inspect using the returned taskId | Source validation succeeded/terminal/exit 0; candidate and publication commit both `b37c6933b482a7ece331af1075c0330f8a537fcc`; publication succeeded; task closed, active null, no processes, ref cleanup done and ref deleted |
+
+Measurement: **3 reported read calls**, **2 tool kinds**, **0 user-supplied internal IDs**, **0
+reported mutation calls**. The two exact find inputs were supplied; complete inspect argument JSON
+was not, so no limit/cursor or fourth operation-status call is invented. Domain inspection already
+returned the original publication receipt. The 150-second reported run duration is coarse; it does
+not establish per-call/backend latency or continuous visible progress. The user received a completed
+host result, but no independent UI/witness/observer timeline or new injected declaration was captured.
+
+Local Codex then made two separate read calls to confirm the unique source frontier and terminal
+validation/publication pairing. These additional local calls are not counted as host calls. They
+matched the reported state and left the existing unknown frontier unchanged. No completed effect was
+replayed; no new task/build/publication/deployment was admitted and no runtime update was needed.
+Only dated documentation/evidence changed; JSON parsing/receipt consistency and `git diff --check`
+were checked. Implementation tests were not rerun: the unchanged 0.1.24 qualification remains the
+previous focused 8 / affected 33 / full 332, not a newly executed suite.
+
+This passes bounded ChatGPT **material rediscovery**: names + labels recover
+a completed predecessor without user-managed IDs, and real ambiguity remains explicit. It does not
+pass the complete one-/two-project workload, reconnect with running/unknown work, preservation of
+unsubmitted planning intent or quantitative visible-continuity acceptance. No loss-response effect
+was deliberately induced in this check. Those dimensions retain their prior evidence/open status.
+
+Observation: the host required only human project/objective locators; IDs were interpreted from
+returned state. Direct cause of success: consistent project namespace plus retained labels/frontier.
+General principle: stable effect identity and human discovery are complementary; removing IDs is not
+needed to remove the user's ID burden. Architecture implication: qualify retrieval of closed
+predecessors alongside live tasks, and distinguish successful material rediscovery from recovering
+working intent. Evidence strength: user-reported actual host calls + matching installed state;
+remaining uncertainty: no raw host capture, running/unknown effect or continuous UI timeline here.
+
+
+### User-reported 18:30 KST visible stall review — 2026-09-30
+
+The user clarified that ChatGPT kept showing the same visible activity around **18:30 KST**
+and they started a new turn to investigate. Successful subsequent reads do not resolve that stall.
+A new turn alone does not prove a fresh conversation; the earlier requested fresh-conversation
+check retains its successful material lookup evidence, with the session boundary unverified.
+
+Fresh rebind: canonical `8fd364c6744cb8a71277db5059fbb945caadf598`, live **0.1.24** /
+`34e0b9234eacfd8948c73b0a6c257b75f13503c50a587f9c7fa987d116609e56`, both connections healthy.
+The incident itself belongs to **0.1.22**, instance `02307ca408adab97`, bundle `ec6d43eb…`.
+These generations must not be conflated. Read-only diagnostic export retained the live snapshot,
+rotated event files and incidents, with hashes and coverage in the private
+`.artifacts/installed-journey-20260930/stall-1830-review`. Export is non-atomic; absent rotated
+segments and watch capture gaps are disclosed. The public packet contains the bounded analysis.
+
+| KST / boundary | Measured fact |
+|---|---|
+| 18:29:59–18:30:29 | Request 60 observed the original validation as running; bounded wait returned normally |
+| 18:30:36–18:30:41 | Request 61 status returned succeeded/committed/terminal; dispatch 5.065 seconds |
+| 18:30:41.841 | HTTP 200; 2,113 bytes written, socket flushed and HTTP finished; complete events 282–300 retained |
+| 18:45:02 | Existing principal-reported incident `f9162b133388b3afde97a53ec3e8f462`, reason reported_visible_stall |
+| 18:53:41 onward | Later cell_enter/tool_return/cell_exit witnesses exist; none retained in 18:25–18:52 |
+
+Local read-only SQLite joined the retained original validation
+`9284e2e8eafb4f37b50dacdee1dd04b9` to the diagnostic operation tag using the matching key generation,
+without exporting the correlation key. Its original request is
+`installed-acceptance-doc-full-validation-20260930`; receipt remains succeeded/committed, exit 0.
+The later canonical-closeout validation has a different original operation/task. Neither was
+re-executed in this review. The only current running/unknown effect remains historical publication
+`2531fb0f9bbd4aa584865f62898e1010`, unknown/unknown, unchanged.
+
+Finding: backend validation completion and the final server response are confirmed. Tunnel
+receipt, JS await continuation, outer-cell delivery and next-cell/assistant/UI scheduling remain
+unseparated. In particular, missing witnesses cannot prove a nested-call ceiling or identify a
+Code Mode fault. Watch did not persist events 301–370; the stopped independent observer supplied
+no live coverage. No exact stalled cell script/host error was provided. The separate 150-second
+readback report is not a measured duration for this incident.
+
+Observation: durable backend work succeeded while reported visible progress stalled.
+Direct cause: **unresolved** beyond the confirmed server response boundary. Immediate action:
+preserve evidence, recognize terminal predecessors, and prepare the bounded read-only comparison
+in CONTROLLER.md before expanding the workload. General principle: recovery of material state and
+continuous host execution are distinct acceptance gates. Related surfaces: operation monitoring,
+physical-cell rollover and caller witnesses. Architecture implication: no provider retry, resident
+restart, annotation change or schema rewrite can be justified solely by this evidence. Evidence
+strength: exact server events + current immutable receipt + user-visible report; host layer unproven.
+
+Validation performed: export/JSON parsing, event sequence, operation-tag/key-generation join,
+terminal receipt, unchanged unknown frontier and diff whitespace. No implementation tests rerun;
+no runtime/provider/credential/observer configuration changed. Documentation qualification does not
+mark the visible-stall issue fixed. The fetched official
+[ChatGPT connection/testing guidance](https://developers.openai.com/plugins/deploy/connect-chatgpt)
+describes local Inspector, Tunnel status and live host checks; it does not establish this incident's
+physical-cell scheduling outcome.
+
+
+Follow-up authorization: the user cannot inspect Code Mode and explicitly said all available
+permissions are granted. Agent collection replaces the request for user-provided internal cell
+code; absence is a capability/evidence boundary, not a request to approve more access. The existing
+principal has diagnostic authority. No additional API key or grant was requested.
+
+Read-only Tunnel review recovered **140 INFO forwarded records** in 18:25–18:52 KST, including
+successive requests after the terminal server response. Two opaque command-correlation prefixes
+exist, without proven conversation/cell semantics. The matching-version public dispatcher source
+shows the INFO message after forwardResponses, including some unsuccessful exits; it alone does
+not prove control-plane response acceptance. Current runit-owned connections separately pass
+health/readiness, successful control-plane polling and main-channel probe. Plugin inventory points
+at an older stopped alias, not the active resident: its suggested restart was not used. The local
+Tunnel Codex app-server status/events path does not supply remote ChatGPT physical-cell history
+(events response HTTP 200, empty body); it is not substituted for that history.
+
+Under this authorization an independent observer samples into a new private directory:
+**5-second interval, maximum 3,600 seconds or 64 MiB**, whichever ends first. One supported local
+diagnostic activation enables **300 seconds** of trace, returning to watch automatically.
+No resident/Tunnel restart or credential/grant/hint change. One authenticated localhost find
+verification returned a unique predecessor; its request-41 receipt joins independent samples
+containing dispatch, body write, flush and HTTP completion. This qualifies current server capture,
+not ChatGPT execution or repaired visible delivery. No development effect replayed. Capture limits
+and transport readbacks are recorded in the public packet's agentOwnedFollowup. Documentation/JSON
+checks only; no new implementation or full-suite result claimed. Capture cannot supply retroactive
+coverage or indefinitely guarantee observation. Subsequent snapshot confirms the trace lease
+expired back to watch; historical unknown publication remains unknown/unknown.
+
 ## Whole-roadmap review — 2026-09-27
 
 Reviewed at source/canonical head `aa250a66bda9e152f06bea80f17ede4a6c7251e0`.
@@ -2360,3 +2714,1313 @@ select the original root/directory and saved coarse settings (10 seconds, 3600-s
 segments), preserve this closed segment, verify the new process/sample identity and report the
 coverage gap from 13:23:53.636 UTC. That is a separate operator action, not a prerequisite for
 using the corrected read-only CLI.
+
+
+## Real ChatGPT successor-cell visible divergence — 2026-09-29
+
+During normal authorized `humtr/tdev` work, the user reported that the visible ChatGPT surface
+stopped after the host/tool-group label "Ran focused diagnostic policy test and checked operation
+status". A fresh durable task inspection after that report showed later work had nevertheless
+continued on the same source task: request `exec-wait-successor-first-probe-20260929`, operation
+`0a5acea60d2c4dbc9147d92527c1bf96`, was already `succeeded` / `committed` with exit code 0,
+and the task checkpoint had advanced to `04deda988d6417d5ff3b194465e4d03ff49e53c1`.
+No standalone assistant progress commentary was inserted between that probe's admission and its
+first two status cells. This therefore disproves a stronger hypothesis that a standalone progress
+message is required for the visible continuation loss. It does not identify which ChatGPT host/UI
+stage failed; tdev backend completion is not proof of visible delivery.
+
+Attempts to hide successor scheduling by performing multiple 30-second status waits inside one
+physical Code Mode cell were also not a safe workaround in this run: larger multi-wait cells hit
+the outer Code Mode cell timeout, while a single `status(waitMs=30000)` physical cell repeatedly
+returned current backend progress. The caller helper default was therefore restored to one
+bounded status call per physical cell; same-operation identity, output cursor advancement and
+no-replay semantics remain unchanged. Ordinary ChatGPT command/source-validation admission may
+still send explicit `waitMs=30000` once the refreshed connector schema exposes that source
+contract. The currently connected ChatGPT-side `tdev_exec` schema did not yet accept `waitMs`
+during this evidence run, so source implementation and live connector acceptance remain separate
+acceptance facts.
+# Surface redesign review — 2026-09-30
+
+**Status: source 0.1.22 implements the selected thirteen-tool design; final local qualification
+passes 331 tests, actual Codex/SDK and inactive bundle checks. Selected find/start/release and
+final command/process host probes pass their reported checks. The production resident is unchanged.** This section records evidence/candidate analysis, not a replacement
+for ARCHITECTURE or the canonical contract. The first user-supplied fresh ChatGPT report confirms
+useful nested typing but finds a task-start branch collapsed to `Exclude<any, any>`. The user
+requires host evidence before broader implementation; the revised B2 typing gate passed in the user-supplied fresh-host report. No passing schema test below
+is represented as ChatGPT acceptance or measured model accuracy.
+
+## A. Fresh authority and current state
+
+- Entry checkout: `/data/data/com.termux/files/home/prj/tdev`, local branch `tdev`,
+  `0f6b78e18ec6abfad830bfd8e65917c7c128149a`, source 0.1.16, with substantial pre-existing
+  installer/observer/source/document/test changes. All were preserved.
+- Fresh remote `refs/heads/tdev`: `b418c1ddb97af052f80430f3d55802cf3060cfe2`, source 0.1.21.
+  `origin/HEAD` points at historical `development` (`afd2853...`); it is not this product's
+  development authority. The resident's enrolled tdev repository independently reports
+  `refs/heads/tdev` at `b418c1d`. Rechecked unchanged after key setup.
+- New isolated worktree: `../tdev-surface-redesign`, branch `redesign/surface-20260930`, based
+  on that exact tdev commit. AGENTS, README, applicable ARCHITECTURE semantics, canonical input
+  definitions and IMPLEMENTATION_PLAN were rebound there after detecting the stale checkout.
+- Resident: 0.1.21, bundle
+  `635c8080c9e21a459099bc4e10f0e14d36515ad606d89094a87f7799583f8441`, controller up, diagnostics
+  watch. `default` (bearer) and `tdev_janmori` (Tunnel auth) locally healthy/running. This is
+  runtime observation, not a claim that this Codex conversation has their tools injected.
+- At 03:40:08 UTC: 43 open / 72 closed tasks, 2,088 succeeded / 322 failed operations,
+  one unknown publication `2531fb0f9bbd4aa584865f62898e1010` on task
+  `0fc0709559c940589a0a54808dfa849c`. Earlier read-only observation showed one running
+  validation and 44 open tasks; another actor's work completed between reads. Neither was
+  restarted, cancelled, reconciled or closed by this review. Counts are timestamped facts.
+- Source and resident contract SHA-256 both
+  `35ea0a5ed2d7d7d85957117e85e72d2fb7f0e0640156cf2e4908ea54adf9bebf`.
+  Authenticated resident `tools/list` equals the expanded source advertisement and the local
+  legacy bridge representation. Raw captures and timestamped state are in
+  [probe evidence](examples/surface-probe/evidence/authority.json).
+- The same contract was fetched without authentication from public GitHub at the exact commit;
+  bytes match. The probe exposes only derivatives of that public schema. It has no resident,
+  project, state, command execution or credential-reading path.
+
+Owners remain README (status), ARCHITECTURE (meaning), `contracts/tools.schema.json` (wire),
+IMPLEMENTATION_PLAN (sequence). No old chat/handoff/version or historical tmcp design was used
+as current authority. The user explicitly reconfirmed the fixed host annotation profile,
+including `readOnlyHint=true`, to avoid repetitive permission popups. Preserve it. Changing
+these hints is outside this redesign unless the popup behavior is first solved and qualified.
+
+## B. Workload and state model before tool names
+
+The natural responsibilities are discovery of an authorized target, selection/creation of
+isolated work, observation of immutable source, source changes, execution intent, observation
+of an admitted effect, mandatory candidate verification, exact source publication, retained
+artifact production/verification, deployment switching, current health observation, and owned
+cleanup. A transport connection and an assistant conversation are not work owners. Workspace
+membership is useful composition and never an authority grant or mandatory user ritual.
+
+The durable transitions must remain distinct:
+
+`source changed → tested → candidate validated → source published`
+
+`candidate validated → artifact built → artifact validated → deployment switched → health observed`
+
+These are dependencies, not an automatic workflow: publication is not required for every
+local artifact deployment; source-only deployment remains a meaningful distinct strategy.
+No automatic validate/publish/deploy chain is proposed. Tests run by `run` cannot substitute
+for adopted mandatory validation, and healthy-now is a time-bounded observation, not a durable
+property of an old successful release receipt.
+
+Stable identities belong at task/source CAS, effect admission, validation candidate, artifact
+content, deployment revision and cleanup ownership. A new domain-specific job hierarchy adds
+no demonstrated value. Keep a common durable operation receipt for accepted asynchronous
+effects; give source/artifact/release receipts explicit subject types inside it.
+
+## C. Current surface audit
+
+The [generated field inventory](examples/surface-probe/generated/field-inventory.json) contains
+every current branch, its full field schemas, required list, nested schemas and conditionals.
+The following table summarizes responsibilities and candidate disposition. Root counts are
+**advertised property counts**; action counts expand enum arms and subject variants.
+
+| Tool | Variants / root fields | Effects and composition | Principal problem / missing decision | Proposed disposition |
+|---|---:|---|---|---|
+| workspace | 7 / 13 | list/inspect plus composition mutations; root canonical union, flat discovery | Membership/default rules hide behind broad lifecycle description; no name lookup; default space is useful controller work | Split observations; keep explicit composition mutations and automatic default space |
+| task | 9 / 21 | list/inspect, start/open/compose/integrate/close/ref cleanup/environment reset; nested conflict resolutions | Start versus resume versus canonical-ref open; label becomes sanitized ref fragment; cleanup domains mixed | Split discovery/inspection/cleanup; retain source lifecycle and explicit source strategy |
+| read | 1 / 4 | Read-only immutable snapshot; typed query-array union | Overlaps the word “inspect” but source content has distinct batching/checkpoint semantics | Keep; do not merge source bytes into generic resource inspection |
+| edit | 1 / 4 | Atomic mutation; typed edits-array union, before hashes and checkpoint CAS | Input already expresses real decisions well; result needs compact continuation | Keep and improve result projection |
+| exec | 1 / 12 | command/process modes, source capture versus fixed source, staged stdin; bounded wait | Flat fields permit irrelevant capture/wait options in process mode; long host instructions embedded in description | Rename run; discriminate command/process requests; retain meaningful environment/timeout/capture choices |
+| operation | 4 / 11 | status, sequenced stdin, cancel, retire; locator exclusion lost in advertisement | Observation, process control and storage retirement mixed; “status” can advance recovery effects | Split observe/control/cleanup/recover; preserve common operation identity |
+| validate | 2 / 10 | Source candidate or artifact validation, asynchronous | `requestId` alone advertised valid; implicit source subject; service test port is technical allocation | Keep a strict source/artifact subject union; move test-port selection into runtime after race-safe design |
+| publish | 1 / 3 | Exact validated source CAS/provider effect | One validation ID is meaningful, not an optional “latest”; source-only distinction needs typed receipt | Keep; return exact publication proof and observation locator |
+| project | 4 / 5 | list/inspect/connect/create; controller credentials | Opaque repo handles; policy name mixes provider/location with authority; creation hardcodes private | Split observations, retain connect/create and named permitted location; privacy remains safe declared policy |
+| deploy | 9 / 14 | targets/list/inspect; source/artifact release; start/stop/rollback/remove | Missing explicit create-vs-update intent when revision omitted; service health port is meaningful, test port is not | Split observation; explicit create/update request branches; retain target/source/artifact/rollback decisions |
+| artifact | 8 / 11 | recipe/read/export/usage/prune-preview plus build/prune; source-independent bytes | Build, export and destructive storage management share one large description; build success versus validation | Split build/export/inspect/cleanup; retain artifact identity and policy pins |
+| diagnostics | 6 / 13 | inspection, capture, report, ack, witnesses; special bounded replay | 1,698 description characters and host witness IDs in normal coding catalog; stop means capture stop | Separate optional operator capability; preserve alert delivery and existing diagnostic state |
+
+Tool count alone disguises 53 actual dispatch variants. Every one is included in generated
+valid examples. Root object vocabulary has 21 fields on task, while a specific action typically
+requires only a few. Read/edit's nested alternatives are useful controls, not proof that every
+nested conditional or host preserves required/exclusion constraints.
+
+Current results are strict at the JSON level but still broad semantically: `Operation.result`
+points at a large union, task results expose storage names (`owner`, `source_ref`, `closed:0|1`),
+and Frontier duplicates operation schemas. Expanded output-schema sizes range from 1,551 to
+60,784 bytes per tool (task 60,784; artifact 51,030; workspace 38,867). Whether these output
+schemas enter the actual model context is **unmeasured**. Raw tools/list byte savings alone
+must not be sold as model-token savings.
+
+## D. Decision ownership and default audit
+
+U = user intent/authority; A = agent strategy; C = deterministic controller policy/state;
+R = runtime technical facts. “Agent carries” does not imply “user types”. This inventory covers
+the full root vocabulary; nested source/query/edit/recipe decisions are covered below.
+
+| Current field(s) or decision | Current caller burden | Proposed owner / treatment |
+|---|---|---|
+| action, subject, mode | A chooses partly overlapping action families | A; explicit branch/tool boundaries, source/artifact and command/process discriminators |
+| repo, name, label, projects, workspaceId | U/A meaningful names mixed with handles | U chooses project/objective; A chooses work; C resolves exact authorized handles and persists original Unicode label |
+| policy, target, defaultRepo | A must understand opaque configuration names | U/A selects named permitted location/target when meaningful; C sole/default resolution only when unambiguous and disclosed |
+| ref, baseRef, fromTaskId, localChanges, sources | A selects source history and import | A retains explicit base/continue-published/import-independent/composition intent; no hidden adoption of local edits |
+| taskId, sourceTaskId, artifactId, validationId, deploymentId | A transports stable handles | C resolves locators; A selects actual candidate/work; stable IDs remain in receipts/CAS context |
+| requestId, lookupRequestId, operationId | A must preserve original effect identity | Client/agent persists request before submission; C binds/deduplicates; discovery recovers original receipt. Never generate a new ID on lost reply |
+| expected, expectedHead, expectedRevision, checkpoint, sourceCheckpoint | A transports concurrency evidence | C returns opaque exact evidence; A selects snapshot/candidate; admission still checks it. Do not replace expected with “whatever is current” |
+| expectedPreview | A transports deletion preview | C creates and rechecks ownership/pin token; U/A chooses exact cleanup scope |
+| command, cwd, env, stdin, text, eof | A configures real program behavior | A retains; provider secrets/executor variables forbidden as public execution decisions |
+| environment | A chooses task caches or fresh dependencies | A retains speed/reproducibility tradeoff; current task default must be declared, not described as hermetic verification |
+| timeout | A bounds work duration | A retains finite timeout and explicit persistent intent; R enforces observed limits |
+| waitMs | A also carries transport profile descriptions | A chooses bounded observation duration; host adapter supplies tested default; transport media/progress-token choice belongs to adapter, not task intent |
+| capturePaths | A decides what stopped command output becomes source | A retains for command branch only; never import process outputs implicitly |
+| edits, resolutions | A chooses source mutations/conflict resolution | A retains atomic batch, exact before evidence and bounded content; C validates current source |
+| queries, path, view | A chooses information and recipe/export path | A retains bounded source and artifact-relative access; C refuses arbitrary host-path reinterpretation |
+| budget, limit, offset, after, before, pendingAfter, since | A manages result windows | C returns cursors/hints; A selects additional pages/detail. Equality cursors are not revision order |
+| includeClosed | A chooses discovery scope | A retains; cleanup and continuation need closed predecessors as well as active tasks |
+| health.port | A selects both live endpoint and validation scratch port | Live endpoint U/A; artifact-validation free port R with race-safe reservation. These are two different decisions |
+| health.path | A repeats service check contract | U/A source health contract; C derives artifact path from adopted validated launch policy, rejects mismatch |
+| message | A supplies validation candidate commit message | A retains as candidate metadata; not proof of tests or authority |
+| category, seconds, incidentId, instance, runId, cellId, sequence, phase, callOrdinal, afterRequest | A carries diagnostic instrumentation | Operator/host adapter outside ordinary coding catalog. Stdin sequence remains C-returned/A-carried, not removed with diagnostic sequence |
+| network/backend/executor/provider credential/tunnel selection | Network already removed in 0.1.19 | C/R retained internally; no new “execution intent” abstraction containing the same unnecessary knobs |
+| PID, spool paths, free ports, runtime identity | Mostly internal already | R; expose proof/status only when needed, not caller-selected identifiers |
+
+Nested decisions: `queries[]` file/list/search/diff/history and their range/format/base/filter
+fields remain A information choices. `edits[]` put/delete/patch-style content and before hashes
+remain A desired changes plus C checks. Integration resolution variants retain conflict intent
+and exact source checkpoint. Packaging recipe platform, inputs, exports and service entrypoint
+are source/product intent, while acquisition/auth/spool mechanics remain C/R. Neither a recipe
+nor a caller can waive adopted mandatory verification. The full nested vocabulary is retained
+in the field inventory; no proposed removal is justified merely by nesting or string type.
+
+Defaults checked in implementation: deployment selects only a sole authorized target, otherwise
+requires a target; task start uses permitted default/sole project/base and errors on ambiguity.
+These are useful existing behaviors, not bugs to claim as new improvements. Default workspace
+creation is composition convenience without expanded grants. `localChanges=false` avoids
+unrequested adoption; managed independent start remains intentional. `includeClosed=false`
+is appropriate for active discovery but insufficient as the only recovery view. Recipe default
+`tdev-package.json` and bounded page sizes are reasonable conventions with meaningful overrides.
+Private project creation is a declared supported capability; adding public creation merely to
+increase choice is not justified. Artifact validation's adopted fallback command is a policy
+decision, not caller-configurable PASS. Deployment release's omitted revision, unlike a sole
+target default, can hide whether the caller meant create or replace: split that intent.
+
+Four proposed change categories (none installed yet):
+
+1. **Remove unnecessary choices:** irrelevant process capture/wait fields, duplicate discovery
+   union vocabulary, operational host witness knobs in normal coding discovery. Network was
+   already removed; do not count it again as work done here.
+2. **Add necessary choices:** explicit resume versus independent work, human task/objective
+   label lookup, explicit deployment create/update, typed source-versus-artifact subject,
+   explicit recovery that may restore/switch resources, exact owned cleanup resource selection.
+3. **Retain choices:** project/base/source adoption, integration resolutions, file/query/edit
+   content, focused commands versus mandatory validation, environment/timeout, publication,
+   artifact path, meaningful deployment target/port, rollback and bounded observation.
+4. **Internalize choices:** credentials/connection/backend identity (already largely internal),
+   validation-only ephemeral port, request/cursor plumbing in a durable client adapter,
+   lookup from names to IDs. Do not internalize user target, source or cleanup intent.
+
+## E. Missing surface, contradictions and priority
+
+| Priority | Evidence / problem | Safe change candidate |
+|---|---|---|
+| P0 | `status` and deployment `inspect` can call `reconcile → deployments.advance`; interrupted deployment restoration stops/starts resources. Environment reset/prune reconciliation also performs cleanup. A universal “observe is pure” claim would be false. | Separate observation of proof/finalization from effectful recovery. Return typed `recoveryRequired` and require explicit original-operation recovery for restoration/deletion. Requalify existing interrupted-switch guarantees before changing behavior. |
+| P0 | Real unknown publication survives; absent remote head cannot prove old sender failure. | Keep original operation, provider certainty and maintenance fence; no latest/new-ID repair or use of maintenance exemption in this work. |
+| P1 | 0.1.21 flat discovery demonstrably accepts branch-invalid requests. | Canonical branch reuse under nested request, or correctly split tools after actual host probe. |
+| P1 | 43 open tasks at snapshot; list has no project/objective search, label only used to construct sanitized ref; generated project names/IDs differ from user concepts. | Principal-scoped exact human locator discovery plus bounded frontier; no latest-active default. Old labels from retained creation input when available, otherwise explicitly unnamed. |
+| P1 | Release without expectedRevision resolves current state at admission; creates and updates share a branch. | `create` requires absence; `update` requires observed revision. Prevent unintended replacement even without concurrent writer. |
+| P1 | Accepted operation versus successful command, candidate, package and live health require different judgments. | Typed result subject/stage and compact receipt/current-observation separation; no undifferentiated `success`. |
+| P2 | Manual discovery definitions duplicate enums/ranges/regex/required vocabulary; tests explicitly demonstrate intentional looseness. | One canonical wire definition; generated adapters with equivalence/rejection tests, no hand-maintained second semantic owner. |
+| P2 | Mixed inspection, controls, cleanup, and huge descriptions/outputs. | Separate domain mutations from reusable inspection/observation; retain source-read batching. Minimize compact result projections before deleting useful fields. |
+| P2 | Validation requires an ephemeral health port while deployment port is actual product endpoint. | Runtime allocation with reservation and explicit zero-port capability if supported; do not select-then-close a socket and claim race freedom. |
+| P3 | Diagnostics dominates normal descriptions; host annotations intentionally differ from actual effects to prevent repetitive permission popups. | Optional operator diagnostic catalog; express actual effect categories in tool boundaries/results. Preserve the user's fixed annotation profile. |
+
+Negative space includes pending admission before a task row, multiple exact-name matches,
+completed work whose reply was lost, unresolved provider state after reconnect, source versus
+artifact validation, command capture versus persistent process, and resource cleanup after task
+close. Some already have backend support (pending workspace operations, terminal predecessors,
+closed-task inspection, process controls, artifact pins); the redesign should project them
+coherently, not invent a second state store. A transcript or universal session owner is not
+justified. A Unicode task label plus derived current frontier is justified by concrete gaps.
+
+Simplification debt: permanent syntax aliases are unnecessary for pre-release tools; historical
+receipts are not aliases and must survive. Dormant SSH code/config is not a selectable public
+backend; removing it is unrelated to this probe. Duplicated discovery definitions and host-specific
+scheduling prose are design debt. Fixed host hints are an intentional user-required compatibility
+constraint, not cleanup debt. Old operation kind/input hashes must not be rewritten when public
+names change.
+
+## F. Insight log
+
+### 1. Fresh binding changed the entire comparison baseline
+
+Observation: entry checkout 0.1.16, remote/resident 0.1.21; remote default branch historical.
+Direct cause: checkout, canonical ref and installed bundle have independent lifetimes.
+Immediate fix: isolated worktree from live authorized ref; capture source/resident contract hashes.
+General principle: a familiar directory or repository default is not sufficient work authority.
+Related surfaces affected: project lookup, current-source defaults, release receipts, reconnect.
+Possible architecture implication: discovery must return exact source authority separately from
+runtime version and conversation connection.
+Evidence strength: direct Git, authenticated HTTP, read-only SQLite and byte comparison.
+Remaining uncertainty: later concurrent changes; snapshot is not a global lock.
+
+### 2. Flat vocabulary exchanges schema precision for host visibility
+
+Observation: 547/777 synthetic invalid calls pass A discovery; none pass strict runtime.
+Direct cause: union fields and required intersection erase action-field dependencies.
+Immediate fix: B directly embeds canonical input under a required typed root property.
+General principle: schema validity and model-visible fidelity are different acceptance gates.
+Related surfaces affected: all eight composed input families, not only operation.
+Possible architecture implication: keep wire ownership single; isolate host adaptation and
+test both acceptance equivalence and actual rendered branch structure.
+Evidence strength: exhaustive dispatch-variant corpus, deterministic negative mutations.
+Remaining uncertainty: fresh ChatGPT B rendering and actual model error rate.
+
+### 3. Fewer tools does not mean smaller choice space
+
+Observation: 12 tools hide 53 variants; six-tool D has the largest input catalog and deepest
+envelopes in the mechanical comparison.
+Direct cause: grouping relocates branching and duplicates domain/intent context.
+Immediate fix: compare semantic responsibility and per-workload selection, not tool count.
+General principle: compress repeated technical decisions, not unrelated product responsibilities.
+Related surfaces affected: artifact, task, operation, broader release workflow proposals.
+Possible architecture implication: hybrid narrow mutation tools plus typed observation; no
+single source/run/release workflow engine by default.
+Evidence strength: generated catalogs and exact byte counts.
+Remaining uncertainty: model selection performance and better hand-designed D shapes.
+
+### 4. Source labels are currently naming hints, not durable work meaning
+
+Observation: label is sanitized into branch name; Task has no label/objective field or search.
+Direct cause: branch creation history owns the user-facing hint; task rows expose storage fields.
+Immediate fix candidate: preserve original bounded label, discover by authorized project and
+label, return all matches and a current frontier only when uniquely resolved.
+General principle: stable machine identity and recoverable human intent are complementary.
+Related surfaces affected: project/workspace/service names, completed predecessors, multiple accounts.
+Possible architecture implication: bounded locator resolution, no global current-task or transcript store.
+Evidence strength: direct schema/store/core inspection and dozens of active tasks.
+Remaining uncertainty: realistic objective ambiguity and whether historical creation inputs suffice.
+
+### 5. “Observation” currently includes effectful recovery
+
+Observation: deployment inspection/status may restore prior desired release after interruption;
+cleanup reconciliation may perform deletion. Existing tests intentionally assert this behavior.
+Direct cause: one reconcile method covers observing proof, committing receipts and advancing effects.
+Immediate fix candidate: classify reconciliation paths before moving all reads into a read-only tool.
+General principle: public effect boundaries must be derived from executable call paths, not verbs.
+Related surfaces affected: deployment, artifact prune, environment reset, maintenance and reconnect.
+Possible architecture implication: explicit original-operation recovery, typed recovery-needed frontier.
+Evidence strength: direct call graph plus existing interrupted-activation/unknown recovery tests.
+Remaining uncertainty: changing automatic restoration must not strand an unavailable previous service;
+explicit recovery needs a current-policy/journal strategy and crash qualification.
+
+### 6. The largest context cost may be repeated results, not input wrappers
+
+Observation: task output schema alone is 60,784 bytes; its input is 2,683.
+Direct cause: expanded broad result unions and duplicate Operation/Frontier structures.
+Immediate fix candidate: measure host-injected inputs/outputs separately, design compact typed receipts.
+General principle: measure the representation actually consumed; wire bytes are not model tokens.
+Related surfaces affected: every effect tool reusing Operation/MutationResult and diagnostics descriptions.
+Possible architecture implication: subject-discriminated receipts plus separate optional detail inspection.
+Evidence strength: direct tools/list measurement; model-context contribution not yet observed.
+Remaining uncertainty: which outputSchema details the current ChatGPT adapter injects.
+
+### 7. One “health port” represents two different owners
+
+Observation: service artifact tests and deployed endpoints both require a caller-supplied port.
+Direct cause: a technical scratch allocation reused the live-service health shape.
+Immediate fix candidate: allocate test port internally while retaining live endpoint intent.
+General principle: same wire shape does not establish same decision ownership.
+Related surfaces affected: validation/build scratch, runtime paths, execution environment settings.
+Possible architecture implication: distinguish validation environment facts from release configuration.
+Evidence strength: artifact validation and deployment implementation.
+Remaining uncertainty: race-free port reservation for arbitrary entrypoints on Termux.
+
+### 8. A nested branch can still disappear through negative constraints
+
+Observation: in the user's fresh ChatGPT B trial, task's start arm appears as
+`Exclude<any, any>`, while other task arms and validate/read/edit alternatives remain typed.
+The same minimal start call succeeds with `probeOnly:true,effect:none`; invalid validation
+is rejected before a probe receipt. See [host report](examples/surface-probe/evidence/host-B-report.md).
+Direct cause: the affected canonical arm combines `not` and `allOf`/`if`/`then`; which keyword
+or interaction causes the host translation is not yet isolated. The failure is declaration
+fidelity, not loss of the canonical branch or runtime validation.
+Immediate fix candidate: B2 compiles the bounded presence/finite-value constraints to disjoint
+positive alternatives without relaxing valid inputs, then reuses them under the typed root.
+General principle: preserving nesting alone is insufficient; the host's schema-to-type subset
+must preserve both visibility and constraints. Callable is not the same as comprehensible.
+Related surfaces affected: operation locator exclusion, workspace configure's at-least-one
+field, diagnostic witness phase conditions, action-per-tool candidates that retain root `not`.
+Possible architecture implication: define new source intent as a positive base/local-checkout/
+published-task union in the canonical wire itself, rather than maintaining flat mutually
+exclusive knobs plus a permanent generic compiler. Use the experiment to identify the supported
+subset, not to introduce a universal schema transpiler into the product.
+Evidence strength: user-supplied actual declarations/results; local reproduction of accepted
+input digests, 192 conditional combinations and unchanged primitive field constraints.
+Remaining uncertainty at discovery: B2 fresh-host rendering and root/action/workflow controls.
+Follow-up: the B2/control report resolved those tested shapes; uninstructed model choice and
+future host versions remain unmeasured.
+
+## G. Executable candidates and measurement
+
+[scripts/probe_surface.py](scripts/probe_surface.py) generates five effect-free catalogs and
+all branch examples from the **frozen baseline** canonical contract. It never opens a Controller,
+executes a submitted command or reads private runtime state. All mock mutation calls return
+`probeOnly:true,effect:none`; they prove shape handling only.
+
+| Candidate | Tools | Input bytes total | Mean / max input bytes | Synthetic invalid accepted by discovery |
+|---|---:|---:|---:|---:|
+| Root strict control | 12 | 28,369 | 2,364 / 5,223 | 0 / 777 |
+| A: current grouped + flat vocabulary | 12 | 18,151 | 1,513 / 2,683 | 547 / 777 |
+| B: typed root + canonical nested request | 12 | 29,509 | 2,459 / 5,318 | 0 / 777 |
+| C: dispatch variant per tool | 53 | 29,177 | 551 / 1,868 | 0 / 777 |
+| D: broader workflow groups + typed request | 6 | 37,545 | 6,258 / 9,375 | 0 / 777 |
+| B2: nested positive conditional alternatives | 12 | 32,365 | 2,697 / 5,865 | 0 / 777 |
+
+All accept 53/53 valid canonical examples; none accepts an invalid call at the canonical
+validator. Invalid calls are deterministic required omissions, foreign action fields, range
+violations and invented fields. This is **not model invalid-call rate**. A/B use current full
+descriptions; C/D use short experimental labels, so description totals are not a fair measure
+of finished documentation cost. Generated candidate outputs are uniform probe receipts;
+original real output schemas are captured separately. Token counts and model selection,
+invented-field/omission frequencies, extra round trips and fresh-host continuation success
+remain unmeasured. No synthetic code generator is presented as an intelligent model benchmark.
+
+Actual examples (full JSON Schemas are in `examples/surface-probe/generated/*.tools.json`):
+
+```typescript
+// A: properties share vocabulary; required action alone does not describe its branch.
+tdev_task({action: "start", requestId: "start-1", repo: "fixture", label: "UI fix"})
+tdev_task({action: "inspect", taskId: "task"})
+// B: exact canonical branch-specific required/forbidden fields survive under request.
+tdev_task({request: {action: "start", requestId: "start-1", repo: "fixture", label: "UI fix"}})
+tdev_task({request: {action: "inspect", taskId: "task"}})
+// C: tool name selects branch. This control intentionally retains constant action fields.
+tdev_task_start({action: "start", requestId: "start-1", repo: "fixture", label: "UI fix"})
+tdev_task_inspect({action: "inspect", taskId: "task"})
+// D: coarse workflow selects domain intent; canonical arguments remain unchanged.
+tdev_source({request: {intent: "task.start", arguments:
+  {action: "start", requestId: "start-1", repo: "fixture", label: "UI fix"}}})
+tdev_observe({request: {intent: "task.inspect", arguments: {action: "inspect", taskId: "task"}}})
+```
+
+B schema is exactly `{type:"object",properties:{request:canonicalInput},required:["request"],
+additionalProperties:false}`. It adds 95 bytes per tool in this encoding; the much larger
+increase versus A restores semantics A omits. This is not gratuitous wrapper overhead.
+C still contains root conditional constraints for some variants (status locator exclusion,
+start import rules); splitting actions alone does not prove perfect host fidelity.
+D is a reproducible mechanical candidate, not proof that all workflow-oriented designs are bad.
+
+B2 additionally matches canonical acceptance over 192 combinations of start source selectors,
+status locators, workspace configuration presence and diagnostic phase/witness fields, including
+null/wrong-type/invalid-value cases. Its start schema has two positive arms: with `fromTaskId`
+required, `baseRef` absent and optional `localChanges:false`; or `fromTaskId` absent with base/local
+choices retained. No `not`, conditional `if` or `allOf` remains in its input catalog. Unknown
+constraint syntax and excessive expansion fail closed. It adds 2,856 input bytes versus B.
+This bounded compiler is an isolated prototype; final canonical product choices should be
+expressed positively where the source strategies have real meaning.
+
+## H. Decision matrix and async alternatives
+
+| Dimension | A | B | C | D |
+|---|---|---|---|---|
+| Workflow calls / identity burden | Existing | Same | Same absent semantic changes | Same absent semantic changes |
+| Tool selection | 12 overlapping lifecycle groups | Same grouping problems | 53 explicit names, larger selection set | Six broad groups, substantial intent branching |
+| Parameter/required clarity | Proven action-field holes | Exact branch relationship if host retains union | Strong branch selection; residual constraints need probe | Typed but deeper and sometimes duplicated intent |
+| Schema fidelity / host compatibility | Fresh control typed, branch loss intentional | Fresh B loses start; B2 retains tested positive alternatives | Original conditional start control becomes a generic map; positive single-action tools not disproved | Fresh source control loses start arguments; broader redesigns not disproved |
+| Recovery / mutation safety | Existing invariant and recovery caveats | Envelope alone changes neither | Splitting alone changes neither | Grouping alone changes neither |
+| Context cost | Smallest inputs, longest prose compensations | +11,358 input bytes vs A; exact reuse | Small individual schemas, many names/annotations | Largest aggregate and largest individual inputs |
+| Implementation / migration | Smallest change, permanent precision debt | Small normalization seam; preserve old receipt identity | More routing/client migrations | New domains/routing, largest naming migration |
+| Extensibility | Every field broadens unrelated actions | New branch remains local; grouping can still become incoherent | Tool list grows with actions | Broad union can become a second universal protocol |
+| User interventions / IDs | Existing | No improvement from wrapper alone | No improvement from splitting alone | No improvement from grouping alone |
+
+Pre-implementation direction was canonical reuse plus responsibility changes and human
+continuation lookup. The fresh B2 evidence subsequently qualified positive alternatives;
+section L records the selected architecture and why broader recovery/control splits were rejected.
+
+Async alternatives: domain-specific job handles fragment reconnect and logs without reducing
+effect count; continuation tokens can carry locators but cannot replace durable request identity;
+a common operation receipt preserves existing acceptance/unknown evidence. Separate wait/log
+observation from effect identity as today. Finite command and persistent process share receipt
+storage but have different input branches, capture/busy/deadline semantics. Cancel means requested
+stop, not proof of termination; retire requires proof and preserves receipt; task close does
+neither. Bounded wait reduces short-command calls from admission+observation to one only when
+the host returns the result; default noninteractive wait and staged-stdin immediate return must
+be tested independently. No transport stream or wait token owns the effect lifetime.
+
+## I. Broader boundary candidate considered (not selected)
+
+Seventeen ordinary tools plus an optional diagnostics capability were a **testable candidate**,
+not a target count. Single-responsibility tools use typed roots; heterogeneous requests use a
+required nested discriminated request. Do not keep empty action selectors for single actions.
+
+| Name | Responsibility / input | Result / continuation | Async and recovery |
+|---|---|---|---|
+| tdev_find | Read-only project/workspace/task/service human locator, status scope and bounded pagination | unique frontier or typed candidates/ambiguity; pending admissions included | No effectful reconciliation; never start/reuse by hidden heuristic |
+| tdev_inspect | Read-only typed project/workspace/task/artifact/recipe/storage/deployment subject | Current compact material state, provenance, detail cursor, recovery-needed flags | No restore/delete; terminal receipt finalization only when proof already exists |
+| tdev_observe | Original operation or original request locator, output cursor, bounded wait | Receipt certainty/status/subject, fresh output cursor, terminal flag and observation timestamp | Common finite/process/build/validation observation; no new effect |
+| tdev_project | Connect/create at a named authorized location | Project identity/display name and operation receipt | Provider unknown stays original; no create retry by name |
+| tdev_workspace | Explicit composition/name/default changes with revision CAS | Composition revision and receipt | Membership never grants authority; default workspace remains C convenience |
+| tdev_task | Explicit independent start, exact-ref open, continue-published, compose/integrate, close; bounded Unicode label | Task/source context and exact CAS, receipt | Close retains processes/bytes; start never doubles as resume |
+| tdev_read | Batched immutable source queries | Returned checkpoint, bounded query pages | Snapshot reads; no command execution |
+| tdev_edit | Atomic edits plus source CAS/request identity | Receipt, committed checkpoint, current-context locator | Replay same input before stale; never auto-adopt current source |
+| tdev_run | Command/process request union with command/env/deadline and mode-specific capture/wait | Operation receipt and source context; terminal result if bounded wait completes | Fixed process source, finite command capture; no hidden replacement/relaunch |
+| tdev_control | Sequenced input or stop request for an admitted execution | Control receipt and target observation locator | Delivery uncertainty remains explicit; cancel is not stopped |
+| tdev_validate | Explicit source/artifact request subject under adopted mandatory policy | Validation operation; exact candidate/artifact binding | Focused command is separate; no caller-declared PASS, no policy waiver |
+| tdev_publish | Exact source-validation receipt and target CAS | Publication receipt with candidate/ref proof | Never consumes artifact validation; original uncertain publication only observed |
+| tdev_build | Validated source plus recipe selection | Build receipt then retained artifact binding | Independent scratch/source lifetime; no automatic verify/deploy |
+| tdev_deploy | Explicit create/update source/artifact release, start/stop/rollback/remove; revision and target | Switch receipt, desired release and current-health observation locator | Separate switch success/current health; unknown recovery remains journal-bound |
+| tdev_cleanup | Preview/commit exact owned operation/env/ref/artifact resource scopes | Ownership/pin evidence, CAS/preview token, receipt | No arbitrary paths or “clean all”; unknown resources pinned; durable receipt retained |
+| tdev_export | Bounded retained artifact-relative file bytes | Verified digest/range cursor | No command, mutation or caller host-path write |
+| tdev_recover | Explicit selected original operation with effectful recovery strategy permitted by journal/policy | Original effect identity and recovery receipt/proof | May restore prior desired deployment/finish owned cleanup; never repeat unknown provider create/publish |
+
+In this unselected candidate, optional `tdev_diagnostics` would remain operator-scoped, outside the ordinary coding catalog; runtime
+errors/alerts can identify its availability without inventing host dynamic discovery support.
+That candidate would require explicit separate capability registration, rather than promise
+that arbitrary hosts add tools on demand. Existing incidents/witness receipts remain untouched.
+
+Example future intent shapes (design examples, not today's accepted calls):
+
+```typescript
+tdev_find({request:{kind:"task", project:"humtr/tdev", label:"UI fix", state:"open"}})
+tdev_run({request:{kind:"process", context:{taskId:"task", expected:"…"},
+  requestId:"persist-before-send", command:"python app.py", environment:"task"}})
+tdev_deploy({request:{action:"update", service:"preview", expectedRevision:2,
+  candidate:{kind:"artifact", validationId:"artifact-validation"}, requestId:"release-1"}})
+```
+
+Keep names only in read-resolution where ambiguity is handled. A mutation must bind the exact
+resolved identity/CAS, or resolve and persist that exact binding within admission before any
+effect. Replay consults original binding before current names; renaming or a newly duplicated
+name cannot retarget an accepted effect. Generated client request identity must be persisted
+before dispatch; server-only auto IDs are insufficient when the admission reply is lost.
+
+Compact effect response candidate: `receipt:{operationId,requestId,subject,status,effect}`,
+`context:{taskId,checkpoint,...}` where relevant, and `observation:{cursor,observedAt,nextOffset,
+terminal,recoveryRequired}`. Immutable admission binding and fresh current observations must be
+separate; replay must not cache a “current checkpoint” forever. Error categories should distinguish
+invalid request, stale CAS, ambiguous locator, unavailable/revoked target, permission denial and
+unknown/recovery-needed effect, with typed original identity/candidate choices rather than only
+prose. Omit irrelevant keys by subject; do not return a giant DB row or an executable next-mutation
+plan. The server suggests an **observation class**, not the agent's next strategic action.
+
+Minimum durable additions: original bounded task label/objective summary and its principal/project
+binding; existing source/receipt/artifact/deployment state remains authoritative. A derived frontier
+joins these facts with current provenance. No global mutable current task, per-chat ownership,
+transcript storage, automatic cleanup, provider retry or synthetic successful recovery receipt.
+Multi-connection current installation maps to the same principal: transport/account is not a
+new task permission. Any future principal separation must filter locator results and receipts
+before exposing candidates, not accept a caller-selected owner or credential ID.
+
+## J. Workflow comparison and host acceptance
+
+The [probe guide](examples/surface-probe/README.md#fixed-workflow-traces) fixes all six required
+workloads: small edit 9 semantic calls; debugging 9; reconnect 4; artifact/release/rollback 11;
+lost reply 2 including original lost call; two active tasks 3 plus human selection. These are
+analytical traces with one observation per asynchronous phase and explicitly prebound contexts,
+not model measurements. A/B/C/D have identical semantic call counts and machine identity burden.
+Changing a wrapper does not earn a fictional efficiency score.
+
+The traces were also routed through the actual candidate encoders and schema-checked (all
+effect-free): [workload routing artifact](examples/surface-probe/evidence/workload-routing.json).
+Tool-kind counts differ even when semantic calls do not:
+
+| Scenario | Calls, every candidate | A / B / B2 tool kinds | C tool kinds | D tool kinds |
+|---|---:|---:|---:|---:|
+| Small edit | 9 | 8 | 8 | 4 |
+| Debugging | 9 | 4 | 6 | 3 |
+| Reconnect | 4 | 3 | 4 | 1 |
+| Artifact/release/rollback | 11 | 4 | 8 | 2 |
+| Lost provider reply | 2 | 2 | 2 | 2 |
+| Multiple tasks | 3 | 2 | 3 | 1 |
+
+Small edits carry task/checkpoint/current effect-or-validation/pending request references;
+debugging additionally carries output and stdin cursors. Artifact workflows carry exact source
+validation, build/artifact (the same operation identity), artifact validation, deployment/revision
+and observation cursor. Request identities are per effect, not one workflow-wide ID. These
+machine reference requirements do not change across A/B/C/D/B2. They need not be user-pasted:
+the agent can already rediscover some from existing lists; the missing improvement is bounded
+human-intent resolution and compact state projection, not deletion of stable IDs.
+
+The proposed `find`+frontier could reduce unambiguous fresh reconnect to discovery+operation
+observation (two calls), eliminate user-pasted IDs and expose completed predecessors, while still
+returning meaningful choice for two matching tasks. It must check ambiguity across the authorized
+candidate set, not only the first page, and return `incomplete` rather than choosing from a
+truncated page. In small edits, context receipts reduce re-lookup/copying, not the number of real
+test/publish effects. Artifact workflows continue to carry source-validation, build, artifact-
+validation and deployment identities internally; changing their visibility cannot erase them.
+Unknown effects cannot safely be made a one-call success path.
+
+The prompt table in the guide is a hand-labeled evaluation set (resume, test/deploy, running
+status, publish-only, no-new-work, independent experiment, validate-only, artifact subject,
+ambiguous objectives). Actual model first-call selection, invalid/omitted/invented parameters,
+extra round trips, accidental effects and continuation success must be collected separately.
+
+Actual host layers checked so far:
+
+| Layer | Current evidence |
+|---|---|
+| Source canonical/discovery | Generated variants and strict validators exercised locally |
+| Installed resident | Read-only 0.1.21 health and raw tools/list; product unchanged |
+| Local bridge | Captured tools/list equals raw installed/source schema |
+| Independent probe process | Effect-free stdio tested; initial B, now B2 plus five named structural controls (`compare`, 17 tools) |
+| Independent Tunnel | Created `tunnel_6abc8a11a61c8191afc952512ff005a6`, alias `tdev-surface-probe-20260930`; locally running, /healthz and /readyz 200 |
+| Tunnel control-plane delivery | Status reports poll health unknown (no live admin UI snapshot); actual B calls are user-reported and independent local dispatcher logs show forwarded requests |
+| ChatGPT Connector Refresh / fresh catalog | User supplied fresh B and B2/control reports; the B2 four key alternatives remain typed. This Codex session itself has no probe tool injection |
+| ChatGPT injected typing / generated call | B: validate/read/edit positive; task start `Exclude<any, any>` fails fidelity; two instructed valid calls and one expected schema rejection, not an uninstructed model benchmark |
+| User-visible continuation | Not established by server writes, markers, probe echo or local health |
+
+Admin setup was explicitly authorized. A private file-backed probe admin profile was registered
+without activating it as the default; the key value was never printed. New Tunnel uses the same
+workspace as the existing default connection. Runtime setup initially lacked CONTROL_PLANE_API_KEY;
+it now references the existing runtime key file without copying/rotating it. One automatic approval
+review rejected schema export; public byte-identity evidence allowed the retry, and the user then
+explicitly authorized independent-profile schema transmission/testing. No remaining permission
+rejection is being worked around. Existing resident/Tunnels were not repointed.
+
+## K. Safety, state preservation and remaining implementation gate
+
+At the end of the pre-implementation review, product source/runtime/contract were unchanged.
+The following records that review boundary; implemented changes are recorded below. The review changed the selected plan,
+adds the isolated experiment and invariant tests, and records this review. No canonical publication,
+resident cutover, actual user-state migration, cleanup, credential rotation or unknown-effect
+resolution was performed. The independent probe Tunnel/profile are the only new external runtime
+resources. Historical operations and live task/artifact/deployment state remain owned by existing
+controllers. The original dirty checkout is untouched; the new worktree uses a local dependency
+symlink solely to run the existing pinned Python dependencies.
+
+Migration design for a later selected surface: normalize new syntax before admission into the
+same internal effect identity; preserve old stored inputs/hashes/receipts and inspectability;
+no permanent experimental aliases. Prove auth-before-replay and replay-before-stale with old
+receipts, changed labels, concurrent sessions and lost responses. Add only compatible label
+metadata or an explicit schema revision with backup/rollback gates; do not reopen or rewrite
+old tasks to populate names. Deployment restore semantics require separate targeted qualification.
+Host hints are not authorization. Keep the user's existing fixed hints unchanged; actual
+CAS/policy checks and observation/effect boundaries remain independent of those hints.
+
+Local validation completed initially: probe-focused **4 tests PASS**; affected contract,
+bridge, HTTP, progress, recovery and deployment **49 tests PASS** (143.126 s). This includes
+existing lost-publication-response and interrupted-deployment restoration tests; it qualifies
+the unchanged baseline, not a newly implemented recovery split. Initial full `scripts/check.sh`
+**318 tests PASS** (549.765 s), including `git diff --check`. After B2, **7 focused tests PASS**
+(8.696 s), including positive equivalence and fail-closed expansion. A focused test initially
+failed because relative PYTHONPATH stopped resolving in its temporary child cwd; the test now
+passes absolute dependency paths. No product behavior was changed to hide that failure.
+Installed Codex MCP loader/bridge preserves exact input schemas for root/A/B/C/D/B2; each
+performed two effect-free calls in a fresh ephemeral app-server thread. This is actual client
+loading, not model-injected TypeScript or ChatGPT proof. B2 full `scripts/check.sh`: **321 tests PASS** (686.111 s).
+Resident mutation
+acceptance and ChatGPT fresh-session acceptance are **not run** for a redesigned product.
+
+The B2 fresh-host report and five controls are retained in
+[host evidence](examples/surface-probe/evidence/host-B2-report.md). The typing gate permits implementation;
+model selection and complete product journey acceptance remain open. Implement
+one selected slice at a time: canonical schema ownership/adapter, human locator/frontier,
+explicit release intent and mode-specific execution inputs. The larger separation above was
+considered and rejected; it is not an unfinished implementation requirement. Re-run focused/affected/full
+tests after each meaningful product change; qualify resident and new-session behavior separately.
+Do not infer a final architecture win from this local corpus alone.
+
+
+## L. Selected architecture and implementation — source 0.1.22
+
+Selection: B2's typed request boundary plus a separate human-name continuation responsibility,
+explicit release revision intent and shorter descriptions. Thirteen tools are selected, not a
+fixed product limit. Canonical positive alternatives directly own public request validation;
+there is no production import of the experimental conditional compiler. HTTP unwraps only after
+validating the exact envelope, then preserves semantic arguments and existing effect fingerprints.
+
+The broader §I split is not selected. A uniform inspect/recover split would move accepted-operation
+reconciliation and journaled restoration into new caller decisions without measured benefit.
+Restoration belongs to the original admitted deployment transaction; observation must disclose
+that reconciliation can finish it, never masquerade as an entirely pure read. `find` supplies the
+missing genuinely effect-free retained-state discovery. Separate build/export/cleanup names might
+reduce selection ambiguity, but fixed workload traces showed no effect-call savings; the extra
+catalog and migration cost lack an uninstructed model-selection result. The existing domain
+boundaries are retained for their task/ref, artifact-pin and deployment-journal ownership, not
+because twelve names are mandatory. Reconsider those splits only against measured selection errors.
+
+| Public tool | Responsibility and input under request | Output / continuation | Effect and async semantics |
+|---|---|---|---|
+| find | Project key/display name, label substring, all/open/closed, bounded pagination | typed resolution; checkpoint, closed/published state, recent and outstanding original receipts | Local retained-state reads only; no arbitrary latest selection |
+| workspace | composition actions; exact revision for changes | workspace revision/membership, retained change receipt | Membership never grants authority; inspection can reconcile admitted work |
+| project | list/inspect/connect/create within delegated policy | enrolled project or original provider receipt | Unknown create remains unknown until original-effect observation |
+| task | start/open/compose/inspect/list/integrate/close/owned cleanup/reset | source checkpoint, receipt or bounded domain frontier | start is new work; fromTaskId is a published predecessor, not resume; close is not stop/delete |
+| read | batch of file/list/search/diff/history queries | exact checkpoint and bounded results | No source mutation |
+| edit | atomic edits plus expected checkpoint and request identity | retained receipt and new checkpoint | Replay before stale check; no automatic adoption |
+| exec | finite command or persistent process, source/env/capture/deadline | retained operation; terminal exit/result if bounded wait completes | Native Termux; process does not capture or inherit a default deadline |
+| operation | status by operation or original request; stdin/cancel/retire | original receipt, certainty, output cursor and terminal result | status reconciles original journal; never replacement admission; cancel differs from retired |
+| validate | source or retained artifact subject | validation receipt and exact candidate/artifact binding | Source, artifact and live-health proof remain distinct |
+| publish | exact source validation and remote-head CAS | exact source publication receipt | No deployment; lost response is observed under its original identity |
+| artifact | recipe/build/list/inspect/usage/export/prunePreview/prune | retained identity, validation status, bytes/cursor or preview token | Build is not artifact validation; pruning honors pins and preview identity |
+| deploy | source/artifact release, list/inspect/targets and lifecycle controls | revision/release receipt; current identity/health through inspection | Required revision 0 initial / positive exact update; rollback uses retained bytes |
+| diagnostics | existing operator-granted diagnostics/witnesses | bounded diagnostics and witness receipts | Existing capability and fixed host hints preserved; witnesses are not UI proof |
+
+Decision ownership changes, separated from inherited behavior:
+
+- **Removed:** omission of release revision as an implicit current-service update strategy;
+  loose flat action/field combinations; duplicated discovery branch definitions. Network/backend
+  caller choice had already been removed in 0.1.19 and is not claimed as this change.
+- **Added:** human project/label continuation lookup; explicit all/open/closed search intent;
+  complete/ambiguous/incomplete/unavailable resolution; explicit initial-vs-exact-update revision
+  on every release. No optional default can silently select the current update revision.
+- **Retained:** agent file/test strategy, finite/process mode, task/fresh environment, capture,
+  source adoption vs published predecessor, source/artifact subject, recipe/target choices when
+  meaningful, CAS, stable request identity, sequenced stdin and owned cleanup previews.
+- **Internalized:** discovery derivation and envelope interpretation are controller boundary work;
+  label/receipt lookup is a bounded local projection. Provider credentials, transport identity,
+  native executor/PID and source branch namespace resolution remain existing controller/runtime
+  responsibilities. No connection, credential, network or backend selector was added.
+
+Direct observations: root composition loses typing; some negative conditionals also collapse
+inside nested unions; B2 positive alternatives and the final source input probe retain required
+fields. Derived insight: host-compatible shape is an independent requirement from validator
+expressiveness, and physical nesting alone is not the solution. Another direct observation is
+that deployment release previously inferred a current revision. Derived insight: CAS safety
+against races does not express user authorization to replace a named service; expected revision
+must express initial/update intent as well as guard concurrency.
+
+Final input host evidence is retained in
+[the user-supplied report](examples/surface-probe/evidence/host-product-report.md). It covers three
+valid instructed calls and one expected pre-dispatch rejection, with all three receipt digests
+recomputed locally. It does not measure uninstructed model choice or production development effects.
+The earlier root/A/B/C/D/B2 artifacts remain pinned to baseline b418c1d; changing product source
+cannot silently rewrite those historical controls.
+
+The final source validation, package rehearsal and quantitative comparison are recorded in section M. Any missing live acceptance remains explicit, never inferred from
+local success. No user files, credentials, connections, grants, retained artifacts, deployment state,
+unknown effects or receipts have been migrated or deleted. No canonical publication or production
+resident cutover has been performed.
+
+
+### Additional discoveries during implementation review
+
+Observation: a newly created project may have an admitted provider operation before it has an
+enrollment or a task. Direct cause: resource discovery and effect admission have different
+lifetimes. Implemented fix: include original pending project admissions in
+human-name lookup, authorize them through the retained project-policy binding, and never call
+the provider during lookup. General principle: recovery discovery must start from durable
+admission intent, not only from successfully created resources. Related surfaces: source open,
+build preparation and deployment switch. Architecture implication: a compact receipt frontier
+can span those cut points without creating a transcript/workflow engine. Evidence strength:
+existing provider-loss/restart fixtures plus the new targeted lookup fixture; live provider loss
+is deliberately not induced. Remaining uncertainty: real long-session model planning remains
+separate from schema and local recovery proofs.
+
+Observation: project enrollment can be replaced while historical task rows remain. Direct cause:
+human names are locators, not authority or stable effect bindings. Immediate fix: unavailable
+matches must not be projected as absent work. General principle: filtering an unusable binding
+must not authorize replacement work by omission. Related surfaces: revoked scopes and migrated
+connections. Architecture implication: typed resolution must distinguish unavailable, ambiguous,
+incomplete and none. Evidence strength: disposable identity-replacement and revocation tests.
+Remaining uncertainty: user-facing explanation of complex multi-project ambiguity is still an
+agent responsibility, not an automatic controller selection.
+
+## M. Final redesign report — ordered acceptance record
+
+### 1. Fresh authority / current state
+
+The authority chain is AGENTS → README → applicable ARCHITECTURE sections → canonical contract
+→ IMPLEMENTATION_PLAN. The remote development ref was rebound to `refs/heads/tdev` at
+`b418c1ddb97af052f80430f3d55802cf3060cfe2` and rechecked after handoff. The isolated branch
+`redesign/surface-20260930` implements source 0.1.22 on that base. Changes are local and reviewable;
+the original dirty 0.1.16 checkout is preserved. Current production bundle, connection health,
+task counts and outstanding effects are timestamped in
+[resident readback](examples/surface-probe/evidence/resident-final-readback.json).
+The resident still advertises twelve 0.1.21 tools and the baseline contract. The historical
+unknown publication retains its original operation/task identity. Neither its outcome nor
+permission to replace the resident is inferred from this redesign.
+
+### 2. Current tool-surface diagnosis
+
+Sections C–K retain the pre-implementation observations and candidate proposals; selected
+dispositions are in L and this final report, rather than a second unfinished implementation queue.
+The field-by-field baseline inventory and all twelve tool audits are in sections C–F and
+`generated/field-inventory.json`. Highest-impact defects were model-visible required-field loss,
+manual canonical/discovery duplication, internal-handle-only continuation, implicit service
+replacement intent and process options that could not affect execution. Domain inspect/status
+paths also have materially different reconciliation semantics. Long prose obscured those
+boundaries and carried host cell policy that belongs in the caller adapter.
+
+Historical boundaries were tested rather than presumed natural. Source bytes and atomic edits
+remain distinct from mutable resource inspection; common receipts remain useful across async
+effects; task/ref ownership, retained-artifact pins and deployment journals justify their current
+domain boundaries. A separate pure retained-state lookup addresses a responsibility absent from
+those effect-reconciling inspect paths. Splitting every action has no demonstrated call advantage.
+
+### 3. Measured ChatGPT host behavior
+
+Three fresh user-supplied host reports are retained, with their provenance explicitly stated:
+[B](examples/surface-probe/evidence/host-B-report.md),
+[B2](examples/surface-probe/evidence/host-B2-report.md), and
+[selected inputs](examples/surface-probe/evidence/host-product-report.md).
+They are actual reported declaration excerpts and instructed calls, not a complete raw injected
+catalog captured by this Codex session.
+
+Root composition was a generic map in the control. Flat vocabulary retained properties but lost
+branch requirements. Nesting alone preserved read/edit/validation while task-start conditionals
+still collapsed to `Exclude<any, any>`. Positive alternatives preserved both start strategies,
+status locators, workspace configuration and diagnostic phase requirements. The selected find
+fields and both mandatory deployment revision branches were visible; omission of expectedRevision
+was rejected before dispatch. Valid instructed calls returned only `probeOnly:true,effect:none`.
+The [final command/process report](examples/surface-probe/evidence/host-exec-report.md) confirms
+both alternatives, required process mode and schema rejection of waitMs:0/capturePaths:[] in the
+process arm. Its valid receipt digest matches the final probe. This proves the changed shape
+reached this conversation; it does not prove universal Refresh reliability or actual process effects.
+
+### 4. Key discoveries — direct findings
+
+- The host can lose a valid nested conditional branch as well as a composed root.
+- Baseline discovery accepts 547/777 deterministic invalid perturbations that canonical validation
+  rejects; discovery validity and runtime validity had different meanings.
+- Release inferred an update revision from the current service when the caller omitted one.
+- Process-mode waiting was ineffective and capture was unsupported, yet both were selectable.
+- Retained creation intents already contain human labels; a new memory database is unnecessary.
+- A provider creation can be unknown before any project/task exists. Resource-only lookup misses it.
+- Replaced project bindings can leave historical task rows; absence and unavailable work differ.
+- Mechanical regrouping changes schema/tool costs without removing any underlying effect call.
+
+### 5. Derived insights — broader architecture consequences
+
+Host typing is a product requirement independent of JSON Schema validity. Express real strategies
+as positive alternatives under a typed envelope, and validate exactly that advertised shape.
+Do not repair lost constraints with a longer description or a second manually owned vocabulary.
+The experimental compiler established equivalence; product code directly owns explicit branches.
+
+Concurrency safety does not express product intent. Required revision zero means create only;
+a positive inspected revision means update exactly that service state. An automatically selected
+current revision could avoid a race while still authorizing the wrong replacement.
+
+Recovery discovery should join durable admission intent and receipts, including admissions that
+have not created resources. Human names locate work; stable identities still bind authority and
+effects. Complete/ambiguous/incomplete/unavailable must be distinct before admitting replacement
+work. A bounded derived frontier solves this without a current-session pointer or transcript store.
+
+Observation can finish an original transaction's journaled restoration. Renaming it a pure read
+would hide ownership; adding another recovery choice without evidence would move deterministic
+journal work into agent planning. `find` is genuinely local and effect-free, while status explicitly
+reconciles only the original admitted effect. Both preserve unknown outcome and prohibit new replay.
+
+The full Observation/Cause/Fix/Principle/Affected-surfaces/Implication/Evidence/Uncertainty log is in
+section F and L's additional discoveries. Remaining unknowns are retained beside each inference.
+
+### 6. Decision ownership changes
+
+| Category | Concrete disposition | Owner |
+|---|---|---|
+| Removed unnecessary choices | Flat public argument syntax; action-irrelevant field combinations; process wait/capture inputs; omitted revision as an implicit update strategy | Contract rejects invalid combinations; no silent choice |
+| Added needed choices | Human project/label and all/open/closed lookup; explicit create-only versus exact revision update on every release | User supplies objective/project when ambiguous; agent chooses meaningful scope/intent |
+| Retained choices | Independent new source versus published predecessor/local-change adoption; file/test scope; command/process; task/fresh environment; timeout/capture for commands; source/artifact subject; recipe/target; rollback; exact owned cleanup | User owns product/destructive intent, agent owns authorized strategy |
+| Internalized choices | Discovery reuse/envelope decoding and retained label/receipt projection; existing credential/connection/executor/PID allocation remain internal | Controller derives deterministic bindings; runtime supplies technical facts |
+
+Network/backend selection had already been removed in 0.1.19; this change does not claim that
+historical removal. Stable request identities and source/deployment CAS remain explicit machine
+safety primitives. Fixed host annotations remain exactly true/false/false/false as directed by
+the user. They neither authorize effects nor claim that status reconciliation is pure.
+
+The missing-decision audit deliberately did not add caller-selectable mandatory validation depth,
+provider visibility bypass, arbitrary cleanup paths, connection credentials or health-test resource
+allocation. Focused test strategy already belongs to exec; mandatory validation is delegated policy.
+A meaningful future deployment/test-port change requires runtime collision evidence and ownership,
+not an unrelated configuration knob added during this redesign.
+
+### 7. Alternatives considered
+
+| Candidate | Tools | Aggregate / mean input bytes | Benefit | Rejection or selection reason |
+|---|---:|---:|---|---|
+| A grouped flat vocabulary | 12 | 18,151 / 1,513 | Smallest input | Required/foreign-action combinations lost in discovery |
+| B nested canonical wrapper | 12 | 29,509 / 2,459 | Single owner, strict branches | Host still loses conditional start arm |
+| B2 positive nested alternatives | 12 | 32,365 / 2,697 | Tested branch fidelity and equivalence | Selected foundation; wrapper alone cannot solve recovery discovery |
+| C action-per-tool control | 53 | 29,177 / 551 | Small individual action schemas | More selected names; no call reduction; original conditionals still fail host control |
+| D workflow groups | 6 | 37,545 / 6,258 | Fewer tool kinds in a trace | More intent branching/depth; no call reduction; source control loses a branch |
+| Broader 17-tool boundary split | 17 + diagnostics | Design candidate, not measured catalog | Explicit observation/control/build/export names | Added migration/recovery choices without measured model-selection benefit |
+
+These byte counts use the same pinned baseline inputs. C/D descriptions were experimental labels,
+so their shorter text is not a fair finished-product context comparison. Positive action-per-tool
+or a better workflow redesign has not been disproved. The chosen design wins the tested fidelity,
+continuation and intent requirements with a small normalization seam and no stored-state migration;
+it does not claim universally optimal model tool selection.
+
+### 8. Chosen architecture
+
+All thirteen inputs are closed typed objects with required `request`. Single responsibilities
+remain typed objects; heterogeneous responsibilities contain explicit disjoint positive unions.
+The HTTP boundary validates this exact shape after authentication, unwraps once, and passes the
+unchanged semantic request into existing authorization/replay/admission. The contract owns wire
+fields once. The finite conditional compiler is probe-only and absent from product imports.
+
+| Tool | Responsibility; actual effect boundary | Input under request | Output / continuation and async recovery |
+|---|---|---|---|
+| tdev_find | Pure retained local discovery | project, label, state, pagination, since | Typed resolution; current checkpoint, recent/outstanding original receipts, completeness and observation cursor; no provider/executor calls |
+| tdev_workspace | Composition reads/changes | action-specific revision/name/member inputs | Workspace revision and membership; original mutation receipt; inspect may reconcile existing work |
+| tdev_project | Authorized enrollment/provider creation and observation | list/inspect/connect/create branches | Enrolled identity or original provider receipt; unknown create stays attached before enrollment |
+| tdev_task | Source lifecycle and domain inspection | Explicit start alternatives; open/compose/integrate/close/cleanup/reset/inspect/list | Source checkpoint or original receipt; close does not stop processes; inspect supplies live/detailed continuation |
+| tdev_read | Immutable batched source reads | taskId plus typed query array | Exact source checkpoint, bounded content/diff/history pages; no mutation |
+| tdev_edit | Atomic source mutation | requestId, taskId, expected, typed edits | Original receipt and committed checkpoint; replay before stale comparison |
+| tdev_exec | Finite command or persistent foreground process | Command supports wait/capture; process requires mode and excludes both | Common durable operation; command terminal exit/captured checkpoint after bounded wait, otherwise original handle; process source fixed and no default deadline |
+| tdev_operation | Observe/control original admitted effect | Exclusive status locator; sequenced stdin/cancel/retire branches | Original status/effect/result, bounded output cursor; status may finish journaled restoration, never a replacement dispatch |
+| tdev_validate | Exact source or artifact verification | Positive source/artifact alternatives | Validation operation binds exact candidate/artifact; terminal success remains distinct from publication/deployment |
+| tdev_publish | Exact validated source publication | validationId, original requestId, expectedHead | Publication operation/proof; unknown provider result is observed, not repeated |
+| tdev_artifact | Retained builds, inventory, export and owned pruning | Action-specific source-validation/recipe/artifact/preview inputs | Build operation then retained manifest; validation state, export cursor/digest, pin-aware prune preview; scratch retirement preserves bytes |
+| tdev_deploy | Release switch and service lifecycle | Source/artifact release with required revision; inspected lifecycle revision | Original release/revision receipt; inspect observes current identity/health; rollback uses retained bytes, recovery remains journal-owned |
+| tdev_diagnostics | Existing granted diagnostics and witness capability | Positive phase/action alternatives | Bounded incidents/counters/witness receipts; no inference of UI delivery; fixed host hints preserved |
+
+Common result semantics remain `ok/result` or `ok:false/error` with effect certainty. Original
+operation identity, admission source and current observation are not collapsed into one success
+flag. Existing typed errors distinguish schema, stale state, unavailable/revoked authority and
+unknown effects; find adds typed resolution/candidates rather than prose-only ambiguity.
+No executable next-mutation plan, automatic retry, workflow engine or default “latest task” is added.
+
+Examples:
+
+```typescript
+tdev_find({request:{project:"tdev",label:"surface",state:"all"}})
+tdev_exec({request:{requestId:"persist-before-send",taskId:"resolved",expected:"exact",
+  command:"python -m unittest",waitMs:30000}})
+tdev_exec({request:{requestId:"new-process-intent",taskId:"resolved",expected:"exact",
+  command:"python app.py",mode:"process"}})
+tdev_deploy({request:{action:"release",subject:"artifact",requestId:"release-intent",
+  validationId:"exact-artifact-validation",name:"preview",expectedRevision:0,
+  health:{port:18080,path:"/"}}})
+```
+
+The examples illustrate shape, not fixture-valid IDs or authorized production commands.
+
+### 9. Before / after workflow
+
+The fixed six workload traces were schema-encoded for every architecture. Counts below are
+analytical comparisons under their stated fixtures, not measured ChatGPT planning results.
+
+| Scenario | Baseline calls | Selected design calls | Carried state / user intervention |
+|---|---:|---:|---|
+| Small edit/test/validate/publish | 9 | 9 | Exact task/checkpoint/receipts retained; branch requirements now visible |
+| Persistent debugging | 9 | 9 | Original process identity, output/stdin cursor; no ineffective process wait/capture choice |
+| Fresh reconnect, one complete matching frontier | 4 | 2 | find + original effect observation; user supplies name/objective, not UUIDs |
+| Initial artifact/release/verify/rollback | 11 | 11 | Source-validation/build/artifact-validation/service revision remain distinct; update needs inspect if revision unknown |
+| Lost provider reply, original handle known | 2 | 2 | Observe original operation; no new effect identity |
+| Multiple active tasks | 3 | 2 plus meaningful human choice | One find returns candidates; selected original operation then observed |
+
+Name-only lost-reply recovery adds find before original-operation observation; it does not earn a
+fictional one-call saving. Older history, incomplete pages and live remote/deployment health can
+require more inspection. Stable identities still exist and are transported by the agent; they
+are recovered from current authorized facts rather than demanded from the user. Completed
+predecessors and closed work remain visible so missing context does not imply a new start.
+
+### 10. Confusion removed
+
+Schema rejects cross-action fields, missing branch requirements, both/neither status locators,
+predecessor/local-adoption conflict, process capture/wait and implicit revision updates. Names and
+receipts separate resume discovery from new task creation. Explicit output certainty separates
+admission from execution success, build from artifact verification, publication from deployment,
+and switched release from current health. No new network/container/provider-auth concept is exposed.
+Host scheduling budgets moved from operation discovery to the caller adapter; server state,
+transport flush, Tunnel delivery, cell execution and user-visible progress remain separate evidence.
+
+### 11. Missing capability added
+
+Human-name continuation now includes completed and closed predecessors, running/unknown receipts,
+source checkpoint and publication state. Unknown project creation is discoverable before enrollment;
+a replaced historical binding is unavailable rather than absent. Bounded paging cannot choose a
+partial/latest match. Release intent distinguishes create-only from exact inspected update. Finite
+and persistent execution now expose only mode-relevant choices without losing their stable handles.
+These additions require no transcript, new credentials, global session owner or DB migration.
+
+### 12. Safety / consistency
+
+Lost response never authorizes a new request identity. Public envelopes do not enter stored
+fingerprints. Authentication/current authority precede receipt replay; existing receipts replay
+before stale CAS. Exact validated candidate publication, non-force remote CAS, unknown outcome,
+maintenance frontier, unrelated dirty state, owned cleanup and artifact pins remain intact.
+No hidden provider mutation/retry was introduced. Required release revision is checked before
+preparation and again in admission. Schema rejection occurs before effect admission/SSE selection.
+Deployment recovery can complete only its original journal; source discovery performs no recovery.
+
+### 13. Validation
+
+Final statuses and exact log/bundle identities are recorded in the qualification table below.
+Focused, affected, full, actual client loading/calls, staged bundle, resident acceptance and
+fresh ChatGPT schema acceptance are separate rows. The earlier 331-test run failed one stale
+catalog-count fixture and is retained as a failure, not relabeled PASS. A later SDK run failed
+an outdated object-property assertion after exec became a union; its fixed rerun is separate.
+No production resident acceptance or full ChatGPT development journey is implied by local results.
+
+### 14. Migration / state preservation
+
+The stored task/operation/artifact/deployment formats are unchanged. Labels derive from original
+intents. New public syntax normalizes to existing semantic inputs without permanent flat aliases.
+Historical receipts remain observable even where old syntax is no longer admitted (for example
+omitted release revision). User files, credentials, grants, connections, pending/unknown effects,
+retained artifacts and deployment journals were not migrated or deleted. Local test fixtures own
+all created source/build/service/prune effects. The isolated probe runtime/profile remains available
+for host acceptance; existing production connections were not repointed. Dependency symlinks are
+local test aids and excluded from publication. Canonical publication and resident cutover were not
+performed and require their current authority/maintenance checks and explicit permission.
+
+### 15. Remaining uncertainty
+
+Uninstructed model tool selection, omission/invented-field frequency and long-session visible
+continuation were not measured by a model benchmark. Host reports cover excerpts/instructed calls,
+not every field/output in a complete injected catalog. The last execution branch passed its separate reported host gate. Production migration/cutover and real full ChatGPT artifact/deploy/reconnect journey
+remain separate acceptance work. Android Termux same-UID authority is unchanged; no stronger
+sandbox guarantee is claimed.
+
+Strict input size increases: baseline 18,151 → 31,371 bytes; descriptions fall 9,824 → 3,299.
+Full raw declarations, including outputs, rise 276,470 → 287,730 bytes (about 4.1%). These are
+compact JSON bytes, not tokens. This design improves constraint fidelity and reconnect lookup
+while accepting a measured context cost. Output compression or additional tool splits need real
+host selection/result evidence before a further change. The final product corpus has 59 positive
+cases and rejects all 854 deterministic invalid perturbations; that is schema correctness,
+not a measured model error rate.
+
+### Final qualification table
+
+| Boundary | Result | Exact evidence / practical limit |
+|---|---|---|
+| Host-qualified schema invariants | PASS | `test_surface`, `test_surface_probe`, contract tests in final full run; positive alternatives, drift checks, no-op probe, fixed hints |
+| Human continuation / pending-admission focused | 8 PASS, 17.955 s | `admission-frontier-focused.log`; Unicode label, restart, ambiguity/paging, closed work, revoked/replaced authority, unknown source/provider admission before resource creation, catalog adapter |
+| Execution / wire affected | 19 PASS, 67.399 s | `execution-affected.log`; process immediate admission, wait/capture rejection before admission, bounded command/source waits, source wire validation |
+| Final full `scripts/check.sh` | 331 PASS, 796.247 s | `product-final-full-check.log`; includes recovery/lost response, source/publication/deploy/artifact, HTTP, diagnostics, CLI and JS adapter coverage, plus diff whitespace check |
+| Final official MCP SDK | PASS, 13 tools | `product-final-sdk-fixed.log`; pinned @modelcontextprotocol/client 2.0.0, protocol 2026-07-28, actual notifications/progress, terminal exit, replay |
+| Final installed Codex loader | PASS, exact 13 input schemas | `product-final-loader.log`, `product.codex-tools.json`; two no-effect instructed calls, no model inference |
+| Final actual Codex development journey | PASS | `product-final-codex-journey.log`; real local read/edit/native exec, fresh thread/find, stdin/replay, validation, exact disposable publication, composition and cleanup; productionTouched=false |
+| Final inactive staged bundle | PASS | `product-final-bundle-rehearsal.log`, bundle `ec6d43eb2e842b99203202e0deadb82c1a2abe2862546186dd753a71c8bb7c33`; authenticated loopback/restarts/SIGKILL recovery, retained bytes after scratch retirement, artifact validation/export/owned prune; productionServicesTouched=false |
+| Fresh ChatGPT B / B2 comparison | B partial failure; B2 tested branches PASS | User declaration excerpts/control reports; no complete raw injected catalog or unbiased selection benchmark |
+| Fresh ChatGPT selected find/start/release | PASS for reported declarations/instructed calls | `host-product-report.md`; three effect-free valid receipts, expectedRevision omission rejected before receipt |
+| Fresh ChatGPT selected command/process | PASS for reported declaration/instructed controls | `host-exec-report.md`, `host-exec-summary.json`; digest matched, waitMs:0 and capturePaths:[] rejected before dispatch; no process ran |
+| Production resident acceptance of 0.1.22 | PASS | Canonical `593d57a65d76c90f49cdf999d603e1c53a986477`; active bundle `ec6d43eb2e842b99203202e0deadb82c1a2abe2862546186dd753a71c8bb7c33`; resident 0.1.22; exact unknown publication preserved; both configured connections healthy/running; refreshed ChatGPT injected 13-tool `request` surface and direct read-only calls passed |
+| Real complete ChatGPT development/deploy/reconnect journey | NOT RUN | Probe validation receipts do not create tasks, run commands, deploy or attest visible continuity |
+
+The latest resident readback had 44 open/72 closed tasks and 2,123 succeeded/338 failed/one running/
+one unknown operation. These externally advancing counts are observations, not a migration result.
+The unknown publication is still `2531fb0f9bbd4aa584865f62898e1010`; the running exec
+`71b23ff3bc3948059fb2cc88f690425f` belongs to existing work and was not controlled by this redesign.
+
+The final source contract digest is
+`b25025e68029cf56837e2ca5e037ddd7c539641062cced351e189db8d1edb08a`.
+`product-metrics.json` and `product-source-tools.json` reproduce its schema corpus and complete
+advertisement; `product.codex-tools.json` records the actual final loader representation.
+No production credential value appears in those artifacts. Historical failed checks remain
+separate logs, so a corrected rerun does not erase the investigation trail.
+
+## N. Authorized canonical publication and resident activation — 2026-09-30
+
+The user explicitly authorized both canonical publication and resident replacement after the
+completed local/host input qualification. This is new deployment authority; the preceding
+sections retain their historical pre-activation observations. Current remote `refs/heads/tdev`
+was rechecked at b418c1d; GitHub readback confirmed humtr/tdev identity 1322208918 and push access.
+
+The current resident has only historical unknown managed-create publication
+`2531fb0f9bbd4aa584865f62898e1010` outstanding. Its stored owner/task/ref/create intent and exact
+candidate were reviewed, repository identity independently matched to GitHub, and its exact
+remote ref read back absent. Absence does not prove original failure; the receipt remains unknown.
+OPERATIONS' maintenance option allows this precise historical publication to be preserved and
+excluded from the update frontier. No original provider mutation is retried or resolved.
+`maintenance_ready` passes with only that exact exemption. Any new running/unknown effect still
+blocks the installer. Credential/config/profile fingerprints are retained privately for post-update
+comparison; public evidence contains only aggregate preservation results and receipt identity.
+
+Selected qualified bundle: `ec6d43eb2e842b99203202e0deadb82c1a2abe2862546186dd753a71c8bb7c33`.
+Its source/config compatibility and actual inactive-bundle journey were already qualified.
+Publication is a non-force update from the observed canonical base; activation uses the existing
+owned installation and recoverable installer, preserving both connections/auth modes and watch.
+Completion, exact canonical commit, live schema readback and state-preservation results are
+recorded below after each step succeeds. No successful deployment is claimed in advance.
+
+Canonical publication completed at `593d57a65d76c90f49cdf999d603e1c53a986477`. The Codex session that prepared this
+change ended immediately after the successful push because its workspace credit was exhausted; its retained command history
+contains no resident installer invocation after that push. Resident activation was therefore resumed independently rather
+than assuming a partially completed replacement.
+
+The exact qualified source and bundle were rechecked before mutation. The pre-update frontier contained only historical
+unknown publication `2531fb0f9bbd4aa584865f62898e1010`; no maintenance or install-transaction journal was pending.
+The owned installer ran with that one explicit maintenance exemption, then `install.sh --check` succeeded. Readback showed:
+
+- active bundle `ec6d43eb2e842b99203202e0deadb82c1a2abe2862546186dd753a71c8bb7c33` and resident version **0.1.22**;
+- controller up, with `tdev_janmori` (Tunnel authorization) and `default` (Bearer) both enabled, healthy and running;
+- historical publication `2531fb0f9bbd4aa584865f62898e1010` still exactly `unknown`/`unknown`, with no replay or resolution;
+- no pending maintenance journal, install transaction or recovery state after the successful switch.
+
+Before host Refresh, authenticated localhost discovery through `tdev_janmori` advertised exactly thirteen tools:
+`tdev_find`, `tdev_workspace`, `tdev_task`, `tdev_read`, `tdev_edit`, `tdev_exec`, `tdev_operation`, `tdev_validate`,
+`tdev_publish`, `tdev_project`, `tdev_deploy`, `tdev_artifact`, `tdev_diagnostics`. The selected composed tools had a closed
+root object requiring `request`; live catalog inspection showed 9 task alternatives, 2 exec alternatives, 4 operation
+alternatives, 2 validation alternatives and 6 deployment alternatives.
+
+After the user performed the required ChatGPT connector Refresh, the actual injected catalog matched that thirteen-tool
+resident surface. `tdev_project({request:{action:"list"}})` succeeded, and
+`tdev_find({request:{project:"tdev",label:"surface",state:"all",limit:5}})` resolved the retained `typed-native-surface`
+work uniquely without replaying an effect. Host-side negative controls rejected a deployment release missing
+`expectedRevision`, process mode with `waitMs:0`, and process mode with `capturePaths:[]` before dispatch. This is installed
+and refreshed ChatGPT surface acceptance, not the still-separate complete development/deploy/reconnect journey.
+The bounded evidence summary is `examples/surface-probe/evidence/host-installed-acceptance-20260930.md`.
+# Host/exact-operation boundary repair — 2026-10-01
+
+Fresh root navigation/README, relevant ARCHITECTURE and contracts, and IMPLEMENTATION_PLAN
+were rebound before editing. Remote `refs/heads/tdev` and the clean qualified source base were
+`94a7e2e2de1c72bd2b5aca331528021454bf124d`; changes are isolated on
+`fix/host-operation-boundary-20261001` in `tdev-surface-redesign`. The original dirty
+`prj/tdev` checkout and its unrelated changes were not edited. Source is **0.1.25**;
+resident remains **0.1.24**, active bundle
+`34e0b9234eacfd8948c73b0a6c257b75f13503c50a587f9c7fa987d116609e56`.
+Read-only resident SQLite inspection confirmed historical publication
+`2531fb0f9bbd4aa584865f62898e1010` still `unknown/unknown` and schema version 5.
+No resident/config/provider/Tunnel/observer/diagnostic control action or publication was performed.
+
+## Confirmed defects and selected repairs
+
+- **Source identity:** unchanged command capture made a new checkpoint. A pre-fix regression
+  failed because a read-like failed exec changed the source validated for publication. Capture
+  now keeps the starting checkpoint for an identical tree. Real changed capture and A→B→A
+  retain Git-history CAS semantics; execution history remains in durable operation receipts.
+- **Terminal overwrite:** fault injection submitted one command, reconciled its terminal
+  result, then raised an unknown dispatch-reply fault. Pre-fix `fail()` changed succeeded to
+  unknown despite retained success. Terminal guards now cover `fail()` and `save_intent()`
+  as well as `finish()`; original identity/result/intent survive late errors and replay.
+- **Completion/admission friction:** a sealed backend result with an unreconciled busy row
+  rejected useful next work. Admission now observes only that task's busy predecessor once,
+  outside the SQLite transaction, then rereads the task and rechecks busy/CAS in the transaction.
+  Source-changing capture rejects old expected state; unknown stays fenced. Publication also
+  refreshes its validation row before the exact candidate join. This is not a background
+  terminalizer or a new dispatch/retry.
+- **Budget ownership:** repository/project policy can express `validationTimeoutSeconds`.
+  Explicit request timeout overrides it, with legacy fallback 300 seconds. Admission/status
+  reports the frozen deadline and origin; project inspection reports the current default.
+  Existing receipt bytes are not rewritten and old origins are not inferred. Budget changes
+  alone do not invalidate a successful candidate or change command/process/artifact budgets.
+- **Consumer boundary:** pure `classifyTdevReply` distinguishes RPC processing from durable
+  outcome and prevents a failed/running/unknown result from advancing the selected plan.
+  Monitor terminal packets still expose operationStatus/full receipt. CONTROLLER now states
+  the actual one-wait-per-default-cell behavior and separates goal continuation/new admission.
+
+The choice keeps thirteen tools and the exact fixed annotation profile. It adds no workflow
+engine, conversation store, attempt-key cache, terminal resume, automatic retry or periodic
+reconciler. There is no state schema migration, cleanup or historical receipt repair.
+
+## Executed qualification
+
+Private logs are under `.artifacts/host-control-plane-boundary-review-20261001/`.
+
+| Check | Actual result | Evidence |
+|---|---|---|
+| Pre-fix no-op, terminal-overwrite and unobserved-completion regressions | 3 expected failures; reproduced before implementation | Recorded test output in this Codex turn |
+| Focused final selection | 14 Python tests PASS, 50.064 s; includes 16 Node controller tests | `focused-qualified.log` |
+| Additional exact publication/admission reconciliation | 1 test PASS, 3.325 s | `publish-reconciliation.log` |
+| Affected core/native/recovery/progress/projects/contracts/surface/caller checks | 78 tests PASS, 309.485 s | `affected.log` |
+| Current `sh scripts/check.sh` | **346 tests PASS**, 530.115 s, and `git diff --check` PASS | `full.log` |
+| Fixed tool count/hints readback | 13 tools; all annotations equal to source base | Local contract comparison |
+
+The first focused run had a test-authoring mistake: it expected nextIndex=0 on review, but the
+adapter consumes the received reply and returns nextIndex=1 while blocking the successor.
+That assertion was corrected; no publish or automatic retry had occurred. The later focused,
+affected and full results above are the successful runs, not a relabeling of that failed run.
+The full suite includes all added cases, HTTP/MCP, packaging/deployment, installer/resident,
+lost-response recovery and ABA checks. The extra focused publication case and authorization/
+legacy-origin cases supplement the earlier affected selection and are all included in full.
+
+## Acceptance limits
+
+This is source/local qualification, not canonical publication, resident activation, a new
+ChatGPT execution trial or visible-history acceptance. Goal strategy remains Host-owned;
+exact effect truth/idempotency/CAS remain tdev-owned. UI/history and server HTTP completion
+cannot prove each other. The reported 300-second Host threshold, activity-summary replacement
+and UI history disappearance still have no established root cause or causal link to these
+repairs. Changing validation budget may avoid a proved execution timeout; it does not establish
+that the Host/UI stall is repaired.
+
+
+## 0.1.25 inactive delivery qualification — 2026-10-01
+
+Fresh rebind found canonical `94a7e2e2de1c72bd2b5aca331528021454bf124d`,
+resident 0.1.24 and no changed bytes among the 17 source-qualified owned files.
+The explicit subsequent user instruction authorizes installation and canonical publication.
+The original dirty checkout remains untouched.
+
+`PYTHONPATH=src:.tdev-deps python scripts/rehearse.py` passed using staged bundle
+`f1d10cf548ff2cbc1169db2ab239b3c772a0b8264e61ad8b31bffad777877ee7`.
+Actual isolated bundle HTTP/restart, native SIGKILL receipt recovery, exact publication,
+artifact preparation/validation/export/prune passed with 13 tools; no production services
+were touched. `scripts/rehearse_services.py` also passed on an isolated real runit graph,
+covering install/update/recovery/desired-down/uninstall and connection registration.
+The fake Tunnel process in that second rehearsal does not prove external delivery.
+Private logs are `inactive-install.log` and `inactive-services.log` beside the source
+qualification evidence. Existing focused/affected/full results remain the source gate.
+
+Fresh resident readback confirmed controller 0.1.24 and both enabled connections polling.
+The only outstanding operation is historical managed-create publication
+`2531fb0f9bbd4aa584865f62898e1010`, still `unknown/unknown`. The bounded installation
+exemption validates its retained identity without retry or outcome resolution.
+Before activation, a private read-only snapshot retained all 7 state tables (123 tasks,
+2669 operations, 13 projects, 20 artifacts, 6 deployments), config/connection/credential
+and diagnostic correlation-key hashes. Production activation and actual Host acceptance
+are not claimed by these inactive results.
+
+
+## 0.1.25 resident activation and live readback — 2026-10-01
+
+The user explicitly authorized canonical publication and resident activation after source
+qualification. The fresh remote was `94a7e2e2de1c72bd2b5aca331528021454bf124d`.
+Only the 17 qualified owned files were staged; executable/schema/test bytes matched the
+source-qualification manifest (delivery notes were the only subsequent changes). Commit
+`983f4559ac1f79526cd8bd59558ed496d67773e9` was pushed non-force to `refs/heads/tdev`
+and independently read back. The original dirty checkout and unrelated untracked artifacts
+were excluded. Focused 15 / affected 78 / full 346 source tests remain the source gate; both
+inactive rehearsals passed separately. No full-suite result is relabeled as Host acceptance.
+
+The production root remains
+`/data/data/com.termux/files/home/.local/share/tdev/composition-upgrade-53vwtpp8`.
+`admin.stage` verified inactive bundle
+`f1d10cf548ff2cbc1169db2ab239b3c772a0b8264e61ad8b31bffad777877ee7`,
+compatible config/state schema and existing pinned profiles before activation.
+`Installation.install` used its existing locks/journal/maintenance fence, supplied no new
+config and exempted only historical managed-create publication
+`2531fb0f9bbd4aa584865f62898e1010`. It did not resolve or retry that publication.
+The old 0.1.24 bundle remains retained for compatible rollback. Journal/fence cleared.
+
+Actual supervised readback: controller PID **20349**, version **0.1.25**, exact active
+bundle above; `tdev_janmori` PID **20403** and `default` PID **20449**, native CGO and
+successful control-plane poll. Immediate post-switch polling initially reported both
+connections not ready; subsequent observation confirmed both healthy without extra restart.
+Only installer-owned controller/Tunnel cutover occurred. No observer was started or
+restarted, no diagnostic activation/stop/key rotation was called. Health remains `watch`;
+config and diagnostic correlation key hashes are unchanged. A new controller process
+naturally has a new runtime instance; this is not a new diagnostic-key generation.
+
+Before acceptance mutations, read-only SQLite comparison confirmed exact equality of every
+preexisting row in all seven tables (2669 operations, 123 tasks, 13 projects, 20 artifacts,
+6 deployments, 7 workspaces, 16 memberships). State version remains **5**. Config, resident
+connection collection, both profiles, runtime/authorization key files and diagnostic
+correlation key all matched their pre-activation hashes; pinned Tunnel binary unchanged.
+After owned acceptance, every preexisting row still matches. Only **one task and nine
+operation receipts** were added; no project/artifact/deployment was added or altered.
+The unknown publication remains byte-for-byte `unknown/unknown`, the sole outstanding effect.
+
+Actual installed **localhost HTTP MCP** acceptance (2026-07-28; not a ChatGPT call):
+
+- `/healthz` bound 0.1.25/bundle/PID; installed config passed its active schema.
+- Raw `tools/list` returned 13 tools, required typed `{request: ...}` roots and unchanged
+  fixed annotation profile. Raw declaration fixture is retained privately.
+- `tdev_project list` returned `validationTimeoutSeconds` for enrolled projects;
+  `tdev_find` resolved the closed published `a1-source` predecessor by human locators,
+  without receiving a user-supplied internal ID or replaying any prior effect.
+- An explicitly new managed task `boundary025-installed-readback-20261001` started from
+  that predecessor. Its `true` command succeeded and retained the exact source checkpoint.
+  A separately admitted `exit 7` returned RPC/tool `ok:true`, durable `status:failed`,
+  `effect:committed`, exit 7, and the same checkpoint. Later status still reports failed.
+- The fixture's original mandatory source checks passed in validation
+  `3b858ce2e59d4df6893a38a2159977cb`, candidate
+  `2c027556b33071ba873dbe03d26c026ba2213715`. Admission and subsequent status both expose
+  timeout **300** / origin **default**; terminal evidence has exit 0. This creates no
+  source publication or deployment. Validation candidate and source checkpoint remain
+  distinct concepts. Existing budget policy bytes were deliberately preserved.
+- The qualified pure caller classifier consumed those actual packets: failed → `review`,
+  successful terminal validation → `continue`; no automatic retry occurred.
+- Owned command/validation scratch was retired and the task closed/cleaned; human-name
+  discovery still returns its closed terminal frontier with no outstanding effect.
+
+Private evidence: `activation-result.json`, `preservation-result.json`,
+`resident-readback.json`, `installed-tools-list.json`, `live-mcp-readback.json`,
+`live-classifier-readback.json` and `final-installed-state.json`, alongside previous logs.
+A local harness-generation typo (`NameError: S`) occurred before any validation dispatch;
+correcting the harness did not repeat an admitted effect.
+
+**Next actual Host gate:** user Connector Refresh, then a new conversation. Existing
+conversations may retain old injected catalogs. Inspect actual injected execution/budget
+fields and use `pkg-chatgpt-20260930-a1` / label
+`boundary025-installed-readback-20261001` / `state:all` to recover these receipts.
+Observe the succeeded validation and the distinct failed exit-7 predecessor; do not execute
+either again. Long-running acceptance must separately choose an adequate execution budget
+(existing `tdev`/delegated policies omit the new optional repository default, so fallback
+300 persists). Server HTTP return, Tunnel poll and pure local classifier success prove no
+ChatGPT scheduling, visible delivery or history persistence outcome. The reported 300-second
+Host boundary, `monitored…` stall and UI/history rollback remain unresolved.
+
+
+## Repository budget and fresh Host follow-up — 2026-10-02
+
+Fresh root navigation rebound canonical `7f3032badeb97ff6af305ad9558a5308a1f7ebbb`,
+resident 0.1.25 / bundle `f1d10cf548ff2cbc1169db2ab239b3c772a0b8264e61ad8b31bffad777877ee7`,
+controller PID 20349 and two healthy polling connections. The original dirty checkout is
+not development authority and remains untouched. No source/runtime code changes or version
+bump are required. User authorization “남은 순서 진행” covers the outstanding tdev budget
+configuration/readback and Host follow-up.
+
+### Received Host report and independent retained corroboration
+
+The user supplied a fresh ChatGPT Host acceptance report (total turn 12m48s). It reports
+13 injected tools, correct outer `ok:true` versus exit-7 failure consumption, one ~420-second
+command with explicit timeout 900, same-turn cell returns around admission-relative 287s
+and 326s, terminal delivery ~440s and final rediscovery ~504s. Output cursor advances and
+V1–V15 commentary are caller-reported; they were not independently reconstructed here.
+The report explicitly executed no source validate/publish/deploy.
+
+Current SQLite independently matches task `b1cb57ef413648b98724b3b6aac8930a`, label
+`host025-chatgpt-20261002`, checkpoint 7f3032b, closed/busy-null/deleted ref. Its long command
+`3d60fa9b436144e59b998c99ca9b8134` remains committed/succeeded/exit0/timedOut:false,
+with frozen request timeout900. Its exit-7 predecessor remains committed/failed/exit7.
+No original effect was replayed. Read-only live diagnostics inspection reports watch,
+39 retained witnesses / 1 run / zero witness eviction, instance `0f100d213d53f05c`,
+key generation `7ca33a31371bbfad`; no activate/stop/acknowledge was issued. Disk event
+retention contains only 15 witness events across historical logs and does not independently
+reconstruct all 39 receipts or full physical-cell timing.
+
+This is positive actual Host evidence against a universal fixed 300-second successor-cell
+cutoff under the tested conditions. Visible stall/history rollback is **not reproduced in
+this reported run**, not proven permanently fixed. The Host/model-side history report is
+not independent Android UI persistence attestation. Earlier incidents retain their unknown
+root cause. No repeat of the completed 420-second workload is needed.
+
+### Authorized repository budget configuration
+
+The previous activation deliberately preserved config, leaving tdev's default unset.
+The operator follow-up adds only `repositories.tdev.validationTimeoutSeconds=1800`.
+Prior source full suite was ~530s; 1800 gives measured headroom for this repository without
+turning it into a global/delegated default. Public per-attempt timeout overrides remain.
+Under `config.lock`, the exact previous bytes were checked against a private backup; active
+config-schema validation and an equality check after removing this single field passed.
+The source validation acceptance-policy digest remains equal before/after; credentials,
+connections, validation command, tooling policy and all other config values are unchanged.
+Atomic mode-0600 replacement is durable and the controller reloads it at the next call.
+No controller, Tunnel, observer or diagnostics restart/change was performed. Live
+`tdev_project inspect` reads 1800 on the same resident.
+
+Focused four budget tests pass (16.002s): repository precedence/frozen replay/new attempt,
+successful candidate validity after default change, delegated policy refresh and config ranges.
+The first local test selection mistakenly named two tests under `BoundaryTest` rather than
+`NativeBoundaryTest`; those two did not execute and the failed selection is retained as
+`focused.log`. Correct selection is `focused-qualified.log`; no product change was made.
+
+An explicitly new owned task `tdev025-budget-readback-20261002` starts at canonical 7f3032b.
+Source validation `61e84d6ae0944343b65c1eaba7de6a5b` deliberately omits caller timeout.
+Actual resident admission freezes `timeout:1800 / timeoutSource:repository`, candidate
+`cad2983f3a859a93d5fe97f3bdcf06ebea36cc6d`. Its adopted command remains
+`sh scripts/check.sh`; this is separate installed source-suite evidence, not another
+ChatGPT Host run. Observe that exact ID only; no hidden retry, terminal resume or publication.
+
+Private evidence is `.artifacts/budget-host-closeout-20261002/`: received report summary,
+retained-state/corroboration snapshots, private config backup/hash/change receipt, focused
+logs and actual MCP admission/status packets. Terminal result/owned cleanup follow below.
+
+### Installed source-suite terminal and closeout
+
+The one new source-validation operation above completed `sh scripts/check.sh`:
+**346 tests PASS in 834.517s**, followed by successful `git diff --check`. Retained operation
+truth is committed/succeeded/terminal/stopped/exit0/timedOut:false/cancelled:false.
+The accepted budget remains **1800 / repository**, source checkpoint remains 7f3032b,
+candidate remains cad2983f. The polling helper observed completion at admission-return-relative
+843.2s; this sampling time is not the suite duration or a ChatGPT visible-delivery measurement.
+The real 834.5s suite strengthens the need for a repository-specific budget above 300.
+
+Owned task `e39bf6d5e2f14d63823ac92fe5d2d527` was closed at its unchanged source checkpoint,
+validation scratch retired and task cleanup completed. Human-name rediscovery returns unique
+closed work and no outstanding effect. No source candidate was published or deployed.
+All preexisting DB rows are still identical, including the Host report's original operations
+and the historical `unknown/unknown` publication. This slice added one owned task and five
+operation receipts. The snapshot also observed six new independent Codex/shared-server exec
+receipts from a concurrent actor; they are not attributed to this acceptance and were not
+controlled or cleaned up. Attribution is retained in `new-operation-attribution.json`.
+Config differs semantically in exactly the authorized tdev budget field;
+credentials, connections, diagnostic key and resident settings remain unchanged. Controller
+PID20349 and Tunnel PIDs20403/20449 are unchanged and healthy/polling on the same bundle.
+
+Evidence adds `validation-admission.json`, `validation-terminal.json`,
+`installed-full-validation.log`, `validation-monitor.log`, `cleanup-result.json` and
+`final-preservation.json`. Full validation ran in the actual resident's native executor;
+it is not a claim that the supplied ChatGPT Host executed source validation. Documentation
+closeout changes no executable/schema/test bytes and requires no new bundle or version.
+
+The remaining general uncertainty is intermittent Host/UI behavior outside this one
+successful reported Host run. Resume ordinary useful development with the configured budget
+and retained effect identities; open another targeted Host investigation only if new evidence
+identifies a gap. A permanently fixed UI/history defect is not asserted.

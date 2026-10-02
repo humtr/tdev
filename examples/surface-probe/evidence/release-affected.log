@@ -1,0 +1,39 @@
+/data/data/com.termux/files/home/prj/tdev-surface-redesign/.tdev-deps/jsonschema/exceptions.py:173: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x786d609e40>
+  for k, v in kwargs.items():
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+======================================================================
+FAIL: test_deployment_current_previous_stopped_and_remove_pins (test_artifact_retention.RetentionTest.test_deployment_current_previous_stopped_and_remove_pins)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/data/com.termux/files/home/prj/tdev-surface-redesign/tests/test_artifact_retention.py", line 125, in test_deployment_current_previous_stopped_and_remove_pins
+    second = self.release(v2, 'update')
+  File "/data/data/com.termux/files/home/prj/tdev-surface-redesign/tests/test_artifact_validation.py", line 70, in release
+    return self.call('deploy', {'expectedRevision': 0, 'action': 'release', 'subject': 'artifact', 'requestId': request,
+           ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                     'name': 'package', 'validationId': validation['id'], 'health': {'port': 18180, 'path': '/healthz'}, **extra})
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/data/com.termux/files/home/prj/tdev-surface-redesign/tests/test_core.py", line 35, in call
+    self.assertTrue(result["ok"], result)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : {'ok': False, 'error': {'code': 'STALE_DEPLOYMENT', 'message': 'STALE_DEPLOYMENT', 'effect': 'none'}}
+
+======================================================================
+FAIL: test_unknown_switch_protects_new_previous_and_stale_preview (test_artifact_retention.RetentionTest.test_unknown_switch_protects_new_previous_and_stale_preview)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/data/com.termux/files/home/prj/tdev-surface-redesign/tests/test_artifact_retention.py", line 182, in test_unknown_switch_protects_new_previous_and_stale_preview
+    result = self.release(v2, 'switch')
+  File "/data/data/com.termux/files/home/prj/tdev-surface-redesign/tests/test_artifact_validation.py", line 70, in release
+    return self.call('deploy', {'expectedRevision': 0, 'action': 'release', 'subject': 'artifact', 'requestId': request,
+           ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                     'name': 'package', 'validationId': validation['id'], 'health': {'port': 18180, 'path': '/healthz'}, **extra})
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/data/com.termux/files/home/prj/tdev-surface-redesign/tests/test_core.py", line 35, in call
+    self.assertTrue(result["ok"], result)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : {'ok': False, 'error': {'code': 'STALE_DEPLOYMENT', 'message': 'STALE_DEPLOYMENT', 'effect': 'none'}}
+
+----------------------------------------------------------------------
+Ran 46 tests in 205.202s
+
+FAILED (failures=2)

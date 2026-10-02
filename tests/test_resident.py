@@ -1,12 +1,13 @@
 import json
 import os
 import shutil
+import sqlite3
 import tempfile
 import threading
 import unittest
 from pathlib import Path
 from unittest.mock import patch
-from tdev.admin import stage, init_config, point
+from tdev.admin import stage, init_config, maintenance_ready, point
 from tdev.common import Fault, atomic_write, canonical, digest
 from tdev.installer import configure, retire_legacy
 from tdev.resident import Installation, NAMES, run_service
@@ -166,6 +167,76 @@ class ResidentTest(unittest.TestCase):
             self.i.recover()
         self.assertEqual(self.one, (self.root/'active').resolve().name)
         self.assertFalse(self.i.journal.exists())
+
+    def unknown_publish(self, ident='ambiguous-publish'):
+        state = self.root / 'state'
+        state.mkdir(exist_ok=True, mode=0o700)
+        dbfile = state / 'state.sqlite'
+        db = sqlite3.connect(dbfile)
+        try:
+            db.execute('PRAGMA user_version=3')
+            db.execute('''CREATE TABLE IF NOT EXISTS operation (
+                id TEXT PRIMARY KEY, kind TEXT NOT NULL, status TEXT NOT NULL,
+                effect TEXT NOT NULL, intent TEXT NOT NULL, task TEXT, ref TEXT)''')
+            intent = {
+                'refMutation': 'create', 'old': None, 'new': 'a' * 40,
+                'task': {'managed': 1, 'id': 'task-1',
+                         'ref': 'refs/heads/tdev-work/task-1'}}
+            db.execute('INSERT INTO operation(id,kind,status,effect,intent,task,ref) VALUES(?,?,?,?,?,?,?)',
+                       (ident, 'publish', 'unknown', 'unknown', json.dumps(intent),
+                        'task-1', 'refs/heads/tdev-work/task-1'))
+            db.commit()
+        finally:
+            db.close()
+        return ident, dbfile
+
+    def test_unknown_managed_publish_can_be_exempted_without_resolving_receipt(self):
+        self.i.install(self.one)
+        ident, dbfile = self.unknown_publish()
+        with sqlite3.connect(dbfile) as db:
+            with self.assertRaises(Fault) as error:
+                maintenance_ready(db)
+            self.assertEqual(error.exception.value['code'], 'OUTSTANDING_EFFECT')
+            maintenance_ready(db, ident)
+            with self.assertRaises(Fault) as error:
+                maintenance_ready(db, 'missing-operation')
+            self.assertEqual(error.exception.value['code'], 'PUBLICATION_EXEMPTION')
+            db.execute('INSERT INTO operation(id,kind,status,effect,intent,task,ref) VALUES(?,?,?,?,?,?,?)',
+                       ('other-unknown', 'exec', 'unknown', 'unknown', '{}', None, None))
+            db.commit()
+            with self.assertRaises(Fault) as error:
+                maintenance_ready(db, ident)
+            self.assertEqual(error.exception.value['code'], 'OUTSTANDING_EFFECT')
+            db.execute("DELETE FROM operation WHERE id='other-unknown'")
+            db.commit()
+        second = self.next_bundle()
+        self.i.install(second, allow_unknown_publish=ident)
+        self.assertEqual((self.root / 'active').resolve().name, second)
+        with sqlite3.connect(dbfile) as db:
+            row = db.execute('SELECT status,effect,intent FROM operation WHERE id=?', (ident,)).fetchone()
+        self.assertEqual(row[0:2], ('unknown', 'unknown'))
+        self.assertEqual(json.loads(row[2])['new'], 'a' * 40)
+        self.assertFalse(self.i.journal.exists())
+
+    def test_unknown_publish_exemption_survives_failed_update_recovery(self):
+        self.i.install(self.one)
+        ident, dbfile = self.unknown_publish()
+        second = self.next_bundle()
+        real = self.backend.controller_ready
+        def fail(root, settings, bundle):
+            if bundle == second:
+                raise Fault('CONTROLLER_IDENTITY')
+            return real(root, settings, bundle)
+        with patch.object(self.backend, 'controller_ready', fail), patch('tdev.resident.retry', lambda fn: fn()):
+            with self.assertRaises(Fault) as error:
+                self.i.install(second, allow_unknown_publish=ident)
+        self.assertEqual(error.exception.value['code'], 'CONTROLLER_IDENTITY')
+        self.assertEqual((self.root / 'active').resolve().name, self.one)
+        self.assertTrue(self.backend.running['tdev-tunnel'])
+        self.assertFalse(self.i.journal.exists())
+        with sqlite3.connect(dbfile) as db:
+            row = db.execute('SELECT status,effect FROM operation WHERE id=?', (ident,)).fetchone()
+        self.assertEqual(row, ('unknown', 'unknown'))
 
     def test_foreign_and_stale_names_preserved(self):
         d = self.backend.svdir / 'tdev'; d.mkdir(); (d / 'run').write_text('keep')

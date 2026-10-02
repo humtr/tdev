@@ -88,6 +88,55 @@ goal also requires the work below.
 
 ## Next implementation sequence
 
+2026-10-01 user priority: repair confirmed Host/operation boundary defects on fresh canonical
+source. First fix no-op capture and terminal-write races, add repository source-validation
+budget/readback and enforce caller result consumption, then qualify bounded admission-before-use
+reconciliation with fresh CAS/unknown fences. Run focused/affected/full validation before
+closeout. Preserve the fixed annotation profile and all resident/provider/observer state;
+source qualification does not establish installed or ChatGPT UI acceptance. No workflow engine,
+conversation store, terminal resume, automatic retry or periodic reconciler is part of this slice.
+The subsequent user authorization now permits 0.1.25 inactive qualification, canonical
+publication and recoverable resident activation with exact historical unknown-publication
+preservation. Installed readback precedes separate refreshed ChatGPT Host/UI acceptance;
+observer/diagnostic policy and credential/config bytes remain unchanged.
+0.1.25 inactive bundle/runit qualification, canonical source publication, resident activation
+and installed localhost MCP readback are now complete. The exact historical unknown receipt
+and all preexisting DB rows/config/security bytes were unchanged by activation.
+The subsequent user-supplied fresh ChatGPT Host report passes schema/result consumption and
+same-turn bounded rollover through a ~420-second command; current retained terminal/cleanup
+receipts and live 39-witness/1-run summary corroborate it. The stall/history rollback did not
+reproduce in that run; this is not a permanent UI fix or proof of earlier causality.
+The authorized follow-up sets only `repositories.tdev.validationTimeoutSeconds=1800`, with
+unchanged command/acceptance policy, security, delegated project defaults and service identities.
+A new timeout-omitted source-validation admission reads `1800 / repository` and has completed
+346 tests in 834.517s, terminal succeeded/exit0/no timeout. Its owned task is closed/cleaned;
+original receipts remain discoverable. Long-running Host/schema and
+source validation remain separate acceptance classes. Do not replay a completed or ambiguous
+operation, and do not repeat a fixed-duration stall trial without a discriminating evidence gap.
+
+2026-09-30 user priority: re-evaluate the complete model-facing development surface from
+workloads and recovery, without preserving experimental names/count. First rebind current
+canonical/resident state, record the surface/decision audits and compare at least grouped,
+nested-request, action-per-tool and workflow candidates. Run the isolated schema probe before
+selecting a public replacement. Actual fresh ChatGPT declaration/call evidence is a gate for
+broader implementation, not substitutable by JSON Schema or local bridge success. While that
+host is unavailable, finish the reproducible local comparisons and host-ready probe only.
+Then implement selected slices with replay/state preservation, focused/affected/full checks,
+and separately authorized resident acceptance. See the dated surface review in LOCAL_VALIDATION;
+its candidates and generated fixtures are evidence, not additional contract owners.
+The B2 positive-alternative gate and selected find/start/release/command-process probes passed
+their fresh-host checks. The selected thirteen-tool source passes final full validation and
+client/bundle qualification. The user now authorizes canonical publication and resident activation.
+Canonical publication, the owned recoverable resident update, live schema/state readback and refreshed ChatGPT
+installed-surface acceptance are now complete for 0.1.22. Continue with the installed acceptance sequence below: bind the
+current disposable target, finish packaging/lifecycle evidence, then run the complete ChatGPT development/deploy/reconnect
+journey. Do not reopen the rejected broader split merely to complete the experimental candidate list.
+
+User clarification during this review: preserve the existing fixed host annotation profile,
+including `readOnlyHint=true`. This is an intentional permission-popup workaround, not an
+accidental claim of pure effects. Do not change it without first solving and qualifying the
+popup behavior. Actual effect/recovery boundaries may improve independently of these hints.
+
 This section is the single selected order. Detailed sections below are acceptance specifications,
 not competing queues. README owns implementation/current status; LOCAL_VALIDATION owns dated
 results. Earlier incident/install/connection requests do not remain perpetual prerequisites once
@@ -134,15 +183,24 @@ Unknown effects remain attached to their original operation/request; no ambiguou
 | 7 | Add narrow source-independent resource access | A demonstrated task needs native filesystem/process/toolchain observation without a dummy source task; bounded delegated observation and explicit ownership | Move only the specific blocker earlier if necessary; do not introduce several overlapping host/resource/connection families |
 | 8 | Add demand-selected integrations | Concrete MCP/CLI/API/model or remote/container target, then Android-use/companion if needed; attach/use/revoke/recover independently | No universal gateway, mandatory model, OAuth/RBAC or Android UI subsystem on the current critical path; shared-account restrictions require a separate user requirement |
 
-Start with step 0 and steps 1–2 until their installed evidence is recorded in README; then
-advance to step 3. Repair concrete client blockers under step 4 when discovered rather than
-waiting until the end of the journey. The core acceptance target is an
-application running from retained verified bytes after its source/build environment is retired,
-with a proved update/rollback/cleanup path. Do not rebuild slices 1–5 simply because slice 6
-installed evidence is missing. No new language ecosystem blocks closure of the first qualified
-packaging deliverable. Step 3 starts with available existing functionality before step 5 changes
-its recovery mechanism. Steps 5–8 are conditional work, not mandatory gates for closing the
-first native packaging milestone; unavailable optional clients do not prevent useful local work.
+Steps 0–2 are now requalified on the live 0.1.22 resident through the refreshed ChatGPT surface and
+their installed evidence is recorded in README/LOCAL_VALIDATION. The next selected work is step 3: run
+the baseline whole one-/two-project development journey and measure reconnect/visible progress separately.
+The 0.1.24 human-name fixes additionally passed the bounded reported ChatGPT material lookup:
+three reported reads, no user-supplied IDs, explicit ambiguity and recognition of the closed published
+predecessor. This is a completed subcheck of step 3, not closure of its one-/two-project workload or
+continuous visible-progress gate.
+Before expanding that workload, isolate the user-reported 18:30 KST visible stall using the
+original terminal receipt and bounded read-only cells. Server completion is recorded; the
+stalled cell script/host return and matching caller witnesses are missing. A new turn is not
+proof of a fresh conversation or repaired scheduling. Do not rerun successful validation or
+restart resident/Tunnel merely to diagnose it; use the incident protocol in CONTROLLER.md.
+Repair concrete client blockers under step 4 when discovered rather than waiting until the end of the
+journey. The proved packaging target is an application running from retained verified bytes after its
+source/build environment is retired, with update/rollback/failed-switch recovery/cleanup rechecked through
+actual host calls. Do not rebuild slices 1–5 merely to continue the journey. Step 3 starts with available
+existing functionality before step 5 changes its recovery mechanism. Steps 5–8 remain conditional work,
+not mandatory gates; unavailable optional clients do not prevent useful local work.
 
 ### Cross-cutting acceptance tracks
 
@@ -158,6 +216,18 @@ workspace/credential need not block unrelated local packaging work.
 | Security and retained ownership | Current principal/policy checks, credential revocation surviving rollback, original-operation reconciliation, active/previous/in-flight artifact pins, bounded diagnostic storage | No auth weakening, deleted user evidence, silent effect retry or automatic repair based on a stale diagnostic/semantic note |
 
 ## Current priority after the continuity review
+
+When long-running visible delivery is the selected evidence gap, measure the actual
+2026-07-28 POST response boundary before changing caller polling. Distinguish a silent
+open request, server SSE write/flush, Tunnel/client network receipt, host successor
+scheduling and visible rendering. The 2026-09-29 real ChatGPT acceptance proved one concrete
+boundary: a no-progress-token `tdev_operation status(waitMs=8000)` produced HTTP 200 SSE headers,
+keepalive writes/flushes, terminal JSON-RPC write/flush and stream close at the resident while the
+host tool call did not return. The selected tdev repair is modern auto response shaping: no
+`progressToken` means one JSON response after bounded observation; an opted-in progress token
+uses request-scoped SSE with standard `notifications/progress`. Do not invent a server progress
+token or treat comments as protocol/UI progress. Qualify the JSON fallback in the affected real
+host and the progress-token SSE path with the pinned official SDK separately.
 
 Use the existing optional diagnostic implementation while returning to packaging delivery.
 Diagnostics remain operationally independent; continuous monitoring is not a new prerequisite

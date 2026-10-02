@@ -28,6 +28,8 @@ class Controller:
         self.config_source = config
         self.config = self.load_config()
         self.schema, self.validator = load_contract()
+        from .surface import Surface
+        self.wire = Surface(self.schema)
         self.store = Store(directory)
         self.config = self.load_config()
         self.projects = Projects(self)
@@ -129,8 +131,12 @@ class Controller:
             self.task(principal, source['taskId'])
         return row
 
+    def decode_wire(self, tool, arguments):
+        return self.wire.decode(tool, arguments)
+
     def call(self, principal, tool, args):
-        # Installation fences admissions; observations/reconciliation remain usable.
+        # Preserve the long-standing call/_call seam used by maintenance and recovery
+        # instrumentation. Streaming-only observation must not widen this ABI.
         with open(self.store.root / 'admission.lock', 'a+b') as lock:
             fcntl.flock(lock, fcntl.LOCK_SH)
             from contextlib import nullcontext
@@ -138,7 +144,27 @@ class Controller:
             with self.artifacts.lock if guarded else nullcontext():
                 return self._call(principal, tool, args)
 
+    def call_observed(self, principal, tool, args, observer=None, cancelled=None):
+        # Installation fences admissions; observations/reconciliation remain usable.
+        with open(self.store.root / 'admission.lock', 'a+b') as lock:
+            fcntl.flock(lock, fcntl.LOCK_SH)
+            from contextlib import nullcontext
+            guarded = tool in ('tdev_artifact', 'tdev_deploy') or (tool == 'tdev_validate' and args.get('subject') == 'artifact')
+            with self.artifacts.lock if guarded else nullcontext():
+                return self._call_observed(principal, tool, args, observer=observer, cancelled=cancelled)
+
     def _call(self, principal, tool, args):
+        return self._call_observed(principal, tool, args)
+
+    def _call_observed(self, principal, tool, args, observer=None, cancelled=None):
+        def observe(event, value):
+            if observer is None:
+                return
+            try:
+                observer(event, value)
+            except Exception:
+                pass  # Diagnostics cannot participate in execution semantics.
+
         try:
             self.config = self.load_config()
             self.authorize(principal)
@@ -146,6 +172,9 @@ class Controller:
             require(not errors, "SCHEMA", "Input does not match the public contract")
             require(len(canonical(args)) <= 2 * 1024 * 1024, "INPUT_LIMIT")
             kind = tool.removeprefix("tdev_")
+            if kind == 'find':
+                from .continuation import Continuation
+                return {'ok': True, 'result': Continuation(self).find(principal, args)}
             if kind == 'diagnostics':
                 if args['action'] in ('activate', 'report', 'stop', 'mark'):
                     require(self.config['principals'][principal].get('diagnostics', False), 'PERMISSION_DENIED')
@@ -189,8 +218,33 @@ class Controller:
             if kind == "task" and args["action"] == "inspect":
                 return {"ok": True, "result": self.inspect(principal, args)}
             if kind == "operation" and args["action"] == "status":
-                return {"ok": True, "result": self.status(principal, args)}
-            return {"ok": True, "result": self.mutate(principal, kind, args)}
+                result = self.status(principal, args, cancelled=cancelled)
+                value = {"ok": True, "result": result}
+                if result.get("status") in ("succeeded", "failed", "cancelled"):
+                    observe("operation_terminal_observed", value)
+                return value
+            mutation_args = args
+            wait_ms = 0
+            if kind == 'exec':
+                wait_ms = 0 if args.get('mode') == 'process' else args.get('waitMs', 0)
+            elif kind == 'validate' and args.get('subject') != 'artifact':
+                wait_ms = args.get('waitMs', 0)
+            if kind in ('exec', 'validate') and 'waitMs' in args:
+                mutation_args = dict(args)
+                mutation_args.pop('waitMs', None)
+            result = self.mutate(principal, kind, mutation_args)
+            execution = self.execution_description(self.operation(principal, result['id']))
+            if execution is not None:
+                result['execution'] = execution
+            observe("operation_admitted", {"ok": True, "result": result})
+            if wait_ms:
+                result = self.status(principal, {'operationId': result['id'], 'offset': 0,
+                                                 'limit': 24000, 'waitMs': wait_ms},
+                                     cancelled=cancelled)
+            value = {"ok": True, "result": result}
+            if result.get("status") in ("succeeded", "failed", "cancelled"):
+                observe("operation_terminal_observed", value)
+            return value
         except Fault as e:
             return {"ok": False, "error": e.value}
         except (UnicodeError, ValueError, KeyError):
@@ -221,7 +275,7 @@ class Controller:
                 continue
         return {"repositories": repos, "tasks": tasks,
                 "nextAfter": page[-1]["cursor"] if len(rows) > len(page) else None,
-                "execution": "Termux-native by default: same-UID developer authority, host network, not a sandbox. Explicit SSH/OCI is optional."}
+                "execution": "Termux-native: same-UID developer authority, host network, not a sandbox."}
 
     @staticmethod
     def observation(value, since, sources):
@@ -438,6 +492,13 @@ class Controller:
             w = self.task(principal, args["taskId"])
             repo, ref = w["repo"], w["ref"]
         self.authorize(principal, repo, ref)
+        if w and w['busy']:
+            # Observe one existing effect before using this task. Never dispatch
+            # it again or scan unrelated jobs, and recheck fresh CAS in the tx.
+            self.reconcile(self.operation(principal, w['busy']))
+            w = self.task(principal, w['id'])
+            if validation is not None:
+                validation = self.operation(principal, validation['id'])
         if kind == 'task' and args['action'] == 'integrate':
             source = self.task(principal, args['sourceTaskId'])
             require(source['repo'] == repo and source['id'] != w['id'], 'INTEGRATION_SOURCE')
@@ -524,8 +585,10 @@ class Controller:
 
     def save_intent(self, opid, **changes):
         with self.store.tx() as db:
-            row = db.execute("SELECT intent FROM operation WHERE id=?", (opid,)).fetchone()
+            row = db.execute("SELECT intent,status FROM operation WHERE id=?", (opid,)).fetchone()
             value = json.loads(row[0])
+            if row['status'] in ('succeeded', 'failed', 'cancelled'):
+                return value
             value.update(changes)
             db.execute("UPDATE operation SET intent=?,effect='unknown' WHERE id=?", (canonical(value).decode(), opid))
         return value
@@ -551,6 +614,9 @@ class Controller:
     def fail(self, opid, fault):
         unknown = fault.value["effect"] == "unknown"
         with self.store.tx() as db:
+            row = db.execute('SELECT status FROM operation WHERE id=?', (opid,)).fetchone()
+            if row['status'] in ('succeeded', 'failed', 'cancelled'):
+                return
             db.execute("UPDATE operation SET status=?,effect=?,error=? WHERE id=?",
                        ("unknown" if unknown else "failed", fault.value["effect"], canonical(fault.value).decode(), opid))
             if not unknown:
@@ -702,11 +768,17 @@ class Controller:
                 require(g.head(w['ref']) == w['base'], 'STALE_HEAD')
             candidate = g.commit(g.tree(w["checkpoint"]), w["base"], args["message"] + "\n\ntdev-validation: " + opid)
         source_commit = candidate or w["checkpoint"]
+        if 'timeout' in args:
+            timeout, timeout_source = args['timeout'], 'request'
+        elif kind == 'validate' and 'validationTimeoutSeconds' in config:
+            timeout, timeout_source = config['validationTimeoutSeconds'], 'repository'
+        else:
+            timeout, timeout_source = None if process else 300, 'default'
         payload = {"id": opid, "checkpoint": source_commit, "candidate": candidate,
                    "files": g.export(source_commit), "command": config["validation"] if kind == "validate" else args["command"],
                    "cwd": path(args.get("cwd", "."), dot=True), "env": execution_env,
                    "stdin": args.get("stdin", ""), "network": network,
-                   "timeout": args.get("timeout", None if process else 300), "readonly": kind == "validate",
+                   "timeout": timeout, "readonly": kind == "validate",
                    "capturePaths": args.get("capturePaths", []), "gitPack": g.execution_pack(source_commit),
                    "networkPolicyDigest": executor.get("networkPolicyDigest")}
         if native:
@@ -718,6 +790,7 @@ class Controller:
         execution = {k: v for k, v in payload.items() if k not in ("files", "gitPack")}
         intent = self.save_intent(opid, execution=execution, inputDigest=digest(payload),
                                   executor=executor, policy=self.validation_policy(config), candidate=candidate,
+                                  timeoutSource=timeout_source,
                                   **({'validationSubject': 'source'} if kind == 'validate' else {}))
         self.backend(intent).submit(payload)
 
@@ -827,7 +900,22 @@ class Controller:
                 # Invalid/missing receipt is never promoted to terminal proof.
                 self.fail(row["id"], Fault(e.value["code"], e.value["message"], "unknown"))
 
-    def status(self, principal, args):
+    @staticmethod
+    def execution_description(row):
+        intent = json.loads(row['intent'])
+        if row['kind'] not in ('exec', 'validate', 'artifact') or 'execution' not in intent:
+            return None
+        execution = intent['execution']
+        value = {'mode': execution.get('mode', 'command'), 'checkpoint': execution['checkpoint'],
+                 'environment': 'task' if execution.get('environmentId') else 'fresh',
+                 'timeout': execution['timeout']}
+        # Old receipts keep their facts; never infer historical default policy
+        # from current config or rewrite the accepted intent.
+        if 'timeoutSource' in intent:
+            value['timeoutSource'] = intent['timeoutSource']
+        return value
+
+    def status(self, principal, args, cancelled=None):
         require(bool(args.get("operationId")) != bool(args.get("lookupRequestId")), "STATUS_TARGET")
         if "lookupRequestId" in args:
             row = self.store.one("SELECT * FROM operation WHERE owner=? AND request=?", (principal, args["lookupRequestId"]))
@@ -844,11 +932,9 @@ class Controller:
         if row['kind'] == 'artifact':
             result['artifactStorage'] = self.artifacts.retention.description(row['id'])
         intent = json.loads(row['intent'])
-        if row['kind'] in ('exec', 'validate', 'artifact') and 'execution' in intent:
-            execution = intent['execution']
-            result['execution'] = {'mode': execution.get('mode', 'command'), 'checkpoint': execution['checkpoint'],
-                                   'environment': 'task' if execution.get('environmentId') else 'fresh',
-                                   'timeout': execution['timeout']}
+        execution = self.execution_description(row)
+        if execution is not None:
+            result['execution'] = execution
         if row["kind"] in ("exec", "validate", "artifact") and "execution" in json.loads(row["intent"]):
             try:
                 result["output"] = self.backend(json.loads(row["intent"])).logs(row["id"], args.get("offset", 0), args.get("limit", 24000))
@@ -856,6 +942,19 @@ class Controller:
                 result["outputError"] = e.value
         if "since" in args:
             result["observation"] = self.observation(result, args["since"], ["SQLite", "executor result/logs if applicable"])
+        wait_ms = args.get("waitMs", 0)
+        if wait_ms and result["status"] in ("running", "unknown"):
+            deadline = time.monotonic() + wait_ms / 1000
+            probe = dict(args)
+            probe.pop("waitMs", None)
+            while result["status"] in ("running", "unknown"):
+                remaining = deadline - time.monotonic()
+                if remaining <= 0 or (cancelled is not None and cancelled.is_set()):
+                    break
+                time.sleep(min(1.0, remaining))
+                if cancelled is not None and cancelled.is_set():
+                    break
+                result = self.status(principal, probe, cancelled=cancelled)
         return result
 
     def close(self):

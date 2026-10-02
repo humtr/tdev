@@ -1,0 +1,13 @@
+{
+  "sourceBase": "b418c1ddb97af052f80430f3d55802cf3060cfe2",
+  "sourceBranch": "redesign/surface-20260930",
+  "sourceVersion": "0.1.22",
+  "sourceContractSha256": "b25025e68029cf56837e2ca5e037ddd7c539641062cced351e189db8d1edb08a",
+  "localFullTests": 331,
+  "sourceChangesPublished": false,
+  "productionResidentChanged": false,
+  "hostHintProfilePreserved": true,
+  "selectedHostInputChecks": "reported pass; instructed schema-only probes",
+  "actualChatgptDevelopmentJourney": "not run",
+  "stateMigration": "not performed"
+}

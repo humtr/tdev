@@ -13,7 +13,8 @@ class ProgressTest(Base):
     def test_live_no_change_completion_and_fresh_resume(self):
         w = self.open()
         args = {"requestId": "progress", "taskId": w["taskId"], "expected": w["checkpoint"],
-                "command": "printf phase1; read value; printf phase2; read value; printf captured > a.txt", "timeout": 15}
+                "command": "printf phase1; read value; printf phase2; read value; printf captured > a.txt",
+                "timeout": 15, "waitMs": 0}
         op = self.call("exec", args)
         deadline = time.monotonic() + 10
         while True:
@@ -64,6 +65,69 @@ class ProgressTest(Base):
         self.assertEqual(next(x for x in final["operations"] if x["id"] == op["id"])["cleanup"], "retired")
         same = self.call("task", {"action": "inspect", "taskId": w["taskId"], "since": final["observation"]["cursor"]})
         self.assertFalse(same["observation"]["changed"])
+
+    def test_admission_and_status_wait_return_terminal_failure_and_bound_nonterminal_wait(self):
+        w = self.open()
+        args = {"requestId": "wait-fail", "taskId": w["taskId"], "expected": w["checkpoint"],
+                "command": "printf phase; sleep .2; exit 7", "timeout": 5}
+        op = self.call("exec", {**args, "waitMs": 3000})
+        self.assertEqual(op["status"], "failed", op)
+        self.assertEqual(op["result"]["exitCode"], 7)
+        self.assertEqual(base64.b64decode(op["output"]["data"]), b"phase")
+        replay = self.call("exec", {**args, "waitMs": 0})
+        self.assertEqual(replay["id"], op["id"])
+        self.assertEqual(replay["status"], "failed")
+
+        started = time.monotonic()
+        op2 = self.call("exec", {"requestId": "wait-running", "taskId": w["taskId"],
+                                 "expected": op["result"]["checkpoint"], "command": "sleep 2",
+                                 "timeout": 5, "waitMs": 100})
+        elapsed = time.monotonic() - started
+        self.assertEqual(op2["status"], "running", op2)
+        self.assertGreaterEqual(elapsed, .05)
+        self.assertLess(elapsed, 1.0)
+
+        started = time.monotonic()
+        running = self.call("operation", {"action": "status", "operationId": op2["id"], "waitMs": 100})
+        elapsed = time.monotonic() - started
+        self.assertEqual(running["status"], "running", running)
+        self.assertGreaterEqual(elapsed, .05)
+        self.assertLess(elapsed, 1.0)
+        self.call("operation", {"action": "cancel", "requestId": "wait-cleanup", "operationId": op2["id"]})
+        self.assertEqual(self.wait(op2["id"])["status"], "failed")
+
+    def test_source_validation_admission_wait_returns_terminal_failure_without_replay(self):
+        w = self.open()
+        self.repo.config["repositories"]["test"]["validation"] = "printf validation; sleep .2; exit 9"
+        args = {"requestId": "validation-wait-fail", "taskId": w["taskId"],
+                "expected": w["checkpoint"], "message": "expected failure"}
+        validation = self.call("validate", {**args, "waitMs": 3000})
+        self.assertEqual(validation["status"], "failed", validation)
+        self.assertEqual(validation["result"]["exitCode"], 9)
+        self.assertEqual(base64.b64decode(validation["output"]["data"]), b"validation")
+        replay = self.call("validate", {**args, "waitMs": 0})
+        self.assertEqual(replay["id"], validation["id"])
+        self.assertEqual(replay["status"], "failed")
+
+    def test_process_admission_is_immediate_and_rejects_ineffective_options(self):
+        w = self.open()
+        started = time.monotonic()
+        process = self.call("exec", {"requestId": "process-wait-ignored", "taskId": w["taskId"],
+                                     "expected": w["checkpoint"], "command": "sleep 2",
+                                     "mode": "process", "timeout": 5})
+        elapsed = time.monotonic() - started
+        self.assertEqual(process["status"], "running", process)
+        self.assertLess(elapsed, 1.0)
+        for extra in ({'waitMs': 30000}, {'waitMs': 0}, {'capturePaths': ['new']}, {'capturePaths': []}):
+            invalid = self.c.call('alice', 'tdev_exec', {
+                'requestId': 'invalid-process-options', 'taskId': w['taskId'],
+                'expected': w['checkpoint'], 'command': 'sleep 2', 'mode': 'process', **extra})
+            self.assertEqual(invalid['error']['code'], 'SCHEMA')
+            self.assertEqual(invalid['error']['effect'], 'none')
+        self.assertIsNone(self.c.store.one('SELECT id FROM operation WHERE request=?', ('invalid-process-options',)))
+        self.call("operation", {"action": "cancel", "requestId": "process-wait-cleanup",
+                                "operationId": process["id"]})
+        self.assertEqual(self.wait(process["id"])["status"], "failed")
 
     def test_frontier_pagination_and_scope(self):
         w = self.open()

@@ -1,0 +1,37 @@
+✔ fresh cells execute 40 unique steps with 16/16/8 total calls (10.915572ms)
+✔ witnesses consume budget, reserve closing probes, preserve generation and sequence (2.720313ms)
+✔ probe throws or structured errors do not retry/cancel work and still cost calls (1.837292ms)
+✔ lost operational reply stops successors without retry or false success (1.37375ms)
+✔ structured error, pending operation, or decoder failure stop for review (2.955365ms)
+✔ caller output failure cannot replay the fulfilled effect (1.616354ms)
+✔ elapsed budget checked between awaits; no overlapping or detached work (1.952292ms)
+✔ slow entry probe yields review instead of an infinite empty rollover (1.440677ms)
+✔ no work emits no probes; invalid plan/budget fails before any invocation (6.742865ms)
+✔ lower host budget works without server policy; absent metadata is not invented (3.292708ms)
+✔ operation monitor stays in one cell until terminal failure is observed (1.946042ms)
+✔ operation monitor default performs one bounded wait per physical cell before rollover (1.187292ms)
+✔ operation monitor stops safely on unknown or unavailable status (1.79526ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 266.763594
+/data/data/com.termux/files/home/prj/tdev-surface-redesign/.tdev-deps/jsonschema/exceptions.py:173: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x769fa08130>
+  for k, v in kwargs.items():
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+======================================================================
+FAIL: test_auth_before_discovery_metadata_does_not_grant (test_http.HTTPTest.test_auth_before_discovery_metadata_does_not_grant)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/data/com.termux/files/home/prj/tdev-surface-redesign/tests/test_http.py", line 85, in test_auth_before_discovery_metadata_does_not_grant
+    self.assertEqual(len(value["result"]["tools"]), 12)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 13 != 12
+
+----------------------------------------------------------------------
+Ran 90 tests in 140.696s
+
+FAILED (failures=1)

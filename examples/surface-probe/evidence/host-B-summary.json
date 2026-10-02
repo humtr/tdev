@@ -1,0 +1,23 @@
+{
+  "source": "user-supplied fresh ChatGPT report",
+  "candidate": "B",
+  "checks": [
+    {
+      "input": {
+        "action": "list"
+      },
+      "matchesUserReportedDigest": true
+    },
+    {
+      "input": {
+        "action": "start",
+        "requestId": "probe-start-1"
+      },
+      "matchesUserReportedDigest": true
+    }
+  ],
+  "declarationFidelity": "partial: task start Exclude<any, any>",
+  "validInstructedCalls": 2,
+  "expectedInvalidCallRejections": 1,
+  "uninstructedModelSelectionAccuracy": null
+}

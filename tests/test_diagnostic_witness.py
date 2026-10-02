@@ -152,7 +152,7 @@ class WitnessHTTPTest(unittest.TestCase):
         returned = self.call(mark(p, 2, 'tool_return', afterRequest=link['request']))['structuredContent']['result']
         exit_args = mark(p, 3, 'cell_exit')
         bridge = Bridge(f'http://127.0.0.1:{self.server.server_port}/mcp', 'alice-secret')
-        wrapped = bridge.handle({'jsonrpc':'2.0','id':7,'method':'tools/call','params':{'name':'tdev_diagnostics','arguments':exit_args}})['result']
+        wrapped = bridge.handle({'jsonrpc':'2.0','id':7,'method':'tools/call','params':{'name':'tdev_diagnostics','arguments':{'request':exit_args}}})['result']
         last = wrapped['structuredContent']['result']
         self.assertIn('io.tdev/diagnosticReceipt', wrapped['_meta'])
         # Discarding the first reply and retransmitting never adds another witness.

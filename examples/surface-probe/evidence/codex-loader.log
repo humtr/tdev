@@ -1,0 +1,5 @@
+{"candidate": "root", "loaderSchemaEqual": true, "tools": 12, "modelRun": false, "chatgptAcceptance": false}
+{"candidate": "A", "loaderSchemaEqual": true, "tools": 12, "modelRun": false, "chatgptAcceptance": false}
+{"candidate": "B", "loaderSchemaEqual": true, "tools": 12, "modelRun": false, "chatgptAcceptance": false}
+{"candidate": "C", "loaderSchemaEqual": true, "tools": 53, "modelRun": false, "chatgptAcceptance": false}
+{"candidate": "D", "loaderSchemaEqual": true, "tools": 6, "modelRun": false, "chatgptAcceptance": false}

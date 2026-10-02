@@ -23,12 +23,53 @@ class ContractTest(unittest.TestCase):
             bad = json.loads(json.dumps(example))
             bad["input"]["adminApproved"] = True
             self.assertFalse(validator.is_valid(bad))
-        for tool in expanded(s, s["x-tools"]):
+        tools = {tool["name"]: tool for tool in expanded(s, s["x-tools"])}
+        for tool in tools.values():
             self.assertEqual(tool["inputSchema"]["type"], "object")
             Draft202012Validator.check_schema(tool["inputSchema"])
             Draft202012Validator.check_schema(tool["outputSchema"])
-        config = json.loads((Path(__file__).resolve().parents[1] / "contracts/config.schema.json").read_bytes())
-        Draft202012Validator.check_schema(config)
+
+        exec_schema = tools["tdev_exec"]["inputSchema"]
+        for branch in exec_schema['properties']['request']['oneOf']:
+            self.assertNotIn('network', branch['properties'])
+        self.assertFalse(validator.is_valid({"tool": "tdev_exec", "input": {
+            "requestId": "exec-network", "taskId": wid, "expected": oid,
+            "command": "true", "network": "none"}}))
+
+        operation_schema = tools["tdev_operation"]["inputSchema"]
+        self.assertNotIn("oneOf", operation_schema)
+        self.assertEqual(operation_schema['required'], ['request'])
+        self.assertIn('oneOf', operation_schema['properties']['request'])
+        advertised = Draft202012Validator(operation_schema)
+        for value in (
+            {"action": "status", "operationId": "exec", "waitMs": 30000},
+            {"action": "status", "lookupRequestId": "original"},
+            {"action": "stdin", "requestId": "stdin", "operationId": "exec",
+             "sequence": 0, "text": "hello"},
+            {"action": "cancel", "requestId": "cancel", "operationId": "exec"},
+            {"action": "retire", "requestId": "retire", "operationId": "exec"},
+        ):
+            self.assertTrue(advertised.is_valid({"request": value}))
+            validator.validate({"tool": "tdev_operation", "input": value})
+        for value in (
+            {"action": "status"},
+            {"action": "status", "operationId": "exec", "lookupRequestId": "original"},
+            {"action": "stdin", "operationId": "exec", "sequence": 0, "text": "hello"},
+            {"action": "cancel", "requestId": "cancel", "operationId": "exec", "waitMs": 1},
+        ):
+            self.assertFalse(validator.is_valid({"tool": "tdev_operation", "input": value}))
+            self.assertFalse(advertised.is_valid({'request': value}))
+        self.assertFalse(advertised.is_valid({"action": "status", "operationId": "exec",
+                                              "unexpected": True}))
+
+        for tool_name, tool in tools.items():
+            family = tool_name.removeprefix('tdev_')
+            schema = tool['inputSchema']
+            self.assertEqual(schema['properties']['request'],
+                             expanded(s, {'$ref': f'#/$defs/{family}Input'}))
+            self.assertEqual(set(schema['properties']), {'request'})
+            self.assertEqual(schema['required'], ['request'])
+            self.assertFalse(schema['additionalProperties'])
 
     def test_native_default_and_optional_ssh_config(self):
         root = Path(__file__).resolve().parents[1]
@@ -56,6 +97,18 @@ class ContractTest(unittest.TestCase):
         repo["executor"]["kind"] = "native"
         self.assertFalse(validator.is_valid(config))
 
+    def test_source_validation_budget_configuration_ranges(self):
+        from jsonschema import Draft202012Validator
+        root = Path(__file__).resolve().parents[1]
+        schema = json.loads((root / 'contracts/config.schema.json').read_text())
+        for section in ('repositories', 'projectPolicies'):
+            field = schema['properties'][section]['additionalProperties']['properties']['validationTimeoutSeconds']
+            validator = Draft202012Validator(field)
+            for value in (1, 300, 1800, 3600):
+                self.assertTrue(validator.is_valid(value))
+            for value in (0, -1, 3601, None, '300', True, 1.5):
+                self.assertFalse(validator.is_valid(value), value)
+
     def test_document_surface_and_sequence(self):
         root = Path(__file__).resolve().parents[1]
         s, _ = load_contract()
@@ -69,7 +122,7 @@ class ContractTest(unittest.TestCase):
         for tool in s["x-tools"]:
             self.assertEqual(tool["annotations"], expected_annotations)
         self.assertEqual([t["name"].removeprefix("tdev_") for t in s["x-tools"]],
-                         ["workspace", "task", "read", "edit", "exec", "operation", "validate", "publish", "project", "deploy", "artifact", "diagnostics"])
+                         ["find", "workspace", "task", "read", "edit", "exec", "operation", "validate", "publish", "project", "deploy", "artifact", "diagnostics"])
         architecture = (root / "ARCHITECTURE.md").read_text()
         self.assertIn("task/read/edit/exec/operation/validate/publish", architecture)
         plan = (root / "IMPLEMENTATION_PLAN.md").read_text()
