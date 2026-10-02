@@ -1367,3 +1367,174 @@ References: [Git CAS](https://git-scm.com/docs/git-update-ref),
 [MCP discovery](https://modelcontextprotocol.io/specification/2026-07-28/server/discover),
 [OpenAI MCP server](https://developers.openai.com/plugins/build/mcp-server),
 [OpenAI Secure MCP Tunnel](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels).
+
+## 10. Implementation structure
+
+This section selects the implementation design; §§1–9 retain ownership of product semantics.
+README distinguishes the selected design from implemented code. Rust is the target language for
+the operational runtime, local CLI and installation/service management. Python may remain a
+development/test tool and an application language used through tdev. A complete Python structural
+refactor is not a prerequisite. Reuse the existing semantics and evidence, not Python object
+boundaries, incidental defects or an assumed one-file-to-one-module correspondence.
+
+### Package and dependency direction
+
+Start with one Cargo package named `tdev`, a library for internal testing, and the `tdev` binary.
+Use root `Cargo.toml`, `Cargo.lock` and `rust-toolchain.toml`, `src/lib.rs` for module assembly
+and `src/main.rs` for entrypoint dispatch. The module names below are the initial layout under
+`src/`; they may be files or directories as implementation size warrants.
+Use modules before separate crates. A crate split needs a concrete dependency/build/test benefit;
+there is no generic plugin framework, mandatory service mesh or universal workflow engine.
+The binary has independent controller, supervisor and deployment-runner process roles as well
+as operator commands. A shared executable does not merge their lifetimes.
+
+| Initial modules / responsibility | Owns | Must not own |
+|---|---|---|
+| `model`, `identity` | Validated identifiers, operation/effect states, domain errors, canonical identity encoding | HTTP handlers, live filesystem/provider access, mutable global config |
+| `admission`, `application` | Current authorization context, request replay, feature dispatch, bounded observations | A second state database or one giant cross-feature controller object |
+| `workspace`, `project`, `source` | Composition, enrollment, checkpoints, edits, validation/publication joins and their recovery | Process lifetime or inferred provider grants |
+| `artifact`, `deployment` | Frozen inputs, sealing/verification/retirement, pins, release switching and recovery | New execution receipts or duplicated source authority |
+| `storage` | SQLite transactions, persisted record decoding, CAS, schema compatibility | Subprocess/network waits inside a transaction |
+| `git`, `execution` | Git plumbing; accepted execution submission/observation/control; dormant SSH compatibility | Reinterpreting an accepted backend, policy or request identity |
+| `supervisor`, `release` | Child identity, input/output, limits, stop proof and owned capture/runtime evidence | Controller-owned admission or fabricated success from stdout |
+| `transport`, `operator` | MCP HTTP, selected stdio adapter, CLI, config/install/connection/service operations | Duplicated domain decisions or direct ad hoc mutation of core tables |
+| `diagnostics`, `observer` | Optional bounded evidence and independent observation | Core liveness, execution authority or mandatory dependency of an ordinary call |
+
+Domain models do not depend on transport or concrete adapters. Feature handlers receive a
+bounded admission context and the specific storage/Git/executor/service capabilities they need;
+they do not receive an all-purpose mutable controller. Introduce traits at these concrete test
+or external boundaries, not one trait per function. Keep domain-specific transitions in their
+feature modules; share durable record/CAS/identity mechanisms only where semantics match.
+
+Wire DTOs are decoded and validated at the edge, then converted to domain types. The existing
+JSON contracts remain the wire authority; derived Rust schemas cannot silently replace them.
+Rust types do not alone validate JSON Schema bounds, patterns, alternatives or unknown fields.
+There is no second handwritten schema registry. Contract parity tests cover both acceptance
+and rejection, including JSON numeric representations and absent versus null/default fields.
+
+### Types, admission and transitions
+
+Use distinct types for operation/request/task/workspace/project identifiers, checkpoint OIDs,
+artifact digests and deployment revisions. Decode persisted input through validated constructors;
+a Rust enum is not evidence that bytes read from storage are valid. Keep execution status and
+effect certainty separate, as in the public Operation and Error definitions. Do not turn
+`unknown` into failure/retry, or admission success into child success.
+
+Capture an immutable config/policy view for a defined admission attempt rather than replacing
+shared Controller configuration during concurrent calls. Authentication, replay and effect
+admission still enforce current authority (§5). A retained intent freezes execution parameters,
+not an evergreen grant. Reconciliation uses the accepted resource/backend identity; new effects
+must pass their applicable current-authority checks. Recheck mutable prerequisites at the
+transaction/CAS or external-effect boundary required by each feature.
+
+| Boundary | Required implementation rule |
+|---|---|
+| Request lookup | Scope by principal/request and compare the canonical fingerprint; current authorization still applies to replay |
+| Local admission | Commit intent, ownership/reservations and relevant CAS together; concurrent duplicate admission selects the same original operation |
+| External dispatch | Persist sufficient dispatch intent/reservation before the effect; a crash or lost reply enters that feature's reconciliation path |
+| Completion | Verify identity and observed outcome, then commit result and pointer/busy changes together where locally atomic |
+| Recovery | Reconcile the original effect; never infer permission to submit a second execution from missing evidence |
+| Retirement | Recheck ownership/pins and preserve durable receipts; recover interrupted owned rename/delete without deleting replacement resources |
+
+Do not force Git publication, child launch, artifact seal and deployment switching through a
+single supposedly atomic transaction. Their crash gaps differ. Typed transition functions return
+explicit observations, record updates or narrowly described effect requests; the durable commit
+and effect ordering remains visible in the coordinating code. Every externally meaningful gap
+has an invariant test. Type-state may help a local construction sequence, but durable recovery
+must represent states that exist after process death and partial writes.
+
+### Concurrency and process lifetime
+
+Retain one controller process owner per state root and SQLite WAL/FULL durability. Serialize
+transactions on the owned connection; keep them short. Use bounded blocking work for SQLite,
+Git and filesystem operations if the transport uses async I/O. Do not hold a transaction or
+controller-wide exclusive mutex across subprocess/network waits. Preserve the installation
+admission fence and retained pending-effect checks. Retain the artifact/deployment lifecycle
+guard required by §8 initially, including its bounded copy/service-wait scope outside SQLite;
+it precedes per-operation reconciliation locks and does not block ordinary source work. Narrower
+locks require pin-versus-switch/prune race tests. Lock order must be explicit and consistent
+before additional concurrency is introduced.
+Pass an explicit guarded context to internal artifact/deployment advancement so nested
+reconciliation does not reacquire a non-reentrant Rust mutex. Do not mechanically translate
+Python's reentrant locking into nested ordinary mutex acquisition.
+Per-operation reconciliation excludes concurrent advancement of that operation without blocking
+unrelated work. Bounded queues report capacity exhaustion; they do not silently discard effects.
+
+Controller request cancellation or disconnect ends observation, not the accepted operation.
+Native supervisors run as independent OS processes with durable spool identity. A Tokio task
+inside the controller cannot replace that boundary. Keep PID start checks, subreaping, stdin
+delivery uncertainty, bounded byte logs, deadline accounting, descendant stop proof and capture
+ordering. Limit unsafe/platform-specific code to reviewed syscall adapters and exercise it on
+Termux. Same-UID execution and sampled budgets retain the limits described in §3.
+
+### Identity, storage and compatibility
+
+Separate ordinary JSON serialization from bytes used for request, policy, spool, artifact and
+release identities. Existing canonical JSON uses sorted keys, ASCII escapes, compact separators
+and rejected non-finite numbers. Lock exact byte/hash examples, including Unicode, numeric
+representations and empty/optional values, before writing a new encoder. Do not substitute a
+library's default serializer or another canonical-JSON standard and assume hashes match.
+Internal format changes may be deliberate, but their reader/writer compatibility and existing
+receipt/artifact handling must be explicit and tested. Preserve Git OID and ref-CAS semantics;
+continue invoking Git plumbing initially rather than changing Git implementation simultaneously.
+
+The state owner admits only supported formats before mutation. A controller swap never creates
+two writers. Python and Rust implementations must not run against the same live state root for
+comparison. Test fixtures may use independent roots or offline copies. Existing in-flight work
+either remains interpretable by its pinned owner or blocks cutover with honest recovery evidence.
+Completed receipts, credentials, workspace/task ownership, artifacts, service data and active
+release pins must survive the selected transition. Unsupported downgrade must fail before
+stopping a healthy service or modifying state; restoring a binary does not undo schema writes.
+Do not build migrations solely to preserve abandoned experimental names, and do not use that
+policy as permission to reset real state.
+
+Installation manifests bind the executable, contracts and actual required runtime files.
+Readiness checks verify the selected process/bundle identity rather than relying on Python
+argv/PYTHONPATH patterns. Project services retain their pinned runner while they need it.
+Cargo package metadata owns the product version from package creation; the reference executable
+derives that value and its bundles retain the manifest until retirement. This prevents two
+manually maintained versions during implementation. Shell remains suitable for the minimal bootstrap; ordinary product operation
+must not need a Python controller/helper once the target implementation is complete.
+Previously pinned service bundles retain their declared interpreter/runtime prerequisites until
+explicitly retired; preserving those live services does not select an alternate controller.
+
+### Implementation-independent verification
+
+Acceptance tests launch the selected executable with disposable roots/config, make actual HTTP
+or CLI calls, interrupt owned processes and inspect externally observable results. They do not
+import Controller, mock private methods or require Python class layouts. The harness supplies
+process launch/readiness/stop and client operations; it does not implement business semantics.
+Implementation-specific unit tests remain useful for transition tables, storage crash cases,
+encoding and paths. Do not convert every existing unit test to an expensive end-to-end test.
+
+Run the same behavioral scenarios on separate disposable fixtures for each implementation.
+Compare semantic outcomes and effect counts; normalize only documented nondeterminism such as
+fresh IDs, ports and timestamps. Do not normalize away failure codes, effect certainty, limits,
+source content, authority decisions or identity relationships. Preserve exact digest comparisons
+for stable fixture inputs. Existing behavior that contradicts an invariant is a defect to fix,
+not an oracle to copy; document the difference and add the corrected invariant test.
+
+Use deterministic barriers at selected persistence/dispatch/seal/switch boundaries plus real
+SIGKILL/restart tests. Test hooks are compiled into test artifacts only, have no public MCP or
+operator activation path, and cannot be enabled in the distributed binary. Test clocks can
+control unit deadlines; actual process termination/readiness still needs real-process checks.
+No arbitrary sleeps as the sole proof that a crash boundary was reached.
+
+### Product identity and design adjustments
+
+The delivered product remains `tdev`: canonical command, package, configuration and documentation
+names describe responsibilities. No development-branch names, language-edition names, alternate
+runtime switches or permanent old/new implementation selectors belong in the finished product.
+Temporary harness launch adapters and reference implementations are removed when their evidence
+has been carried forward; historical source remains in Git. Rust/toolchain names in build
+metadata and genuine persisted-format compatibility checks are functional information, not
+product variants. Unrelated caller examples and user-program language support are retained.
+
+Module layout, libraries, lock granularity and internal representations may improve when a
+concrete implementation or measurement justifies it. Update this owner and the affected tests
+in the same change; update the plan if dependencies/order change. Record what improved and which
+invariants were exercised in LOCAL_VALIDATION. Do not create a parallel design authority or
+another roadmap. Changes to product authority/trust, removal of supported behavior, public
+contracts or state compatibility are not routine refactors: identify their concrete impact and
+resolve them against current user instructions before implementation. User-approved improvements
+replace the relevant design, rather than accumulating permanent alternative modes.

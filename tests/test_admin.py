@@ -11,6 +11,29 @@ from tdev.store import Store
 
 
 class AdminTest(unittest.TestCase):
+    def test_product_version_survives_an_inactive_bundle_without_the_checkout(self):
+        import subprocess
+        import sys
+        from tdev import __version__
+        source_root = Path(__file__).resolve().parents[1]
+        with tempfile.TemporaryDirectory() as tmp:
+            root, source = Path(tmp)/'install', Path(tmp)/'source'
+            (root/'bin').mkdir(parents=True); root.chmod(0o700)
+            binary = root/'bin/tunnel-client'
+            binary.write_text('#!/bin/sh\nprintf "0.0.14\\n"\n'); binary.chmod(0o700)
+            (source/'src/tdev').mkdir(parents=True)
+            shutil.copyfile(source_root/'src/tdev/__init__.py', source/'src/tdev/__init__.py')
+            shutil.copyfile(source_root/'Cargo.toml', source/'Cargo.toml')
+            (source/'requirements.txt').write_text('')
+            staged = stage(root, source)
+            directory = Path(staged['directory'])
+            self.assertIn('Cargo.toml', json.loads((directory/'manifest.json').read_text())['files'])
+            shutil.rmtree(source)
+            process = subprocess.run([sys.executable, '-S', '-c', 'import tdev; print(tdev.__version__)'],
+                cwd=directory, env={**os.environ, 'PYTHONPATH': str(directory/'src')},
+                capture_output=True, text=True, timeout=10, check=True)
+            self.assertEqual(process.stdout.strip(), __version__)
+
     def test_once_only_project_delegation_preserves_credentials_and_existing_scope(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / 'install'; projects = Path(tmp) / 'projects'; projects.mkdir()

@@ -1,5 +1,167 @@
 # Local validation evidence — 2026-09-20
 
+## Initial package, identity and storage implementation — 2026-10-02
+
+P2 has started. One `tdev` Cargo package, library and command build on the actual
+`aarch64-linux-android` Termux target with rustc/cargo 1.98.0. The current command implements
+version/help only; no HTTP source slice or production replacement is claimed. Product version
+ownership moved once to Cargo package metadata, and the reference executable derives it.
+Inactive bundles include the manifest, proved by importing the staged package after deleting
+its source checkout. Existing pinned bundles retain their original declared runtime files.
+
+Implemented: distinct validated IDs/OIDs/digests/paths/refs; independent status/effect enums;
+checked persisted operation decoding; canonical identity decoding/encoding and SHA-256;
+one SQLite owner with WAL/FULL, replay-before-reservation, atomic admission/reservation and
+completion/pointer callbacks, rollback, and terminal monotonicity. SQLite is linked to the
+device's existing 3.53.4 library through rusqlite 0.40.2, without a bundled second SQLite.
+serde/serde_json are used for ordinary typed records, ryu for shortest float digits and sha2
+for hashes. The lockfile pins the dependency graph; rust-toolchain.toml records the installed
+toolchain. Termux's source-built binaries are used directly, without installing rustup.
+See the [rusqlite API](https://docs.rs/rusqlite/0.40.2/rusqlite/) and
+[File locking API](https://doc.rust-lang.org/std/fs/struct.File.html) for the selected boundaries.
+
+The identity representation preserves Unicode code-point key ordering, paired/unpaired
+surrogates, arbitrary decimal integers, integer versus floating forms, signed floating zero
+and Python-compatible exponent/fixed notation. Normal serde JSON serialization is not used
+for fingerprints. The same ten static byte/hash vectors pass; `scripts/check_identity.py`
+compares the compiled test executable with 10,003 fixed/deterministic numeric cases. This is
+sampled compatibility evidence, not a proof over every possible floating value.
+
+`cargo test --locked`: 15 tests, all passed (0.91s in the recorded run). They exercise real
+SQLite files, failed reservation/completion rollback, restart/replay, principal scope,
+terminal-write refusal, unsafe state paths, unsupported/corrupt state byte preservation and
+read/write interoperability with the reference storage owner for schema versions 3/4/5.
+Full artifact/deployment/entity state-transition compatibility remains P5 work. The initial
+two reopen tests failed under concurrent reference-process spawning: inherited lock file
+descriptors could briefly retain a lock after closing the controller's descriptor. Explicit
+Drop now closes SQLite first and then unlocks the file description. The corrected tests and
+cross-process lock exclusion pass. No retry was added to hide a second owner.
+
+`cargo clippy --locked --all-targets -- -D warnings` passed after moving the test module below
+implementation items. `cargo fmt` was applied. The affected reference suite
+`test_admin test_resident test_contract acceptance.test_inventory test_identity` passed
+30 tests in 61.599s. Earlier executable-focused evidence remains applicable to the baseline;
+the final combined `scripts/check.sh` result is recorded after completion below.
+
+Next P2 work: Git plumbing, Schema 2020-12 validation, authenticated HTTP, workspace/project
+admission and the open/read/atomic-edit/inspect/replay/CAS/restart vertical slice. The identity
+decoder's 128-depth bound is internal at present; edge acceptance, numeric schema parity and
+handling of unpaired surrogates in new wire requests require explicit contract tests when the
+transport is introduced. No library default may silently choose that public behavior.
+
+Final combined gate: `bash scripts/check.sh` exited 0. Formatting and all-target lint passed,
+15 native tests passed with no ignored tests, the compiled identity comparison passed 10,003
+cases, and all 378 reference/common tests passed in 881.784s; whitespace checks passed.
+The separate native command build also passed and printed `tdev 0.1.25` for `--version`.
+Local Markdown file/anchor references were checked. Logs are retained at
+`$PREFIX/tmp/tdev-combined-full.log`, `tdev-cargo-{build,test,clippy}.log`,
+`tdev-substrate-{focused,acceptance}.log` under the same temporary directory.
+This qualifies the initial library boundary and the unchanged reference behavior; HTTP source
+work, process/artifact/deployment/operator parity, whole-state transition and live host acceptance
+remain open in P2–P6. No main integration or live service change was performed.
+
+## Published baseline and executable boundary — 2026-10-02
+
+Current comparison baseline: `63e7f750e063cac336c74f60fc84d153add4bee8`.
+The local baseline was behind origin by 18 commits. Existing install/observer changes were
+committed as `59feec0`, then merged with current origin `c5669aa`, retaining its thirteen tools,
+typed request envelope, human-name continuation, observation and exact-operation fixes.
+Merge conflicts were resolved in README, LOCAL_VALIDATION, version ownership and CLI/tests;
+source remains 0.1.25. The tdev branch was pushed without force; remote readback returned the
+exact baseline OID above. No resident/provider activation was performed.
+
+Baseline checks used the separate `tdev-baseline` worktree and the existing pinned dependency
+directory. The first 72-test affected run had one dependency-import failure because that
+worktree did not yet have `.tdev-deps`; the other 71 passed. After linking the existing private
+dependency directory, the failed test passed (0.465s), then `bash scripts/check.sh` passed all
+365 tests (907.221s) and the whitespace check. The missing fixture dependency was not reported
+as a product success. Temporary logs are under `$PREFIX/tmp/tdev-baseline-{focused,full}.log`.
+
+The implementation worktree preserves the user's `.artifacts/`, `node_modules/` and conversation
+file. A named Git stash and private document snapshot retain the original pre-synchronization
+changes; they were not dropped. Before the P2 implementation above, runtime files were unchanged
+from the published baseline.
+For independent byte verification, sort relative regular-file paths under `src/tdev` and
+`contracts`, excluding `__pycache__`, and hash each UTF-8 path + NUL + bytes + NUL with SHA-256:
+39 files, `c56e35030a111353b2197ac471143b9b2fae4ee3652dd28548f7aa847abace67`.
+This source/contract digest is deliberately distinct from the older broader 89-file digest.
+
+Environment: Android 16/aarch64 Termux, Python 3.14.6, Git 2.55.0, installed rustc/cargo 1.98.0.
+SHA-256 executable/input identities: `$PREFIX/bin/python`
+`4f8d78ede7fc26e96e99342dd83ce42d32c9b4d0806bc9a99ff7151396269b25`;
+`$PREFIX/bin/git` `aba46d67c0c5752c27129d97136055bd8d7f3b3c4378edbf5c7c5a6f8dead5db`;
+`requirements.txt` `a593b4494557bc87c50a132597f908de881735179e8a6b45502e08f16553c90f`.
+The pinned dependency set is jsonschema 4.26.0, attrs 26.1.0, jsonschema-specifications
+2025.9.1, referencing 0.37.0 and rpds-py 2026.6.3. These hashes do not identify all dynamic
+system libraries or freeze the device/OS; a later comparison must re-record its environment.
+Tool presence does not qualify a Rust build. `scripts/measure.py` on this baseline recorded
+2.358 / 2.325 / 6.576s, 32 / 32 / 36 calls, one executor start and exact publication in each
+trial; expanded advertised schemas were 299,416 bytes. These are unisolated two-file local
+smoke measurements and show substantial variance. They are not a speed comparison with the
+historical baseline or a Rust performance result. Matched resource/build/latency measurements
+and real host acceptance remain pending; the comparison workload and initial investigation
+thresholds are in IMPLEMENTER_REFERENCE.
+
+The common harness has nine executable scenarios: discovery and rejected admission; full
+source/edit/exec/validate/publish with closed-task retirement; invalid paths; lost response and
+controller SIGKILL with single execution/input replay; missed completion/fresh forward work;
+durable failed exit/no-op checkpoint; human-name ambiguity; bounded JSON/SSE observations;
+and SHA-256 exact publication. It imports no tdev domain implementation. The action inventory
+has 61 entries; ten fixed identity vectors have a separate Python encoder bridge. These are
+initial boundaries, not full feature parity or live host qualification.
+
+Focused/affected command:
+`PYTHONPATH=src:.tdev-deps:tests python -m unittest acceptance.test_runtime acceptance.test_inventory test_identity test_contract -v`
+passed 16 tests in 51.149s. Initial harness assumptions were corrected against the current
+contract: file reads return base64, mutation replay does not imply captured output in that
+response, progress ticks require an observation window, and publication already closes the
+task. No production behavior was changed to make the harness pass.
+
+The first full post-boundary run was interrupted during the surface tests by the session/model
+transition; no running process or final result remained. It is not counted as a PASS. The final
+combined qualification is recorded after completion. Logs:
+`$PREFIX/tmp/tdev-foundation-focused.log`, `$PREFIX/tmp/tdev-foundation-full.log`.
+
+## Runtime implementation foundation — 2026-10-02
+
+Historical documentation-only preparation before the refreshed baseline above.
+The selected structure is in ARCHITECTURE §10 and execution
+order in IMPLEMENTATION_PLAN P0–P6; IMPLEMENTER_REFERENCE supplies non-normative test navigation.
+No Rust implementation, common executable harness, runtime swap or new storage format is claimed.
+Existing source/install/observer changes and unrelated untracked files were preserved.
+
+Review baseline HEAD is `0f6b78e18ec6abfad830bfd8e65917c7c128149a` **plus working-tree changes**,
+including untracked bootstrap product/test files. The executable/test/contract/script baseline
+has 89 files and manifest digest
+`9af043ede8af6ec9adf6d718c44893b256093284e8e50e693e4d25aa85d5a1d8`.
+The manifest selects `src/tdev/**/*.py`, `tests/**/*.py`, `tests/**/*.cjs`,
+`contracts/**/*.json`, direct files in `scripts/`, and
+`requirements.txt`, `tdev`, `i`, `install.sh`, `bootstrap.sh`.
+Sort repository-relative paths lexically; hash the UTF-8 concatenation of
+`path + NUL + lowercase SHA256(file bytes) + LF` with SHA-256. Documentation is excluded from
+this executable baseline. This identity is not an archived snapshot or a dependency/environment
+attestation; P0 still must bind a reproducible comparison fixture and action-level inventory.
+
+Executed during the preceding review on that executable baseline:
+
+| Check | Observed result / scope |
+|---|---|
+| `PYTHONPATH=src:.tdev-deps:tests python -m unittest test_core test_native test_recovery test_process_crash test_contract -q` | 47 tests, OK, 65.776s |
+| `bash scripts/check.sh` | 326 tests, OK, 496.874s; diff whitespace check passed |
+| `PYTHONPATH=src:.tdev-deps python scripts/measure.py` | Three local fixture runs: 1.171 / 1.195 / 1.227s, one executor start and exact publication each; advertised expanded schemas 283,584 bytes |
+
+These are Python implementation results. The small workload does not isolate interpreter cost,
+measure host/Tunnel latency, establish model-visible token cost or predict a Rust speedup.
+For the foundation document changes, focused `test_contract` passes 3 tests in 4.273s.
+The post-edit `bash scripts/check.sh` passes all 326 tests in 817.235s and the diff whitespace
+check (exit 0). Local Markdown file/anchor references and test-navigation paths were checked.
+The 89-file executable baseline digest remained unchanged. These checks qualify documentation
+coherence and the unchanged implementation; they do not establish a new executable or live
+host/runtime acceptance. Duration differences between the two full runs are not a performance
+comparison: these were unisolated validation runs, not matched benchmarks.
+
+## Original qualification context
+
 Evidence only; README owns current status. Work location:
 `/data/data/com.termux/files/home/prj/tdev`, branch `tdev`.
 Starting authoritative local and remote HEAD:
@@ -882,7 +1044,7 @@ development needs none of these optional Android components.
 Proceed with generalized packaging, then minimum notes, then the complete journey qualification;
 source-free resource inspection and demanded Android/external adapters follow. Only a concrete
 blocking prerequisite may move earlier. Detailed slices/acceptance are recorded in
-[IMPLEMENTATION_PLAN](IMPLEMENTATION_PLAN.md#current-priority-after-the-continuity-review).
+[IMPLEMENTATION_PLAN](IMPLEMENTATION_PLAN.md#deployment-packaging-implementation-plan).
 
 ### Checks for the documentation review
 

@@ -88,6 +88,195 @@ goal also requires the work below.
 
 ## Next implementation sequence
 
+This section is the single selected order. Detailed sections below are acceptance specifications,
+not competing queues. README owns implementation/current status; LOCAL_VALIDATION owns dated
+results. Earlier incident/install/connection requests do not remain perpetual prerequisites once
+implemented. Current user instructions may reprioritize an item; record the resulting order here.
+
+The selected order is P0–P6 below: establish behavioral test boundaries, then redesign and
+implement directly in Rust using ARCHITECTURE §10. Do not first refactor the whole Python
+implementation. The prior product qualification queue later in this document supplies acceptance
+scenarios, not a competing implementation order. Optional semantic continuity, new package
+ecosystems and new integration families remain outside this delivery unless a concrete blocker
+and current user instruction select them.
+
+The user now authorizes baseline publication and implementation in the selected development
+branch. Live runtime/provider replacement and integration of an unqualified implementation
+remain outside this authorization. The intended integrated
+result is the canonical product, with no permanent language-specific variant.
+
+### P0 — bind the baseline and the acceptance inventory
+
+1. Record the selected Git base plus the relevant working-tree delta and untracked product
+   files. A commit OID alone cannot identify this checkout. Preserve user changes, existing
+   node_modules, observations and unrelated artifacts. Use a private, explicit comparison
+   snapshot or worktree; preserve and explicitly account for the current install and observer
+   changes. The user has authorized committing/publishing that baseline. A reference snapshot
+   is test evidence, not a second product owner.
+2. Inventory each implemented public action, operator command, persistence format and process
+   role against its existing tests. Start from IMPLEMENTER_REFERENCE's map; fill action-level
+   gaps from the contracts. Mark each as externally testable, internal unit coverage, real
+   rehearsal, host-only evidence or currently unqualified. Test count alone is not coverage.
+3. Use the refreshed baseline identity/results in LOCAL_VALIDATION; the earlier 326-test
+   baseline is historical and no longer identifies the selected source.
+   Preserve the small local measurement's limited scope. Capture executable/dependency identity,
+   fixture size and isolated evidence paths for subsequent comparisons, without credentials.
+   Define the P5 workload/device/concurrency and initial resource/latency budgets from baseline
+   measurements before collecting candidate performance results; record what remains unmeasured.
+
+Exit: another implementation can be compared against an identified source/config fixture and
+an explicit behavior inventory. Missing host evidence is named, not invented. No Rust behavior
+is claimed from the Python baseline. No implementation refactor is required to complete P0.
+
+### P1 — build the executable acceptance boundary
+
+1. Add a small harness under `tests/acceptance/` that starts a supplied executable/argv with a
+   disposable config/state root, waits for bound readiness, calls HTTP/CLI, kills only owned
+   processes, restarts the same fixture and collects bounded evidence. The initial launch
+   adapter starts the existing Python server; final product code has no implementation selector.
+   Discovery of nested tests must be explicit in `scripts/check.sh`; no silently skipped suite.
+2. Extract scenarios from `test_http`, `test_process_crash`, `test_recovery` and `test_progress`
+   first: strict metadata/auth/schema rejection, full source path, duplicate request, SIGKILL
+   recovery, lost completion reply and bounded current/no-change observations. Add a behavioral
+   lost-response proxy or client discard without retrying the effect. Keep useful internal
+   unit tests; do not rewrite the entire test suite before implementing one feature.
+3. Add identity golden fixtures for canonical JSON/digests, SHA-1/SHA-256 source identities,
+   invalid paths/symlinks and wire acceptance/rejection. Include non-ASCII text, number forms,
+   null versus omitted fields and request mismatch. Capture only deterministic private fixtures,
+   not production databases/spools or real credential/config files.
+4. Define synchronization/fault events for intent commit, dispatch reservation, child launch,
+   terminal receipt, artifact rename, deployment switch and prune retirement. Use actual process
+   death where observable; use narrow test-only barriers for otherwise unobservable windows.
+   Test adapters must not duplicate recovery policy or make a false success look equivalent.
+
+Exit: the common source/recovery scenarios run against the current executable without importing
+its domain objects. The contract, effects and identity assertions are independent of module
+layout. Remaining artifact/deployment/operator scenarios have explicit later owners in P4/P5.
+
+### P2 — implement the package, types and durable local slice
+
+1. Create the canonical `tdev` Cargo package/modules from ARCHITECTURE §10; pin the toolchain
+   and dependency lockfile. Qualify on-device Termux build/test first. Select minimal libraries
+   for JSON/Schema 2020-12, SQLite and HTTP from actual target builds and contract fixtures;
+   verify MCP 2026-07-28 behavior before adopting an SDK. Neither an SDK nor generated structs
+   replace tdev's contract checks. Record library choices and target/API/linking assumptions.
+2. Implement validated identifiers, orthogonal operation/effect states, errors, wire conversion
+   and canonical identity encoding. Implement the single-writer SQLite owner, supported-format
+   admission and short transactions, then Git plumbing. Specify lock order and prohibit external
+   waits while holding a database transaction. Test malformed persisted records and unsupported
+   formats before accepting effects.
+3. Deliver a vertical slice through authenticated HTTP: workspace/project enrollment, source
+   task open, read, atomic edit, inspect, replay, checkpoint CAS and restart. Exercise a real
+   disposable Git repository and SQLite file. Match current scope, managed-ref ownership and
+   dirty-checkout preservation; a discovery-only server is not completion of this slice.
+4. Add formatting/lint, unit/contract and implemented acceptance checks to `scripts/check.sh`.
+   Until the target is complete, report which surfaces are implemented explicitly. Do not
+   advertise all thirteen tools with success-shaped stubs or count skipped scenarios as passing.
+
+Exit: an on-device build passes the local source slice and canonical identity fixtures. Existing
+Python tests remain available as evidence until each affected behavior has an adequate successor.
+
+### P3 — implement execution, validation/publication and recovery
+
+1. Implement the independent native supervisor process and durable spool protocol: reserve before
+   dispatch, PID/start identity, clean environment, task dependency leases, stdin sequencing,
+   bounded output, working budgets, deadlines, descendant stop and owned source capture. Select
+   backend once at admission; preserve the dormant SSH adapter with transport fixtures without advertising it in the native-only public surface.
+2. Join actual stop/exit/source proof to validation and exact non-force publication. Implement
+   per-operation reconciliation and bounded task/workspace frontiers. Replaying the same request
+   after disconnect or restart observes one effect; stale source/policy cannot become publishable.
+3. Run common scenarios and Rust unit/fault tests at every persistence/dispatch gap. Test double
+   fork/cancel, dead supervisor, input acknowledgment loss, controller SIGKILL, slow unrelated
+   reconciliation, source capture failure and completion missed by a continuing/fresh client.
+
+Exit: full source development and process recovery work through the actual executable. No
+Python controller/worker is called to complete this slice. Dormant SSH is not caller-selectable;
+unavailable remote infrastructure is a separately reported qualification gap, not native fallback.
+
+### P4 — implement retained artifacts and deployment as one ownership path
+
+1. Implement frozen recipe/policy binding, pinned public input acquisition, fresh builds,
+   declared-export capture, atomic sealing and runtime checks using the existing packaging
+   acceptance sections below. Keep build intent, stop proof, retained content and verification
+   distinct. Editing/closing source cannot change an accepted build's input.
+2. Implement source and packaged release activation, live release identity, update, rollback,
+   failed-switch recovery and data-preserving removal. Share the same artifact pin/admission
+   discipline with verification, export and prune. A successful server start alone is insufficient.
+3. Carry behavioral scenarios from artifact/deployment tests into the executable harness;
+   retain focused internal tests for pure rules. Exercise real isolated runit for process/service
+   ownership, failure restoration and state after controller restart. Remove source/build scratch
+   and dependency environments before checking retained runtime independence.
+4. Test interruption after seal rename/before receipt, low space, output/capture limits, shared
+   identical content, prune versus switch/verification, unknown-effect pins, export paging/hash,
+   incompatible runtime and rollback without reacquisition. Include a non-service output.
+
+Exit: a dependency-bearing retained service and a non-service artifact complete build, verify,
+delivery, restart and owned cleanup. No rebuild disguises a failed rollback; data/history/pins
+have explicit retained owners. Existing packaging tests are specifications, not new work queues.
+
+### P5 — finish operator/runtime integration and state transition qualification
+
+1. Implement CLI menus/direct commands, installation/configuration, independent connections,
+   bearer selection, bootstrap, service lifecycle, diagnostics and observer behavior. Preserve
+   optional diagnostic failure isolation and all thirteen contracted tools. Keep the explicitly
+   selected stdio compatibility edge and caller examples; do not downgrade core HTTP.
+2. Replace Python-specific launcher/readiness/bundle assumptions with verified executable
+   identity. Retain the version ownership established in P2, derive consumers, and qualify fresh offline-staged
+   installation, interrupted setup, intentional-down state and failed update/rollback. Retain
+   credentials, operator HOME/evidence discovery and project-service runner pins.
+3. On disposable offline copies, qualify the selected state reader/transition and incompatible
+   downgrade refusal. Include complete receipts, running/unknown effects, active/previous
+   deployments, artifacts and diagnostic data. Do not feed the actual running installation to
+   an unqualified reader. Admission to a swap must define pending-effect handling before stop.
+4. Record build time, peak build memory, installed size, dependency requirements, cold/warm start,
+   controller-plus-supervisor memory/CPU and representative latency/storage costs. Use the same
+   device, fixture and concurrency, with repetitions and comparable baseline runs. Select an
+   explicit regression budget before interpreting candidate results; no assumed speed multiplier.
+
+Exit: fresh installations and target-runtime operations have no Python runtime-helper dependency;
+external user programs, test tools and previously pinned service bundles may require Python.
+Supported installation/state/update behavior is exercised locally,
+and build/runtime costs fit the selected Termux target. Unmet budgets trigger a measured repair
+or documented scope decision, not a claim of improvement.
+
+### P6 — qualify and integrate the canonical product
+
+1. Close the action-level inventory. Every supported surface has an implementation, adequate
+   tests and an honest qualification status. Run focused/affected checks, then `scripts/check.sh`,
+   official pinned MCP-client interoperability and isolated installed-bundle/runit rehearsals.
+   Reachable test-only fault hooks, placeholder responses and unexplained skipped checks fail
+   this gate. Full checks must execute the final artifact, not just retained Python tests.
+2. Qualify one-project and two-project journeys including reconnect, useful resumption and
+   cleanup. Live ChatGPT/Tunnel acceptance is distinct from scripted HTTP/SDK success. Carry
+   forward historical evidence only when the relevant boundary is unchanged; mark changed,
+   untested boundaries outstanding. Document any unavailable host gate instead of silently
+   treating it as satisfied for integration/release claims.
+3. Remove superseded runtime code, temporary comparison launch adapters, duplicate version/schema
+   owners and development-only product names/options. Keep general tests/examples and required
+   persisted-format handling. Update README, installation/operations docs and the selected plan
+   around the one finished product; leave historical implementations in Git.
+4. Review the final diff against the preserved baseline and the intended integration target;
+   account for user changes and conflicts without broad cleanup. Main integration requires
+   closed required gates or an explicit user decision on a named remaining gap. Production
+   activation/provider changes retain their separate authorization and acceptance boundary.
+
+Exit: the integrated implementation is `tdev`, with one canonical controller implementation and
+reviewable validation evidence. A new language suffix, alternate edition or permanent switch
+between controllers is not a delivery mechanism.
+
+### Rules for changing the implementation plan
+
+At each slice, record implemented behavior and next work in README, design changes in
+ARCHITECTURE and actual results in LOCAL_VALIDATION. Fix evidence-backed defects within the
+current slice. Module/library choices may change with demonstrated benefits and affected checks;
+do not require a new design document or user approval for ordinary internal improvements.
+If an improvement changes scope, contract, authority, data compatibility or delivery dependencies,
+state the impact and update the responsible owner/order before continuing dependent work.
+No new integration, optional memory subsystem or universal abstraction enters the critical path
+merely because the implementation language makes it convenient.
+
+### Prior product qualification context
+
 2026-10-01 user priority: repair confirmed Host/operation boundary defects on fresh canonical
 source. First fix no-op capture and terminal-write races, add repository source-validation
 budget/readback and enforce caller result consumption, then qualify bounded admission-before-use
@@ -137,10 +326,9 @@ including `readOnlyHint=true`. This is an intentional permission-popup workaroun
 accidental claim of pure effects. Do not change it without first solving and qualifying the
 popup behavior. Actual effect/recovery boundaries may improve independently of these hints.
 
-This section is the single selected order. Detailed sections below are acceptance specifications,
-not competing queues. README owns implementation/current status; LOCAL_VALIDATION owns dated
-results. Earlier incident/install/connection requests do not remain perpetual prerequisites once
-implemented. Current user instructions may reprioritize an item; record the resulting order here.
+
+The dated priorities below explain the existing working-tree/evidence baseline. Their numbered
+steps refer to the prior qualification backlog, not P0–P6 or a prerequisite to starting P0.
 
 2026-09-28 user priority: deliver a repository-URL one-line first install on fresh Termux,
 including prerequisite/bootstrap handling, terminal setup, user documentation and isolated
@@ -170,6 +358,10 @@ policy or host behavior changed; run focused/affected/full checks for implementa
 Treat each unfamiliar production identity as an observation to verify, not an update instruction.
 No routine upgrade, credential rotation or observer restart is required merely to begin this plan.
 Unknown effects remain attached to their original operation/request; no ambiguous-effect retry.
+
+### Product qualification backlog and scenario sources
+
+Use this table to select P4–P6 journeys and later product work. It does not supersede P0–P6.
 
 | Order | Work | Completion gate | Dependency / scope limit |
 |---|---|---|---|
@@ -215,7 +407,7 @@ workspace/credential need not block unrelated local packaging work.
 | Local operator usability | Keep numbered menus and direct automation commands; assess lifecycle summaries, recoverable failures, installed/source identity and ID selection during real tasks | Add only actions that reduce measured operator burden; adding every MCP field to menus is not the goal |
 | Security and retained ownership | Current principal/policy checks, credential revocation surviving rollback, original-operation reconciliation, active/previous/in-flight artifact pins, bounded diagnostic storage | No auth weakening, deleted user evidence, silent effect retry or automatic repair based on a stale diagnostic/semantic note |
 
-## Current priority after the continuity review
+## Lifecycle investigation acceptance
 
 When long-running visible delivery is the selected evidence gap, measure the actual
 2026-07-28 POST response boundary before changing caller polling. Distinguish a silent
@@ -229,7 +421,8 @@ uses request-scoped SSE with standard `notifications/progress`. Do not invent a 
 token or treat comments as protocol/UI progress. Qualify the JSON fallback in the affected real
 host and the progress-token SSE path with the pinned official SDK separately.
 
-Use the existing optional diagnostic implementation while returning to packaging delivery.
+Carry the existing optional diagnostic behavior through P5. Investigate the cases below when
+a reproduced continuity defect selects them; they do not supersede the P0–P6 delivery order.
 Diagnostics remain operationally independent; continuous monitoring is not a new prerequisite
 for admission or success. Existing local evidence should be analyzed before acquiring new trials.
 The detailed investigation order below is activated by a useful evidence gap, not by elapsed time.
@@ -493,16 +686,17 @@ not hostile-process containment. Defer automatic GC until the explicit ownership
 | Client/installed path | Official SDK and affected client schemas, then authorized disposable installed acceptance; exact runtime bundle and artifact digests, health, logs, cleanup and source remote readback recorded. |
 | User journey | New local project and a two-project workspace: develop, validate, package, release, reconnect, update/rollback and close. Record manual config/identifier interventions, tool calls, elapsed time and retained storage. |
 
-Implement slices in order, with focused/affected tests then `scripts/check.sh` per meaningful
-change. Expected component touchpoints are contracts/tools.schema.json and scoped config policy,
+Within P4, use the packaging dependency order above and run focused/affected tests then
+`scripts/check.sh` per meaningful change. Expected component touchpoints are the existing wire
+contracts and scoped config policy,
 core admission/validation, store retention, native build supervision, deployment manifest/runtime,
 and corresponding unit/real-runit rehearsals. Share concrete capture/hash/path checks where their
 semantics match; do not create a universal artifact/connection framework just to remove duplication.
 Update ARCHITECTURE semantics and contract types alongside implemented slices; keep unimplemented
 claims out of README. Record actual acceptance and limitations in LOCAL_VALIDATION.
 
-The selected queue above starts with slice 6, using the implemented
-recipe/identity, retained-build, validation and deployment boundaries. The pure-Python path has
+P4 reimplements and P6 qualifies these recipe/identity, retained-build, validation and deployment
+semantics. Existing evidence may inform fixtures but cannot qualify the new implementation. The pure-Python path has
 real selected-distribution build/relocation and isolated runit evidence; consult README for installed
 artifact validation/release acceptance. Real ChatGPT journey and broader dependency/native-extension
 qualification are separate gates.

@@ -72,8 +72,8 @@ pre-release/build revisions within this line when warranted. Raising the minor o
 version requires the user's explicit authorization; no product or public-contract v1 (or
 later major version) may be declared without it. Documentation changes need no automatic bump.
 
-The executable version has one source: `src/tdev/__init__.py`; consumers must derive it
-there rather than scatter version literals through code, contracts or tool names. Internal
+The product version has one source: `Cargo.toml` package metadata. Build outputs and the
+reference executable derive it there; inactive reference bundles include this input. Internal
 storage/format revisions and external protocol versions are independent of product maturity.
 No production release has been made. Pre-release redesign does not require compatibility
 aliases or migration machinery solely for experimental interfaces; actual user files,
@@ -100,13 +100,37 @@ isolation. See the [trust boundary](ARCHITECTURE.md#3-native-trust-and-containme
 
 ## Current work
 
-Live resident is **0.1.25**, bundle
+The selected work is to redesign and implement the tdev runtime in Rust, starting with
+implementation-independent acceptance boundaries. The existing product architecture remains
+the semantic foundation; this is not a line-by-line translation or a second product variant.
+The implementation structure is specified in [ARCHITECTURE §10](ARCHITECTURE.md#10-implementation-structure),
+and the single delivery sequence is in [IMPLEMENTATION_PLAN](IMPLEMENTATION_PLAN.md#next-implementation-sequence).
+[IMPLEMENTER_REFERENCE](IMPLEMENTER_REFERENCE.md) maps existing evidence to that work.
+
+Preparation status: the baseline is committed and published, including the existing install/observer
+changes and the latest thirteen-tool contract. `tests/acceptance/` now launches a separate server
+with disposable Git/config/state, tests real HTTP and process restart, and records action-level
+evidence and fixed identity vectors. These tests contain no domain implementation imports.
+The Rust package now builds on Termux and implements validated types, exact identity encoding
+and SQLite ownership/admission/completion primitives. Its command currently exposes version/help;
+it is not a serving runtime yet. The Python executable remains the behavioral reference.
+No state format revision or resident cutover has been performed. P2 is in progress: Git plumbing,
+contract validation, authenticated HTTP and the source/workspace/project vertical slice are next.
+Remaining fault,
+artifact/deployment/operator and host qualification belongs to the corresponding P3–P6 gates;
+the initial common tests are not a complete parity claim. The prior product qualification backlog
+remains relevant acceptance scope; it does not compete with the selected implementation order.
+No resident replacement or provider change is implied. Product naming stays `tdev`; successful
+integration replaces the implementation rather than shipping a language-specific edition.
+
+Latest recorded live qualification is **0.1.25**, bundle
 `f1d10cf548ff2cbc1169db2ab239b3c772a0b8264e61ad8b31bffad777877ee7`.
 Qualified source commit `983f4559ac1f79526cd8bd59558ed496d67773e9` is published on
 `refs/heads/tdev`. Both existing connections are healthy/running after the owned recoverable
 update. Existing state/config/credentials/profiles and the historical unknown publication
-are unchanged. The Termux `tdev` shortcut uses the qualified checkout; the original dirty
-checkout remains untouched.
+were unchanged in that qualification. The Termux `tdev` shortcut was bound to the qualified
+checkout. The local install/observer changes have since been included in the published source
+baseline; this implementation work has not performed another live update.
 
 Source **0.1.25** repairs the Host/exact-operation boundary: no-op command capture retains
 its source checkpoint; late dispatch failures cannot overwrite a terminal result; a new source
@@ -377,7 +401,7 @@ and fresh material-state observations, not a transcript store or another workflo
 These notes, source-task-independent host access and Android control are **not implemented**.
 Existing task/operation recovery is implemented; automatic semantic recovery across ChatGPT
 conversations is not. See the [design](ARCHITECTURE.md#optional-semantic-continuity),
-[delivery order](IMPLEMENTATION_PLAN.md#current-priority-after-the-continuity-review) and
+[delivery order](IMPLEMENTATION_PLAN.md#next-implementation-sequence) and
 [review evidence](LOCAL_VALIDATION.md#continuity-and-android-feasibility-review--2026-09-22).
 
 Native project deployment is implemented for delegated Termux HTTP services. `tdev_deploy`

@@ -1,0 +1,687 @@
+{
+  "baseline": "63e7f750e063cac336c74f60fc84d153add4bee8",
+  "meaning": "Evidence navigation, not a parity assertion. Each action still needs its full error/race/policy qualification at its delivery phase. Empty externalScenarios means no dedicated executable scenario yet.",
+  "actions": [
+    {
+      "tool": "tdev_find",
+      "action": "default",
+      "existingEvidence": [
+        "tests/test_continuation.py",
+        "tests/test_surface.py"
+      ],
+      "externalScenarios": [
+        "RuntimeTest.test_find_names_preserves_ambiguity_and_closed_predecessors"
+      ],
+      "delivery": "P3"
+    },
+    {
+      "tool": "tdev_workspace",
+      "action": "attach",
+      "existingEvidence": [
+        "tests/test_workspaces.py"
+      ],
+      "externalScenarios": [],
+      "delivery": "P2"
+    },
+    {
+      "tool": "tdev_workspace",
+      "action": "close",
+      "existingEvidence": [
+        "tests/test_workspaces.py"
+      ],
+      "externalScenarios": [],
+      "delivery": "P2"
+    },
+    {
+      "tool": "tdev_workspace",
+      "action": "configure",
+      "existingEvidence": [
+        "tests/test_workspaces.py"
+      ],
+      "externalScenarios": [],
+      "delivery": "P2"
+    },
+    {
+      "tool": "tdev_workspace",
+      "action": "create",
+      "existingEvidence": [
+        "tests/test_workspaces.py"
+      ],
+      "externalScenarios": [],
+      "delivery": "P2"
+    },
+    {
+      "tool": "tdev_workspace",
+      "action": "detach",
+      "existingEvidence": [
+        "tests/test_workspaces.py"
+      ],
+      "externalScenarios": [],
+      "delivery": "P2"
+    },
+    {
+      "tool": "tdev_workspace",
+      "action": "inspect",
+      "existingEvidence": [
+        "tests/test_workspaces.py"
+      ],
+      "externalScenarios": [],
+      "delivery": "P2"
+    },
+    {
+      "tool": "tdev_workspace",
+      "action": "list",
+      "existingEvidence": [
+        "tests/test_workspaces.py"
+      ],
+      "externalScenarios": [],
+      "delivery": "P2"
+    },
+    {
+      "tool": "tdev_task",
+      "action": "cleanup",
+      "existingEvidence": [
+        "tests/test_core.py",
+        "tests/test_workspaces.py",
+        "tests/test_projects.py",
+        "tests/test_environments.py"
+      ],
+      "externalScenarios": [],
+      "delivery": "P2"
+    },
+    {
+      "tool": "tdev_task",
+      "action": "close",
+      "existingEvidence": [
+        "tests/test_core.py",
+        "tests/test_workspaces.py",
+        "tests/test_projects.py",
+        "tests/test_environments.py"
+      ],
+      "externalScenarios": [
+        "RuntimeTest.test_find_names_preserves_ambiguity_and_closed_predecessors"
+      ],
+      "delivery": "P2"
+    },
+    {
+      "tool": "tdev_task",
+      "action": "compose",
+      "existingEvidence": [
+        "tests/test_core.py",
+        "tests/test_workspaces.py",
+        "tests/test_projects.py",
+        "tests/test_environments.py"
+      ],
+      "externalScenarios": [],
+      "delivery": "P2"
+    },
+    {
+      "tool": "tdev_task",
+      "action": "inspect",
+      "existingEvidence": [
+        "tests/test_core.py",
+        "tests/test_workspaces.py",
+        "tests/test_projects.py",
+        "tests/test_environments.py"
+      ],
+      "externalScenarios": [
+        "RuntimeTest.test_no_change_then_completion_is_visible_to_fresh_client"
+      ],
+      "delivery": "P2"
+    },
+    {
+      "tool": "tdev_task",
+      "action": "integrate",
+      "existingEvidence": [
+        "tests/test_core.py",
+        "tests/test_workspaces.py",
+        "tests/test_projects.py",
+        "tests/test_environments.py"
+      ],
+      "externalScenarios": [],
+      "delivery": "P2"
+    },
+    {
+      "tool": "tdev_task",
+      "action": "list",
+      "existingEvidence": [
+        "tests/test_core.py",
+        "tests/test_workspaces.py",
+        "tests/test_projects.py",
+        "tests/test_environments.py"
+      ],
+      "externalScenarios": [
+        "RuntimeTest.test_discovery_and_rejected_requests_have_no_effect"
+      ],
+      "delivery": "P2"
+    },
+    {
+      "tool": "tdev_task",
+      "action": "open",
+      "existingEvidence": [
+        "tests/test_core.py",
+        "tests/test_workspaces.py",
+        "tests/test_projects.py",
+        "tests/test_environments.py"
+      ],
+      "externalScenarios": [
+        "RuntimeTest.test_source_edit_exec_validate_publish_and_closed_cleanup"
+      ],
+      "delivery": "P2"
+    },
+    {
+      "tool": "tdev_task",
+      "action": "resetEnvironment",
+      "existingEvidence": [
+        "tests/test_core.py",
+        "tests/test_workspaces.py",
+        "tests/test_projects.py",
+        "tests/test_environments.py"
+      ],
+      "externalScenarios": [],
+      "delivery": "P2"
+    },
+    {
+      "tool": "tdev_task",
+      "action": "start",
+      "existingEvidence": [
+        "tests/test_core.py",
+        "tests/test_workspaces.py",
+        "tests/test_projects.py",
+        "tests/test_environments.py"
+      ],
+      "externalScenarios": [
+        "RuntimeTest.test_find_names_preserves_ambiguity_and_closed_predecessors"
+      ],
+      "delivery": "P2"
+    },
+    {
+      "tool": "tdev_read",
+      "action": "diff",
+      "existingEvidence": [
+        "tests/test_core.py",
+        "tests/test_source.py"
+      ],
+      "externalScenarios": [],
+      "delivery": "P2"
+    },
+    {
+      "tool": "tdev_read",
+      "action": "file",
+      "existingEvidence": [
+        "tests/test_core.py",
+        "tests/test_source.py"
+      ],
+      "externalScenarios": [
+        "RuntimeTest.test_source_edit_exec_validate_publish_and_closed_cleanup"
+      ],
+      "delivery": "P2"
+    },
+    {
+      "tool": "tdev_read",
+      "action": "history",
+      "existingEvidence": [
+        "tests/test_core.py",
+        "tests/test_source.py"
+      ],
+      "externalScenarios": [],
+      "delivery": "P2"
+    },
+    {
+      "tool": "tdev_read",
+      "action": "list",
+      "existingEvidence": [
+        "tests/test_core.py",
+        "tests/test_source.py"
+      ],
+      "externalScenarios": [],
+      "delivery": "P2"
+    },
+    {
+      "tool": "tdev_read",
+      "action": "search",
+      "existingEvidence": [
+        "tests/test_core.py",
+        "tests/test_source.py"
+      ],
+      "externalScenarios": [],
+      "delivery": "P2"
+    },
+    {
+      "tool": "tdev_edit",
+      "action": "delete",
+      "existingEvidence": [
+        "tests/test_core.py",
+        "tests/test_source.py"
+      ],
+      "externalScenarios": [],
+      "delivery": "P2"
+    },
+    {
+      "tool": "tdev_edit",
+      "action": "move",
+      "existingEvidence": [
+        "tests/test_core.py",
+        "tests/test_source.py"
+      ],
+      "externalScenarios": [],
+      "delivery": "P2"
+    },
+    {
+      "tool": "tdev_edit",
+      "action": "put",
+      "existingEvidence": [
+        "tests/test_core.py",
+        "tests/test_source.py"
+      ],
+      "externalScenarios": [
+        "RuntimeTest.test_no_change_then_completion_is_visible_to_fresh_client",
+        "RuntimeTest.test_invalid_paths_cannot_change_checkpoint_or_escape_source"
+      ],
+      "delivery": "P2"
+    },
+    {
+      "tool": "tdev_edit",
+      "action": "replace",
+      "existingEvidence": [
+        "tests/test_core.py",
+        "tests/test_source.py"
+      ],
+      "externalScenarios": [
+        "RuntimeTest.test_source_edit_exec_validate_publish_and_closed_cleanup"
+      ],
+      "delivery": "P2"
+    },
+    {
+      "tool": "tdev_exec",
+      "action": "command",
+      "existingEvidence": [
+        "tests/test_native.py",
+        "tests/test_executor.py",
+        "tests/test_process_crash.py",
+        "tests/test_environments.py",
+        "tests/test_boundaries.py"
+      ],
+      "externalScenarios": [
+        "RuntimeTest.test_lost_reply_sigkill_stdin_replay_and_one_execution",
+        "RuntimeTest.test_exit_failure_and_noop_checkpoint_remain_durable"
+      ],
+      "delivery": "P3"
+    },
+    {
+      "tool": "tdev_exec",
+      "action": "process",
+      "existingEvidence": [
+        "tests/test_native.py",
+        "tests/test_executor.py",
+        "tests/test_process_crash.py",
+        "tests/test_environments.py",
+        "tests/test_boundaries.py"
+      ],
+      "externalScenarios": [],
+      "delivery": "P3"
+    },
+    {
+      "tool": "tdev_operation",
+      "action": "cancel",
+      "existingEvidence": [
+        "tests/test_recovery.py",
+        "tests/test_process_crash.py",
+        "tests/test_progress.py"
+      ],
+      "externalScenarios": [],
+      "delivery": "P3"
+    },
+    {
+      "tool": "tdev_operation",
+      "action": "retire",
+      "existingEvidence": [
+        "tests/test_recovery.py",
+        "tests/test_process_crash.py",
+        "tests/test_progress.py"
+      ],
+      "externalScenarios": [
+        "RuntimeTest.test_source_edit_exec_validate_publish_and_closed_cleanup"
+      ],
+      "delivery": "P3"
+    },
+    {
+      "tool": "tdev_operation",
+      "action": "status",
+      "existingEvidence": [
+        "tests/test_recovery.py",
+        "tests/test_process_crash.py",
+        "tests/test_progress.py"
+      ],
+      "externalScenarios": [
+        "RuntimeTest.test_bounded_wait_json_and_opted_in_progress_sse"
+      ],
+      "delivery": "P3"
+    },
+    {
+      "tool": "tdev_operation",
+      "action": "stdin",
+      "existingEvidence": [
+        "tests/test_recovery.py",
+        "tests/test_process_crash.py",
+        "tests/test_progress.py"
+      ],
+      "externalScenarios": [
+        "RuntimeTest.test_lost_reply_sigkill_stdin_replay_and_one_execution"
+      ],
+      "delivery": "P3"
+    },
+    {
+      "tool": "tdev_validate",
+      "action": "artifact",
+      "existingEvidence": [
+        "tests/test_core.py",
+        "tests/test_artifact_validation.py",
+        "tests/test_boundaries.py"
+      ],
+      "externalScenarios": [],
+      "delivery": "P4"
+    },
+    {
+      "tool": "tdev_validate",
+      "action": "default",
+      "existingEvidence": [
+        "tests/test_core.py",
+        "tests/test_artifact_validation.py",
+        "tests/test_boundaries.py"
+      ],
+      "externalScenarios": [
+        "ObjectFormatTest.test_sha256_checkpoint_and_exact_publication_survive_restart"
+      ],
+      "delivery": "P3"
+    },
+    {
+      "tool": "tdev_publish",
+      "action": "default",
+      "existingEvidence": [
+        "tests/test_core.py",
+        "tests/test_recovery.py"
+      ],
+      "externalScenarios": [
+        "ObjectFormatTest.test_sha256_checkpoint_and_exact_publication_survive_restart"
+      ],
+      "delivery": "P3"
+    },
+    {
+      "tool": "tdev_project",
+      "action": "connect",
+      "existingEvidence": [
+        "tests/test_projects.py"
+      ],
+      "externalScenarios": [],
+      "delivery": "P2"
+    },
+    {
+      "tool": "tdev_project",
+      "action": "create",
+      "existingEvidence": [
+        "tests/test_projects.py"
+      ],
+      "externalScenarios": [],
+      "delivery": "P2"
+    },
+    {
+      "tool": "tdev_project",
+      "action": "inspect",
+      "existingEvidence": [
+        "tests/test_projects.py"
+      ],
+      "externalScenarios": [],
+      "delivery": "P2"
+    },
+    {
+      "tool": "tdev_project",
+      "action": "list",
+      "existingEvidence": [
+        "tests/test_projects.py"
+      ],
+      "externalScenarios": [],
+      "delivery": "P2"
+    },
+    {
+      "tool": "tdev_deploy",
+      "action": "inspect",
+      "existingEvidence": [
+        "tests/test_deployments.py"
+      ],
+      "externalScenarios": [],
+      "delivery": "P4"
+    },
+    {
+      "tool": "tdev_deploy",
+      "action": "list",
+      "existingEvidence": [
+        "tests/test_deployments.py"
+      ],
+      "externalScenarios": [],
+      "delivery": "P4"
+    },
+    {
+      "tool": "tdev_deploy",
+      "action": "release",
+      "existingEvidence": [
+        "tests/test_deployments.py"
+      ],
+      "externalScenarios": [],
+      "delivery": "P4"
+    },
+    {
+      "tool": "tdev_deploy",
+      "action": "remove",
+      "existingEvidence": [
+        "tests/test_deployments.py"
+      ],
+      "externalScenarios": [],
+      "delivery": "P4"
+    },
+    {
+      "tool": "tdev_deploy",
+      "action": "rollback",
+      "existingEvidence": [
+        "tests/test_deployments.py"
+      ],
+      "externalScenarios": [],
+      "delivery": "P4"
+    },
+    {
+      "tool": "tdev_deploy",
+      "action": "start",
+      "existingEvidence": [
+        "tests/test_deployments.py"
+      ],
+      "externalScenarios": [],
+      "delivery": "P4"
+    },
+    {
+      "tool": "tdev_deploy",
+      "action": "stop",
+      "existingEvidence": [
+        "tests/test_deployments.py"
+      ],
+      "externalScenarios": [],
+      "delivery": "P4"
+    },
+    {
+      "tool": "tdev_deploy",
+      "action": "targets",
+      "existingEvidence": [
+        "tests/test_deployments.py"
+      ],
+      "externalScenarios": [],
+      "delivery": "P4"
+    },
+    {
+      "tool": "tdev_artifact",
+      "action": "export",
+      "existingEvidence": [
+        "tests/test_artifacts.py",
+        "tests/test_artifact_build.py",
+        "tests/test_artifact_runtime.py",
+        "tests/test_artifact_retention.py"
+      ],
+      "externalScenarios": [],
+      "delivery": "P4"
+    },
+    {
+      "tool": "tdev_artifact",
+      "action": "inspect",
+      "existingEvidence": [
+        "tests/test_artifacts.py",
+        "tests/test_artifact_build.py",
+        "tests/test_artifact_runtime.py",
+        "tests/test_artifact_retention.py"
+      ],
+      "externalScenarios": [],
+      "delivery": "P4"
+    },
+    {
+      "tool": "tdev_artifact",
+      "action": "inspectRecipe",
+      "existingEvidence": [
+        "tests/test_artifacts.py",
+        "tests/test_artifact_build.py",
+        "tests/test_artifact_runtime.py",
+        "tests/test_artifact_retention.py"
+      ],
+      "externalScenarios": [],
+      "delivery": "P4"
+    },
+    {
+      "tool": "tdev_artifact",
+      "action": "list",
+      "existingEvidence": [
+        "tests/test_artifacts.py",
+        "tests/test_artifact_build.py",
+        "tests/test_artifact_runtime.py",
+        "tests/test_artifact_retention.py"
+      ],
+      "externalScenarios": [],
+      "delivery": "P4"
+    },
+    {
+      "tool": "tdev_artifact",
+      "action": "prepare",
+      "existingEvidence": [
+        "tests/test_artifacts.py",
+        "tests/test_artifact_build.py",
+        "tests/test_artifact_runtime.py",
+        "tests/test_artifact_retention.py"
+      ],
+      "externalScenarios": [],
+      "delivery": "P4"
+    },
+    {
+      "tool": "tdev_artifact",
+      "action": "prune",
+      "existingEvidence": [
+        "tests/test_artifacts.py",
+        "tests/test_artifact_build.py",
+        "tests/test_artifact_runtime.py",
+        "tests/test_artifact_retention.py"
+      ],
+      "externalScenarios": [],
+      "delivery": "P4"
+    },
+    {
+      "tool": "tdev_artifact",
+      "action": "prunePreview",
+      "existingEvidence": [
+        "tests/test_artifacts.py",
+        "tests/test_artifact_build.py",
+        "tests/test_artifact_runtime.py",
+        "tests/test_artifact_retention.py"
+      ],
+      "externalScenarios": [],
+      "delivery": "P4"
+    },
+    {
+      "tool": "tdev_artifact",
+      "action": "usage",
+      "existingEvidence": [
+        "tests/test_artifacts.py",
+        "tests/test_artifact_build.py",
+        "tests/test_artifact_runtime.py",
+        "tests/test_artifact_retention.py"
+      ],
+      "externalScenarios": [],
+      "delivery": "P4"
+    },
+    {
+      "tool": "tdev_diagnostics",
+      "action": "acknowledge",
+      "existingEvidence": [
+        "tests/test_diagnostics.py",
+        "tests/test_diagnostic_policy.py",
+        "tests/test_diagnostic_witness.py",
+        "tests/test_diagnostic_observer.py"
+      ],
+      "externalScenarios": [],
+      "delivery": "P5"
+    },
+    {
+      "tool": "tdev_diagnostics",
+      "action": "activate",
+      "existingEvidence": [
+        "tests/test_diagnostics.py",
+        "tests/test_diagnostic_policy.py",
+        "tests/test_diagnostic_witness.py",
+        "tests/test_diagnostic_observer.py"
+      ],
+      "externalScenarios": [],
+      "delivery": "P5"
+    },
+    {
+      "tool": "tdev_diagnostics",
+      "action": "inspect",
+      "existingEvidence": [
+        "tests/test_diagnostics.py",
+        "tests/test_diagnostic_policy.py",
+        "tests/test_diagnostic_witness.py",
+        "tests/test_diagnostic_observer.py"
+      ],
+      "externalScenarios": [],
+      "delivery": "P5"
+    },
+    {
+      "tool": "tdev_diagnostics",
+      "action": "mark",
+      "existingEvidence": [
+        "tests/test_diagnostics.py",
+        "tests/test_diagnostic_policy.py",
+        "tests/test_diagnostic_witness.py",
+        "tests/test_diagnostic_observer.py"
+      ],
+      "externalScenarios": [],
+      "delivery": "P5"
+    },
+    {
+      "tool": "tdev_diagnostics",
+      "action": "report",
+      "existingEvidence": [
+        "tests/test_diagnostics.py",
+        "tests/test_diagnostic_policy.py",
+        "tests/test_diagnostic_witness.py",
+        "tests/test_diagnostic_observer.py"
+      ],
+      "externalScenarios": [],
+      "delivery": "P5"
+    },
+    {
+      "tool": "tdev_diagnostics",
+      "action": "stop",
+      "existingEvidence": [
+        "tests/test_diagnostics.py",
+        "tests/test_diagnostic_policy.py",
+        "tests/test_diagnostic_witness.py",
+        "tests/test_diagnostic_observer.py"
+      ],
+      "externalScenarios": [],
+      "delivery": "P5"
+    }
+  ]
+}

@@ -119,6 +119,9 @@ def bundle_files(source):
                 require(not file.is_symlink(), "BUNDLE_SYMLINK")
                 names.append(str(file.relative_to(source)))
     names.append("requirements.txt")
+    if (source / "Cargo.toml").is_file():
+        require(not (source / "Cargo.toml").is_symlink(), "BUNDLE_SYMLINK")
+        names.append("Cargo.toml")
     return {name: digest((source / name).read_bytes()) for name in names}
 
 
