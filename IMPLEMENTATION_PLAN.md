@@ -176,8 +176,10 @@ layout. Remaining artifact/deployment/operator scenarios have explicit later own
 The serving increment now implements current authentication, six narrowed tool families,
 workspace membership/revision guards, local open/read/edit/close, source/request replay,
 bounded JSON/SSE status, and the private Git-pin-before-pointer SIGKILL boundary. P2 is still
-open: implement delegated project enrollment and managed task start/composition/integration/
-cleanup with current policy, local import and ref ownership/recovery. Do not advance the P2
+open: local delegated connect/create now uses current policy projections and exact creation
+evidence, including actual controller-death boundaries. Implement managed task start/composition/
+integration/cleanup with current policy, local import and ref ownership/recovery, then the
+remaining GitHub enrollment/provider boundary. Do not advance the P2
 exit or advertise these actions solely because the initial local source scenarios pass.
 
 Exit: an on-device build passes the local source slice and canonical identity fixtures. Existing

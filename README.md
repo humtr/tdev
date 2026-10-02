@@ -120,12 +120,17 @@ with an independent validator across all thirteen described tool families; this 
 advertise those families as implemented handlers. The command now serves authenticated loopback
 HTTP with fresh immutable authority snapshots. Discovery exposes six implemented tool families:
 workspace composition; task list/open/inspect/close; all read/edit actions; operation status with
-bounded JSON/SSE observation; and enrolled project list/inspect. Accepted source changes use
+bounded JSON/SSE observation; and project list/inspect/local connect/create. Delegated
+enrollment stores resource identity separately from current policy-derived grants and execution
+settings. Local creation records uncertainty before touching the target and reconciles only
+completed initialization with its original operation marker, Git-directory/checkout identity
+and initial HEAD. Unproved or replaced creations stay unknown and are never initialized again.
+Accepted source changes use
 short SQLite reservations, private Git construction and atomic pointer/receipt completion.
 SIGKILL at the Git-pin/SQLite-pointer gap produces a retained interrupted receipt without
 repeating the edit. The Python executable remains the behavioral reference for the full surface.
 No state format revision or resident cutover has been performed. P2 remains in progress:
-delegated enrollment, managed task construction/composition/integration/cleanup and their policy
+GitHub enrollment, managed task construction/composition/integration/cleanup and their policy
 and recovery cases still need implementation. Execution, validation/publication, artifacts,
 deployment and operator/service commands retain their later delivery phases.
 The HTTP edge explicitly materializes finite floats before Schema validation, preserves raw

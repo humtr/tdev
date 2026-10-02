@@ -371,6 +371,17 @@ project/Git operations own those effects for native and explicitly selected remo
 Provider scope and actual OS permissions remain upper bounds. Discovery distinguishes delegated
 scope from live provider authentication/permissions; inspect performs current repository checks.
 
+Local creation journals uncertainty before the exclusive target-directory creation. Initialization
+finishes its README commit before recording the exact Git/checkout identity and initial HEAD,
+then writes and syncs the original operation marker. Recovery requires all these facts at the
+original scoped path; a same-name repository, copied marker, incomplete initialization or changed
+HEAD cannot supply the missing proof. Without proof the original receipt stays unknown and no
+initialization is repeated. Enrollment and its terminal receipt commit in one short transaction.
+Interrupted connect before that commit can fail with effect=none: it constructed no public Git
+or checkout effect. Per-operation controller gates prevent observation from interpreting an
+active initializer as interrupted; they are not durable creation evidence or process supervision.
+This completed-initialization proof deliberately strengthens the reference's earlier marker.
+
 Task start chooses the sole accessible project or configured default, otherwise requires
 an explicit project. It chooses the configured/sole source branch, resolves its actual HEAD once,
 and journals that immutable base before fetching. Retries retain original identity. No global

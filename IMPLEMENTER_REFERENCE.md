@@ -96,7 +96,13 @@ validation against the canonical schema. `native_source.py` adds narrowed discov
 numeric identity/conversion, scalar Unicode/depth rejection, current authority/private config,
 completion during blocked remote observation, and SIGKILL after the Git pin but before the
 SQLite pointer. Utility wrappers are disposable fixture programs in PATH, not product hooks.
-P2 managed construction/enrollment and full state transition remain unqualified.
+`test_project.py` carries local connect/create, two-principal ownership, policy projection/
+revocation, original receipts, scoped/common-directory identity and dirty checkout preservation
+across both executables. `native_project.py` checks actual controller death before/after complete
+creation proof, copied-marker/same-name replacement rejection, current-policy recovery and
+unsupported-provider rejection before admission. It deliberately strengthens the reference's
+early creation marker. P2 managed construction, GitHub enrollment and full state transition
+remain unqualified.
 `git/process.rs` owns bounded utility groups only; it is not P3's detached supervisor
 or proof that arbitrary escaped command descendants have stopped. GitHub adapter/publication
 and source capture selection/materialization retain their later feature evidence.

@@ -1,5 +1,53 @@
 # Local validation evidence — 2026-10-02
 
+## Delegated local project enrollment — 2026-10-02
+
+P2 now connects and creates local projects through the actual authenticated `tdev` executable.
+Discovery still exposes six implemented tool families; project now has list/inspect/connect/
+create. Only supported local policies are offered. GitHub connect/create fails before durable
+admission or provider dispatch. Caller-supplied executable policy fails Schema validation.
+Static enrollment remains available. No resident/provider cutover or main integration occurred.
+
+Owned project rows retain resource identity/location and the accepted scope digest, separately
+from current policy-derived grants and execution settings. Each request loads a fresh immutable
+authority view and owned rows, then releases storage before any Git/filesystem observation.
+Revoking/changing scope gates receipt replay and retained source tasks; current execution budget
+and namespaces change the current project projection without rewriting prior receipt results.
+Linked-worktree/common-directory and checkout identities reject alternative-checkout rebinding
+and same-name repository replacement. SQLite enrollment and terminal receipt commit together;
+failed collision or wrong-owner completion rolls back, and late uncertainty cannot regress a
+terminal receipt.
+
+Creation records uncertainty before exclusive mkdir, initializes an empty-template repository
+and README commit, records exact Git/checkout identity and initial HEAD, then writes/syncs the
+original operation marker. Reconciliation never runs init/commit again. Active controller gates
+prevent premature reconciliation. After actual SIGKILL, completed proof allows only original
+enrollment; absent proof and copied-marker/replaced-directory cases stay unknown. Recovery
+honors current scope even when create permission is subsequently removed. An independent
+explicit connect can enroll an unproved creation without clearing its original uncertainty.
+This strengthens the reference's early marker; it is not a claim of crash-window parity.
+Actual controller death is qualified, not power loss or isolation from hostile same-UID code.
+
+Focused common project checks passed **4 reference tests in 7.869s** and **4 native tests in
+12.278s**. The first reference run failed a harness keyword (`token` instead of the supported
+authorization header); its retained log is not a pass. Initial actual creation-gap checks passed
+**3 native tests in 11.970s**. Formatting/lint and the existing **41 Rust tests** passed; the two
+added storage atomicity/ownership tests passed **2 in 0.09s**. The affected native HTTP pass
+ran **23 tests in 120.061s**, including supported-provider admission rejection; the additional
+changed-HEAD proof check passed **1 in 5.883s**. The complete `sh scripts/check.sh` log records
+formatting/lint/locked build, **43 Rust tests** (30 library + 13 real Git), **10,003 identity
+comparisons**, **136 contract comparisons**, **24 native HTTP tests** (9 source in 28.014s,
+4 project in 11.463s, 11 edge/recovery in 74.501s), and **391 reference/common regression
+tests in 1163.784s**, all passing. The previous execution session was no longer addressable
+after resume, so its shell exit code is not independently recorded. The script's final
+`git diff --check` was rerun separately and passed; no unexecuted gate is counted as passing.
+
+Logs are private temporary evidence under `$PREFIX/tmp`:
+`tdev-project-{reference-focused,reference-rerun,native-focused,native-recovery,affected,head-focused,full}.log`.
+P2 remains open for managed task start/composition/integration/cleanup, local import and the
+remaining GitHub enrollment boundary. Full state/operator/performance and P3–P6 qualification
+remain later work; these local tests do not qualify the complete product surface.
+
 ## Authenticated local source implementation — 2026-10-02
 
 P2 now has a serving `tdev serve` executable on Termux. The disposable acceptance launch

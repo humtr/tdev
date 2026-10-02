@@ -447,7 +447,11 @@
       "existingEvidence": [
         "tests/test_projects.py"
       ],
-      "externalScenarios": [],
+      "externalScenarios": [
+        "ProjectTest.test_connect_preserves_dirty_checkout_and_receipts_follow_current_policy",
+        "ProjectTest.test_connect_scope_linked_worktrees_identity_and_principal_ownership",
+        "ProjectTest.test_bare_project_named_head_and_multiple_policy_conflict"
+      ],
       "delivery": "P2"
     },
     {
@@ -456,7 +460,9 @@
       "existingEvidence": [
         "tests/test_projects.py"
       ],
-      "externalScenarios": [],
+      "externalScenarios": [
+        "ProjectTest.test_create_replay_duplicate_requests_existing_files_and_current_creation_grant"
+      ],
       "delivery": "P2"
     },
     {

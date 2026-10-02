@@ -5,7 +5,7 @@ use crate::{
     model::{BranchRef, Fault, PrincipalId, Result},
     wire,
 };
-use serde_json::Value;
+use serde_json::{Value, json};
 use std::{
     collections::BTreeSet,
     fs::OpenOptions,
@@ -14,6 +14,7 @@ use std::{
     path::Path,
 };
 
+#[derive(Clone)]
 pub struct Context {
     pub principal: PrincipalId,
     config: Value,
@@ -136,6 +137,35 @@ impl Context {
                 .map_err(|_| Fault::new("CONFIG"))?;
             }
         }
+        for policy in config["projectPolicies"]
+            .as_object()
+            .into_iter()
+            .flat_map(|p| p.values())
+        {
+            let namespace = wire::string(policy, "managedRefNamespace")?;
+            if !namespace.ends_with('/') || BranchRef::new(format!("{namespace}probe")).is_err() {
+                return Err(Fault::new("CONFIG"));
+            }
+            if policy["kind"] == "local" {
+                let root = Path::new(wire::string(policy, "root")?);
+                if !root.is_absolute()
+                    || root == Path::new("/")
+                    || root.components().any(|c| {
+                        matches!(
+                            c,
+                            std::path::Component::ParentDir | std::path::Component::CurDir
+                        )
+                    })
+                {
+                    return Err(Fault::new("CONFIG"));
+                }
+                if let Ok(resolved) = std::fs::canonicalize(root)
+                    && resolved != root
+                {
+                    return Err(Fault::new("CONFIG"));
+                }
+            }
+        }
         let hash = crate::identity::digest(bearer.as_bytes())?;
         let equal = |candidate: &str| {
             // Equal-length digests only, with no content-dependent early return.
@@ -207,6 +237,105 @@ impl Context {
             refs,
             namespaces,
         })
+    }
+
+    pub fn policy(&self, name: &str, expected: Option<&str>) -> Result<&Value> {
+        let granted =
+            self.config["principals"][self.principal.as_str()]["projectPolicies"].as_array();
+        let policy = self.config["projectPolicies"]
+            .get(name)
+            .filter(|_| granted.is_some_and(|g| g.contains(&json!(name))))
+            .ok_or_else(|| Fault::new("PROJECT_POLICY_DENIED"))?;
+        if let Some(expected) = expected
+            && Self::policy_authority(policy)?.as_str() != expected
+        {
+            return Err(Fault::new("PROJECT_SCOPE_CHANGED"));
+        }
+        Ok(policy)
+    }
+    pub fn policy_authority(policy: &Value) -> Result<crate::model::Digest> {
+        crate::identity::Value::parse(
+            &json!({"kind":policy["kind"],"root":policy["root"],"owner":policy["owner"]})
+                .to_string(),
+        )?
+        .fingerprint()
+    }
+    pub fn policies(&self) -> Vec<String> {
+        self.config["projectPolicies"]
+            .as_object()
+            .into_iter()
+            .flat_map(|p| p.keys())
+            .filter(|name| self.policy(name, None).is_ok())
+            .cloned()
+            .collect()
+    }
+    pub fn project_conflict(&self, name: &str) -> bool {
+        self.config["repositories"]
+            .get(name)
+            .is_some_and(|r| r.get("_projectPolicy").is_none())
+    }
+    pub fn delegated(&self, project: crate::storage::project::Project) -> Result<Repository> {
+        let mut context = self.clone();
+        if !context.project_conflict(project.id.as_str()) {
+            context.config["repositories"]
+                .as_object_mut()
+                .unwrap()
+                .remove(project.id.as_str());
+        }
+        let id = project.id.clone();
+        context.enroll(vec![project])?.repository(id.as_str(), None)
+    }
+
+    /// Only the current policy supplies executable settings and derived grants.
+    pub fn enroll(mut self, projects: Vec<crate::storage::project::Project>) -> Result<Self> {
+        for project in projects {
+            if project.owner != self.principal {
+                return Err(Fault::new("STATE_FORMAT"));
+            }
+            let Ok(policy) = self.policy(&project.policy, Some(project.authority.as_str())) else {
+                continue;
+            };
+            if self.config["repositories"]
+                .get(project.id.as_str())
+                .is_some()
+            {
+                return Err(Fault::new("CONFIG"));
+            }
+            let mut repository = project.config;
+            // Historical rows may contain old copied settings. None is authority.
+            for key in [
+                "validation",
+                "artifactValidation",
+                "validationTimeoutSeconds",
+                "executor",
+                "toolingEnvironment",
+                "networks",
+            ] {
+                repository
+                    .as_object_mut()
+                    .ok_or_else(|| Fault::new("STATE_FORMAT"))?
+                    .remove(key);
+                if let Some(value) = policy.get(key) {
+                    repository[key] = value.clone();
+                }
+            }
+            repository["managedRefNamespaces"] = json!([policy["managedRefNamespace"]]);
+            repository["_projectPolicy"] = json!(project.policy);
+            repository["_projectRoot"] = policy["root"].clone();
+            let principal = &mut self.config["principals"][self.principal.as_str()];
+            principal["repos"][project.id.as_str()] = repository["refs"].clone();
+            if !principal["managedRefNamespaces"].is_object() {
+                principal["managedRefNamespaces"] = json!({});
+            }
+            principal["managedRefNamespaces"][project.id.as_str()] =
+                repository["managedRefNamespaces"].clone();
+            self.config["repositories"][project.id.as_str()] = repository;
+            let repository = self.repository(project.id.as_str(), Some(&project.identity))?;
+            if repository.config["kind"] == "local" {
+                repository.local().map_err(|_| Fault::new("STATE_FORMAT"))?;
+            }
+        }
+        Ok(self)
     }
 
     pub fn repositories(&self) -> Vec<String> {

@@ -13,8 +13,9 @@ use crate::{
 };
 use serde_json::{Value, json};
 use std::{
+    collections::BTreeMap,
     path::{Path, PathBuf},
-    sync::{Mutex, MutexGuard},
+    sync::{Arc, Mutex, MutexGuard, Weak},
 };
 
 pub struct Application {
@@ -23,6 +24,7 @@ pub struct Application {
     pub config: PathBuf,
     pub root: PathBuf,
     store: Mutex<Store>,
+    project_work: Mutex<BTreeMap<OperationId, Weak<Mutex<()>>>>,
 }
 impl Application {
     pub fn open(root: &Path, config: &Path) -> Result<Self> {
@@ -39,10 +41,29 @@ impl Application {
             config: config.into(),
             root: root.into(),
             store: Mutex::new(store),
+            project_work: Mutex::new(BTreeMap::new()),
         })
     }
     pub(crate) fn store(&self) -> Result<MutexGuard<'_, Store>> {
         self.store.lock().map_err(|_| Fault::new("STORAGE"))
+    }
+    pub(crate) fn context(&self, bearer: &str) -> Result<Context> {
+        let context = Context::load(&self.config, bearer, &self.contract)?;
+        let projects = self.store()?.projects(&context.principal)?;
+        context.enroll(projects)
+    }
+    pub(crate) fn project_work(&self, id: &OperationId) -> Result<Arc<Mutex<()>>> {
+        let mut work = self
+            .project_work
+            .lock()
+            .map_err(|_| Fault::new("OPERATION_STATE"))?;
+        work.retain(|_, entry| entry.strong_count() > 0);
+        let lock = work
+            .get(id)
+            .and_then(Weak::upgrade)
+            .unwrap_or_else(|| Arc::new(Mutex::new(())));
+        work.insert(id.clone(), Arc::downgrade(&lock));
+        Ok(lock)
     }
     pub(crate) fn git(&self, repo: &Repository) -> Result<Git> {
         // Git construction and identity verification must never hold Store's mutex.
@@ -67,6 +88,13 @@ impl Application {
         Ok((task, repo))
     }
     pub(crate) fn authorize_receipt(&self, context: &Context, receipt: &Receipt) -> Result<()> {
+        if receipt.operation.kind == OperationKind::Project {
+            context.policy(
+                wire::string(&receipt.intent["input"], "policy")?,
+                Some(wire::string(&receipt.intent, "authority")?),
+            )?;
+            return Ok(());
+        }
         // Authority belongs to each feature. Do not infer it for receipts whose
         // feature has not been connected to this executable yet.
         if !matches!(
@@ -110,7 +138,11 @@ impl Application {
             if receipt.hash != wire::fingerprint(kind, original)?.as_str() {
                 return Err(Fault::new("IDEMPOTENCY_MISMATCH"));
             }
-            return Ok(Some(receipt.operation));
+            return Ok(Some(if receipt.operation.kind == OperationKind::Project {
+                crate::project::reconcile(self, context, &receipt)?
+            } else {
+                receipt.operation
+            }));
         }
         Ok(None)
     }
@@ -155,7 +187,7 @@ impl Application {
                 "tdev_edit" => crate::source::edit(self, context, input, original),
                 "tdev_read" => crate::source::read(self, context, input),
                 "tdev_workspace" => crate::workspace::call(self, context, input, original),
-                "tdev_project" => crate::project::call(self, context, input),
+                "tdev_project" => crate::project::call(self, context, input, original),
                 "tdev_operation" => self.status(context, input),
                 _ => Err(Fault::new("SCHEMA")),
             }
@@ -182,10 +214,15 @@ impl Application {
                 )?
                 .ok_or_else(|| Fault::new("OPERATION_NOT_FOUND"))?;
             self.authorize_receipt(context, &receipt)?;
-            let terminal = receipt.operation.status.is_terminal();
+            let operation = if receipt.operation.kind == OperationKind::Project {
+                crate::project::reconcile(self, context, &receipt)?
+            } else {
+                receipt.operation
+            };
+            let terminal = operation.status.is_terminal();
             if terminal || std::time::Instant::now() >= deadline {
-                let mut value = serde_json::to_value(receipt.operation)
-                    .map_err(|_| Fault::new("STATE_FORMAT"))?;
+                let mut value =
+                    serde_json::to_value(operation).map_err(|_| Fault::new("STATE_FORMAT"))?;
                 wire::observe(&mut value, input["since"].as_str(), &["operation"])?;
                 return Ok(value);
             }
@@ -200,7 +237,7 @@ mod tests {
     use std::os::unix::fs::PermissionsExt;
 
     #[test]
-    fn unsupported_receipts_cannot_bypass_their_unimplemented_authority_owner() {
+    fn revoked_project_receipts_cannot_bypass_their_authority_owner() {
         let root = tempfile::tempdir().unwrap();
         let path = root.path().join("config.json");
         let token = identity::digest(b"test-token").unwrap();
@@ -211,7 +248,7 @@ mod tests {
         let context = Context::load(&path, "test-token", &app.contract).unwrap();
         let input = json!({"requestId":"legacy-project","policy":"revoked","name":"private"});
         let original = identity::Value::parse(&input.to_string()).unwrap();
-        let admission = app
+        let mut admission = app
             .admission(
                 &context,
                 &input,
@@ -221,6 +258,9 @@ mod tests {
                 None,
             )
             .unwrap();
+        admission.intent =
+            identity::Value::parse(&json!({"input":input,"authority":"a".repeat(64)}).to_string())
+                .unwrap();
         app.store().unwrap().admit(&admission, |_| Ok(())).unwrap();
         let arguments = json!({"request":{"action":"status","operationId":admission.operation.id}});
         let output = app.call(
@@ -229,7 +269,7 @@ mod tests {
             &arguments,
             &identity::Value::Null,
         );
-        assert_eq!(output["error"]["code"], "UNSUPPORTED_OPERATION");
+        assert_eq!(output["error"]["code"], "PROJECT_POLICY_DENIED");
         assert_eq!(
             app.store()
                 .unwrap()

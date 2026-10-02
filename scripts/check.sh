@@ -13,6 +13,8 @@ cargo build --locked
 TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.abspath("target/debug/tdev"), "serve"]))') \
     python -m unittest discover -s tests/acceptance -t tests -p 'test_source.py' -v
 TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.abspath("target/debug/tdev"), "serve"]))') \
+    python -m unittest discover -s tests/acceptance -t tests -p 'test_project.py' -v
+TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.abspath("target/debug/tdev"), "serve"]))') \
     python -m unittest discover -s tests/acceptance -t tests -p 'native_*.py' -v
 # tests/acceptance is a package: this discovery includes its executable scenarios.
 test -f tests/acceptance/__init__.py

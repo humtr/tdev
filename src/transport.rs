@@ -1,5 +1,5 @@
 //! Loopback MCP HTTP; no transport-owned feature decisions or SQL.
-use crate::{admission::Context, application::Application, identity, wire};
+use crate::{application::Application, identity, wire};
 use axum::{
     Router,
     body::{Body, Bytes, to_bytes},
@@ -106,10 +106,7 @@ async fn handle(State(server): State<Server>, request: Request) -> Response {
     };
     let app = server.app.clone();
     let bearer = bearer.to_owned();
-    let authority = tokio::task::spawn_blocking(move || {
-        (Context::load(&app.config, &bearer, &app.contract), permit)
-    })
-    .await;
+    let authority = tokio::task::spawn_blocking(move || (app.context(&bearer), permit)).await;
     let (context, permit) = match authority {
         Ok((Ok(c), p)) => (c, p),
         _ => return response(401, &json!({"error":"AUTHENTICATION_REQUIRED"})),

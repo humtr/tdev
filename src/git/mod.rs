@@ -1,6 +1,7 @@
 //! Private Git objects and atomic source construction. Authority and durable task
 //! CAS belong to admission/storage; these methods never update an enrolled ref.
 mod process;
+pub mod project;
 
 use crate::model::{BlobId, BranchRef, Checkpoint, Fault, OperationId, Result, SourcePath, TreeId};
 use process::{OUTPUT_LIMIT, Output, run};

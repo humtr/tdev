@@ -104,7 +104,7 @@ impl Surface {
                 ],
             ),
             ("tdev_task", vec!["list", "open", "inspect", "close"]),
-            ("tdev_project", vec!["list", "inspect"]),
+            ("tdev_project", vec!["list", "inspect", "connect", "create"]),
             ("tdev_read", vec![]),
             ("tdev_edit", vec![]),
             ("tdev_operation", vec!["status"]),
@@ -127,9 +127,10 @@ impl Surface {
             tool["description"] = json!(match name {
                 "tdev_task" =>
                     "Open, list, inspect and close owned source tasks in enrolled local projects.",
-                "tdev_project" => "List and inspect currently granted enrolled projects.",
+                "tdev_project" =>
+                    "List and inspect granted projects; connect or create local projects within current delegated policy.",
                 "tdev_operation" =>
-                    "Observe accepted source and workspace operations by operation or request identity with a bounded wait.",
+                    "Observe accepted source, workspace and local project operations by operation or request identity with a bounded wait.",
                 _ => original["description"]
                     .as_str()
                     .unwrap_or("Source development tool."),
