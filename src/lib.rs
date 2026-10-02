@@ -1,4 +1,6 @@
 //! Domain types and durable mechanisms for tdev.
+pub mod contract;
+pub mod git;
 pub mod identity;
 pub mod model;
 pub mod storage;

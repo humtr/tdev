@@ -7,14 +7,13 @@ publish = false
 description = "Development, execution and deployment foundation"
 
 [dependencies]
+jsonschema = { version = "=0.58.4", default-features = false, features = ["arbitrary-precision"] }
 libc = "=0.2.189"
 rusqlite = { version = "=0.40.2", default-features = false }
 ryu = "=1.0.22"
 serde = { version = "=1.0.228", features = ["derive"] }
 serde_json = { version = "=1.0.151", features = ["arbitrary_precision", "raw_value"] }
 sha2 = "=0.10.9"
-
-[dev-dependencies]
 tempfile = "=3.27.0"
 
 [lints.rust]

@@ -6,6 +6,7 @@ cargo fmt --all -- --check
 cargo clippy --all-targets --locked -- -D warnings
 cargo test --locked
 python scripts/check_identity.py
+python scripts/check_contract.py
 # tests/acceptance is a package: this discovery includes its executable scenarios.
 test -f tests/acceptance/__init__.py
 python -m unittest discover -s tests -p 'test_*.py' -v

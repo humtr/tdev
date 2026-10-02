@@ -1397,7 +1397,7 @@ as operator commands. A shared executable does not merge their lifetimes.
 | `storage` | SQLite transactions, persisted record decoding, CAS, schema compatibility | Subprocess/network waits inside a transaction |
 | `git`, `execution` | Git plumbing; accepted execution submission/observation/control; dormant SSH compatibility | Reinterpreting an accepted backend, policy or request identity |
 | `supervisor`, `release` | Child identity, input/output, limits, stop proof and owned capture/runtime evidence | Controller-owned admission or fabricated success from stdout |
-| `transport`, `operator` | MCP HTTP, selected stdio adapter, CLI, config/install/connection/service operations | Duplicated domain decisions or direct ad hoc mutation of core tables |
+| `contract`, `transport`, `operator` | Existing JSON contract validation, MCP HTTP, selected stdio adapter, CLI, config/install/connection/service operations | A second schema authority, duplicated domain decisions or direct ad hoc mutation of core tables |
 | `diagnostics`, `observer` | Optional bounded evidence and independent observation | Core liveness, execution authority or mandatory dependency of an ordinary call |
 
 Domain models do not depend on transport or concrete adapters. Feature handlers receive a
@@ -1411,6 +1411,12 @@ JSON contracts remain the wire authority; derived Rust schemas cannot silently r
 Rust types do not alone validate JSON Schema bounds, patterns, alternatives or unknown fields.
 There is no second handwritten schema registry. Contract parity tests cover both acceptance
 and rejection, including JSON numeric representations and absent versus null/default fields.
+Materialized Schema acceptance is separate from raw wire decoding and typed conversion.
+Integer-valued floating forms remain schema-valid without changing their request fingerprint;
+unbounded offsets cannot be silently narrowed to machine integers. Preserve original numeric
+identity while choosing a bounded paging implementation. Legacy identity strings with unpaired
+surrogates remain decodable; accepting/rejecting new wire strings requires an explicit edge
+decision and fixtures, rather than inheriting a JSON library default.
 
 ### Types, admission and transitions
 

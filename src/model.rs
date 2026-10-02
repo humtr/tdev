@@ -141,6 +141,8 @@ validated_string!(ProjectId, "PROJECT_ID", identifier);
 // Config object keys have no identifier pattern in the canonical contract.
 validated_string!(PrincipalId, "PRINCIPAL_ID", |_: &str| true);
 validated_string!(Checkpoint, "CHECKPOINT", |s: &str| hex(s, &[40, 64]));
+validated_string!(BlobId, "BLOB_ID", |s: &str| hex(s, &[40, 64]));
+validated_string!(TreeId, "TREE_ID", |s: &str| hex(s, &[40, 64]));
 validated_string!(Digest, "DIGEST", |s: &str| hex(s, &[64]));
 validated_string!(DeploymentRevision, "DEPLOYMENT_REVISION", identifier);
 

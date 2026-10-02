@@ -1,0 +1,491 @@
+[
+  {
+    "case": "file-offset/0",
+    "surface": "input",
+    "tool": "tdev_read",
+    "value": {
+      "request": {
+        "taskId": "task",
+        "queries": [
+          {
+            "action": "file",
+            "path": "a",
+            "offset": 0
+          }
+        ]
+      }
+    },
+    "valid": true
+  },
+  {
+    "case": "file-offset/1",
+    "surface": "input",
+    "tool": "tdev_read",
+    "value": {
+      "request": {
+        "taskId": "task",
+        "queries": [
+          {
+            "action": "file",
+            "path": "a",
+            "offset": 1
+          }
+        ]
+      }
+    },
+    "valid": true
+  },
+  {
+    "case": "file-offset/1.0",
+    "surface": "input",
+    "tool": "tdev_read",
+    "value": {
+      "request": {
+        "taskId": "task",
+        "queries": [
+          {
+            "action": "file",
+            "path": "a",
+            "offset": 1.0
+          }
+        ]
+      }
+    },
+    "valid": true
+  },
+  {
+    "case": "file-offset/1e+30",
+    "surface": "input",
+    "tool": "tdev_read",
+    "value": {
+      "request": {
+        "taskId": "task",
+        "queries": [
+          {
+            "action": "file",
+            "path": "a",
+            "offset": 1e+30
+          }
+        ]
+      }
+    },
+    "valid": true
+  },
+  {
+    "case": "file-offset/10000000000000000000000000000000000000000",
+    "surface": "input",
+    "tool": "tdev_read",
+    "value": {
+      "request": {
+        "taskId": "task",
+        "queries": [
+          {
+            "action": "file",
+            "path": "a",
+            "offset": 10000000000000000000000000000000000000000
+          }
+        ]
+      }
+    },
+    "valid": true
+  },
+  {
+    "case": "file-offset/-1",
+    "surface": "input",
+    "tool": "tdev_read",
+    "value": {
+      "request": {
+        "taskId": "task",
+        "queries": [
+          {
+            "action": "file",
+            "path": "a",
+            "offset": -1
+          }
+        ]
+      }
+    },
+    "valid": false
+  },
+  {
+    "case": "file-offset/1.5",
+    "surface": "input",
+    "tool": "tdev_read",
+    "value": {
+      "request": {
+        "taskId": "task",
+        "queries": [
+          {
+            "action": "file",
+            "path": "a",
+            "offset": 1.5
+          }
+        ]
+      }
+    },
+    "valid": false
+  },
+  {
+    "case": "file-offset/True",
+    "surface": "input",
+    "tool": "tdev_read",
+    "value": {
+      "request": {
+        "taskId": "task",
+        "queries": [
+          {
+            "action": "file",
+            "path": "a",
+            "offset": true
+          }
+        ]
+      }
+    },
+    "valid": false
+  },
+  {
+    "case": "file-offset/None",
+    "surface": "input",
+    "tool": "tdev_read",
+    "value": {
+      "request": {
+        "taskId": "task",
+        "queries": [
+          {
+            "action": "file",
+            "path": "a",
+            "offset": null
+          }
+        ]
+      }
+    },
+    "valid": false
+  },
+  {
+    "case": "wait/0",
+    "surface": "input",
+    "tool": "tdev_operation",
+    "value": {
+      "request": {
+        "action": "status",
+        "operationId": "op",
+        "waitMs": 0
+      }
+    },
+    "valid": true
+  },
+  {
+    "case": "wait/1.0",
+    "surface": "input",
+    "tool": "tdev_operation",
+    "value": {
+      "request": {
+        "action": "status",
+        "operationId": "op",
+        "waitMs": 1.0
+      }
+    },
+    "valid": true
+  },
+  {
+    "case": "wait/30000",
+    "surface": "input",
+    "tool": "tdev_operation",
+    "value": {
+      "request": {
+        "action": "status",
+        "operationId": "op",
+        "waitMs": 30000
+      }
+    },
+    "valid": true
+  },
+  {
+    "case": "wait/30001",
+    "surface": "input",
+    "tool": "tdev_operation",
+    "value": {
+      "request": {
+        "action": "status",
+        "operationId": "op",
+        "waitMs": 30001
+      }
+    },
+    "valid": false
+  },
+  {
+    "case": "wait/-1",
+    "surface": "input",
+    "tool": "tdev_operation",
+    "value": {
+      "request": {
+        "action": "status",
+        "operationId": "op",
+        "waitMs": -1
+      }
+    },
+    "valid": false
+  },
+  {
+    "case": "wait/False",
+    "surface": "input",
+    "tool": "tdev_operation",
+    "value": {
+      "request": {
+        "action": "status",
+        "operationId": "op",
+        "waitMs": false
+      }
+    },
+    "valid": false
+  },
+  {
+    "case": "wait/None",
+    "surface": "input",
+    "tool": "tdev_operation",
+    "value": {
+      "request": {
+        "action": "status",
+        "operationId": "op",
+        "waitMs": null
+      }
+    },
+    "valid": false
+  },
+  {
+    "case": "put-null-before",
+    "surface": "input",
+    "tool": "tdev_edit",
+    "value": {
+      "request": {
+        "requestId": "edit",
+        "taskId": "task",
+        "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "edits": [
+          {
+            "action": "put",
+            "path": "a",
+            "content": "\ud83d\ude00\ud55c\uae00",
+            "before": null
+          }
+        ]
+      }
+    },
+    "valid": true
+  },
+  {
+    "case": "put-missing-before",
+    "surface": "input",
+    "tool": "tdev_edit",
+    "value": {
+      "request": {
+        "requestId": "edit",
+        "taskId": "task",
+        "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "edits": [
+          {
+            "action": "put",
+            "path": "a",
+            "content": "data"
+          }
+        ]
+      }
+    },
+    "valid": false
+  },
+  {
+    "case": "replace-float-count",
+    "surface": "input",
+    "tool": "tdev_edit",
+    "value": {
+      "request": {
+        "requestId": "edit",
+        "taskId": "task",
+        "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "edits": [
+          {
+            "action": "replace",
+            "path": "a",
+            "old": "x",
+            "text": "y",
+            "count": 1.0
+          }
+        ]
+      }
+    },
+    "valid": true
+  },
+  {
+    "case": "replace-fractional-count",
+    "surface": "input",
+    "tool": "tdev_edit",
+    "value": {
+      "request": {
+        "requestId": "edit",
+        "taskId": "task",
+        "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "edits": [
+          {
+            "action": "replace",
+            "path": "a",
+            "old": "x",
+            "text": "y",
+            "count": 1.5
+          }
+        ]
+      }
+    },
+    "valid": false
+  },
+  {
+    "case": "replace-empty-old",
+    "surface": "input",
+    "tool": "tdev_edit",
+    "value": {
+      "request": {
+        "requestId": "edit",
+        "taskId": "task",
+        "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "edits": [
+          {
+            "action": "replace",
+            "path": "a",
+            "old": "",
+            "text": "y"
+          }
+        ]
+      }
+    },
+    "valid": false
+  },
+  {
+    "case": "empty-edits",
+    "surface": "input",
+    "tool": "tdev_edit",
+    "value": {
+      "request": {
+        "requestId": "edit",
+        "taskId": "task",
+        "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "edits": []
+      }
+    },
+    "valid": false
+  },
+  {
+    "case": "missing-target",
+    "surface": "input",
+    "tool": "tdev_operation",
+    "value": {
+      "request": {
+        "action": "status"
+      }
+    },
+    "valid": false
+  },
+  {
+    "case": "ambiguous-target",
+    "surface": "input",
+    "tool": "tdev_operation",
+    "value": {
+      "request": {
+        "action": "status",
+        "operationId": "op",
+        "lookupRequestId": "request"
+      }
+    },
+    "valid": false
+  },
+  {
+    "case": "lookup-only",
+    "surface": "input",
+    "tool": "tdev_operation",
+    "value": {
+      "request": {
+        "action": "status",
+        "lookupRequestId": "request"
+      }
+    },
+    "valid": true
+  },
+  {
+    "case": "stdin",
+    "surface": "input",
+    "tool": "tdev_operation",
+    "value": {
+      "request": {
+        "action": "stdin",
+        "operationId": "op",
+        "requestId": "input",
+        "sequence": 0,
+        "text": "hello"
+      }
+    },
+    "valid": true
+  },
+  {
+    "case": "stdin-extra",
+    "surface": "input",
+    "tool": "tdev_operation",
+    "value": {
+      "request": {
+        "action": "stdin",
+        "operationId": "op",
+        "requestId": "input",
+        "sequence": 0,
+        "text": "hello",
+        "close": true
+      }
+    },
+    "valid": false
+  },
+  {
+    "case": "config-principal-unicode",
+    "surface": "config",
+    "tool": "",
+    "value": {
+      "version": 1,
+      "principals": {
+        "\ud55c\uae00 principal": {
+          "tokenHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "repos": {}
+        }
+      },
+      "repositories": {}
+    },
+    "valid": true
+  },
+  {
+    "case": "config-unknown-property",
+    "surface": "config",
+    "tool": "",
+    "value": {
+      "version": 1,
+      "principals": {
+        "\ud55c\uae00 principal": {
+          "tokenHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "repos": {}
+        }
+      },
+      "repositories": {},
+      "authority": "operator"
+    },
+    "valid": false
+  },
+  {
+    "case": "config-unknown-version",
+    "surface": "config",
+    "tool": "",
+    "value": {
+      "version": 2,
+      "principals": {
+        "\ud55c\uae00 principal": {
+          "tokenHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "repos": {}
+        }
+      },
+      "repositories": {}
+    },
+    "valid": false
+  }
+]

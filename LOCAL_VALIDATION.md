@@ -1,5 +1,69 @@
 # Local validation evidence — 2026-09-20
 
+## Local Git and materialized contract implementation — 2026-10-02
+
+The next P2 increment implements `git` and `contract` in the canonical library. The binary
+still exposes version/help only; authenticated HTTP, current-authority snapshots,
+workspace/project/source admission and the Git-before-SQLite-CAS crash boundary remain open.
+No resident/provider update, state format change or main integration was performed.
+
+Local Git uses the installed **Git 2.55.0** on Termux, distinct blob/tree/checkpoint types,
+configured directory inode identity, fresh identity checks around source fetch, initialized
+private-store publication, SHA-1/SHA-256, private temporary indices and object pins. Fetch
+does not write shared FETCH_HEAD. Whole batches validate duplicate/touched paths, blob CAS,
+replace occurrence counts and file/directory collisions before writing new objects.
+Modes/binary/symlink blobs retain exact bytes; no-op capture retains the source checkpoint,
+while real A→B→A changes retain a distinct commit. Reads, literal-path diffs and history use
+Git objects without altering the user's checkout/index/ref. Hooks, filters/textconv and
+replace refs cannot reinterpret these construction/read paths. Invalid UTF-8 replacement
+has an explicit internal `SOURCE_ENCODING` fault; its public feature projection is not yet
+qualified. GitHub transport, publication and checkout/capture selection retain their feature
+owners. Review separated the existing 32 MiB total capture budget from the 16 MiB bounded
+blob-read budget; a large captured blob remains retained even when that read is rejected.
+Replacement expansion is checked before allocating the result, so a bounded input/count
+cannot force a multi-gigabyte allocation. Both cases have actual Git regression fixtures.
+See the selected [Git fetch](https://git-scm.com/docs/git-fetch),
+[index](https://git-scm.com/docs/git-update-index) and
+[fsync/ref-lock configuration](https://git-scm.com/docs/git-config#Documentation/git-config.txt-corefsync).
+
+The Git utility adapter concurrently feeds/drains nonblocking pipes with an aggregate 48 MiB
+output limit, a 30-second ordinary or 120-second fetch deadline and an owned process group.
+Timeout/overflow/error closes pipes, kills that group and waits for its direct child.
+The leader is not reaped before pipe closure, preventing cleanup from targeting a reusable PID.
+This is bounded utility ownership, not P3's detached supervisor or arbitrary-descendant stop
+proof. The initialized store's files/directories are synced before same-parent rename;
+objects/packs/metadata/refs use Git fsync, and references use a bounded 5-second lock wait.
+Process-level fixtures do not prove device power-loss behavior or a hardware durability bound.
+
+`jsonschema 0.58.4`, pinned with defaults disabled and arbitrary-precision enabled, compiles
+the existing Schema 2020-12 input/output/config documents. External network/file reference
+retrieval is explicitly rejected. No derived schema owner, successful handler stub or public
+tool advertisement was introduced. Normalized inputs/defaults are not substituted for request
+identity. Integer numeric forms, absent/null/envelope alternatives, Unicode character bounds
+and arbitrarily large nonnegative offsets are exercised. Raw byte decoding, finite-float
+materialization/typed conversion and surrogate/depth policy remain HTTP-edge work; these
+materialized checks cannot establish them. See the [validator API](https://docs.rs/jsonschema/0.58.4/jsonschema/).
+
+Focused/affected reference checks (`test_core test_source test_contract test_surface`) passed
+26 tests in 69.800s. The first combined `scripts/check.sh` run passed 36 native tests,
+10,003 identity cases and 136 compiled contract comparisons, then ran 378 reference/common
+tests in 546.681s with one failure: an acceptance controller's temporary localhost bind
+returned EPERM during fixture setup. That full run is **not PASS**. The same bounded-wait/SSE
+test passed separately (1 test, 3.279s) with an escalated command; no product change, test skip
+or retry loop was used to turn it green. The combined rerun completed with **exit0**:
+378 reference/common tests passed in 913.154s, including the actual HTTP/process scenarios.
+Its native phase had 36 tests; the final 38-test native pass after the budget review is
+recorded separately below. Both combined passes included 10,003 identity cases and 136
+compiled contract comparisons; the failed first run is retained as failed evidence above.
+
+After the capture/expansion review fixes, the final native pass ran **38 tests**: 25 library
+tests (2.32s) and 13 actual Git scenarios (12.73s), all passed. Formatting, all-target
+warnings-denied clippy, locked build, `--version` (`tdev 0.1.25`), whitespace and the 10,003
+identity/136 contract comparisons passed on this code. The preceding reference tests are
+unchanged by these Git-library fixes. Local file targets in the changed Markdown documents
+were checked. Logs: `$PREFIX/tmp/tdev-git-contract-{focused,full,http-rerun,full-rerun}.log`,
+`tdev-git-budget-focused.log` and `tdev-git-contract-native-final.log` in the same directory.
+
 ## Initial package, identity and storage implementation — 2026-10-02
 
 P2 has started. One `tdev` Cargo package, library and command build on the actual

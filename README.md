@@ -107,15 +107,22 @@ The implementation structure is specified in [ARCHITECTURE §10](ARCHITECTURE.md
 and the single delivery sequence is in [IMPLEMENTATION_PLAN](IMPLEMENTATION_PLAN.md#next-implementation-sequence).
 [IMPLEMENTER_REFERENCE](IMPLEMENTER_REFERENCE.md) maps existing evidence to that work.
 
-Preparation status: the baseline is committed and published, including the existing install/observer
+Implementation progress: the baseline is committed and published, including the existing install/observer
 changes and the latest thirteen-tool contract. `tests/acceptance/` now launches a separate server
 with disposable Git/config/state, tests real HTTP and process restart, and records action-level
 evidence and fixed identity vectors. These tests contain no domain implementation imports.
-The Rust package now builds on Termux and implements validated types, exact identity encoding
-and SQLite ownership/admission/completion primitives. Its command currently exposes version/help;
+The Rust package now builds on Termux and implements validated types, exact identity encoding,
+SQLite ownership/admission/completion primitives, private local Git source construction and
+compiled Schema 2020-12 input/output/config validators. Git uses bounded native utilities,
+SHA-1/SHA-256 stores and private indices; real fixtures cover atomic batch failure, concurrent
+opening/editing, unchanged capture and dirty-checkout preservation. Contract checks are compared
+with an independent validator across all thirteen described tool families; this does not
+advertise those families as implemented handlers. Its command currently exposes version/help;
 it is not a serving runtime yet. The Python executable remains the behavioral reference.
-No state format revision or resident cutover has been performed. P2 is in progress: Git plumbing,
-contract validation, authenticated HTTP and the source/workspace/project vertical slice are next.
+No state format revision or resident cutover has been performed. P2 is in progress: authenticated
+HTTP, current-authority snapshots and the source/workspace/project vertical slice are next.
+Raw wire numeric materialization, typed conversion and Unicode/depth policy still need edge
+qualification; successful materialized Schema validation alone does not qualify HTTP decoding.
 Remaining fault,
 artifact/deployment/operator and host qualification belongs to the corresponding P3–P6 gates;
 the initial common tests are not a complete parity claim. The prior product qualification backlog

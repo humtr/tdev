@@ -84,14 +84,30 @@ existing unit fixtures carried into the relevant P2/P3 slice.
 
 ## Remaining operator, persistence and process boundaries
 
-The initial `model`, `identity` and `storage` library tests now qualify encoding, primitive
-transactions/ownership and operation receipt fixtures on Termux. They do not replace feature
-acceptance or qualify a serving executable. `scripts/check.sh` runs formatting, lint, native
-tests and the compiled identity comparison before the reference/common tests.
+The `model`, `identity`, `storage`, `git` and `contract` library tests now qualify encoding,
+primitive transactions/ownership, operation receipt fixtures, local Git source construction and
+materialized Schema validation on Termux. `tests/git.rs` uses real private Git repositories;
+`tests/acceptance/wire.json` supplies fixed Schema decisions, with additional canonical examples
+and independent-validator comparisons in `scripts/check_contract.py`. These do not replace
+feature acceptance or qualify a serving executable. `scripts/check.sh` runs formatting, lint,
+native tests and compiled identity/contract comparisons before the reference/common tests.
+Current authority, wire numeric conversion (including unbounded offsets), raw Unicode/depth
+handling and the Git-object-before-SQLite-CAS crash boundary belong to the next P2 HTTP source
+slice. `git/process.rs` owns bounded utility groups only; it is not P3's detached supervisor
+or proof that arbitrary escaped command descendants have stopped. GitHub adapter/publication
+and source capture selection/materialization retain their later feature evidence.
+When connecting workspace/project handlers, move repository identity preflight outside the
+SQLite transaction. The reference workspace wrapper can invoke Git/provider inspection from
+inside its transaction; that incidental call order is not the design authority. Recheck owned
+membership/revision/CAS inside the short transaction against the immutable admission context.
+At the HTTP edge, preserve JSON-RPC ID type separately from Schema integer fields: an integral
+floating tool offset may be valid while an RPC ID of that type remains invalid. Establish finite
+float materialization before Schema validation without replacing the canonical request identity.
 
 All entries below are required retained behavior. Evidence remains Python/internal tests or
-separate authored rehearsals until an executable replacement is recorded. No entry here has
-been newly qualified against a Rust executable or a live host.
+separate authored rehearsals until an executable replacement is recorded. Native library and
+compiled contract checks are recorded separately; the operator/process entries here have not
+been qualified against a serving executable or a live host.
 
 | Surface/actions or format | Existing evidence | Delivery |
 |---|---|---|
