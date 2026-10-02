@@ -1418,6 +1418,32 @@ identity while choosing a bounded paging implementation. Legacy identity strings
 surrogates remain decodable; accepting/rejecting new wire strings requires an explicit edge
 decision and fixtures, rather than inheriting a JSON library default.
 
+The selected physical ingress profile is UTF-8 JSON with Unicode scalar strings/keys, finite
+IEEE-754 floating materialization, at most 128 nested containers, at most 4,300 decimal digits
+per integer and a 2 MiB body bound. Integer identity remains arbitrary precision within that
+wire bound; integral floats remain schema-valid tool values but are not JSON-RPC integer IDs.
+Depth is counted by the identity decoder, with the secondary JSON decoder's separate limit
+disabled. Unpaired surrogate escapes in new HTTP/config bytes fail before admission; legacy
+identity material still decodes unchanged. This explicitly tightens the reference's acceptance
+of non-scalar strings and very deep metadata, whose interoperation is unpredictable under
+[RFC 8259 §8.2](https://www.rfc-editor.org/rfc/rfc8259#section-8.2). Raw ingress fixtures record
+this difference; it must remain visible in P6 compatibility qualification.
+
+Discovery is derived from the canonical contract and narrowed to implemented request alternatives.
+Validation uses that same narrowed input schema, so an unadvertised action cannot reach a stub.
+Source construction reserves ownership/CAS in one short transaction, writes and pins private Git
+objects outside the store mutex, then commits the pointer and receipt together. Recovery may
+fail interrupted private source construction with effect=none and release its owned busy slot;
+it cannot apply this rule to unknown effects, execution, public refs or unrelated legacy intents.
+Read pages at or beyond the end report complete without changing the requested offset.
+This corrects the reference list/search equality check that reported incomplete beyond EOF;
+an integral Schema float likewise indexes a page correctly instead of reaching a slice error.
+These are explicit behavior corrections, not request-identity normalization.
+Bounded provider observation refreshes source state afterwards, so a predecessor completed during
+the remote read can immediately support useful continuation. JSON/SSE observation creates no
+effect; a disconnected caller does not cancel an accepted construction worker or release its
+admission capacity while that worker still runs.
+
 ### Types, admission and transitions
 
 Use distinct types for operation/request/task/workspace/project identifiers, checkpoint OIDs,

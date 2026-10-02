@@ -20,7 +20,9 @@
       "existingEvidence": [
         "tests/test_workspaces.py"
       ],
-      "externalScenarios": [],
+      "externalScenarios": [
+        "SourceTest.test_workspace_membership_revision_and_close_guards"
+      ],
       "delivery": "P2"
     },
     {
@@ -29,7 +31,9 @@
       "existingEvidence": [
         "tests/test_workspaces.py"
       ],
-      "externalScenarios": [],
+      "externalScenarios": [
+        "SourceTest.test_workspace_membership_revision_and_close_guards"
+      ],
       "delivery": "P2"
     },
     {
@@ -38,7 +42,9 @@
       "existingEvidence": [
         "tests/test_workspaces.py"
       ],
-      "externalScenarios": [],
+      "externalScenarios": [
+        "SourceTest.test_workspace_membership_revision_and_close_guards"
+      ],
       "delivery": "P2"
     },
     {
@@ -47,7 +53,9 @@
       "existingEvidence": [
         "tests/test_workspaces.py"
       ],
-      "externalScenarios": [],
+      "externalScenarios": [
+        "SourceTest.test_workspace_membership_revision_and_close_guards"
+      ],
       "delivery": "P2"
     },
     {
@@ -56,7 +64,9 @@
       "existingEvidence": [
         "tests/test_workspaces.py"
       ],
-      "externalScenarios": [],
+      "externalScenarios": [
+        "SourceTest.test_workspace_membership_revision_and_close_guards"
+      ],
       "delivery": "P2"
     },
     {
@@ -65,7 +75,9 @@
       "existingEvidence": [
         "tests/test_workspaces.py"
       ],
-      "externalScenarios": [],
+      "externalScenarios": [
+        "SourceTest.test_project_projection_task_and_workspace_paging_freshness"
+      ],
       "delivery": "P2"
     },
     {
@@ -74,7 +86,9 @@
       "existingEvidence": [
         "tests/test_workspaces.py"
       ],
-      "externalScenarios": [],
+      "externalScenarios": [
+        "SourceTest.test_project_projection_task_and_workspace_paging_freshness"
+      ],
       "delivery": "P2"
     },
     {
@@ -99,7 +113,8 @@
         "tests/test_environments.py"
       ],
       "externalScenarios": [
-        "RuntimeTest.test_find_names_preserves_ambiguity_and_closed_predecessors"
+        "RuntimeTest.test_find_names_preserves_ambiguity_and_closed_predecessors",
+        "SourceTest.test_lost_open_and_edit_reply_replay_after_restart_and_close"
       ],
       "delivery": "P2"
     },
@@ -125,7 +140,8 @@
         "tests/test_environments.py"
       ],
       "externalScenarios": [
-        "RuntimeTest.test_no_change_then_completion_is_visible_to_fresh_client"
+        "RuntimeTest.test_no_change_then_completion_is_visible_to_fresh_client",
+        "SourceTest.test_project_projection_task_and_workspace_paging_freshness"
       ],
       "delivery": "P2"
     },
@@ -151,7 +167,8 @@
         "tests/test_environments.py"
       ],
       "externalScenarios": [
-        "RuntimeTest.test_discovery_and_rejected_requests_have_no_effect"
+        "RuntimeTest.test_discovery_and_rejected_requests_have_no_effect",
+        "SourceTest.test_project_projection_task_and_workspace_paging_freshness"
       ],
       "delivery": "P2"
     },
@@ -165,7 +182,8 @@
         "tests/test_environments.py"
       ],
       "externalScenarios": [
-        "RuntimeTest.test_source_edit_exec_validate_publish_and_closed_cleanup"
+        "RuntimeTest.test_source_edit_exec_validate_publish_and_closed_cleanup",
+        "SourceTest.test_lost_open_and_edit_reply_replay_after_restart_and_close"
       ],
       "delivery": "P2"
     },
@@ -202,7 +220,9 @@
         "tests/test_core.py",
         "tests/test_source.py"
       ],
-      "externalScenarios": [],
+      "externalScenarios": [
+        "SourceTest.test_atomic_batch_binary_modes_move_delete_and_failure"
+      ],
       "delivery": "P2"
     },
     {
@@ -213,7 +233,8 @@
         "tests/test_source.py"
       ],
       "externalScenarios": [
-        "RuntimeTest.test_source_edit_exec_validate_publish_and_closed_cleanup"
+        "RuntimeTest.test_source_edit_exec_validate_publish_and_closed_cleanup",
+        "SourceTest.test_atomic_batch_binary_modes_move_delete_and_failure"
       ],
       "delivery": "P2"
     },
@@ -224,7 +245,9 @@
         "tests/test_core.py",
         "tests/test_source.py"
       ],
-      "externalScenarios": [],
+      "externalScenarios": [
+        "SourceTest.test_atomic_batch_binary_modes_move_delete_and_failure"
+      ],
       "delivery": "P2"
     },
     {
@@ -234,7 +257,9 @@
         "tests/test_core.py",
         "tests/test_source.py"
       ],
-      "externalScenarios": [],
+      "externalScenarios": [
+        "SourceTest.test_atomic_batch_binary_modes_move_delete_and_failure"
+      ],
       "delivery": "P2"
     },
     {
@@ -244,7 +269,9 @@
         "tests/test_core.py",
         "tests/test_source.py"
       ],
-      "externalScenarios": [],
+      "externalScenarios": [
+        "SourceTest.test_atomic_batch_binary_modes_move_delete_and_failure"
+      ],
       "delivery": "P2"
     },
     {
@@ -254,7 +281,9 @@
         "tests/test_core.py",
         "tests/test_source.py"
       ],
-      "externalScenarios": [],
+      "externalScenarios": [
+        "SourceTest.test_atomic_batch_binary_modes_move_delete_and_failure"
+      ],
       "delivery": "P2"
     },
     {
@@ -264,7 +293,9 @@
         "tests/test_core.py",
         "tests/test_source.py"
       ],
-      "externalScenarios": [],
+      "externalScenarios": [
+        "SourceTest.test_atomic_batch_binary_modes_move_delete_and_failure"
+      ],
       "delivery": "P2"
     },
     {
@@ -276,7 +307,8 @@
       ],
       "externalScenarios": [
         "RuntimeTest.test_no_change_then_completion_is_visible_to_fresh_client",
-        "RuntimeTest.test_invalid_paths_cannot_change_checkpoint_or_escape_source"
+        "RuntimeTest.test_invalid_paths_cannot_change_checkpoint_or_escape_source",
+        "SourceTest.test_atomic_batch_binary_modes_move_delete_and_failure"
       ],
       "delivery": "P2"
     },
@@ -288,7 +320,8 @@
         "tests/test_source.py"
       ],
       "externalScenarios": [
-        "RuntimeTest.test_source_edit_exec_validate_publish_and_closed_cleanup"
+        "RuntimeTest.test_source_edit_exec_validate_publish_and_closed_cleanup",
+        "SourceTest.test_atomic_batch_binary_modes_move_delete_and_failure"
       ],
       "delivery": "P2"
     },
@@ -354,7 +387,8 @@
         "tests/test_progress.py"
       ],
       "externalScenarios": [
-        "RuntimeTest.test_bounded_wait_json_and_opted_in_progress_sse"
+        "RuntimeTest.test_bounded_wait_json_and_opted_in_progress_sse",
+        "SourceTest.test_lost_open_and_edit_reply_replay_after_restart_and_close"
       ],
       "delivery": "P3"
     },
@@ -431,7 +465,9 @@
       "existingEvidence": [
         "tests/test_projects.py"
       ],
-      "externalScenarios": [],
+      "externalScenarios": [
+        "SourceTest.test_project_projection_task_and_workspace_paging_freshness"
+      ],
       "delivery": "P2"
     },
     {
@@ -440,7 +476,9 @@
       "existingEvidence": [
         "tests/test_projects.py"
       ],
-      "externalScenarios": [],
+      "externalScenarios": [
+        "SourceTest.test_project_projection_task_and_workspace_paging_freshness"
+      ],
       "delivery": "P2"
     },
     {

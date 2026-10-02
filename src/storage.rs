@@ -9,6 +9,8 @@ use rusqlite::{
 use std::fs::{self, DirBuilder, File, OpenOptions, TryLockError};
 use std::os::unix::fs::{DirBuilderExt, MetadataExt, OpenOptionsExt, PermissionsExt};
 use std::path::Path;
+pub mod source;
+pub mod workspace;
 
 const COLUMNS: &str = "id,kind,task,status,effect,result,error";
 

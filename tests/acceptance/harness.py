@@ -63,6 +63,7 @@ class Runtime:
         self.log_thread = None
         self.requests = set()
         self.next_id = 0
+        self.launch_environment = {}
         try:
             git('init', '--template=', '--object-format=' + object_format, '-b', 'main', str(self.work))
             (self.work / 'a.txt').write_text('hello\n')
@@ -110,6 +111,9 @@ class Runtime:
         env = {k: os.environ[k] for k in ('PATH', 'PREFIX', 'TMPDIR', 'LD_LIBRARY_PATH') if k in os.environ}
         (self.root / 'home').mkdir(exist_ok=True)
         env['HOME'] = str(self.root / 'home')
+        # Fixture-owned utility wrappers exercise dispatch/persistence gaps;
+        # the executable receives no implementation selector or fault switches.
+        env.update(self.launch_environment)
         if configured is None:
             # Transitional launch adapter only; semantic tests do not import Python runtime.
             env['PYTHONPATH'] = str(SOURCE / 'src') + os.pathsep + str(SOURCE / '.tdev-deps')

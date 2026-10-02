@@ -89,11 +89,15 @@ primitive transactions/ownership, operation receipt fixtures, local Git source c
 materialized Schema validation on Termux. `tests/git.rs` uses real private Git repositories;
 `tests/acceptance/wire.json` supplies fixed Schema decisions, with additional canonical examples
 and independent-validator comparisons in `scripts/check_contract.py`. These do not replace
-feature acceptance or qualify a serving executable. `scripts/check.sh` runs formatting, lint,
-native tests and compiled identity/contract comparisons before the reference/common tests.
-Current authority, wire numeric conversion (including unbounded offsets), raw Unicode/depth
-handling and the Git-object-before-SQLite-CAS crash boundary belong to the next P2 HTTP source
-slice. `git/process.rs` owns bounded utility groups only; it is not P3's detached supervisor
+full feature acceptance. `scripts/check.sh` runs formatting, lint, native tests, compiled
+identity/contract comparisons, actual native HTTP source/edge tests and reference/common tests.
+`tests/acceptance/test_source.py` now exercises both executables independently, with output
+validation against the canonical schema. `native_source.py` adds narrowed discovery, raw
+numeric identity/conversion, scalar Unicode/depth rejection, current authority/private config,
+completion during blocked remote observation, and SIGKILL after the Git pin but before the
+SQLite pointer. Utility wrappers are disposable fixture programs in PATH, not product hooks.
+P2 managed construction/enrollment and full state transition remain unqualified.
+`git/process.rs` owns bounded utility groups only; it is not P3's detached supervisor
 or proof that arbitrary escaped command descendants have stopped. GitHub adapter/publication
 and source capture selection/materialization retain their later feature evidence.
 When connecting workspace/project handlers, move repository identity preflight outside the

@@ -1,4 +1,75 @@
-# Local validation evidence — 2026-09-20
+# Local validation evidence — 2026-10-02
+
+## Authenticated local source implementation — 2026-10-02
+
+P2 now has a serving `tdev serve` executable on Termux. The disposable acceptance launch
+uses explicit state/config paths, a loopback port and diagnostics off. The implementation
+does not call the reference controller or a Python helper. Discovery derives six narrowed
+tool families from the canonical contract: workspace composition, task list/open/inspect/
+close, every read/edit action, enrolled project list/inspect and source/workspace operation
+status. Unsupported actions fail Schema validation; unsupported receipt kinds fail closed
+until their authority owner is connected. Delegated enrollment and managed source lifecycle
+remain open P2 work. No resident/provider cutover or main integration was performed.
+
+Selected libraries: axum **0.8.8** with HTTP1/Tokio only, Tokio **1.52.3** with two async
+workers/eight blocking workers, UUID **1.23.1** for opaque identities, base64 **0.22.1** for
+wire payloads, futures-core **0.3.34** for bounded SSE streaming and memchr **2.8.3** for
+byte search. Existing SQLite, Git, identity and Schema owners remain unchanged. Cargo.lock
+pins the graph and the on-device build confirms the target APIs; see the
+[axum API](https://docs.rs/axum/0.8.8/axum/). Eight admission permits stay with construction
+workers through completion, including after caller disconnect. No provider wait occurs
+under a store mutex or SQL transaction. Body/config bytes are bounded; P5 performance,
+HTTP connection saturation and operational service qualification remain separate work.
+
+Each admission uses a freshly read private config and immutable authority view. Repository
+membership never grants access; replay checks current ownership, grants and configured
+identity before returning the original receipt. Task reservation/CAS, private Git construction,
+and atomic pointer/terminal receipt are distinct boundaries. SIGKILL after an actual object
+pin leaves the previous source pointer, releases the owned busy slot on restart and retains
+an INTERRUPTED/effect=none receipt; a new request can continue. Recovery leaves unknown effects,
+execution and other intent roles untouched. A provider read refreshes source state afterwards,
+so missed completion can become useful work immediately. Deterministic temporary utility
+wrappers provide barriers; the product binary has no fault switches.
+
+Raw HTTP fixtures distinguish integral Schema floats from RPC IDs, materialize finite IEEE
+floats before Schema validation, preserve original integer/float request identity, and round
+trip unbounded offsets. New ingress explicitly requires scalar Unicode and at most 128
+nested containers/4,300 integer digits; this tightens noninteroperable reference input handling.
+Legacy identity vectors including unpaired surrogates remain unchanged. The secondary decoder
+uses the explicit ingress depth policy instead of its own accidental limit. No claim of full
+raw-wire parity or whole-state transition qualification is made.
+
+Focused evidence: the first new common-source runs failed one fixture with a noncanonical
+credential ID; both logs retain that failure. Corrected reference rerun passed **9 tests in
+25.933s**. The initial native source/edge pass ran **14 tests in 69.996s**; the added blocked-
+remote completion and workspace guard checks passed **2 in 15.137s**. The final batch/workspace
+focused pass ran **2 in 8.581s**; inventory/workspace reference checks ran **2 in 2.803s**.
+Native unit/Git checks passed **40 tests** before the unsupported-receipt authority fix;
+that fix passed its focused test separately. Combined final results follow below.
+Logs are under `$PREFIX/tmp/`: `tdev-source-{native-focused,reference-focused,native-rerun,
+reference-rerun,native-final-focused,reference-final-focused,native-transitions,native-unit,
+authority-focused}.log`. Direct script execution initially returned permission denied
+(exit126; no checks ran), since the tracked script is not executable. The actual combined
+command is `sh scripts/check.sh`; its logs are retained separately from that invocation.
+
+Both actual combined commands completed with **exit0**. The earlier run passed 40 native
+unit/Git tests, 15 native HTTP scenarios and **387 reference/common tests in 1243.074s**.
+After the unsupported-receipt authority fix, the final combined run passed **41 native
+tests** (28 library, 2.70s; 13 Git, 11.20s), **15 native HTTP scenarios** (9 common source,
+41.488s; 6 edge/crash cases, 36.750s), **10,003 identity cases**, **136 compiled contract
+comparisons**, and **387 reference/common tests in 1276.382s**. Formatting, warnings-denied
+all-target clippy, locked build, version command and whitespace checks passed. The added
+beyond-EOF list/search and wide integral-float assertions passed separately on the same
+final binary: **1 test in 5.068s**, `tdev-source-offset-final.log`. These correct incidental
+reference paging/slice errors while preserving request identity. The native source code
+did not change after the final combined run started.
+
+Combined logs: `tdev-source-full-rerun.log` and `tdev-source-full-final.log`. The two runs
+overlapped on this device; elapsed times are test evidence, not a performance comparison.
+Reference fixtures emitted ResourceWarnings about SQLite/pipe cleanup; no warnings were
+suppressed or counted as skipped tests. P5 resource/latency measurement and full lifecycle/
+state-format/host qualification remain open.
+
 
 ## Local Git and materialized contract implementation — 2026-10-02
 

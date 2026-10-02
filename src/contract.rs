@@ -36,6 +36,120 @@ pub struct Contract {
     config: Validator,
 }
 
+pub struct Surface {
+    pub tools: Vec<Value>,
+    inputs: BTreeMap<String, Validator>,
+}
+
+impl Surface {
+    pub fn source(contract: &Contract) -> Result<Self> {
+        fn expand(value: &Value, root: &Value, depth: usize) -> Result<Value> {
+            if depth > 128 {
+                return Err(Fault::new("CONTRACT"));
+            }
+            if let Some(reference) = value.get("$ref").and_then(Value::as_str) {
+                let target = root
+                    .pointer(
+                        reference
+                            .strip_prefix('#')
+                            .ok_or_else(|| Fault::new("CONTRACT"))?,
+                    )
+                    .ok_or_else(|| Fault::new("CONTRACT"))?;
+                let mut expanded = expand(target, root, depth + 1)?;
+                for (key, item) in value.as_object().unwrap() {
+                    if key != "$ref" {
+                        expanded[key] = expand(item, root, depth + 1)?;
+                    }
+                }
+                return Ok(expanded);
+            }
+            match value {
+                Value::Object(object) => Ok(Value::Object(
+                    object
+                        .iter()
+                        .map(|(k, v)| Ok((k.clone(), expand(v, root, depth + 1)?)))
+                        .collect::<Result<_>>()?,
+                )),
+                Value::Array(array) => Ok(Value::Array(
+                    array
+                        .iter()
+                        .map(|v| expand(v, root, depth + 1))
+                        .collect::<Result<_>>()?,
+                )),
+                _ => Ok(value.clone()),
+            }
+        }
+        // Restrict request alternatives only; nested edit/read actions remain intact.
+        fn restrict(request: &mut Value, actions: &[&str]) -> bool {
+            if let Some(action) = request["properties"]["action"]["const"].as_str() {
+                return actions.contains(&action);
+            }
+            if let Some(alternatives) = request.get_mut("oneOf").and_then(Value::as_array_mut) {
+                alternatives.retain_mut(|value| restrict(value, actions));
+                return !alternatives.is_empty();
+            }
+            false
+        }
+        let selected = [
+            (
+                "tdev_workspace",
+                vec![
+                    "list",
+                    "inspect",
+                    "create",
+                    "attach",
+                    "detach",
+                    "configure",
+                    "close",
+                ],
+            ),
+            ("tdev_task", vec!["list", "open", "inspect", "close"]),
+            ("tdev_project", vec!["list", "inspect"]),
+            ("tdev_read", vec![]),
+            ("tdev_edit", vec![]),
+            ("tdev_operation", vec!["status"]),
+        ];
+        let mut tools = Vec::new();
+        let mut inputs = BTreeMap::new();
+        for (name, actions) in selected {
+            let original = contract.schema()["x-tools"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|t| t["name"] == name)
+                .ok_or_else(|| Fault::new("CONTRACT"))?;
+            let mut tool = expand(original, contract.schema(), 0)?;
+            if !actions.is_empty()
+                && !restrict(&mut tool["inputSchema"]["properties"]["request"], &actions)
+            {
+                return Err(Fault::new("CONTRACT"));
+            }
+            tool["description"] = json!(match name {
+                "tdev_task" =>
+                    "Open, list, inspect and close owned source tasks in enrolled local projects.",
+                "tdev_project" => "List and inspect currently granted enrolled projects.",
+                "tdev_operation" =>
+                    "Observe accepted source and workspace operations by operation or request identity with a bounded wait.",
+                _ => original["description"]
+                    .as_str()
+                    .unwrap_or("Source development tool."),
+            });
+            inputs.insert(name.into(), compile(&tool["inputSchema"])?);
+            tools.push(tool);
+        }
+        Ok(Self { tools, inputs })
+    }
+    pub fn input<'a>(&self, name: &str, arguments: &'a Value) -> Result<&'a Value> {
+        if !self.inputs.get(name).is_some_and(|v| v.is_valid(arguments)) {
+            return Err(Fault::new("SCHEMA"));
+        }
+        arguments.get("request").ok_or_else(|| Fault::new("SCHEMA"))
+    }
+    pub fn contains(&self, name: &str) -> bool {
+        self.inputs.contains_key(name)
+    }
+}
+
 impl Contract {
     pub fn embedded() -> Result<Self> {
         let schema: Value = serde_json::from_str(include_str!("../contracts/tools.schema.json"))

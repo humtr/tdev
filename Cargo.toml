@@ -7,14 +7,20 @@ publish = false
 description = "Development, execution and deployment foundation"
 
 [dependencies]
+axum = { version = "=0.8.8", default-features = false, features = ["http1", "tokio"] }
+base64 = "=0.22.1"
+futures-core = "=0.3.34"
 jsonschema = { version = "=0.58.4", default-features = false, features = ["arbitrary-precision"] }
 libc = "=0.2.189"
+memchr = "=2.8.3"
 rusqlite = { version = "=0.40.2", default-features = false }
 ryu = "=1.0.22"
 serde = { version = "=1.0.228", features = ["derive"] }
-serde_json = { version = "=1.0.151", features = ["arbitrary_precision", "raw_value"] }
+serde_json = { version = "=1.0.151", features = ["arbitrary_precision", "raw_value", "unbounded_depth"] }
 sha2 = "=0.10.9"
 tempfile = "=3.27.0"
+tokio = { version = "=1.52.3", features = ["rt-multi-thread", "net", "time", "sync"] }
+uuid = { version = "=1.23.1", features = ["v4"] }
 
 [lints.rust]
 unsafe_op_in_unsafe_fn = "deny"

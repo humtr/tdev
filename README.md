@@ -117,12 +117,23 @@ compiled Schema 2020-12 input/output/config validators. Git uses bounded native 
 SHA-1/SHA-256 stores and private indices; real fixtures cover atomic batch failure, concurrent
 opening/editing, unchanged capture and dirty-checkout preservation. Contract checks are compared
 with an independent validator across all thirteen described tool families; this does not
-advertise those families as implemented handlers. Its command currently exposes version/help;
-it is not a serving runtime yet. The Python executable remains the behavioral reference.
-No state format revision or resident cutover has been performed. P2 is in progress: authenticated
-HTTP, current-authority snapshots and the source/workspace/project vertical slice are next.
-Raw wire numeric materialization, typed conversion and Unicode/depth policy still need edge
-qualification; successful materialized Schema validation alone does not qualify HTTP decoding.
+advertise those families as implemented handlers. The command now serves authenticated loopback
+HTTP with fresh immutable authority snapshots. Discovery exposes six implemented tool families:
+workspace composition; task list/open/inspect/close; all read/edit actions; operation status with
+bounded JSON/SSE observation; and enrolled project list/inspect. Accepted source changes use
+short SQLite reservations, private Git construction and atomic pointer/receipt completion.
+SIGKILL at the Git-pin/SQLite-pointer gap produces a retained interrupted receipt without
+repeating the edit. The Python executable remains the behavioral reference for the full surface.
+No state format revision or resident cutover has been performed. P2 remains in progress:
+delegated enrollment, managed task construction/composition/integration/cleanup and their policy
+and recovery cases still need implementation. Execution, validation/publication, artifacts,
+deployment and operator/service commands retain their later delivery phases.
+The HTTP edge explicitly materializes finite floats before Schema validation, preserves raw
+request identity and unbounded integer offsets, and separates RPC ID types from integer-valued
+tool fields. New ingress requires scalar Unicode and bounded depth; the legacy identity codec
+still preserves unpaired surrogate escapes. This deliberate edge policy is recorded in
+[ARCHITECTURE §10](ARCHITECTURE.md#package-and-dependency-direction), not a claim of raw-byte parity
+for malformed or noninteroperable reference inputs.
 Remaining fault,
 artifact/deployment/operator and host qualification belongs to the corresponding P3–P6 gates;
 the initial common tests are not a complete parity claim. The prior product qualification backlog

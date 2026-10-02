@@ -29,9 +29,11 @@ class InventoryTest(unittest.TestCase):
                     for action in actions(tool['inputSchema']['properties']['request'])}
         self.assertEqual(len(actual), len(set(actual)), 'Duplicate inventory entry')
         self.assertEqual(set(actual), expected)
-        tree = ast.parse(Path(__file__).with_name('test_runtime.py').read_text())
-        scenarios = {cls.name + '.' + method.name for cls in tree.body if isinstance(cls, ast.ClassDef)
-                     for method in cls.body if isinstance(method, ast.FunctionDef)}
+        scenarios = set()
+        for path in Path(__file__).parent.glob('test_*.py'):
+            tree = ast.parse(path.read_text())
+            scenarios.update(cls.name + '.' + method.name for cls in tree.body if isinstance(cls, ast.ClassDef)
+                             for method in cls.body if isinstance(method, ast.FunctionDef))
         for entry in entries:
             with self.subTest(tool=entry['tool'], action=entry['action']):
                 self.assertIn(entry['delivery'], ('P2', 'P3', 'P4', 'P5'))
