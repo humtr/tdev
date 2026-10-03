@@ -389,6 +389,17 @@ current-project/session pointer. Start reserves a unique server-generated branch
 the intersection of repository and principal namespaces; no remote branch exists yet. Exact
 open/compose remain available for enrolled refs, never as a way to adopt a managed branch.
 
+The managed task ID, ref and resolved source scope are frozen with the pending receipt before
+fetch, independently of whether the original input named a project/ref. That reservation remains
+in retained operations after failed/interrupted private construction; no later task reuses its
+branch. Explicit workspace selection/membership is checked again in the reservation transaction;
+a changed default/sole member that selects a different project rejects the stale selection.
+This tightens the reference's selection race and earlier allocation-after-fetch ordering.
+Replay observes the original receipt before resolving new defaults/HEAD, with current repository,
+source-ref, namespace and workspace ownership checks. Private construction can fail interrupted
+with effect=none, preserving the frozen reservation; source import, public ref mutation and
+published predecessor continuation require their own applicable proofs.
+
 Managed tasks publish only their frozen validated candidate, parented by the admitted source
 base, using create-if-absent CAS. Source base and publication target expected state are distinct:
 first publication expects absence even when the source branch has advanced. Delegated projects

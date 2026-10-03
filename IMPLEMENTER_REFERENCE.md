@@ -101,8 +101,12 @@ revocation, original receipts, scoped/common-directory identity and dirty checko
 across both executables. `native_project.py` checks actual controller death before/after complete
 creation proof, copied-marker/same-name replacement rejection, current-policy recovery and
 unsupported-provider rejection before admission. It deliberately strengthens the reference's
-early creation marker. P2 managed construction, GitHub enrollment and full state transition
-remain unqualified.
+early creation marker. `test_start.py` carries remote-base managed start with project/workspace/
+branch defaults, frozen replay, concurrent duplicates/distinct tasks, dirty checkout preservation,
+grant revocation and SHA-256 source editing. `native_start.py` adds actual pin-gap controller death,
+post-admission HEAD advancement, pre-admission workspace selection change and discovery rejection
+of local import/published-predecessor variants. P2 local import, continuation, composition/
+integration/cleanup, GitHub enrollment and full state transition remain unqualified.
 `git/process.rs` owns bounded utility groups only; it is not P3's detached supervisor
 or proof that arbitrary escaped command descendants have stopped. GitHub adapter/publication
 and source capture selection/materialization retain their later feature evidence.

@@ -80,12 +80,19 @@ impl Surface {
             }
         }
         // Restrict request alternatives only; nested edit/read actions remain intact.
-        fn restrict(request: &mut Value, actions: &[&str]) -> bool {
+        fn restrict(request: &mut Value, actions: &[&str], source_start: bool) -> bool {
             if let Some(action) = request["properties"]["action"]["const"].as_str() {
-                return actions.contains(&action);
+                let enabled = actions.contains(&action);
+                if source_start && action == "start" {
+                    if request["properties"].get("fromTaskId").is_some() {
+                        return false;
+                    }
+                    request["properties"]["localChanges"]["enum"] = json!([false]);
+                }
+                return enabled;
             }
             if let Some(alternatives) = request.get_mut("oneOf").and_then(Value::as_array_mut) {
-                alternatives.retain_mut(|value| restrict(value, actions));
+                alternatives.retain_mut(|value| restrict(value, actions, source_start));
                 return !alternatives.is_empty();
             }
             false
@@ -103,7 +110,10 @@ impl Surface {
                     "close",
                 ],
             ),
-            ("tdev_task", vec!["list", "open", "inspect", "close"]),
+            (
+                "tdev_task",
+                vec!["list", "open", "start", "inspect", "close"],
+            ),
             ("tdev_project", vec!["list", "inspect", "connect", "create"]),
             ("tdev_read", vec![]),
             ("tdev_edit", vec![]),
@@ -120,13 +130,17 @@ impl Surface {
                 .ok_or_else(|| Fault::new("CONTRACT"))?;
             let mut tool = expand(original, contract.schema(), 0)?;
             if !actions.is_empty()
-                && !restrict(&mut tool["inputSchema"]["properties"]["request"], &actions)
+                && !restrict(
+                    &mut tool["inputSchema"]["properties"]["request"],
+                    &actions,
+                    name == "tdev_task",
+                )
             {
                 return Err(Fault::new("CONTRACT"));
             }
             tool["description"] = json!(match name {
                 "tdev_task" =>
-                    "Open, list, inspect and close owned source tasks in enrolled local projects.",
+                    "Open, start, list, inspect and close owned source tasks in local projects. Start uses an enrolled remote base; local import and published-task continuation are not available yet.",
                 "tdev_project" =>
                     "List and inspect granted projects; connect or create local projects within current delegated policy.",
                 "tdev_operation" =>

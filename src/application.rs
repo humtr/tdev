@@ -106,6 +106,27 @@ impl Application {
         if let Some(task) = &receipt.operation.task {
             self.task(context, task.as_str())?;
         }
+        if receipt.operation.kind == OperationKind::Task
+            && receipt.intent["input"]["action"] == "start"
+        {
+            let resolved = &receipt.intent["resolved"];
+            let repo = context.repository(
+                wire::string(resolved, "repo")?,
+                Some(wire::string(&receipt.intent, "identity")?),
+            )?;
+            if !repo
+                .refs
+                .contains(&BranchRef::new(wire::string(resolved, "sourceRef")?)?)
+            {
+                return Err(Fault::new("PERMISSION_DENIED"));
+            }
+            let namespace = wire::string(resolved, "namespace")?;
+            if !repo.namespaces.iter().any(|ns| ns == namespace)
+                || !wire::string(resolved, "ref")?.starts_with(namespace)
+            {
+                return Err(Fault::new("MANAGED_REF_DENIED"));
+            }
+        }
         if let Some(repo) = receipt.intent["input"]["repo"].as_str() {
             let repository = context.repository(repo, receipt.intent["identity"].as_str())?;
             if let Some(branch) = receipt.intent["input"]["ref"].as_str()

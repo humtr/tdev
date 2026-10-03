@@ -1,4 +1,45 @@
-# Local validation evidence — 2026-10-02
+# Local validation evidence — 2026-10-03
+
+## Managed task start and frozen source reservation — 2026-10-03
+
+P2 now serves remote-base `task start`: explicit project/source selection, principal or explicit
+workspace defaults, and sole authorized project/ref selection. Ambiguity requires caller choice.
+Current exact source grants and the intersection of managed namespaces gate admission. Unique
+task/ref identity, resolved project/source/ref/namespace/base and repository identity are frozen
+with workspace binding before fetch. Start writes no remote branch or user checkout/index/files.
+Managed task and terminal receipt commit together; completion checks the frozen identity.
+Failed/interrupted reservations remain in retained operation rows, so branch names are not reused.
+
+Implicit-input replay checks original resolved scope before any new selection/HEAD lookup; current
+default changes cannot retarget an old request. Revoked namespaces/repository/source grants block
+both pending and completed receipt access. Workspace selection is reread in the reservation
+transaction: a default/sole member change during Git observation cannot commit the stale choice.
+Pending implicit-project starts block workspace close/detach using the resolved project binding.
+Actual SIGKILL after Git pin retains frozen identity, fails private construction with
+INTERRUPTED/effect=none, clears pending composition use and creates no replacement task.
+Actual HEAD advancement after admission fails STALE_HEAD; it does not silently choose the new
+base. A foreign branch appearing at the reserved name is preserved and never adopted.
+
+Discovery/input validation share the narrowed canonical schema: start accepts localChanges
+omitted/false. Local import and fromTaskId remain rejected before durable admission, pending
+their own source-selection/publication proofs. Task composition/integration/cleanup, GitHub
+enrollment and the other P3–P6 surfaces are still unfinished. No schema revision, provider/resident
+cutover or main integration occurred. Freezing IDs before fetch and rechecking workspace
+selection strengthen reference allocation/race behavior; they are not full crash-window parity.
+
+Focused common tests passed **5 reference in 14.626s** and **5 native in 23.377s**. The added
+SHA-256 common case passed **1 reference in 6.790s**. Initial native discovery/pin-gap/HEAD
+advancement checks passed **3 in 38.230s**. Storage selection/atomic managed completion/retained
+reservation and prior recovery-owner checks passed **3 in 0.13s**; format/lint/locked build
+also passed. Affected native HTTP checks passed **34 in 236.550s**; the added foreign-branch
+race passed **1 in 17.971s**. The final `sh scripts/check.sh` completed with recorded exit
+status **0**: format/lint/locked build, **45 Rust checks** (32 library + 13 Git),
+**10,003 identity comparisons**, **136 compiled contract comparisons**, **35 native HTTP checks**
+(9 source + 4 project + 6 start + 16 native boundary/recovery) and **397 reference/common
+regressions in 1632.452s** passed. Existing reference ResourceWarnings remained visible in the
+log; no test failure or skipped suite was reported.
+Logs live under `$PREFIX/tmp` as
+`tdev-start-{reference-focused,native-focused,reference-sha256,native-recovery,foreign-focused,affected,full}.log`.
 
 ## Delegated local project enrollment — 2026-10-02
 

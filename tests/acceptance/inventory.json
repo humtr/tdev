@@ -351,7 +351,14 @@
         "tests/test_environments.py",
         "tests/test_boundaries.py"
       ],
-      "externalScenarios": [],
+      "externalScenarios": [
+        "StartTest.test_implicit_start_lost_reply_edit_close_and_restart_keep_original_identity",
+        "StartTest.test_duplicate_admission_and_distinct_tasks_have_one_receipt_and_unique_branches",
+        "StartTest.test_project_and_workspace_defaults_are_explicit_and_never_global_current_state",
+        "StartTest.test_branch_selection_expected_head_and_current_grants_gate_replay",
+        "StartTest.test_connected_project_can_start_without_supplied_head_or_branch",
+        "StartTest.test_sha256_managed_source_survives_restart_and_checkpoint_edit"
+      ],
       "delivery": "P3"
     },
     {

@@ -347,4 +347,7 @@ impl Context {
             .cloned()
             .collect()
     }
+    pub fn default_repository(&self) -> Option<&str> {
+        self.config["principals"][self.principal.as_str()]["defaultRepo"].as_str()
+    }
 }

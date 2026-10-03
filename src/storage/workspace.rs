@@ -104,11 +104,51 @@ pub(super) fn bind(
 
 fn in_use(db: &Connection, id: &str, repo: Option<&str>) -> Result<bool> {
     let tasks: bool = db.query_row("SELECT EXISTS(SELECT 1 FROM task WHERE workspace=? AND closed=0 AND (? IS NULL OR repo=?))",params![id,repo,repo],|r|r.get(0)).map_err(database)?;
-    let pending: bool = db.query_row("SELECT EXISTS(SELECT 1 FROM operation WHERE kind='task' AND status IN ('running','unknown') AND json_extract(intent,'$.workspaceId')=? AND (? IS NULL OR json_extract(intent,'$.input.repo')=?))",params![id,repo,repo],|r|r.get(0)).map_err(database)?;
+    let pending: bool = db.query_row("SELECT EXISTS(SELECT 1 FROM operation WHERE kind='task' AND status IN ('running','unknown') AND json_extract(intent,'$.workspaceId')=? AND (? IS NULL OR COALESCE(json_extract(intent,'$.resolved.repo'),json_extract(intent,'$.input.repo'))=?))",params![id,repo,repo],|r|r.get(0)).map_err(database)?;
     Ok(tasks || pending)
 }
 
+pub(super) fn select_project(
+    db: &Connection,
+    owner: &PrincipalId,
+    input: &Json,
+) -> Result<Option<(String, String)>> {
+    let Some(id) = input["workspaceId"].as_str() else {
+        return Ok(None);
+    };
+    let workspace = owned(db, owner, id, true)?;
+    let members = workspace["projects"]
+        .as_array()
+        .ok_or_else(|| Fault::new("STATE_FORMAT"))?;
+    let repo = input["repo"]
+        .as_str()
+        .or_else(|| workspace["defaultRepo"].as_str())
+        .or_else(|| {
+            if members.len() == 1 {
+                members[0]["repo"].as_str()
+            } else {
+                None
+            }
+        })
+        .ok_or_else(|| Fault::new("PROJECT_REQUIRED"))?;
+    let member = members
+        .iter()
+        .find(|m| m["repo"].as_str() == Some(repo))
+        .ok_or_else(|| Fault::new("PROJECT_NOT_ATTACHED"))?;
+    Ok(Some((
+        repo.into(),
+        crate::wire::string(member, "identity")?.into(),
+    )))
+}
+
 impl Store {
+    pub fn select_workspace_project(
+        &self,
+        owner: &PrincipalId,
+        input: &Json,
+    ) -> Result<Option<(String, String)>> {
+        select_project(self.connection(), owner, input)
+    }
     pub fn workspace(&self, owner: &PrincipalId, id: &str, active: bool) -> Result<Json> {
         owned(self.connection(), owner, id, active)
     }

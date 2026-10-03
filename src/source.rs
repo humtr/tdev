@@ -10,6 +10,7 @@ use crate::{
 };
 use base64::{Engine, engine::general_purpose::STANDARD};
 use serde_json::{Value, json};
+mod start;
 
 pub fn task(
     app: &Application,
@@ -18,6 +19,7 @@ pub fn task(
     original: &identity::Value,
 ) -> Result<Value> {
     match wire::string(input, "action")? {
+        "start" => start::call(app, context, input, original),
         "open" => open(app, context, input, original),
         "close" => {
             if let Some(op) = app.replay(context, input, "task", original)? {

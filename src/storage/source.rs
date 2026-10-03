@@ -216,10 +216,46 @@ impl Store {
             Ok(())
         })
     }
+    pub fn admit_start(
+        &mut self,
+        admission: &Admission,
+        input: &Json,
+        task: &mut Task,
+    ) -> Result<Admitted> {
+        self.admit(admission,|db| {
+            if let Some((repo,identity)) = workspace::select_project(db,&admission.owner,input)? {
+                if repo != task.repo { return Err(Fault::new("SOURCE_CHANGED")); }
+                if identity != task.identity { return Err(Fault::new("REPOSITORY_IDENTITY")); }
+            }
+            // Retained receipts reserve a branch even when construction failed.
+            let collision: bool = db.query_row("SELECT EXISTS(SELECT 1 FROM operation WHERE repo=? AND ref=? UNION ALL SELECT 1 FROM task WHERE repo=? AND ref=?)",params![task.repo,task.branch.as_str(),task.repo,task.branch.as_str()],|r|r.get(0)).map_err(database)?;
+            if collision { return Err(Fault::new("REF_EXISTS")); }
+            task.workspace = workspace::bind(db,&admission.owner,input["workspaceId"].as_str(),&task.workspace,&task.repo,&task.identity)?;
+            let mut intent: Json = serde_json::from_slice(&admission.intent.canonical()?).map_err(|_|Fault::new("STATE_FORMAT"))?;
+            intent["workspaceId"] = json!(task.workspace);
+            db.execute("UPDATE operation SET repo=?,ref=?,intent=? WHERE id=?",params![task.repo,task.branch.as_str(),encoded(&intent)?,admission.operation.id.as_str()]).map_err(database)?;
+            Ok(())
+        })
+    }
     pub fn complete_open(&mut self, admission: &Admission, task: &Task) -> Result<Operation> {
-        let result = json!({"taskId":task.id,"workspaceId":task.workspace,"repo":task.repo,"ref":task.branch,"base":task.base,"checkpoint":task.checkpoint});
-        self.finish(&admission.operation.id,Status::Succeeded,Effect::Committed,result,None,|db,_| {
-            db.execute("INSERT INTO task(id,owner,repo,ref,identity,base,checkpoint,workspace) VALUES(?,?,?,?,?,?,?,?)",params![task.id.as_str(),task.owner.as_str(),task.repo,task.branch.as_str(),task.identity,task.base.as_str(),task.checkpoint.as_str(),task.workspace]).map_err(database)?;
+        let mut result = json!({"taskId":task.id,"workspaceId":task.workspace,"repo":task.repo,"ref":task.branch,"base":task.base,"checkpoint":task.checkpoint});
+        if task.managed == 1 {
+            result["managed"] = json!(true);
+            result["sourceRef"] = json!(task.source_ref);
+        }
+        self.finish(&admission.operation.id,Status::Succeeded,Effect::Committed,result,None,|db,old| {
+            if old.kind != crate::model::OperationKind::Task || task.owner != admission.owner || task.closed != 0 || task.busy.is_some() {
+                return Err(Fault::new("OPERATION_STATE"));
+            }
+            if task.managed == 1 {
+                let intent: String = db.query_row("SELECT intent FROM operation WHERE id=?",[admission.operation.id.as_str()],|row|row.get(0)).map_err(database)?;
+                let intent: Json = serde_json::from_str(&intent).map_err(|_|Fault::new("STATE_FORMAT"))?;
+                let frozen = &intent["resolved"];
+                if frozen["taskId"] != json!(task.id) || frozen["repo"] != json!(task.repo) || frozen["ref"] != json!(task.branch) || frozen["base"] != json!(task.base) || frozen["sourceRef"] != json!(task.source_ref) || frozen["namespace"] != json!(task.namespace) || intent["identity"] != json!(task.identity) || intent["workspaceId"] != json!(task.workspace) || task.ref_state.as_deref() != Some("reserved") || task.published_oid.is_some() {
+                    return Err(Fault::new("SOURCE_CHANGED"));
+                }
+            }
+            db.execute("INSERT INTO task(id,owner,repo,ref,identity,base,checkpoint,workspace,managed,source_ref,namespace,ref_state) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",params![task.id.as_str(),task.owner.as_str(),task.repo,task.branch.as_str(),task.identity,task.base.as_str(),task.checkpoint.as_str(),task.workspace,task.managed,task.source_ref.as_ref().map(BranchRef::as_str),task.namespace,task.ref_state]).map_err(database)?;
             db.execute("UPDATE operation SET task=? WHERE id=?",params![task.id.as_str(),admission.operation.id.as_str()]).map_err(database)?;
             Ok(())
         })?;
@@ -303,6 +339,188 @@ mod tests {
                 error: None,
             },
         }
+    }
+
+    fn start_admission(id: &str, workspace: Option<&str>) -> (Admission, Json, Task) {
+        let mut input = json!({"action":"start","requestId":id});
+        if let Some(workspace) = workspace {
+            input["workspaceId"] = json!(workspace);
+        }
+        let task = Task {
+            id: TaskId::new(format!("{id}-task")).unwrap(),
+            owner: PrincipalId::new("alice").unwrap(),
+            repo: "test".into(),
+            branch: BranchRef::new("refs/heads/work/reserved").unwrap(),
+            identity: "local:1:2".into(),
+            base: Checkpoint::new("a".repeat(40)).unwrap(),
+            checkpoint: Checkpoint::new("a".repeat(40)).unwrap(),
+            busy: None,
+            closed: 0,
+            workspace: "proposed".into(),
+            managed: 1,
+            source_ref: Some(BranchRef::new("refs/heads/main").unwrap()),
+            namespace: Some("refs/heads/work/".into()),
+            published_oid: None,
+            ref_state: Some("reserved".into()),
+        };
+        let mut admission = admission(id, OperationKind::Task, "private-source");
+        admission.intent = Value::parse(&json!({"input":input,"identity":task.identity,"construction":"private-source","resolved":{"repo":task.repo,"sourceRef":task.source_ref,"base":task.base,"namespace":task.namespace,"ref":task.branch,"taskId":task.id}}).to_string()).unwrap();
+        (admission, input, task)
+    }
+
+    #[test]
+    fn start_rechecks_workspace_selection_and_replay_precedes_current_prerequisites() {
+        let root = tempfile::tempdir().unwrap();
+        let mut store = Store::open(&root.path().join("state")).unwrap();
+        store.transaction(|db| {
+            db.execute("INSERT INTO workspace(id,owner,name,default_repo) VALUES('space','alice','Space','test')",[]).map_err(database)?;
+            db.execute("INSERT INTO workspace_project(workspace,repo,identity) VALUES('space','test','local:1:2'),('space','other','local:3:4')",[]).map_err(database)?;
+            Ok(())
+        }).unwrap();
+        let (admission, input, mut task) = start_admission("selected", Some("space"));
+        assert_eq!(
+            store
+                .select_workspace_project(&task.owner, &input)
+                .unwrap()
+                .unwrap()
+                .0,
+            "test"
+        );
+        store
+            .transaction(|db| {
+                db.execute(
+                    "UPDATE workspace SET default_repo='other' WHERE id='space'",
+                    [],
+                )
+                .map_err(database)?;
+                Ok(())
+            })
+            .unwrap();
+        assert_eq!(
+            store
+                .admit_start(&admission, &input, &mut task)
+                .err()
+                .unwrap()
+                .code,
+            "SOURCE_CHANGED"
+        );
+        assert!(
+            store
+                .lookup(&admission.owner, &admission.request)
+                .unwrap()
+                .is_none()
+        );
+        store
+            .transaction(|db| {
+                db.execute(
+                    "UPDATE workspace SET default_repo='test' WHERE id='space'",
+                    [],
+                )
+                .map_err(database)?;
+                Ok(())
+            })
+            .unwrap();
+        assert!(matches!(
+            store.admit_start(&admission, &input, &mut task).unwrap(),
+            Admitted::New(_)
+        ));
+        assert_eq!(task.workspace, "space");
+        store
+            .transaction(|db| {
+                db.execute(
+                    "UPDATE workspace SET closed=1,default_repo='other' WHERE id='space'",
+                    [],
+                )
+                .map_err(database)?;
+                Ok(())
+            })
+            .unwrap();
+        assert!(matches!(
+            store.admit_start(&admission, &input, &mut task).unwrap(),
+            Admitted::Replay(_)
+        ));
+    }
+
+    #[test]
+    fn managed_completion_matches_frozen_identity_and_failed_branches_remain_reserved() {
+        let root = tempfile::tempdir().unwrap();
+        let mut store = Store::open(&root.path().join("state")).unwrap();
+        let (admission, input, mut task) = start_admission("complete", None);
+        store.admit_start(&admission, &input, &mut task).unwrap();
+        let mut replacement = task.clone();
+        replacement.branch = BranchRef::new("refs/heads/work/changed").unwrap();
+        assert_eq!(
+            store
+                .complete_open(&admission, &replacement)
+                .unwrap_err()
+                .code,
+            "SOURCE_CHANGED"
+        );
+        assert!(
+            store
+                .tasks(&task.owner, None, 0, 10, false)
+                .unwrap()
+                .is_empty()
+        );
+        assert_eq!(
+            store
+                .lookup(&admission.owner, &admission.request)
+                .unwrap()
+                .unwrap()
+                .status,
+            Status::Running
+        );
+        let completed = store.complete_open(&admission, &task).unwrap();
+        let stored = store.task(&task.owner, task.id.as_str()).unwrap();
+        assert_eq!(
+            (
+                stored.managed,
+                stored.source_ref,
+                stored.namespace,
+                stored.ref_state
+            ),
+            (
+                1,
+                task.source_ref.clone(),
+                task.namespace.clone(),
+                Some("reserved".into())
+            )
+        );
+        assert_eq!(completed.result.as_ref().unwrap()["managed"], true);
+        let late = store
+            .complete_source(
+                &admission.operation.id,
+                Err(Fault::new("LATE")),
+                None,
+                false,
+            )
+            .unwrap();
+        assert_eq!(
+            serde_json::to_value(late).unwrap(),
+            serde_json::to_value(completed).unwrap()
+        );
+        let (failed, input, mut other) = start_admission("failed", None);
+        other.branch = BranchRef::new("refs/heads/work/failed").unwrap();
+        store.admit_start(&failed, &input, &mut other).unwrap();
+        store
+            .complete_source(
+                &failed.operation.id,
+                Err(Fault::new("INTERRUPTED")),
+                None,
+                false,
+            )
+            .unwrap();
+        let (next, input, mut next_task) = start_admission("reuse", None);
+        next_task.branch = other.branch;
+        assert_eq!(
+            store
+                .admit_start(&next, &input, &mut next_task)
+                .err()
+                .unwrap()
+                .code,
+            "REF_EXISTS"
+        );
+        assert!(store.lookup(&next.owner, &next.request).unwrap().is_none());
     }
 
     #[test]
