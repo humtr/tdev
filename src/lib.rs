@@ -9,6 +9,7 @@ pub mod project;
 pub mod provider;
 pub mod source;
 pub mod storage;
+pub mod supervisor;
 pub mod transport;
 pub mod wire;
 pub mod workspace;

@@ -228,6 +228,18 @@ Python tests remain available as evidence until each affected behavior has an ad
 
 ### P3 — implement execution, validation/publication and recovery
 
+The initial increment implements the independent `supervise` process role and durable spool
+primitive: immutable input/tool-location digest, dispatch/worker fences, PID/start/boot identity,
+clean environment, output drain/cap, limits/sampled storage, deadlines/cancel and descendant stop.
+Real-process tests cover launcher SIGKILL, supervisor SIGKILL with surviving descendants,
+double fork, dispatch/claim gaps, concurrent launch and forged/corrupt terminal evidence.
+Public execution is not connected by this increment. Next join admission and owned source
+materialization/capture, sequenced stdin, task dependency leases and per-operation reconciliation;
+do not expose the primitive as a completed command/process API or close the P3 exit gate yet.
+The initial increment's final `sh scripts/check.sh` passed with exit status 0: 70 Rust checks,
+105 native HTTP regressions and 429 reference/common checks, plus identity/contract comparison.
+See LOCAL_VALIDATION.md for actual-process evidence, the interrupted run and remaining scope.
+
 1. Implement the independent native supervisor process and durable spool protocol: reserve before
    dispatch, PID/start identity, clean environment, task dependency leases, stdin sequencing,
    bounded output, working budgets, deadlines, descendant stop and owned source capture. Select

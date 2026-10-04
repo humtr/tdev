@@ -1,5 +1,53 @@
 # Local validation evidence — 2026-10-04
 
+## Independent supervisor and durable spool — 2026-10-04
+
+P3 has started with the executable's independent `supervise` process role and private durable
+spool. Canonical input identity freezes command/cwd/deadline/working budget and shell/tool
+location. Reservation, dispatch and worker claim precede effects; existing/partial fences
+never authorize relaunch. PID/start/boot identity gates live observation and exact descendant
+signals. The worker owns a separate session, subreaping, SIGCHLD/reaping and no-new-privileges.
+Candidates receive private fresh HOME/TMP/XDG directories and a clean environment, not
+controller/provider secrets. Metadata reads reject links/special files and bound record size.
+Output is continuously drained, retains at most 1 MiB and records discarded bytes; stdout
+cannot supply a receipt. CPU/file-size/fd/core limits and sampled working storage apply during
+execution. Deadline/cancellation stop descendants; final storage checks and log fsync follow
+stop proof and precede bound result persistence.
+Missing worker, malformed/unbound result or incomplete stop proof remains unknown.
+
+The actual executable passed **15 process integration checks**: launcher SIGKILL with continued
+one-effect execution, supervisor SIGKILL with surviving descendants and no relaunch, ordinary
+exit/cancel of double forks, simultaneous launch, dispatch/claim gaps, input conflicts,
+private environment/no-new-privileges, output flooding, file/storage limits, removed cwd,
+stale start/boot identity, early cancellation and forged/corrupt terminal evidence.
+Python only manufactures double-fork fixtures; no reference controller/worker completes these
+executions. The initial full run was deliberately interrupted after stop-proof review with
+recorded exit **143**, not PASS. The revised stop proof requires both a descendant scan and
+waitpid ECHILD, covering reparenting during the scan. One subsequent parallel cancel fixture
+timed out; isolated and ten repeated 15-check rounds passed, without identifying that original
+timeout's exact cause. Bounded error-kind/errno diagnostics now retain failures without raw
+command/provider text. Proc disappearance handles ENOENT/ESRCH while permission/read failures
+stay uncertain, following the [Linux procfs documentation](https://www.kernel.org/doc/html/latest/filesystems/proc.html).
+Final affected Rust checks passed **70** (39 library + 16 Git + 15 supervisor); the final
+supervisor run took **1.45s** and additionally exercised unrelated process churn.
+
+The final full `sh scripts/check.sh` completed with independently recorded exit status **0**:
+format/lint/locked build, **70 Rust checks**, **10,003 identity comparisons**, **136 compiled
+contract comparisons**, **105 native HTTP checks** (51 common + 54 boundary/recovery in
+497.255s) and **429 reference/common regressions in 1217.704s** passed. The full gate's
+supervisor checks took **1.53s**. Existing reference SQLite ResourceWarnings remained visible;
+there was no failing or skipped suite. These are regression/primitive qualification counts,
+not complete public native execution, validation/publication or artifact/deployment coverage.
+Logs live under `$PREFIX/tmp` as `tdev-supervisor-{rust-affected,rust-final,rust-final-2,
+diagnostic,stress,full-interrupted,full}.log`; the interrupted and final full runs retain
+independent `.exit` files.
+
+This qualifies an execution primitive, not public execution admission or the P3 exit gate.
+Sequenced stdin, task dependency leases, owned source materialization/capture, SQLite operation
+reconciliation and validation/publication remain next P3 work. The HTTP tool list still omits
+execution; stdin is closed and this primitive uses fresh private directories. No SQLite format
+revision, main integration or production runtime/provider cutover occurred.
+
 ## GitHub delegated enrollment and controller provider boundary — 2026-10-04
 
 P2 now implements delegated GitHub connect/private initialized create and current policy

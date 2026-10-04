@@ -7,6 +7,12 @@ fn main() -> ExitCode {
         [arg] if arg == "--help" => println!(
             "Usage: tdev --version | --help\n       tdev serve --state PATH --config PATH --port PORT --diagnostics off"
         ),
+        [command, option, path] if command == "supervise" && option == "--job" => {
+            if let Err(error) = tdev::supervisor::run(std::path::Path::new(path)) {
+                eprintln!("Supervisor stopped without complete evidence: {error}");
+                return ExitCode::from(2);
+            }
+        }
         [command, rest @ ..] if command == "serve" => {
             let run = || -> Result<(), Box<dyn std::error::Error>> {
                 let mut options = std::collections::BTreeMap::new();

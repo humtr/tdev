@@ -1601,6 +1601,18 @@ delivery uncertainty, bounded byte logs, deadline accounting, descendant stop pr
 ordering. Limit unsafe/platform-specific code to reviewed syscall adapters and exercise it on
 Termux. Same-UID execution and sampled budgets retain the limits described in §3.
 
+The supervisor primitive reserves immutable internal launch input before dispatch. Its canonical
+digest binds the command, relative cwd, deadline, working budget and selected shell/tool location.
+Dispatch and worker claim are durable create-once fences: partial records, a missing worker or a
+dead worker cannot authorize another launch. Worker/child records bind PID, start ticks and boot
+identity. The independent worker starts a separate session and subreaps descendants; terminal
+evidence is separate from candidate stdout and bound to that reservation/worker. Final output is
+fsynced after descendant stop and before the result record; incomplete stop proof stays unknown.
+The controller must join this evidence to its existing admission/capture lifecycle rather than
+copy terminal truth into a second task owner. The initial primitive closes stdin and uses fresh
+private directories; sequenced input and task dependency leases precede public execution delivery.
+No spool record grants API authority or provides hostile same-UID tamper resistance.
+
 ### Identity, storage and compatibility
 
 Separate ordinary JSON serialization from bytes used for request, policy, spool, artifact and
