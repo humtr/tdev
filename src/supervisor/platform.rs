@@ -178,7 +178,11 @@ pub fn shell() -> io::Result<PathBuf> {
     Ok(binary_directory()?.join("sh"))
 }
 
-pub fn environment(job: &Path, shell: &Path) -> io::Result<BTreeMap<String, String>> {
+pub fn environment(
+    job: &Path,
+    shell: &Path,
+    dependencies: Option<&Path>,
+) -> io::Result<BTreeMap<String, String>> {
     let bin = shell
         .parent()
         .ok_or_else(|| io::Error::other("Missing native tool directory"))?;
@@ -203,7 +207,41 @@ pub fn environment(job: &Path, shell: &Path) -> io::Result<BTreeMap<String, Stri
     if let Some(prefix) = bin.parent() {
         env.insert("PREFIX".into(), prefix.to_string_lossy().into());
     }
+    if let Some(dependencies) = dependencies {
+        env.insert("TDEV_ENV_DIR".into(), dependencies.to_string_lossy().into());
+        let base_path = env.get("PATH").expect("Native PATH");
+        let path = std::env::join_paths(
+            [dependencies.join("venv/bin"), dependencies.join("bin")]
+                .into_iter()
+                .chain(std::env::split_paths(base_path)),
+        )
+        .map_err(io::Error::other)?;
+        env.insert(
+            "PATH".into(),
+            path.into_string()
+                .map_err(|_| io::Error::other("Non-Unicode dependency tool path"))?,
+        );
+        for (key, name) in [
+            ("PIP_CACHE_DIR", "pip-cache"),
+            ("npm_config_cache", "npm-cache"),
+            ("XDG_CACHE_HOME", "xdg-cache"),
+        ] {
+            env.insert(key.into(), dependencies.join(name).to_string_lossy().into());
+        }
+    }
     Ok(env)
+}
+
+pub fn nonblocking(stream: &impl std::os::fd::AsRawFd) -> io::Result<()> {
+    let fd = stream.as_raw_fd();
+    // SAFETY: a borrowed live descriptor; preserve its existing status flags.
+    unsafe {
+        let flags = libc::fcntl(fd, libc::F_GETFL);
+        if flags == -1 || libc::fcntl(fd, libc::F_SETFL, flags | libc::O_NONBLOCK) == -1 {
+            return Err(io::Error::last_os_error());
+        }
+    }
+    Ok(())
 }
 
 fn descendants() -> io::Result<Vec<ProcessIdentity>> {

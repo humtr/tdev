@@ -1,3 +1,4 @@
+use super::environment::Environment;
 use super::{OUTPUT_LIMIT, platform};
 use crate::identity;
 use crate::model::{Digest, OperationId};
@@ -8,12 +9,11 @@ use std::os::unix::fs::{DirBuilderExt, MetadataExt, OpenOptionsExt, PermissionsE
 use std::path::{Component, Path, PathBuf};
 use std::process::{Command, Stdio};
 
-const FORMAT: u32 = 1;
-const RECORD_LIMIT: u64 = 512 * 1024;
+const FORMAT: u32 = 2;
+const RECORD_LIMIT: u64 = 1024 * 1024;
 const WORKING_MAX: u64 = 2 * 1024 * 1024 * 1024;
 
 /// Frozen internal launch input; the controller supplies owned materialization separately.
-/// A command starts with stdin closed.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Request {
@@ -21,10 +21,12 @@ pub struct Request {
     pub cwd: String,
     pub timeout_seconds: Option<u64>,
     pub working_bytes: u64,
+    pub stdin: String,
+    pub environment: Option<Environment>,
 }
 
 impl Request {
-    fn validate(&self) -> io::Result<()> {
+    pub(super) fn validate(&self) -> io::Result<()> {
         if self.command.is_empty()
             || self.command.chars().count() > 65536
             || self.command.contains('\0')
@@ -39,8 +41,12 @@ impl Request {
                 .is_some_and(|s| !(1..=3600).contains(&s))
             || self.working_bytes == 0
             || self.working_bytes > WORKING_MAX
+            || self.stdin.chars().count() > 65536
         {
             return Err(io::Error::other("Invalid frozen execution input"));
+        }
+        if let Some(environment) = &self.environment {
+            environment.validate()?;
         }
         Ok(())
     }
@@ -58,9 +64,9 @@ struct Reservation {
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
-struct Bound<T> {
-    digest: Digest,
-    value: T,
+pub(super) struct Bound<T> {
+    pub digest: Digest,
+    pub value: T,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -70,6 +76,8 @@ pub enum Outcome {
     Cancelled,
     Deadline,
     WorkingBudget,
+    DependencyBudget,
+    EnvironmentBusy,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -103,6 +111,14 @@ impl Job {
         request.validate()?;
         private_directory(root)?;
         let path = root.join(operation.as_str());
+        if request.environment.as_ref().is_some_and(|environment| {
+            let dependencies = environment.path();
+            dependencies.starts_with(&path) || path.starts_with(&dependencies)
+        }) {
+            return Err(io::Error::other(
+                "Dependency storage overlaps execution copy",
+            ));
+        }
         match fs::DirBuilder::new().mode(0o700).create(&path) {
             Ok(()) => {
                 File::open(root)?.sync_all()?;
@@ -170,6 +186,14 @@ impl Job {
             || !record.shell.is_absolute()
             || record.shell.file_name().is_none_or(|name| name != "sh")
             || fingerprint(&(&record.request, &record.shell))? != record.digest
+            || record
+                .request
+                .environment
+                .as_ref()
+                .is_some_and(|environment| {
+                    environment.path().starts_with(&self.path)
+                        || self.path.starts_with(environment.path())
+                })
         {
             return Err(io::Error::other("Invalid execution reservation"));
         }
@@ -374,39 +398,13 @@ impl Job {
     }
 
     pub(crate) fn within_budget(&self, budget: u64) -> io::Result<bool> {
-        let mut pending: Vec<_> = ["work", "home", "tmp", "config", "cache"]
-            .map(|name| self.path.join(name))
-            .into();
-        let mut bytes = 0u64;
-        let mut count = 0;
-        while let Some(path) = pending.pop() {
-            count += 1;
-            if count > 100000 {
-                return Ok(false);
-            }
-            let metadata = match fs::symlink_metadata(&path) {
-                Ok(metadata) => metadata,
-                Err(error) if error.kind() == io::ErrorKind::NotFound => continue,
-                Err(error) => return Err(error),
-            };
-            if metadata.is_dir() {
-                for entry in fs::read_dir(path)? {
-                    pending.push(entry?.path());
-                    if pending.len() > 100000 {
-                        return Ok(false);
-                    }
-                }
-            } else {
-                bytes = bytes.saturating_add(metadata.len());
-                if bytes > budget {
-                    return Ok(false);
-                }
-            }
-        }
-        Ok(true)
+        within_budget(
+            ["work", "home", "tmp", "config", "cache"].map(|name| self.path.join(name)),
+            budget,
+        )
     }
 
-    fn read<T: DeserializeOwned>(&self, name: &str) -> io::Result<T> {
+    pub(super) fn read<T: DeserializeOwned>(&self, name: &str) -> io::Result<T> {
         let file = self.open_file(name)?;
         let mut bytes = Vec::new();
         file.take(RECORD_LIMIT + 1).read_to_end(&mut bytes)?;
@@ -436,7 +434,7 @@ impl Job {
             .open(self.path.join(name))
     }
 
-    fn once(&self, name: &str, value: &impl Serialize) -> io::Result<bool> {
+    pub(super) fn once(&self, name: &str, value: &impl Serialize) -> io::Result<bool> {
         let mut file = match self.create_file(name) {
             Ok(file) => file,
             Err(error) if error.kind() == io::ErrorKind::AlreadyExists => return Ok(false),
@@ -448,7 +446,7 @@ impl Job {
         Ok(true)
     }
 
-    fn atomic(&self, name: &str, value: &impl Serialize) -> io::Result<()> {
+    pub(super) fn atomic(&self, name: &str, value: &impl Serialize) -> io::Result<()> {
         let temporary = format!(".{name}.{}", uuid::Uuid::new_v4());
         let mut file = self.create_file(&temporary)?;
         serde_json::to_writer(&mut file, value).map_err(io::Error::other)?;
@@ -459,14 +457,48 @@ impl Job {
     }
 }
 
-fn fingerprint(request: &impl Serialize) -> io::Result<Digest> {
+pub(super) fn within_budget(
+    roots: impl IntoIterator<Item = PathBuf>,
+    budget: u64,
+) -> io::Result<bool> {
+    let mut pending: Vec<_> = roots.into_iter().collect();
+    let mut bytes = 0u64;
+    let mut count = 0;
+    while let Some(path) = pending.pop() {
+        count += 1;
+        if count > 100000 {
+            return Ok(false);
+        }
+        let metadata = match fs::symlink_metadata(&path) {
+            Ok(metadata) => metadata,
+            Err(error) if error.kind() == io::ErrorKind::NotFound => continue,
+            Err(error) => return Err(error),
+        };
+        if metadata.is_dir() {
+            for entry in fs::read_dir(path)? {
+                pending.push(entry?.path());
+                if pending.len() > 100000 {
+                    return Ok(false);
+                }
+            }
+        } else {
+            bytes = bytes.saturating_add(metadata.len());
+            if bytes > budget {
+                return Ok(false);
+            }
+        }
+    }
+    Ok(true)
+}
+
+pub(super) fn fingerprint(request: &impl Serialize) -> io::Result<Digest> {
     let json = serde_json::to_string(request).map_err(io::Error::other)?;
     identity::Value::parse(&json)
         .and_then(|value| value.fingerprint())
         .map_err(io::Error::other)
 }
 
-fn checked_directory(path: &Path) -> io::Result<()> {
+pub(super) fn checked_directory(path: &Path) -> io::Result<()> {
     let metadata = fs::symlink_metadata(path)?;
     if !path.is_absolute()
         || !metadata.is_dir()
@@ -485,7 +517,7 @@ fn checked_directory(path: &Path) -> io::Result<()> {
     Ok(())
 }
 
-fn private_directory(path: &Path) -> io::Result<()> {
+pub(super) fn private_directory(path: &Path) -> io::Result<()> {
     let parent = path
         .parent()
         .ok_or_else(|| io::Error::other("Missing spool parent"))?;
@@ -502,4 +534,22 @@ fn private_directory(path: &Path) -> io::Result<()> {
         Err(error) => return Err(error),
     }
     checked_directory(path)
+}
+
+pub(super) fn lock_file(path: &Path) -> io::Result<File> {
+    let file = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .mode(0o600)
+        .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK)
+        .open(path)?;
+    let metadata = file.metadata()?;
+    if !metadata.is_file() || metadata.uid() != unsafe { libc::geteuid() } {
+        return Err(io::Error::other(
+            "Execution lock is not an owned regular file",
+        ));
+    }
+    Ok(file)
 }

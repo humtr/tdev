@@ -2,12 +2,18 @@
 //!
 //! A reserved dispatch is never relaunched. A missing worker or stop proof is uncertainty,
 //! not permission to start another command. This module is not a public wire contract.
+mod environment;
+mod input;
 mod platform;
 mod spool;
 
+pub use environment::{DEPENDENCY_LIMIT, Environment, ExclusiveEnvironment};
+pub use input::{Delivery, Input, InputReceipt};
 pub use platform::ProcessIdentity;
 pub use spool::{Job, Observation, Outcome, Report, Request};
 
+use environment::SharedEnvironment;
+use input::InputPump;
 use std::fs::File;
 use std::io::{self, Read, Write};
 use std::os::fd::OwnedFd;
@@ -35,20 +41,33 @@ fn run_job(job: &Job) -> io::Result<()> {
     platform::initialize()?;
     let request = job.request()?;
     let mut log = job.create_log()?;
-    let mut output = Output::default();
     if job.cancelled()? {
-        log.sync_all()?;
-        return job.complete(Report {
-            worker,
-            digest: job.digest()?,
-            outcome: Outcome::Cancelled,
-            exit_code: None,
-            stopped: true,
-            retained_bytes: 0,
-            discarded_bytes: 0,
-        });
+        return no_child(job, worker, Outcome::Cancelled, &mut log);
     }
-    let (mut reader, writer) = UnixStream::pair()?;
+    let dependencies = match request
+        .environment
+        .as_ref()
+        .map(Environment::shared)
+        .transpose()
+    {
+        Ok(dependencies) => dependencies,
+        Err(error) if error.kind() == io::ErrorKind::WouldBlock => {
+            return no_child(job, worker, Outcome::EnvironmentBusy, &mut log);
+        }
+        Err(error) => return Err(error),
+    };
+    if dependencies
+        .as_ref()
+        .map(SharedEnvironment::within_budget)
+        .transpose()?
+        == Some(false)
+    {
+        return no_child(job, worker, Outcome::DependencyBudget, &mut log);
+    }
+    if !job.within_budget(request.working_bytes)? {
+        return no_child(job, worker, Outcome::WorkingBudget, &mut log);
+    }
+    let (reader, writer) = UnixStream::pair()?;
     reader.set_nonblocking(true)?;
     let stdout: OwnedFd = writer.into();
     let stderr = stdout.try_clone()?;
@@ -58,98 +77,168 @@ fn run_job(job: &Job) -> io::Result<()> {
         .args(["-c", &request.command])
         .current_dir(job.cwd(&request)?)
         .env_clear()
-        .envs(platform::environment(job.path(), &shell)?)
-        .stdin(Stdio::null())
+        .envs(platform::environment(
+            job.path(),
+            &shell,
+            dependencies.as_ref().map(SharedEnvironment::path),
+        )?)
+        .stdin(Stdio::piped())
         .stdout(Stdio::from(stdout))
         .stderr(Stdio::from(stderr));
     platform::child_limits(&mut command, request.working_bytes, request.timeout_seconds);
     // Once this record exists, even an exec failure cannot justify another dispatch.
     job.record_child_dispatch()?;
-    let mut child = command.spawn()?;
+    let started = Instant::now();
+    let child = command.spawn()?;
     // Command retains its Stdio handles; release these before waiting for pipe EOF.
     drop(command);
-    let result = supervise(
-        job,
-        &request,
-        &worker,
-        &mut child,
-        &mut reader,
-        &mut log,
-        &mut output,
-    );
+    let mut session = Session {
+        child,
+        reader,
+        log,
+        input: None,
+        output: Output::default(),
+        started,
+    };
+    let result = session.supervise(job, &request, &worker, dependencies.as_ref());
     // Every error path attempts exact descendant cleanup. Failed persistence/cleanup leaves
     // the reservation unknown; it cannot manufacture a completed operation.
     if result.is_err() {
-        let _ = platform::stop_children(&mut child);
+        let _ = platform::stop_children(&mut session.child);
     }
     result
 }
 
-fn supervise(
+fn no_child(
     job: &Job,
-    request: &Request,
-    worker: &ProcessIdentity,
-    child: &mut Child,
-    reader: &mut UnixStream,
+    worker: ProcessIdentity,
+    outcome: Outcome,
     log: &mut File,
-    output: &mut Output,
 ) -> io::Result<()> {
-    job.record_child(
-        &platform::identity(child.id())?
-            .ok_or_else(|| io::Error::other("Child identity unavailable after dispatch"))?,
-    )?;
-    let started = Instant::now();
-    let mut sampled = started;
-    let (mut outcome, mut status) = loop {
-        output.drain(reader, log)?;
-        if job.cancelled()? {
-            break (Outcome::Cancelled, child.try_wait()?);
-        }
-        if request
-            .timeout_seconds
-            .is_some_and(|seconds| started.elapsed() >= Duration::from_secs(seconds))
-        {
-            break (Outcome::Deadline, child.try_wait()?);
-        }
-        if sampled.elapsed() >= Duration::from_millis(250) {
-            sampled = Instant::now();
-            if !job.within_budget(request.working_bytes)? {
-                break (Outcome::WorkingBudget, child.try_wait()?);
-            }
-        }
-        if let Some(status) = child.try_wait()? {
-            break (Outcome::Exited, Some(status));
-        }
-        std::thread::sleep(Duration::from_millis(10));
-    };
-    let stopped = platform::stop_children(child)?;
-    if status.is_none() {
-        status = child.try_wait()?;
-    }
-    // Stop proof precedes final bytes/budget evidence and owned source capture.
-    let drain_deadline = Instant::now() + Duration::from_secs(1);
-    loop {
-        if output.drain(reader, log)? {
-            break;
-        }
-        if Instant::now() >= drain_deadline {
-            return Err(io::Error::other("Output closure not proved"));
-        }
-        std::thread::sleep(Duration::from_millis(10));
-    }
-    if outcome == Outcome::Exited && !job.within_budget(request.working_bytes)? {
-        outcome = Outcome::WorkingBudget;
-    }
     log.sync_all()?;
     job.complete(Report {
-        worker: worker.clone(),
+        worker,
         digest: job.digest()?,
         outcome,
-        exit_code: status.and_then(|s| s.code()),
-        stopped,
-        retained_bytes: output.retained,
-        discarded_bytes: output.discarded,
+        exit_code: None,
+        stopped: true,
+        retained_bytes: 0,
+        discarded_bytes: 0,
     })
+}
+
+struct Session {
+    child: Child,
+    reader: UnixStream,
+    log: File,
+    input: Option<InputPump>,
+    output: Output,
+    started: Instant,
+}
+
+impl Session {
+    fn supervise(
+        &mut self,
+        job: &Job,
+        request: &Request,
+        worker: &ProcessIdentity,
+        dependencies: Option<&SharedEnvironment>,
+    ) -> io::Result<()> {
+        let child = &mut self.child;
+        let reader = &mut self.reader;
+        let log = &mut self.log;
+        let output = &mut self.output;
+        job.record_child(
+            &platform::identity(child.id())?
+                .ok_or_else(|| io::Error::other("Child identity unavailable after dispatch"))?,
+        )?;
+        self.input = Some(InputPump::new(
+            child
+                .stdin
+                .take()
+                .ok_or_else(|| io::Error::other("Missing input pipe"))?,
+            request.stdin.clone(),
+            worker.clone(),
+            job.digest()?,
+        )?);
+        let started = self.started;
+        let mut sampled = started;
+        let mut sampled_dependencies = started;
+        let (mut outcome, mut status) = loop {
+            output.drain(reader, log)?;
+            if job.cancelled()? {
+                break (Outcome::Cancelled, child.try_wait()?);
+            }
+            if request
+                .timeout_seconds
+                .is_some_and(|seconds| started.elapsed() >= Duration::from_secs(seconds))
+            {
+                break (Outcome::Deadline, child.try_wait()?);
+            }
+            if sampled.elapsed() >= Duration::from_millis(250) {
+                sampled = Instant::now();
+                if !job.within_budget(request.working_bytes)? {
+                    break (Outcome::WorkingBudget, child.try_wait()?);
+                }
+            }
+            if sampled_dependencies.elapsed() >= Duration::from_secs(5) {
+                sampled_dependencies = Instant::now();
+                if dependencies
+                    .map(SharedEnvironment::within_budget)
+                    .transpose()?
+                    == Some(false)
+                {
+                    break (Outcome::DependencyBudget, child.try_wait()?);
+                }
+            }
+            if let Some(status) = child.try_wait()? {
+                break (Outcome::Exited, Some(status));
+            }
+            self.input
+                .as_mut()
+                .expect("Initialized input pump")
+                .step(job)?;
+            std::thread::sleep(Duration::from_millis(10));
+        };
+        let stopped = platform::stop_children(child)?;
+        if status.is_none() {
+            status = child.try_wait()?;
+        }
+        // Stop proof precedes final bytes/budget evidence and owned source capture.
+        let drain_deadline = Instant::now() + Duration::from_secs(1);
+        loop {
+            if output.drain(reader, log)? {
+                break;
+            }
+            if Instant::now() >= drain_deadline {
+                return Err(io::Error::other("Output closure not proved"));
+            }
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        let working_ok = job.within_budget(request.working_bytes)?;
+        let dependencies_ok = dependencies
+            .map(SharedEnvironment::within_budget)
+            .transpose()?
+            .unwrap_or(true);
+        if outcome == Outcome::Exited {
+            if !working_ok {
+                outcome = Outcome::WorkingBudget;
+            }
+            if !dependencies_ok {
+                outcome = Outcome::DependencyBudget;
+            }
+        }
+        log.sync_all()?;
+        job.complete(Report {
+            worker: worker.clone(),
+            digest: job.digest()?,
+            outcome,
+            exit_code: status.and_then(|s| s.code()),
+            stopped,
+            retained_bytes: output.retained,
+            discarded_bytes: output.discarded,
+        })
+    }
 }
 
 #[derive(Default)]

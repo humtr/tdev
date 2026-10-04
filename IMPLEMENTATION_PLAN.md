@@ -233,12 +233,18 @@ primitive: immutable input/tool-location digest, dispatch/worker fences, PID/sta
 clean environment, output drain/cap, limits/sampled storage, deadlines/cancel and descendant stop.
 Real-process tests cover launcher SIGKILL, supervisor SIGKILL with surviving descendants,
 double fork, dispatch/claim gaps, concurrent launch and forged/corrupt terminal evidence.
-Public execution is not connected by this increment. Next join admission and owned source
-materialization/capture, sequenced stdin, task dependency leases and per-operation reconciliation;
-do not expose the primitive as a completed command/process API or close the P3 exit gate yet.
-The initial increment's final `sh scripts/check.sh` passed with exit status 0: 70 Rust checks,
-105 native HTTP regressions and 429 reference/common checks, plus identity/contract comparison.
-See LOCAL_VALIDATION.md for actual-process evidence, the interrupted run and remaining scope.
+Ordered stdin intent/pipe-delivery evidence and shared task dependency
+leases are now implemented: initial input precedes sequenced controls, partial delivery remains unknown, acceptance
+replay never resends, and EOF closes further admission. Stable per-task lease files survive
+directory replacement; task caches/tool paths persist independently of source/private HOME,
+with separate dependency preflight, sampling and final budgets. A released kernel lease after
+worker death does not authorize reset while a consumer remains logically unknown.
+Public execution is not connected by these primitives. Next join command/process admission,
+owned source materialization/capture and SQLite operation/control reconciliation, including the
+no-running/unknown-consumer gate for reset; do not expose the primitive as a completed API or
+close the P3 exit gate yet. The supervisor suite now has 30 actual-process checks; the final
+full gate passed with exit status 0 (85 Rust, 105 native HTTP and 429 reference/common checks,
+plus identity/contract comparisons). See LOCAL_VALIDATION.md for evidence and remaining scope.
 
 1. Implement the independent native supervisor process and durable spool protocol: reserve before
    dispatch, PID/start identity, clean environment, task dependency leases, stdin sequencing,

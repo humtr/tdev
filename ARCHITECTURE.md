@@ -1602,15 +1602,41 @@ ordering. Limit unsafe/platform-specific code to reviewed syscall adapters and e
 Termux. Same-UID execution and sampled budgets retain the limits described in §3.
 
 The supervisor primitive reserves immutable internal launch input before dispatch. Its canonical
-digest binds the command, relative cwd, deadline, working budget and selected shell/tool location.
+digest binds the command, relative cwd, deadline, working budget, initial stdin, selected task
+dependency location (or fresh environment) and shell/tool location.
 Dispatch and worker claim are durable create-once fences: partial records, a missing worker or a
 dead worker cannot authorize another launch. Worker/child records bind PID, start ticks and boot
 identity. The independent worker starts a separate session and subreaps descendants; terminal
 evidence is separate from candidate stdout and bound to that reservation/worker. Final output is
 fsynced after descendant stop and before the result record; incomplete stop proof stays unknown.
 The controller must join this evidence to its existing admission/capture lifecycle rather than
-copy terminal truth into a second task owner. The initial primitive closes stdin and uses fresh
-private directories; sequenced input and task dependency leases precede public execution delivery.
+copy terminal truth into a second task owner.
+
+Initial stdin is pumped first, without implicit EOF; controls start at sequence zero. Bounded
+input reservations bind the original control ID/content and form one contiguous prefix. Admission
+is serialized by a per-job kernel lock, journals intent before returning a stable acceptance
+receipt and rejects new controls after reserved EOF or terminal/unknown worker evidence. Replay
+of a retained acceptance does not write the pipe, even after completion or worker loss. Before
+each initial/control write the worker persists unknown delivery bound to its identity; only
+complete pipe acceptance (and closure for EOF) can persist committed delivery. This is pipe
+acceptance, not candidate acknowledgement. Partial writes, EPIPE or worker death retain unknown;
+queued input not attempted remains queued. Nonblocking bounded writes share the output/deadline
+loop, so a candidate that does not read cannot block cancellation or output draining. Internal
+spool format 2 includes the new frozen input; unsupported earlier records are rejected without
+rewriting them or authorizing dispatch. This does not revise SQLite schema 3 or the wire contract.
+
+Task dependency selection acquires a shared lease before child dispatch and holds it through
+descendant stop, final budgets and terminal result persistence. An exclusive lease rejects
+dispatch without a fresh-environment fallback or automatic retry. Stable lease files occupy a
+separate namespace from replaceable task directories, including for task IDs ending in `.lock`.
+The task's caches and venv/bin/bin PATH entries are persistent; HOME/TMP/config remain per-job.
+Dependency paths that cannot be represented as single PATH entries fail before child dispatch;
+they are not silently split into additional tool locations.
+The dependency directory has its own preflight, sampled and final 2 GiB/100000-node budget,
+independent of the working-copy budget. Leases do not serialize arbitrary package-manager writes.
+Kernel lease release on worker death is not a stop proof: controller admission must also reject
+reset while any consumer is running or unknown. The primitive exclusive guard supplies exclusion,
+not reset intent/recovery or API authority; those join the existing task/operation lifecycle.
 No spool record grants API authority or provides hostile same-UID tamper resistance.
 
 ### Identity, storage and compatibility

@@ -1,12 +1,15 @@
 //! Independent OS-process qualification of the executable's private supervisor role.
 //! Python is used only to manufacture a real double fork; no reference worker is invoked.
 use std::fs;
-use std::os::unix::fs::{PermissionsExt, symlink};
+use std::os::unix::fs::{DirBuilderExt, MetadataExt, PermissionsExt, symlink};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::time::{Duration, Instant};
-use tdev::model::OperationId;
-use tdev::supervisor::{Job, OUTPUT_LIMIT, Observation, Outcome, ProcessIdentity, Report, Request};
+use tdev::model::{OperationId, RequestId, TaskId};
+use tdev::supervisor::{
+    DEPENDENCY_LIMIT, Delivery, Environment, Input, Job, OUTPUT_LIMIT, Observation, Outcome,
+    ProcessIdentity, Report, Request,
+};
 
 const EXECUTABLE: &str = env!("CARGO_BIN_EXE_tdev");
 
@@ -18,19 +21,21 @@ struct Fixture {
 
 impl Fixture {
     fn new(command: &str, timeout: Option<u64>, budget: u64) -> Self {
+        Self::with_request(Request {
+            command: command.into(),
+            cwd: ".".into(),
+            timeout_seconds: timeout,
+            working_bytes: budget,
+            stdin: String::new(),
+            environment: None,
+        })
+    }
+
+    fn with_request(request: Request) -> Self {
         let directory = tempfile::tempdir().unwrap();
         let root = fs::canonicalize(directory.path()).unwrap().join("spool");
-        let job = Job::reserve(
-            &root,
-            &OperationId::new("test-operation").unwrap(),
-            Request {
-                command: command.into(),
-                cwd: ".".into(),
-                timeout_seconds: timeout,
-                working_bytes: budget,
-            },
-        )
-        .unwrap();
+        let job =
+            Job::reserve(&root, &OperationId::new("test-operation").unwrap(), request).unwrap();
         Self {
             _directory: directory,
             root,
@@ -82,6 +87,512 @@ impl Fixture {
             serde_json::from_slice(&bytes).ok()
         })
     }
+}
+
+fn input(id: &str, sequence: u16, text: &str, eof: bool) -> Input {
+    Input {
+        request_id: RequestId::new(id).unwrap(),
+        sequence,
+        text: text.into(),
+        eof,
+    }
+}
+
+fn command_request(command: &str) -> Request {
+    Request {
+        command: command.into(),
+        ..fixture_request()
+    }
+}
+
+fn environment(root: &Path, task: &str) -> Environment {
+    Environment::new(root, TaskId::new(task).unwrap()).unwrap()
+}
+
+fn log_ready(fixture: &Fixture) {
+    wait(|| {
+        fixture
+            .job
+            .log(0, 65536)
+            .ok()
+            .filter(|bytes| bytes.starts_with(b"ready"))
+            .map(|_| ())
+    });
+}
+
+fn private_dir(path: &Path) {
+    fs::DirBuilder::new().mode(0o700).create(path).unwrap();
+}
+
+fn sparse(path: &Path, length: u64) {
+    fs::File::create(path).unwrap().set_len(length).unwrap();
+}
+
+#[test]
+fn initial_input_then_sequenced_eof_replays_one_pipe_effect() {
+    let mut request = command_request("cat");
+    request.stdin = "처음🙂\0\n".into();
+    let fixture = Fixture::with_request(request);
+    let control = input("input-once", 0, "다음🙂\n", true);
+    let accepted = fixture.job.enqueue(control.clone()).unwrap();
+    assert_eq!(accepted.next_sequence, 1);
+    assert_eq!(
+        fixture.job.input_delivery(0).unwrap(),
+        Some(Delivery::Queued)
+    );
+    fixture.start();
+    assert_eq!(fixture.complete().exit_code, Some(0));
+    let fresh = Job::open(fixture.job.path()).unwrap();
+    assert_eq!(fresh.enqueue(control.clone()).unwrap(), accepted);
+    assert_eq!(fresh.initial_delivery().unwrap(), Delivery::Committed);
+    assert_eq!(fresh.input_delivery(0).unwrap(), Some(Delivery::Committed));
+    assert_eq!(
+        fresh.log(0, 65536).unwrap(),
+        "처음🙂\0\n다음🙂\n".as_bytes()
+    );
+    let mut conflict = control;
+    conflict.text.push('!');
+    assert!(fresh.enqueue(conflict).is_err());
+    assert!(fresh.enqueue(input("other", 0, "other", false)).is_err());
+    assert!(fresh.enqueue(input("later", 1, "later", false)).is_err());
+    assert!(!fresh.path().join("stdin-1.json").exists());
+}
+
+#[test]
+fn blocked_initial_input_does_not_starve_output_or_deadline() {
+    let mut request = command_request("yes busy");
+    request.stdin = "🙂".repeat(65536);
+    request.timeout_seconds = Some(1);
+    let fixture = Fixture::with_request(request);
+    let control = input("after-initial", 0, "later", true);
+    fixture.job.enqueue(control.clone()).unwrap();
+    fixture.start();
+    let report = fixture.complete();
+    assert_eq!(report.outcome, Outcome::Deadline);
+    assert!(report.stopped);
+    assert_eq!(report.retained_bytes, OUTPUT_LIMIT);
+    assert_eq!(fixture.job.initial_delivery().unwrap(), Delivery::Unknown);
+    assert_eq!(
+        fixture.job.input_delivery(0).unwrap(),
+        Some(Delivery::Queued)
+    );
+    assert_eq!(fixture.job.enqueue(control).unwrap().sequence, 0);
+}
+
+#[test]
+fn partial_input_supervisor_death_retains_unknown_without_resend() {
+    let fixture = Fixture::new(
+        "IFS= read -r line; printf received > saw; exec sleep 60",
+        None,
+        128 * 1024 * 1024,
+    );
+    let text = format!("first\n{}", "🙂".repeat(65530));
+    let control = input("partial", 0, &text, false);
+    let receipt = fixture.job.enqueue(control.clone()).unwrap();
+    fixture.start();
+    wait(|| fixture.job.work().join("saw").exists().then_some(()));
+    let worker = fixture.worker();
+    assert_eq!(
+        fixture.job.input_delivery(0).unwrap(),
+        Some(Delivery::Unknown)
+    );
+    signal(&worker, libc::SIGKILL);
+    wait(|| (!worker.is_live().unwrap()).then_some(()));
+    let fresh = Job::open(fixture.job.path()).unwrap();
+    assert_eq!(fresh.observe().unwrap(), Observation::Unknown);
+    assert_eq!(fresh.enqueue(control).unwrap(), receipt);
+    assert_eq!(fresh.input_delivery(0).unwrap(), Some(Delivery::Unknown));
+    assert!(fresh.enqueue(input("new-input", 1, "again", true)).is_err());
+    assert!(!fresh.launch(Path::new(EXECUTABLE)).unwrap());
+    let mut duplicate = direct_worker(&fresh);
+    assert!(duplicate.wait().unwrap().success());
+    assert_eq!(
+        fs::read(fixture.job.work().join("saw")).unwrap(),
+        b"received"
+    );
+}
+
+#[test]
+fn input_admission_rejects_gaps_bounds_eof_and_control_identity_reuse() {
+    let fixture = Fixture::new("cat", Some(5), 128 * 1024 * 1024);
+    assert!(fixture.job.enqueue(input("gap", 1, "gap", false)).is_err());
+    assert!(
+        fixture
+            .job
+            .enqueue(input("too-many", 1024, "x", false))
+            .is_err()
+    );
+    assert!(
+        fixture
+            .job
+            .enqueue(input("too-long", 0, &"x".repeat(65537), false))
+            .is_err()
+    );
+    fixture
+        .job
+        .enqueue(input("first", 0, "first", false))
+        .unwrap();
+    assert!(
+        fixture
+            .job
+            .enqueue(input("first", 1, "first", false))
+            .is_err()
+    );
+    fixture.job.enqueue(input("eof", 1, "", true)).unwrap();
+    assert!(
+        fixture
+            .job
+            .enqueue(input("closed", 2, "closed", false))
+            .is_err()
+    );
+    // A persistence gap is not repaired into another delivery opportunity.
+    fs::remove_file(fixture.job.path().join("stdin-0.json")).unwrap();
+    assert!(
+        fixture
+            .job
+            .enqueue(input("replace", 0, "replace", false))
+            .is_err()
+    );
+    assert!(!fixture.job.path().join("stdin-0.json").exists());
+}
+
+#[test]
+fn concurrent_input_controls_reserve_one_sequence() {
+    let fixture = Fixture::new("cat", Some(5), 128 * 1024 * 1024);
+    let barrier = std::sync::Arc::new(std::sync::Barrier::new(8));
+    let threads: Vec<_> = (0..8)
+        .map(|number| {
+            let job = fixture.job.clone();
+            let barrier = barrier.clone();
+            std::thread::spawn(move || {
+                let control = input(
+                    &format!("control-{number}"),
+                    0,
+                    &format!("{number}\n"),
+                    true,
+                );
+                barrier.wait();
+                job.enqueue(control.clone())
+                    .ok()
+                    .map(|receipt| (control, receipt))
+            })
+        })
+        .collect();
+    let accepted: Vec<_> = threads
+        .into_iter()
+        .filter_map(|thread| thread.join().unwrap())
+        .collect();
+    assert_eq!(accepted.len(), 1);
+    let (control, receipt) = &accepted[0];
+    fixture.start();
+    assert_eq!(fixture.complete().exit_code, Some(0));
+    assert_eq!(fixture.job.log(0, 65536).unwrap(), control.text.as_bytes());
+    assert_eq!(fixture.job.enqueue(control.clone()).unwrap(), *receipt);
+}
+
+#[test]
+fn closed_child_pipe_keeps_delivery_unknown_and_corrupt_ack_cannot_commit() {
+    let fixture = Fixture::new(
+        "exec 0<&-; printf ready; sleep 0.6",
+        Some(5),
+        128 * 1024 * 1024,
+    );
+    fixture.start();
+    log_ready(&fixture);
+    fixture
+        .job
+        .enqueue(input("closed-pipe", 0, "bytes", true))
+        .unwrap();
+    assert_eq!(fixture.complete().exit_code, Some(0));
+    assert_eq!(
+        fixture.job.input_delivery(0).unwrap(),
+        Some(Delivery::Unknown)
+    );
+    fs::write(
+        fixture.job.path().join("delivery-0.json"),
+        b"{\"delivery\":\"committed\"}",
+    )
+    .unwrap();
+    assert_eq!(
+        fixture.job.input_delivery(0).unwrap(),
+        Some(Delivery::Unknown)
+    );
+}
+
+#[test]
+fn shared_consumers_keep_one_task_leased_until_all_stop() {
+    let directory = tempfile::tempdir().unwrap();
+    let root = fs::canonicalize(directory.path())
+        .unwrap()
+        .join("dependencies");
+    let environment = environment(&root, "task");
+    let mut request = command_request("printf ready; read -r line");
+    request.environment = Some(environment.clone());
+    let first = Fixture::with_request(request.clone());
+    let second = Fixture::with_request(request);
+    first.start();
+    second.start();
+    log_ready(&first);
+    log_ready(&second);
+    assert_eq!(
+        environment.try_exclusive().err().unwrap().kind(),
+        std::io::ErrorKind::WouldBlock
+    );
+    first.job.cancel().unwrap();
+    assert!(first.complete().stopped);
+    assert!(environment.try_exclusive().is_err());
+    second.job.cancel().unwrap();
+    assert!(second.complete().stopped);
+    let guard = wait(|| environment.try_exclusive().ok());
+    let inode = fs::metadata(root.join(".leases/task")).unwrap().ino();
+    fs::remove_dir_all(guard.path()).unwrap();
+    private_dir(guard.path());
+    assert_eq!(
+        fs::metadata(root.join(".leases/task")).unwrap().ino(),
+        inode
+    );
+}
+
+#[test]
+fn exclusive_environment_blocks_dispatch_without_fresh_fallback_or_retry() {
+    let directory = tempfile::tempdir().unwrap();
+    let root = fs::canonicalize(directory.path())
+        .unwrap()
+        .join("dependencies");
+    let environment = environment(&root, "task");
+    let guard = environment.try_exclusive().unwrap();
+    let mut request = command_request("touch ran");
+    request.environment = Some(environment.clone());
+    let fixture = Fixture::with_request(request.clone());
+    fixture.start();
+    let report = fixture.complete();
+    assert_eq!(report.outcome, Outcome::EnvironmentBusy);
+    assert!(report.stopped);
+    assert_eq!(report.exit_code, None);
+    assert!(!fixture.job.path().join("child-dispatch.json").exists());
+    assert!(!fixture.job.work().join("ran").exists());
+    drop(guard);
+    assert!(!fixture.job.launch(Path::new(EXECUTABLE)).unwrap());
+    let new_admission = Fixture::with_request(request);
+    new_admission.start();
+    assert_eq!(new_admission.complete().exit_code, Some(0));
+    assert!(new_admission.job.work().join("ran").exists());
+}
+
+#[test]
+fn task_caches_and_tool_path_persist_while_home_and_fresh_cache_stay_private() {
+    let directory = tempfile::tempdir().unwrap();
+    let root = fs::canonicalize(directory.path())
+        .unwrap()
+        .join("dependencies");
+    let environment = environment(&root, "task");
+    let guard = environment.try_exclusive().unwrap();
+    private_dir(guard.path());
+    for name in ["bin", "venv", "venv/bin"] {
+        private_dir(&guard.path().join(name));
+    }
+    let prefix = std::env::var("PREFIX").unwrap_or_else(|_| "/usr".into());
+    for (path, message) in [("venv/bin/tool", "venv"), ("bin/tool", "bin")] {
+        let path = guard.path().join(path);
+        fs::write(&path, format!("#!{prefix}/bin/sh\nprintf '{message}\\n'\n")).unwrap();
+        fs::set_permissions(path, fs::Permissions::from_mode(0o700)).unwrap();
+    }
+    drop(guard);
+    let mut request = command_request(
+        "tool; printf '%s|%s|%s|%s|%s' \"$TDEV_ENV_DIR\" \"$HOME\" \"$PIP_CACHE_DIR\" \"$npm_config_cache\" \"$XDG_CACHE_HOME\"; printf kept > \"$PIP_CACHE_DIR/sentinel\"",
+    );
+    request.environment = Some(environment.clone());
+    let first = Fixture::with_request(request);
+    first.start();
+    assert_eq!(first.complete().exit_code, Some(0));
+    let log = String::from_utf8(first.job.log(0, 65536).unwrap()).unwrap();
+    assert!(log.starts_with("venv\n"));
+    assert!(log.contains(&format!("{}/home", first.job.path().display())));
+    for cache in ["pip-cache", "npm-cache", "xdg-cache"] {
+        assert!(log.contains(&environment.path().join(cache).to_string_lossy().to_string()));
+    }
+    let mut request = command_request("cat \"$PIP_CACHE_DIR/sentinel\"");
+    request.environment = Some(environment.clone());
+    let second = Fixture::with_request(request);
+    second.start();
+    assert_eq!(second.complete().exit_code, Some(0));
+    assert_eq!(second.job.log(0, 65536).unwrap(), b"kept");
+    let fresh = Fixture::new("env", Some(5), 128 * 1024 * 1024);
+    fresh.start();
+    assert_eq!(fresh.complete().exit_code, Some(0));
+    let log = String::from_utf8(fresh.job.log(0, 65536).unwrap()).unwrap();
+    assert!(!log.contains("TDEV_ENV_DIR="));
+    assert!(!log.contains("PIP_CACHE_DIR="));
+    assert!(log.contains(&format!(
+        "XDG_CACHE_HOME={}/cache",
+        fresh.job.path().display()
+    )));
+    let guard = wait(|| environment.try_exclusive().ok());
+    fs::remove_dir_all(guard.path()).unwrap();
+    // Retained receipts bind environment strings, not its current contents/existence.
+    assert_eq!(
+        Job::open(first.job.path()).unwrap().observe().unwrap(),
+        Observation::Complete(first.complete())
+    );
+}
+
+#[test]
+fn task_ids_ending_in_lock_do_not_collide_with_lease_files() {
+    let directory = tempfile::tempdir().unwrap();
+    let root = fs::canonicalize(directory.path())
+        .unwrap()
+        .join("dependencies");
+    let first = environment(&root, "task");
+    let second = environment(&root, "task.lock");
+    let guard = first.try_exclusive().unwrap();
+    let mut request = command_request("printf distinct");
+    request.environment = Some(second);
+    let fixture = Fixture::with_request(request);
+    fixture.start();
+    assert_eq!(fixture.complete().exit_code, Some(0));
+    assert_eq!(fixture.job.log(0, 65536).unwrap(), b"distinct");
+    assert!(!guard.path().exists());
+}
+
+#[test]
+fn dependency_tool_path_separator_is_rejected_before_child_dispatch() {
+    let directory = tempfile::tempdir().unwrap();
+    let root = fs::canonicalize(directory.path())
+        .unwrap()
+        .join("dependencies");
+    let environment = environment(&root, "task:other");
+    let mut request = command_request("touch never");
+    request.environment = Some(environment);
+    let fixture = Fixture::with_request(request);
+    fixture.start();
+    wait(|| {
+        fixture
+            .job
+            .path()
+            .join("failure.json")
+            .exists()
+            .then_some(())
+    });
+    wait(|| matches!(fixture.job.observe().unwrap(), Observation::Unknown).then_some(()));
+    assert!(!fixture.job.path().join("child-dispatch.json").exists());
+    assert!(!fixture.job.work().join("never").exists());
+    assert!(!fixture.job.launch(Path::new(EXECUTABLE)).unwrap());
+}
+
+#[test]
+fn dependency_budget_rejects_preflight_and_fast_exit_growth_separately_from_working() {
+    let directory = tempfile::tempdir().unwrap();
+    let root = fs::canonicalize(directory.path())
+        .unwrap()
+        .join("dependencies");
+    let environment = environment(&root, "task");
+    let guard = environment.try_exclusive().unwrap();
+    private_dir(guard.path());
+    sparse(&guard.path().join("oversize"), DEPENDENCY_LIMIT + 1);
+    drop(guard);
+    let mut request = command_request("touch ran");
+    request.environment = Some(environment.clone());
+    let fixture = Fixture::with_request(request);
+    fixture.start();
+    let report = fixture.complete();
+    assert_eq!(report.outcome, Outcome::DependencyBudget);
+    assert!(report.stopped);
+    assert_eq!(report.exit_code, None);
+    assert!(!fixture.job.path().join("child-dispatch.json").exists());
+    let guard = wait(|| environment.try_exclusive().ok());
+    fs::remove_file(guard.path().join("oversize")).unwrap();
+    drop(guard);
+    let mut request = command_request("printf ready; read -r value");
+    request.environment = Some(environment.clone());
+    let fast = Fixture::with_request(request);
+    fast.start();
+    log_ready(&fast);
+    sparse(&environment.path().join("oversize"), DEPENDENCY_LIMIT + 1);
+    fast.job
+        .enqueue(input("finish", 0, "finish\n", true))
+        .unwrap();
+    let report = fast.complete();
+    assert_eq!(report.exit_code, Some(0));
+    assert_eq!(report.outcome, Outcome::DependencyBudget);
+    assert!(report.stopped);
+}
+
+#[test]
+fn dependency_sampling_stops_a_live_consumer() {
+    let directory = tempfile::tempdir().unwrap();
+    let root = fs::canonicalize(directory.path())
+        .unwrap()
+        .join("dependencies");
+    let environment = environment(&root, "task");
+    let mut request = command_request("printf ready; exec sleep 60");
+    request.environment = Some(environment.clone());
+    request.timeout_seconds = None;
+    let fixture = Fixture::with_request(request);
+    fixture.start();
+    log_ready(&fixture);
+    sparse(&environment.path().join("oversize"), DEPENDENCY_LIMIT + 1);
+    let report = fixture.complete();
+    assert_eq!(report.outcome, Outcome::DependencyBudget);
+    assert!(report.stopped);
+}
+
+#[test]
+fn lost_supervisor_releases_kernel_lease_but_never_proves_consumer_stop() {
+    let directory = tempfile::tempdir().unwrap();
+    let root = fs::canonicalize(directory.path())
+        .unwrap()
+        .join("dependencies");
+    let environment = environment(&root, "task");
+    let mut request = command_request("printf ready; exec sleep 60");
+    request.environment = Some(environment.clone());
+    request.timeout_seconds = None;
+    let fixture = Fixture::with_request(request);
+    fixture.start();
+    log_ready(&fixture);
+    let worker = fixture.worker();
+    let child: serde_json::Value =
+        serde_json::from_slice(&fs::read(fixture.job.path().join("child.json")).unwrap()).unwrap();
+    let child: ProcessIdentity = serde_json::from_value(child["value"].clone()).unwrap();
+    signal(&worker, libc::SIGKILL);
+    wait(|| (!worker.is_live().unwrap()).then_some(()));
+    let _kernel_guard = wait(|| environment.try_exclusive().ok());
+    assert!(child.is_live().unwrap());
+    assert_eq!(fixture.job.observe().unwrap(), Observation::Unknown);
+    assert!(!fixture.job.launch(Path::new(EXECUTABLE)).unwrap());
+    // The guard alone grants no reset; admission must retain this unknown consumer fence.
+}
+
+#[test]
+fn unsupported_spool_and_linked_dependency_paths_preserve_existing_bytes() {
+    let fixture = Fixture::new("touch never", Some(5), 128 * 1024 * 1024);
+    let path = fixture.job.path().join("request.json");
+    let mut value: serde_json::Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+    value["format"] = 1.into();
+    let bytes = serde_json::to_vec(&value).unwrap();
+    fs::write(&path, &bytes).unwrap();
+    assert!(Job::open(fixture.job.path()).is_err());
+    assert!(fixture.job.launch(Path::new(EXECUTABLE)).is_err());
+    assert_eq!(fs::read(path).unwrap(), bytes);
+    assert!(!fixture.job.path().join("dispatch.json").exists());
+    let root = fixture.root.parent().unwrap().join("dependencies");
+    let environment = environment(&root, "task");
+    symlink(fixture.job.work(), environment.path()).unwrap();
+    assert!(environment.try_exclusive().is_ok());
+    let mut request = command_request("touch never");
+    request.environment = Some(environment);
+    let rejected = Fixture::with_request(request);
+    rejected.start();
+    wait(|| {
+        rejected
+            .job
+            .path()
+            .join("failure.json")
+            .exists()
+            .then_some(())
+    });
+    wait(|| matches!(rejected.job.observe().unwrap(), Observation::Unknown).then_some(()));
+    assert!(!rejected.job.path().join("child-dispatch.json").exists());
+    assert!(!fixture.job.work().join("never").exists());
 }
 
 impl Drop for Fixture {
@@ -260,6 +771,8 @@ fn fixture_request() -> Request {
         cwd: ".".into(),
         timeout_seconds: Some(5),
         working_bytes: 128 * 1024 * 1024,
+        stdin: String::new(),
+        environment: None,
     }
 }
 

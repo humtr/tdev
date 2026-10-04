@@ -168,17 +168,22 @@ Provider API/transport fixtures exercise actual HTTP, SQLite and disposable Git,
 controller death, permission loss, same-name replacement and remote deletion races. These are
 isolated provider boundary qualifications; live GitHub authentication/TLS and P3 publication
 remain separate qualification scope. No real GitHub project was created by these checks.
-No state format revision or resident cutover has been performed. P2's local/provider slice
+No SQLite state format revision or resident cutover has been performed. P2's local/provider slice
 has passed its regression gate. P3 has begun with the independent supervisor and durable spool:
 frozen command/cwd/budget/tool location, one durable launch fence, PID/start/boot identity,
 private clean environment, bounded draining output, deadline/cancellation and descendant stop
 evidence. The private `supervise` process role runs independently of the controller; missing
-worker/stop evidence remains unknown and never permits relaunch. This is an execution primitive,
-not completed public execution admission. Sequenced stdin, task dependency leases, owned source
-materialization/capture and SQLite operation reconciliation are the next P3 increment; execution
-tools remain unadvertised by the implemented HTTP surface until those boundaries qualify.
-The initial supervisor increment passed 15 actual-process checks and the full regression gate;
-see [local validation evidence](LOCAL_VALIDATION.md#independent-supervisor-and-durable-spool--2026-10-04).
+worker/stop evidence remains unknown and never permits relaunch. Sequenced stdin now journals
+acceptance before pipe writes and retains uncertainty on partial delivery or worker loss; replay
+returns the original acceptance without resending bytes. Initial stdin precedes sequence zero,
+and a reserved EOF rejects subsequent input. Task dependency directories retain caches/tools
+under shared executor leases, with a separate 2 GiB sampled/final budget. Exclusive reset guards
+alone do not prove that an unknown consumer has stopped. This is an execution primitive,
+not completed public execution admission. Owned source materialization/capture and SQLite
+operation/control reconciliation are the next P3 increment; execution tools remain unadvertised
+by the implemented HTTP surface until those boundaries qualify. The supervisor suite now has
+30 actual-process checks; see [local validation evidence](LOCAL_VALIDATION.md#sequenced-input-and-task-dependency-leases--2026-10-04)
+for the current gate result and remaining scope.
 Execution, validation/publication, artifacts,
 deployment and operator/service commands retain their later delivery phases.
 The HTTP edge explicitly materializes finite floats before Schema validation, preserves raw

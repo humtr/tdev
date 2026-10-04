@@ -1,5 +1,56 @@
 # Local validation evidence — 2026-10-04
 
+## Sequenced input and task dependency leases — 2026-10-04
+
+The independent supervisor now accepts bounded initial stdin followed by controls at sequence
+zero, with no implicit EOF. A contiguous durable queue binds control identity/content; new
+controls after EOF, gaps, identity conflicts, terminal or unknown workers are rejected. Stable
+acceptance replay never writes the pipe. Unknown delivery is persisted before any bytes; only
+complete nonblocking pipe acceptance and requested EOF closure can persist committed delivery.
+Partial delivery, EPIPE and worker death retain unknown, not a retry opportunity or candidate
+acknowledgement. Cached immutable reservation identity avoids rehashing a large initial payload
+on every polling iteration. Unsupported internal spool format 1 is rejected without rewriting
+existing files or dispatching; new reservations use format 2. SQLite schema 3 is unchanged.
+
+Selected task dependencies use stable per-task lease files in a namespace separate from task
+directories. Shared leases cover dispatch through descendant stop, final storage checks and
+result persistence. Exclusive exclusion prevents dispatch without fallback; it does not by
+itself authorize reset of logically running/unknown consumers. Worker death can release the
+kernel lease while a child remains alive. Persistent pip/npm/XDG caches and venv/bin/bin tool
+lookup are separate from source and per-job HOME/TMP/config; fresh jobs omit task dependencies.
+Dependency storage has independent 2 GiB/100000-node preflight, five-second sampling and final
+checks. Mutable dependency contents are not attested or automatically installed.
+
+Focused actual-process checks passed **29 in 5.30s**, including 14 new checks for initial/input
+ordering, lost acceptance acknowledgement, partial-write worker SIGKILL, blocked stdin with
+output/deadline progress, concurrent controls, bounds/gaps/EOF, EPIPE/corrupt delivery evidence,
+shared consumers/exclusive exclusion, retained tools/caches/private HOME, task IDs ending in
+.lock, dependency preflight/fast-exit/live growth, lost-worker lease release with surviving child,
+and unsupported/linked paths. These tests invoke the actual executable; sparse files exercise
+the byte limit without allocating 2 GiB of data. Full affected Rust checks then passed **84**
+(39 library + 16 Git + 29 supervisor), with the supervisor suite taking **6.97s**, after removing
+repeated reservation hashing. Format/lint passed after correcting an unused mutability warning.
+
+Final PATH review replaced string concatenation with checked PATH construction. A dependency
+path containing the PATH separator now fails before child dispatch, without silently adding
+tool lookup locations or allowing relaunch. The final affected Rust run passed **85**
+(39 library + 16 Git + 30 supervisor), with the supervisor suite taking **5.35s**; format/lint
+also passed. The earlier full run was deliberately interrupted for this change with independently
+recorded exit **130**, not PASS. A subsequent run lost its process/session before the reference
+suite completed and left no exit record; its log is retained as `full-lost.log`, not PASS.
+The final full `sh scripts/check.sh` ran independently of the interactive session and completed
+with a durable exit record of **0**. Format/lint/locked build, **85 Rust checks**, **10,003
+identity comparisons**, **136 compiled contract comparisons**, **105 native HTTP checks**
+(51 common + 54 boundary/recovery in **593.337s**) and **429 reference/common regressions in
+1246.083s** passed. The full gate's supervisor suite took **6.22s**. Four existing reference
+SQLite ResourceWarnings remained visible; there was no failing or skipped suite.
+Logs are retained under `$PREFIX/tmp` as `tdev-input-lease-{focused,rust,rust-final,
+full-interrupted,full-lost,full}.log`; interrupted and final full runs independently record `.exit`.
+This qualifies execution primitives, not public command/process admission or the P3 exit gate.
+Owned source materialization/capture, SQLite operation/control reconciliation and guarded
+reset intent/recovery are next. Execution remains unadvertised on the implemented HTTP surface;
+no production runtime/provider cutover or main integration occurred.
+
 ## Independent supervisor and durable spool — 2026-10-04
 
 P3 has started with the executable's independent `supervise` process role and private durable
@@ -39,7 +90,7 @@ supervisor checks took **1.53s**. Existing reference SQLite ResourceWarnings rem
 there was no failing or skipped suite. These are regression/primitive qualification counts,
 not complete public native execution, validation/publication or artifact/deployment coverage.
 Logs live under `$PREFIX/tmp` as `tdev-supervisor-{rust-affected,rust-final,rust-final-2,
-diagnostic,stress,full-interrupted,full}.log`; the interrupted and final full runs retain
+diagnostic,stress,full-interrupted,full-lost,full}.log`; the interrupted and final full runs retain
 independent `.exit` files.
 
 This qualifies an execution primitive, not public execution admission or the P3 exit gate.
