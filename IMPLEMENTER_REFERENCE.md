@@ -126,8 +126,14 @@ CAS races, actual pre/post-dispatch death, active absence gates, revoked/replace
 observation/utility failure, uncertain publication blocking and SQLite failure after deletion.
 Git fixtures cover SHA-1/SHA-256 CAS/canonical/symbolic refs; storage tests fix retained publication
 snapshot, closed/detached cleanup, restart uncertainty and terminal receipt monotonicity.
-P2 published-task continuation,
-GitHub enrollment and full state transition remain unqualified.
+`test_predecessor.py` seeds retained publication facts offline from actual edit commits, then
+qualifies independent continuation after cleanup, published-vs-edited base selection, current
+grants, destination membership/defaults, duplicate/restart/lost replies and SHA-256.
+`native_predecessor.py` adds actual private-pin death, independent predecessor edit/cleanup,
+grant/identity revocation, missing/noncommit private evidence and uncertain publication fencing.
+Git fixtures prove retained-commit construction without remote fetch; storage tests prove
+publication recheck, no predecessor writer reservation and frozen completion after advancement.
+P2 GitHub enrollment and full state transition remain unqualified.
 `git/process.rs` owns bounded utility groups only; it is not P3's detached supervisor
 or proof that arbitrary escaped command descendants have stopped. GitHub adapter/publication
 and source capture selection/materialization retain their later feature evidence.

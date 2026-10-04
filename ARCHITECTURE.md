@@ -426,6 +426,19 @@ use base refs as sources; direct base publication is not granted by connect/crea
 explicit canonical publication grants keep their previous meaning. Start from a proved
 published task continues its retained commit, even after that task's branch cleanup.
 
+Published predecessor start uses the owned task's retained publication OID, source ref and
+namespace, independently of project/branch defaults or current remote HEAD. Its publication
+state must be published or deleted and no writer may hold the predecessor at admission.
+An explicit expectedHead compares with that publication OID. The destination workspace must
+currently include the selected project; the predecessor's closed/detached workspace need not.
+Admission rereads publication/scope facts in the same short transaction that reserves the new
+task/ref/workspace receipt. It reserves no predecessor writer: later source edits, publication
+or cleanup cannot retarget the already accepted base. Construction checks the retained private
+object is a commit and pins it without remote fetch or adopting a ref. Missing/corrupt evidence
+fails without substituting another HEAD. Current predecessor and resolved new-task scope gate
+receipt access; replay retains the original publication even if the predecessor later advances.
+Private-pin controller death retains the original interrupted receipt without reconstruction.
+
 Close retains branches. Explicit cleanup works before or after close and deletes only the
 task's created branch at its exact recorded publication OID. Prefix matching alone is
 never ownership; foreign or changed branches are preserved. Clean local checked-out branches

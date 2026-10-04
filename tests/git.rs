@@ -148,6 +148,65 @@ fn files(store: &Git, checkpoint: &Checkpoint) -> BTreeMap<SourcePath, (FileMode
 }
 
 #[test]
+fn retained_commit_requires_private_commit_without_fetching_or_following_remote_refs() {
+    for format in ["sha1", "sha256"] {
+        let fixture = Fixture::new(format);
+        let store = fixture.open();
+        let branch = BranchRef::new("refs/heads/main").unwrap();
+        store.fetch(&branch, &fixture.head).unwrap();
+        let checkpoint = store
+            .edit(
+                &fixture.head,
+                &[Edit::Put {
+                    path: path("retained.txt"),
+                    mode: FileMode::File,
+                    data: b"retained".to_vec(),
+                    before: None,
+                }],
+                &operation("retained"),
+            )
+            .unwrap();
+        let remote = format!("--git-dir={}", fixture.remote.display());
+        git(None, &[&remote, "update-ref", "-d", branch.as_str()]);
+        let before = fixture.refs();
+        store.retain_commit(&checkpoint).unwrap();
+        assert_eq!(fixture.refs(), before);
+        assert_eq!(store.head(&branch).unwrap(), None);
+        assert!(
+            store
+                .entries(&checkpoint)
+                .unwrap()
+                .contains_key(&path("retained.txt"))
+        );
+        let blob = Checkpoint::new(
+            store.entries(&checkpoint).unwrap()[&path("retained.txt")]
+                .blob
+                .as_str(),
+        )
+        .unwrap();
+        assert_eq!(
+            store.retain_commit(&blob).unwrap_err().code,
+            "COMMIT_REQUIRED"
+        );
+        assert!(
+            store
+                .retain_commit(
+                    &Checkpoint::new("a".repeat(if format == "sha1" { 40 } else { 64 })).unwrap()
+                )
+                .is_err()
+        );
+        assert_eq!(
+            git(None, &[&remote, "for-each-ref", "--format=%(refname)"]),
+            ""
+        );
+        assert_eq!(
+            git(Some(&fixture.work), &["rev-parse", "HEAD"]),
+            fixture.head.as_str()
+        );
+    }
+}
+
+#[test]
 fn exact_ref_deletion_checks_format_cas_canonical_and_symbolic_refs() {
     for format in ["sha1", "sha256"] {
         let fixture = Fixture::new(format);

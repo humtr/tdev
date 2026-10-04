@@ -1,5 +1,48 @@
 # Local validation evidence — 2026-10-04
 
+## Published predecessor continuation — 2026-10-04
+
+P2 start now accepts fromTaskId through the canonical contract. It creates independent work
+from an owned managed task's retained publication OID/source/namespace, including after close,
+workspace detachment or branch cleanup. Current project/branch defaults and remote HEAD cannot
+replace that base. expectedHead compares with the retained publication. Destination membership
+and publication facts are reread atomically with unique new task/ref reservation; no predecessor
+writer is held. Later predecessor edits/publication/cleanup cannot retarget accepted construction.
+Retained private evidence must be a commit; missing/noncommit objects fail without remote fetch
+fallback. Actual controller death after private pin retains INTERRUPTED/none and original
+identity, without constructing a partial task or repeating work on replay. Current predecessor
+and resolved scope gate original receipts even after later source advancement or restart.
+
+The common scenarios seed retained publication facts offline from actual private edit commits;
+the fixture adapters transfer those objects to the disposable remote and locate each executable's
+retained Git store. Assertions use real HTTP/canonical output validation without domain imports.
+These fixtures do not qualify P3 publication admission/validation. The target additionally rejects
+reserved ref state with a publication OID as unproved, rather than treating any OID as publication.
+Focused checks passed **5 reference in 38.056s**, **10 native/common in 103.551s**,
+**1 publication reservation invariant in 0.17s**, **1 real Git invariant in 5.13s** and
+**1 action inventory in 0.077s**. Format/lint/locked build passed. Initial fixture failures
+exposed missing private-to-remote object transfer; its adapter was corrected before the passing
+rerun. A test-only Debug bound compile error was corrected before the passing invariant runs.
+Affected start/import/cleanup and managed admission/import recovery checks passed **30 in
+296.021s**, with independently recorded exit status **0**. The first full `sh scripts/check.sh`
+passed with exit status **0**, including 52 Rust, 90 native HTTP and 424 reference/common checks
+(1272.253s). Its log exposed unclosed SQLite connections in the new test fixture adapters.
+Both offline writes and read-only intent reads now close their connections explicitly. Final
+focused reruns passed **5 reference in 24.081s** and **10 native/common in 98.805s**, both with
+ResourceWarning treated as an error and no such warnings in their logs. The final full rerun
+completed with independently recorded exit status **0**: format/lint/locked build, **52 Rust
+checks** (36 library + 16 Git), **10,003 identity comparisons**, **136 compiled contract
+comparisons**, **90 native HTTP checks** (9 source + 4 project + 6 start + 7 import +
+10 integration + 5 cleanup + 5 predecessor + 44 native boundary/recovery) and **424
+reference/common regressions in 1563.000s** passed. Existing acceptance SQLite ResourceWarnings
+remained visible; no failing or skipped suite was reported. These results qualify this increment,
+not the remaining full delivery.
+Logs live under `$PREFIX/tmp` as `tdev-predecessor-{reference-focused,reference-rerun,
+reference-final,native-focused,native-final,affected,full,full-rerun}.log`. Durations are test
+evidence, not a controlled performance comparison. P2 GitHub enrollment, P3–P6 and full state
+qualification remain open. No schema/storage
+revision, main integration or production runtime/provider cutover occurred.
+
 ## Owned local ref cleanup and deletion uncertainty — 2026-10-04
 
 P2 now serves task cleanup and current refCleanup inspection. Admission reserves only the

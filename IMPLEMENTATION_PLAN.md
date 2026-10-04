@@ -182,7 +182,7 @@ selection, HEAD and unique task/ref identity before fetch; it rechecks workspace
 reservation and qualifies actual pin-gap death without repeating construction. LocalChanges=true
 now captures the enrolled checkout through no-follow directory descriptors and two matching
 identity/selection/content/metadata scans, with private import-pin death qualified before atomic
-task/receipt completion. fromTaskId remains excluded from discovery/input acceptance.
+task/receipt completion. fromTaskId now accepts a proved retained publication as detailed below.
 Composition now combines compatible deltas on one exact project/ref, checking declared source
 pointers before construction and again in the task/receipt transaction. Integration proves
 source ancestry outside storage, rechecks the observed source pointer at admission, then freezes
@@ -199,8 +199,13 @@ SQLite completion failure and uncertain-publication blocking have focused execut
 Publication-backed deletion uses isolated retained-state fixtures; this does not qualify P3
 publication admission/validation. Shared per-operation gates keep active workers from premature
 reconciliation without holding the store across Git waits.
-Next implement published-task continuation with current policy and ref ownership/recovery, then the
-remaining GitHub enrollment/provider boundary. Do not advance the P2
+Published predecessor continuation now freezes the retained publication/source/namespace and
+reserves unique new task/ref identity in the shared managed-start path. Admission rereads the
+publication facts and destination membership without reserving the predecessor writer.
+Construction pins the retained private commit without HEAD resolution/fetch; private-pin death
+keeps the interrupted receipt. Current predecessor/resolved scope gates original receipt access
+after cleanup or later source changes. Retained publication fixtures do not qualify P3 publication.
+Next implement the remaining GitHub enrollment/provider boundary. Do not advance the P2
 exit or advertise these actions solely because the initial local source scenarios pass.
 
 Exit: an on-device build passes the local source slice and canonical identity fixtures. Existing

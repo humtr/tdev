@@ -244,7 +244,12 @@
         "ImportTest.test_unsupported_index_states_preserve_index",
         "ImportTest.test_checkout_is_required_and_selected_branch_must_match",
         "ImportTest.test_linked_checkout_import_uses_own_branch_and_does_not_rebind",
-        "ImportTest.test_sha256_import_can_edit_close_and_replay_original_receipt"
+        "ImportTest.test_sha256_import_can_edit_close_and_replay_original_receipt",
+        "PredecessorTest.test_retained_publication_after_cleanup_ignores_head_defaults_and_preserves_dirty_checkout",
+        "PredecessorTest.test_unpublished_unmanaged_wrong_owner_and_incompatible_inputs_are_not_admitted",
+        "PredecessorTest.test_duplicate_and_distinct_requests_preserve_frozen_receipt_and_current_authority",
+        "PredecessorTest.test_explicit_predecessor_selects_project_but_requires_destination_membership",
+        "PredecessorTest.test_sha256_retained_predecessor_is_independent_new_source"
       ],
       "delivery": "P2"
     },

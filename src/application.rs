@@ -125,6 +125,9 @@ impl Application {
         if receipt.operation.kind == OperationKind::Task
             && receipt.intent["input"]["action"] == "start"
         {
+            if let Some(id) = receipt.intent["input"]["fromTaskId"].as_str() {
+                self.task(context, id)?;
+            }
             let resolved = &receipt.intent["resolved"];
             let repo = context.repository(
                 wire::string(resolved, "repo")?,

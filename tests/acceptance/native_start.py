@@ -156,13 +156,17 @@ class NativeStartTest(unittest.TestCase):
         fresh = r.call('task', {**args, 'requestId': 'latest'})
         self.assertEqual((fresh['status'], fresh['result']['base']), ('succeeded', changed))
 
-    def test_discovery_rejects_unimplemented_start_variants_before_admission(self):
+    def test_discovery_accepts_predecessor_and_rejects_incompatible_import_before_admission(self):
         r = self.runtime
         tool = next(t for t in r.request()[2]['result']['tools'] if t['name'] == 'tdev_task')
         validator = jsonschema.Draft202012Validator(tool['inputSchema'])
         self.assertTrue(validator.is_valid({'request': {'action': 'start', 'requestId': 'allowed'}}))
         self.assertTrue(validator.is_valid({'request': {'action': 'start', 'requestId': 'import', 'localChanges': True}}))
-        for request in ({'action': 'start', 'requestId': 'continuation', 'fromTaskId': 'old'},):
+        continuation = {'action': 'start', 'requestId': 'continuation', 'fromTaskId': 'old'}
+        self.assertTrue(validator.is_valid({'request': continuation}))
+        missing_source = r.request('tools/call', {'name': 'tdev_task', 'arguments': {'request': continuation}})[2]['result']['structuredContent']
+        self.assertEqual(missing_source['error']['code'], 'TASK_NOT_FOUND')
+        for request in ({**continuation, 'localChanges': True}, {**continuation, 'baseRef': 'refs/heads/main'}):
             self.assertFalse(validator.is_valid({'request': request}))
             response = r.request('tools/call', {'name': 'tdev_task', 'arguments': {'request': request}})[2]['result']['structuredContent']
             self.assertEqual(response['error']['code'], 'SCHEMA')

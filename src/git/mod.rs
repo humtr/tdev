@@ -508,6 +508,22 @@ impl Git {
         self.pin(expected)
     }
 
+    /// Retained publication is private evidence; never resolve or fetch a new HEAD.
+    pub fn retain_commit(&self, checkpoint: &Checkpoint) -> Result<()> {
+        self.verify_identity()?;
+        self.format.check(checkpoint.as_str())?;
+        if line(
+            &self
+                .call(&["cat-file", "-t", checkpoint.as_str()], &[])?
+                .stdout,
+        )? != "commit"
+        {
+            return Err(Fault::new("COMMIT_REQUIRED"));
+        }
+        self.pin(checkpoint)?;
+        self.verify_identity()
+    }
+
     fn pin(&self, oid: &Checkpoint) -> Result<()> {
         self.format.check(oid.as_str())?;
         self.call(

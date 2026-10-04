@@ -80,19 +80,13 @@ impl Surface {
             }
         }
         // Restrict request alternatives only; nested edit/read actions remain intact.
-        fn restrict(request: &mut Value, actions: &[&str], source_start: bool) -> bool {
+        fn restrict(request: &mut Value, actions: &[&str]) -> bool {
             if let Some(action) = request["properties"]["action"]["const"].as_str() {
                 let enabled = actions.contains(&action);
-                if source_start
-                    && action == "start"
-                    && request["properties"].get("fromTaskId").is_some()
-                {
-                    return false;
-                }
                 return enabled;
             }
             if let Some(alternatives) = request.get_mut("oneOf").and_then(Value::as_array_mut) {
-                alternatives.retain_mut(|value| restrict(value, actions, source_start));
+                alternatives.retain_mut(|value| restrict(value, actions));
                 return !alternatives.is_empty();
             }
             false
@@ -139,17 +133,13 @@ impl Surface {
                 .ok_or_else(|| Fault::new("CONTRACT"))?;
             let mut tool = expand(original, contract.schema(), 0)?;
             if !actions.is_empty()
-                && !restrict(
-                    &mut tool["inputSchema"]["properties"]["request"],
-                    &actions,
-                    name == "tdev_task",
-                )
+                && !restrict(&mut tool["inputSchema"]["properties"]["request"], &actions)
             {
                 return Err(Fault::new("CONTRACT"));
             }
             tool["description"] = json!(match name {
                 "tdev_task" =>
-                    "Open, start, compose, integrate, inspect, close and clean up owned local source tasks. Cleanup closes the task and deletes only its exact recorded published branch; uncertainty is observed without repeating deletion. Start can import final checkout bytes while preserving the index/files/refs. Compose same-branch checkpoints and integrate frozen source deltas atomically. Published-task continuation is not available yet.",
+                    "Open, start, compose, integrate, inspect, close and clean up owned local source tasks. Start fromTaskId creates new work at the predecessor's retained published commit, including after cleanup; it does not resume the old task. Start can import final checkout bytes while preserving the index/files/refs. Cleanup deletes only the exact recorded published branch and observes uncertainty without repeating deletion. Compose same-branch checkpoints and integrate frozen source deltas atomically.",
                 "tdev_project" =>
                     "List and inspect granted projects; connect or create local projects within current delegated policy.",
                 "tdev_operation" =>

@@ -283,7 +283,49 @@ impl Store {
         input: &Json,
         task: &mut Task,
     ) -> Result<Admitted> {
+        self.admit_managed_start(admission, input, task, None)
+    }
+    pub fn admit_continuation(
+        &mut self,
+        admission: &Admission,
+        input: &Json,
+        task: &mut Task,
+        predecessor: &Task,
+    ) -> Result<Admitted> {
+        self.admit_managed_start(admission, input, task, Some(predecessor))
+    }
+    fn admit_managed_start(
+        &mut self,
+        admission: &Admission,
+        input: &Json,
+        task: &mut Task,
+        predecessor: Option<&Task>,
+    ) -> Result<Admitted> {
         self.admit(admission,|db| {
+            if let Some(observed) = predecessor {
+                let intent: Json = serde_json::from_slice(&admission.intent.canonical()?)
+                    .map_err(|_| Fault::new("STATE_FORMAT"))?;
+                if intent["input"]["fromTaskId"] != json!(observed.id)
+                    || intent["resolved"]["fromTaskId"] != json!(observed.id) {
+                    return Err(Fault::new("SOURCE_CHANGED"));
+                }
+                let current = db.query_row(
+                    &format!("SELECT {TASK_COLUMNS} FROM task WHERE id=? AND owner=?"),
+                    params![observed.id.as_str(), admission.owner.as_str()], self::task)
+                    .optional().map_err(database)?.ok_or_else(|| Fault::new("SOURCE_CHANGED"))?;
+                if current.managed != 1 || current.published_oid.is_none() || current.busy.is_some()
+                    || !matches!(current.ref_state.as_deref(), Some("published" | "deleted")) {
+                    return Err(Fault::new("PUBLISHED_TASK_REQUIRED"));
+                }
+                if current.repo != observed.repo || current.identity != observed.identity
+                    || current.branch != observed.branch || current.source_ref != observed.source_ref
+                    || current.namespace != observed.namespace || current.published_oid != observed.published_oid
+                    || task.repo != current.repo || task.identity != current.identity
+                    || task.source_ref != current.source_ref || task.namespace != current.namespace
+                    || current.published_oid.as_ref() != Some(&task.base) {
+                    return Err(Fault::new("SOURCE_CHANGED"));
+                }
+            }
             if let Some((repo,identity)) = workspace::select_project(db,&admission.owner,input)? {
                 if repo != task.repo { return Err(Fault::new("SOURCE_CHANGED")); }
                 if identity != task.identity { return Err(Fault::new("REPOSITORY_IDENTITY")); }
@@ -335,7 +377,8 @@ impl Store {
             if task.managed == 1 {
                 let frozen = &intent["resolved"];
                 if (intent["input"]["localChanges"] == true) != imported.is_some()
-                    || imported.is_some_and(|e| e["head"] != json!(task.base)) {
+                    || imported.is_some_and(|e| e["head"] != json!(task.base))
+                    || (imported.is_none() && task.checkpoint != task.base) {
                     return Err(Fault::new("SOURCE_CHANGED"));
                 }
                 if frozen["taskId"] != json!(task.id) || frozen["repo"] != json!(task.repo) || frozen["ref"] != json!(task.branch) || frozen["base"] != json!(task.base) || frozen["sourceRef"] != json!(task.source_ref) || frozen["namespace"] != json!(task.namespace) || intent["identity"] != json!(task.identity) || intent["workspaceId"] != json!(task.workspace) || task.ref_state.as_deref() != Some("reserved") || task.published_oid.is_some() {
@@ -526,6 +569,135 @@ mod tests {
             store.admit_start(&admission, &input, &mut task).unwrap(),
             Admitted::Replay(_)
         ));
+    }
+
+    #[test]
+    fn predecessor_admission_rechecks_publication_without_reserving_its_writer() {
+        let root = tempfile::tempdir().unwrap();
+        let mut store = Store::open(&root.path().join("state")).unwrap();
+        let (original, input, mut source) = start_admission("source", None);
+        store.admit_start(&original, &input, &mut source).unwrap();
+        store.complete_open(&original, &source).unwrap();
+        store
+            .connection()
+            .execute(
+                "UPDATE task SET published_oid=?,ref_state='published',closed=1 WHERE id=?",
+                params![source.base.as_str(), source.id.as_str()],
+            )
+            .unwrap();
+        let observed = store.task(&source.owner, source.id.as_str()).unwrap();
+        let (mut admission, mut input, mut task) = start_admission("continue", None);
+        task.branch = BranchRef::new("refs/heads/work/continuation").unwrap();
+        input["fromTaskId"] = json!(source.id);
+        input["repo"] = json!(source.repo);
+        let mut intent: Json =
+            serde_json::from_slice(&admission.intent.canonical().unwrap()).unwrap();
+        intent["input"] = input.clone();
+        intent["resolved"]["ref"] = json!(task.branch);
+        intent["resolved"]["fromTaskId"] = json!(source.id);
+        admission.intent = Value::parse(&intent.to_string()).unwrap();
+        store
+            .connection()
+            .execute(
+                "UPDATE task SET published_oid=? WHERE id=?",
+                params!["b".repeat(40), source.id.as_str()],
+            )
+            .unwrap();
+        assert_eq!(
+            store
+                .admit_continuation(&admission, &input, &mut task, &observed)
+                .err()
+                .unwrap()
+                .code,
+            "SOURCE_CHANGED"
+        );
+        assert!(
+            store
+                .lookup(&admission.owner, &admission.request)
+                .unwrap()
+                .is_none()
+        );
+        store
+            .connection()
+            .execute(
+                "UPDATE task SET published_oid=?,busy='publisher' WHERE id=?",
+                params![source.base.as_str(), source.id.as_str()],
+            )
+            .unwrap();
+        assert_eq!(
+            store
+                .admit_continuation(&admission, &input, &mut task, &observed)
+                .err()
+                .unwrap()
+                .code,
+            "PUBLISHED_TASK_REQUIRED"
+        );
+        assert!(
+            store
+                .lookup(&admission.owner, &admission.request)
+                .unwrap()
+                .is_none()
+        );
+        // Independent checkpoint edits do not change the published predecessor.
+        store
+            .connection()
+            .execute(
+                "UPDATE task SET busy=NULL,checkpoint=? WHERE id=?",
+                params!["c".repeat(40), source.id.as_str()],
+            )
+            .unwrap();
+        assert!(matches!(
+            store
+                .admit_continuation(&admission, &input, &mut task, &observed)
+                .unwrap(),
+            Admitted::New(_)
+        ));
+        assert!(
+            store
+                .task(&source.owner, source.id.as_str())
+                .unwrap()
+                .busy
+                .is_none()
+        );
+        store
+            .connection()
+            .execute(
+                "UPDATE task SET published_oid=? WHERE id=?",
+                params!["b".repeat(40), source.id.as_str()],
+            )
+            .unwrap();
+        assert!(matches!(
+            store
+                .admit_continuation(&admission, &input, &mut task, &observed)
+                .unwrap(),
+            Admitted::Replay(_)
+        ));
+        let mut changed = task.clone();
+        changed.checkpoint = Checkpoint::new("c".repeat(40)).unwrap();
+        assert_eq!(
+            store
+                .complete_start(&admission, &changed, None)
+                .unwrap_err()
+                .code,
+            "SOURCE_CHANGED"
+        );
+        let completed = store.complete_start(&admission, &task, None).unwrap();
+        assert_eq!(completed.result.unwrap()["base"], json!(source.base));
+        assert_eq!(
+            store
+                .task(&task.owner, task.id.as_str())
+                .unwrap()
+                .checkpoint,
+            source.base
+        );
+        assert_eq!(
+            store
+                .task(&source.owner, source.id.as_str())
+                .unwrap()
+                .published_oid
+                .unwrap(),
+            Checkpoint::new("b".repeat(40)).unwrap()
+        );
     }
 
     #[test]

@@ -151,10 +151,15 @@ request without repeating deletion. Task closure, ref retirement and the receipt
 source checkpoints and publication evidence remain retained. Empty unpublished branches need no
 Git mutation. Publication-backed cleanup is qualified with isolated retained-state fixtures;
 the publication handler itself remains a later deliverable.
-Published-task continuation is not yet advertised. The Python executable remains the
+Start with fromTaskId now creates independent work from a predecessor's retained publication,
+including after branch cleanup. It preserves the original source scope, checks publication facts
+again at admission and reserves no predecessor writer. Missing retained commits fail without
+fetching a replacement; pin-gap death retains the interrupted receipt. Receipt replay keeps the
+original base under current authority. These tests also seed publication facts offline; they
+do not qualify publication itself. The Python executable remains the
 behavioral reference for the full surface.
 No state format revision or resident cutover has been performed. P2 remains in progress:
-GitHub enrollment, published-task continuation and their policy
+GitHub enrollment and its policy
 and recovery cases still need implementation. Execution, validation/publication, artifacts,
 deployment and operator/service commands retain their later delivery phases.
 The HTTP edge explicitly materializes finite floats before Schema validation, preserves raw
