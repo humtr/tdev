@@ -268,6 +268,12 @@ Two matching scans check identities, selection, content and file metadata before
 new task; this detects concurrent changes but is not an atomic filesystem snapshot. Interrupted
 import leaves no partially admitted task. Durable replay returns the captured source, not a
 new scan. Existing native capture limits also bound imported files and total bytes.
+Admission freezes the configured checkout path/identity with the original source intent; current
+configuration cannot retarget a pending/completed receipt to another checkout. Replay checks that
+binding without rescanning mutable files. Descriptor-relative no-follow traversal rejects linked
+parent directories and special files before reading; regular file metadata is checked around the
+bounded read. Detached or switched checkout HEAD fails CHECKOUT_HEAD_CHANGED. Link targets also
+reject Git metadata aliases with trailing spaces/dots, matching the source-path boundary.
 
 Task integrate applies one task's delta (source base → selected source checkpoint) to another
 task in the same repository. Both tasks require current access. The source checkpoint must

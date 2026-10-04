@@ -161,8 +161,8 @@ class NativeStartTest(unittest.TestCase):
         tool = next(t for t in r.request()[2]['result']['tools'] if t['name'] == 'tdev_task')
         validator = jsonschema.Draft202012Validator(tool['inputSchema'])
         self.assertTrue(validator.is_valid({'request': {'action': 'start', 'requestId': 'allowed'}}))
-        for request in ({'action': 'start', 'requestId': 'import', 'localChanges': True},
-                        {'action': 'start', 'requestId': 'continuation', 'fromTaskId': 'old'}):
+        self.assertTrue(validator.is_valid({'request': {'action': 'start', 'requestId': 'import', 'localChanges': True}}))
+        for request in ({'action': 'start', 'requestId': 'continuation', 'fromTaskId': 'old'},):
             self.assertFalse(validator.is_valid({'request': request}))
             response = r.request('tools/call', {'name': 'tdev_task', 'arguments': {'request': request}})[2]['result']['structuredContent']
             self.assertEqual(response['error']['code'], 'SCHEMA')

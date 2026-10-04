@@ -1,5 +1,6 @@
 //! Private Git objects and atomic source construction. Authority and durable task
 //! CAS belong to admission/storage; these methods never update an enrolled ref.
+pub mod checkout;
 mod process;
 pub mod project;
 

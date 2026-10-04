@@ -206,10 +206,24 @@
         "tests/test_core.py",
         "tests/test_workspaces.py",
         "tests/test_projects.py",
-        "tests/test_environments.py"
+        "tests/test_environments.py",
+        "tests/test_source.py"
       ],
       "externalScenarios": [
-        "RuntimeTest.test_find_names_preserves_ambiguity_and_closed_predecessors"
+        "RuntimeTest.test_find_names_preserves_ambiguity_and_closed_predecessors",
+        "StartTest.test_implicit_start_lost_reply_edit_close_and_restart_keep_original_identity",
+        "StartTest.test_duplicate_admission_and_distinct_tasks_have_one_receipt_and_unique_branches",
+        "StartTest.test_project_and_workspace_defaults_are_explicit_and_never_global_current_state",
+        "StartTest.test_branch_selection_expected_head_and_current_grants_gate_replay",
+        "StartTest.test_connected_project_can_start_without_supplied_head_or_branch",
+        "StartTest.test_sha256_managed_source_survives_restart_and_checkpoint_edit",
+        "ImportTest.test_final_bytes_modes_deletions_selection_and_lost_reply_preserve_checkout",
+        "ImportTest.test_clean_import_retains_base_and_reports_tree",
+        "ImportTest.test_unsafe_links_special_files_and_file_limit_fail_without_tasks",
+        "ImportTest.test_unsupported_index_states_preserve_index",
+        "ImportTest.test_checkout_is_required_and_selected_branch_must_match",
+        "ImportTest.test_linked_checkout_import_uses_own_branch_and_does_not_rebind",
+        "ImportTest.test_sha256_import_can_edit_close_and_replay_original_receipt"
       ],
       "delivery": "P2"
     },
@@ -351,14 +365,7 @@
         "tests/test_environments.py",
         "tests/test_boundaries.py"
       ],
-      "externalScenarios": [
-        "StartTest.test_implicit_start_lost_reply_edit_close_and_restart_keep_original_identity",
-        "StartTest.test_duplicate_admission_and_distinct_tasks_have_one_receipt_and_unique_branches",
-        "StartTest.test_project_and_workspace_defaults_are_explicit_and_never_global_current_state",
-        "StartTest.test_branch_selection_expected_head_and_current_grants_gate_replay",
-        "StartTest.test_connected_project_can_start_without_supplied_head_or_branch",
-        "StartTest.test_sha256_managed_source_survives_restart_and_checkpoint_edit"
-      ],
+      "externalScenarios": [],
       "delivery": "P3"
     },
     {

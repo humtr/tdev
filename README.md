@@ -132,11 +132,14 @@ repeating the edit. Managed start resolves the explicit/default/sole project and
 freezes its HEAD and unique task/branch reservation before fetch, then commits the managed task
 with its receipt. No remote branch is created by start. Replay checks the original resolved
 scope even when the request omitted project/ref; failed reservations never reuse branch names.
-This increment accepts only remote-base start with localChanges omitted/false; local import and
-published-task continuation are not yet advertised. The Python executable remains the
+Start also accepts localChanges=true for an enrolled working checkout. It captures final tracked
+and nonignored untracked bytes with two matching identity/selection/content/metadata scans,
+preserving the user index, refs and files. Import uses only private Git objects and commits its
+evidence with the task receipt; interrupted construction is never rescanned on replay.
+Published-task continuation is not yet advertised. The Python executable remains the
 behavioral reference for the full surface.
 No state format revision or resident cutover has been performed. P2 remains in progress:
-GitHub enrollment, local import, published-task continuation, composition/integration/cleanup and their policy
+GitHub enrollment, published-task continuation, composition/integration/cleanup and their policy
 and recovery cases still need implementation. Execution, validation/publication, artifacts,
 deployment and operator/service commands retain their later delivery phases.
 The HTTP edge explicitly materializes finite floats before Schema validation, preserves raw

@@ -110,6 +110,14 @@ pub(super) fn call(
         Some(&task.identity),
     )?;
     admission.intent = identity::Value::parse(&json!({"input":input,"identity":task.identity,"construction":"private-source","resolved":{"repo":task.repo,"sourceRef":source,"base":base,"namespace":namespace,"ref":task.branch,"taskId":task.id}}).to_string())?;
+    let importing = input["localChanges"] == true;
+    if importing {
+        let mut intent: Value = serde_json::from_slice(&admission.intent.canonical()?)
+            .map_err(|_| Fault::new("STATE_FORMAT"))?;
+        intent["resolved"]["checkout"] = repo.config["checkout"].clone();
+        intent["resolved"]["checkoutIdentity"] = repo.config["checkoutIdentity"].clone();
+        admission.intent = identity::Value::parse(&intent.to_string())?;
+    }
     let admitted = app.store()?.admit_start(&admission, input, &mut task)?;
     if let Admitted::Replay(_) = admitted {
         return app
@@ -119,10 +127,24 @@ pub(super) fn call(
     }
     let result = (|| {
         git.fetch(&source, &base)?;
+        let imported = if importing {
+            let checkout = crate::git::checkout::Checkout::new(
+                &git,
+                repo.config["checkout"].as_str(),
+                repo.config["checkoutIdentity"].as_str(),
+            )?;
+            let (checkpoint, evidence) =
+                checkout.capture(&base, &source, &admission.operation.id)?;
+            task.checkpoint = checkpoint;
+            Some(evidence)
+        } else {
+            None
+        };
         if git.head(&task.branch)?.is_some() {
             return Err(Fault::new("REF_EXISTS"));
         }
-        app.store()?.complete_open(&admission, &task)
+        app.store()?
+            .complete_start(&admission, &task, imported.as_ref())
     })();
     let operation = match result {
         Ok(op) => op,

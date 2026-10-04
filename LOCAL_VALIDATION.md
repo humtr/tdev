@@ -1,4 +1,48 @@
-# Local validation evidence — 2026-10-03
+# Local validation evidence — 2026-10-04
+
+## Local checkout import and private capture recovery — 2026-10-04
+
+P2 start now accepts localChanges=true for an enrolled working checkout. Admission retains its
+checkout path/identity with source branch/base and reserved task/ref identity. Two matching scans
+verify directory/common-Git identity, checked-out branch/HEAD, index-based selection, final bytes
+and file metadata. Tracked paths remain selected when ignored; nonignored untracked paths join
+them and consistently missing tracked files become deletions. Staged and unstaged contents are
+not separate versions. Executable bits and safe relative links are preserved.
+
+Each parent is opened relative to an owned directory descriptor without following links. Regular
+files are opened without following links or blocking on FIFOs, checked before/after the bounded
+read and compared with the selected leaf again. Limits are 100,000 selected paths, 16 MiB per
+regular file and 32 MiB captured bytes. Unmerged/skip-worktree/gitlink index states, unsafe links,
+special files and linked parent directories fail without a task or public ref change. No user
+index refresh/write, hook, clean filter, fsmonitor, checkout write or ref write is performed.
+Unchanged capture keeps the admitted base checkpoint. Import metadata and task/terminal receipt
+commit together. The scans detect observed races; this is not an atomic filesystem snapshot.
+
+Implicit and explicit start replay retain captured contents rather than rescanning. Current
+checkout config binding, repository/source/namespace grants still gate receipt access. Actual
+controller SIGKILL after the changed import commit's private Git pin yields INTERRUPTED/none,
+retains original intent/reservations and creates no partial task; a distinct fresh request may
+capture newer contents. Unrelated workspace work stays available during utility barriers.
+Detached HEAD now returns CHECKOUT_HEAD_CHANGED instead of the reference's generic COMMAND_FAILED;
+link targets reject trailing-space/dot Git metadata aliases as source paths already do. These
+explicit corrections and current checkout-binding replay checks are not unrestricted parity.
+
+Focused common checks passed **7 reference in 32.200s** and the initial native pass **7 in
+50.998s**. Format/lint/locked build and **4 storage source invariants in 0.09s** passed after the
+descriptor-walk simplification. The final native import boundary rerun passed **7 in 67.880s**;
+implicit-project lost-reply/default-change replay passed **1 reference in 2.287s** and **1 native
+in 5.099s**. The final `sh scripts/check.sh` completed with independently recorded exit
+status **0**: format/lint/locked build, **46 Rust checks** (33 library + 13 Git),
+**10,003 identity comparisons**, **136 compiled contract comparisons**, **49 native HTTP checks**
+(9 source + 4 project + 6 start + 7 import + 23 native boundary/recovery) and **404 reference/common
+regressions in 893.553s** passed. Existing reference SQLite ResourceWarnings remained visible;
+no failing or skipped test suite was reported. These durations are test evidence, not a controlled
+performance comparison. Logs live under `$PREFIX/tmp` as
+`tdev-import-{reference-focused,reference-rerun,native-focused,native-recovery,native-rerun,
+reference-implicit,native-implicit,affected,full}.log`.
+P2 still needs composition/integration/cleanup, published-task continuation
+and GitHub enrollment; P3–P6 qualification remains open. No main integration, schema/storage
+revision or production runtime/provider cutover occurred.
 
 ## Managed task start and frozen source reservation — 2026-10-03
 

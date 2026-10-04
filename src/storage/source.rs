@@ -238,10 +238,21 @@ impl Store {
         })
     }
     pub fn complete_open(&mut self, admission: &Admission, task: &Task) -> Result<Operation> {
+        self.complete_start(admission, task, None)
+    }
+    pub fn complete_start(
+        &mut self,
+        admission: &Admission,
+        task: &Task,
+        imported: Option<&Json>,
+    ) -> Result<Operation> {
         let mut result = json!({"taskId":task.id,"workspaceId":task.workspace,"repo":task.repo,"ref":task.branch,"base":task.base,"checkpoint":task.checkpoint});
         if task.managed == 1 {
             result["managed"] = json!(true);
             result["sourceRef"] = json!(task.source_ref);
+        }
+        if let Some(imported) = imported {
+            result["localImport"] = imported.clone();
         }
         self.finish(&admission.operation.id,Status::Succeeded,Effect::Committed,result,None,|db,old| {
             if old.kind != crate::model::OperationKind::Task || task.owner != admission.owner || task.closed != 0 || task.busy.is_some() {
@@ -251,6 +262,10 @@ impl Store {
                 let intent: String = db.query_row("SELECT intent FROM operation WHERE id=?",[admission.operation.id.as_str()],|row|row.get(0)).map_err(database)?;
                 let intent: Json = serde_json::from_str(&intent).map_err(|_|Fault::new("STATE_FORMAT"))?;
                 let frozen = &intent["resolved"];
+                if (intent["input"]["localChanges"] == true) != imported.is_some()
+                    || imported.is_some_and(|e| e["head"] != json!(task.base)) {
+                    return Err(Fault::new("SOURCE_CHANGED"));
+                }
                 if frozen["taskId"] != json!(task.id) || frozen["repo"] != json!(task.repo) || frozen["ref"] != json!(task.branch) || frozen["base"] != json!(task.base) || frozen["sourceRef"] != json!(task.source_ref) || frozen["namespace"] != json!(task.namespace) || intent["identity"] != json!(task.identity) || intent["workspaceId"] != json!(task.workspace) || task.ref_state.as_deref() != Some("reserved") || task.published_oid.is_some() {
                     return Err(Fault::new("SOURCE_CHANGED"));
                 }
@@ -521,6 +536,65 @@ mod tests {
             "REF_EXISTS"
         );
         assert!(store.lookup(&next.owner, &next.request).unwrap().is_none());
+    }
+
+    #[test]
+    fn import_completion_requires_frozen_base_evidence_and_commits_with_task() {
+        let root = tempfile::tempdir().unwrap();
+        let mut store = Store::open(&root.path().join("state")).unwrap();
+        let (mut admission, mut input, mut task) = start_admission("import", None);
+        input["localChanges"] = json!(true);
+        let mut intent: Json =
+            serde_json::from_slice(&admission.intent.canonical().unwrap()).unwrap();
+        intent["input"] = input.clone();
+        admission.intent = Value::parse(&intent.to_string()).unwrap();
+        store.admit_start(&admission, &input, &mut task).unwrap();
+        task.checkpoint = Checkpoint::new("b".repeat(40)).unwrap();
+        let mut evidence = json!({"head":"c".repeat(40),"tree":"d".repeat(40),"files":2,"selectionDigest":"e".repeat(64)});
+        for imported in [None, Some(&evidence)] {
+            assert_eq!(
+                store
+                    .complete_start(&admission, &task, imported)
+                    .unwrap_err()
+                    .code,
+                "SOURCE_CHANGED"
+            );
+            assert!(
+                store
+                    .tasks(&task.owner, None, 0, 10, false)
+                    .unwrap()
+                    .is_empty()
+            );
+            assert_eq!(
+                store
+                    .lookup(&admission.owner, &admission.request)
+                    .unwrap()
+                    .unwrap()
+                    .status,
+                Status::Running
+            );
+        }
+        evidence["head"] = json!(task.base);
+        let completed = store
+            .complete_start(&admission, &task, Some(&evidence))
+            .unwrap();
+        drop(store);
+        let store = Store::open(&root.path().join("state")).unwrap();
+        let receipt = store
+            .lookup(&admission.owner, &admission.request)
+            .unwrap()
+            .unwrap();
+        assert_eq!(receipt.status, Status::Succeeded);
+        assert_eq!(receipt.task, Some(task.id.clone()));
+        assert_eq!(receipt.result, completed.result);
+        assert_eq!(receipt.result.unwrap()["localImport"], evidence);
+        assert_eq!(
+            store
+                .task(&task.owner, task.id.as_str())
+                .unwrap()
+                .checkpoint,
+            task.checkpoint
+        );
     }
 
     #[test]

@@ -105,7 +105,11 @@ early creation marker. `test_start.py` carries remote-base managed start with pr
 branch defaults, frozen replay, concurrent duplicates/distinct tasks, dirty checkout preservation,
 grant revocation and SHA-256 source editing. `native_start.py` adds actual pin-gap controller death,
 post-admission HEAD advancement, pre-admission workspace selection change and discovery rejection
-of local import/published-predecessor variants. P2 local import, continuation, composition/
+of published-predecessor variants. `test_import.py` carries final working bytes, selection digest,
+staged/unstaged/deletion/ignore rules, executable/link modes, unchanged capture, unsupported index
+states and SHA-256 edit/replay against both executables. `native_import.py` forces byte/metadata/
+index changes between scans, pending/completed checkout-binding checks, linked-folder replacement,
+parent-link rejection and actual controller death after the private import pin. P2 continuation, composition/
 integration/cleanup, GitHub enrollment and full state transition remain unqualified.
 `git/process.rs` owns bounded utility groups only; it is not P3's detached supervisor
 or proof that arbitrary escaped command descendants have stopped. GitHub adapter/publication

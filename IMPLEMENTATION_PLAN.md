@@ -180,8 +180,10 @@ open: local delegated connect/create now uses current policy projections and exa
 evidence, including actual controller-death boundaries. Remote-base managed start now freezes
 selection, HEAD and unique task/ref identity before fetch; it rechecks workspace selection at
 reservation and qualifies actual pin-gap death without repeating construction. LocalChanges=true
-and fromTaskId are still excluded from discovery/input acceptance. Next implement local import,
-composition/integration/cleanup and published-task continuation with current policy and ref
+now captures the enrolled checkout through no-follow directory descriptors and two matching
+identity/selection/content/metadata scans, with private import-pin death qualified before atomic
+task/receipt completion. fromTaskId remains excluded from discovery/input acceptance.
+Next implement composition/integration/cleanup and published-task continuation with current policy and ref
 ownership/recovery, then the
 remaining GitHub enrollment/provider boundary. Do not advance the P2
 exit or advertise these actions solely because the initial local source scenarios pass.

@@ -83,11 +83,11 @@ impl Surface {
         fn restrict(request: &mut Value, actions: &[&str], source_start: bool) -> bool {
             if let Some(action) = request["properties"]["action"]["const"].as_str() {
                 let enabled = actions.contains(&action);
-                if source_start && action == "start" {
-                    if request["properties"].get("fromTaskId").is_some() {
-                        return false;
-                    }
-                    request["properties"]["localChanges"]["enum"] = json!([false]);
+                if source_start
+                    && action == "start"
+                    && request["properties"].get("fromTaskId").is_some()
+                {
+                    return false;
                 }
                 return enabled;
             }
@@ -140,7 +140,7 @@ impl Surface {
             }
             tool["description"] = json!(match name {
                 "tdev_task" =>
-                    "Open, start, list, inspect and close owned source tasks in local projects. Start uses an enrolled remote base; local import and published-task continuation are not available yet.",
+                    "Open, start, list, inspect and close owned source tasks in local projects. Start uses an enrolled base and can import its checkout's final local changes while preserving the index/files/refs. Published-task continuation is not available yet.",
                 "tdev_project" =>
                     "List and inspect granted projects; connect or create local projects within current delegated policy.",
                 "tdev_operation" =>

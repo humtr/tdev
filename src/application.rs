@@ -121,6 +121,12 @@ impl Application {
                 return Err(Fault::new("PERMISSION_DENIED"));
             }
             let namespace = wire::string(resolved, "namespace")?;
+            if receipt.intent["input"]["localChanges"] == true
+                && (resolved["checkout"] != repo.config["checkout"]
+                    || resolved["checkoutIdentity"] != repo.config["checkoutIdentity"])
+            {
+                return Err(Fault::new("CHECKOUT_IDENTITY"));
+            }
             if !repo.namespaces.iter().any(|ns| ns == namespace)
                 || !wire::string(resolved, "ref")?.starts_with(namespace)
             {
