@@ -100,7 +100,13 @@
         "tests/test_projects.py",
         "tests/test_environments.py"
       ],
-      "externalScenarios": [],
+      "externalScenarios": [
+        "CleanupTest.test_empty_cleanup_closes_source_preserves_checkout_and_replay_never_deletes_recreated_ref",
+        "CleanupTest.test_cleanup_after_workspace_detach_close_keeps_current_authority",
+        "CleanupTest.test_unmanaged_foreign_and_other_principal_refs_are_preserved",
+        "CleanupTest.test_duplicate_cleanup_has_one_receipt_and_fresh_tasks_never_reuse_names",
+        "CleanupTest.test_sha256_cleanup_keeps_source_and_exact_replay_identity"
+      ],
       "delivery": "P2"
     },
     {

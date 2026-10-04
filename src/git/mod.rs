@@ -1,9 +1,10 @@
 //! Private Git objects and atomic source construction. Authority and durable task
-//! CAS belong to admission/storage; these methods never update an enrolled ref.
+//! CAS belong to admission/storage; ref deletion has an explicit dispatch boundary.
 pub mod checkout;
 pub mod integration;
 mod process;
 pub mod project;
+pub mod refs;
 
 use crate::model::{BlobId, BranchRef, Checkpoint, Fault, OperationId, Result, SourcePath, TreeId};
 use process::{OUTPUT_LIMIT, Output, run};

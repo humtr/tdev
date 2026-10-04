@@ -9,6 +9,7 @@ use rusqlite::{
 use std::fs::{self, DirBuilder, File, OpenOptions, TryLockError};
 use std::os::unix::fs::{DirBuilderExt, MetadataExt, OpenOptionsExt, PermissionsExt};
 use std::path::Path;
+pub mod cleanup;
 pub mod project;
 pub mod source;
 pub mod workspace;

@@ -117,7 +117,16 @@ against both executables. `native_integration.py` adds deterministic pre-admissi
 post-admission source advancement and grant revocation, duplicate admission/replay lock release,
 composition completion recheck, actual controller death after compose/integrate pins and utility
 failure without partial target edits. Git fixtures prove single-parent checkpoints; storage tests
-fix source snapshot/replay/completion ordering. P2 owned-ref cleanup, published-task continuation,
+fix source snapshot/replay/completion ordering. `test_cleanup.py` carries empty managed branch
+retirement, closed/detached workspace access, retained source/receipts, foreign/unmanaged/other
+principal rejection, lost reply/restart/duplicate requests, current grants and SHA-256.
+`native_cleanup.py` seeds isolated retained publication facts offline while publication remains
+P3 work, then qualifies exact last-publication deletion, linked checked-out branch preservation,
+CAS races, actual pre/post-dispatch death, active absence gates, revoked/replaced authority,
+observation/utility failure, uncertain publication blocking and SQLite failure after deletion.
+Git fixtures cover SHA-1/SHA-256 CAS/canonical/symbolic refs; storage tests fix retained publication
+snapshot, closed/detached cleanup, restart uncertainty and terminal receipt monotonicity.
+P2 published-task continuation,
 GitHub enrollment and full state transition remain unqualified.
 `git/process.rs` owns bounded utility groups only; it is not P3's detached supervisor
 or proof that arbitrary escaped command descendants have stopped. GitHub adapter/publication

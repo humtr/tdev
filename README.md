@@ -119,7 +119,7 @@ opening/editing, unchanged capture and dirty-checkout preservation. Contract che
 with an independent validator across all thirteen described tool families; this does not
 advertise those families as implemented handlers. The command now serves authenticated loopback
 HTTP with fresh immutable authority snapshots. Discovery exposes six implemented tool families:
-workspace composition; task list/open/start/compose/integrate/inspect/close; all read/edit actions;
+workspace composition; task list/open/start/compose/integrate/inspect/close/cleanup; all read/edit actions;
 operation status with bounded JSON/SSE observation; and project list/inspect/local connect/create. Delegated
 enrollment stores resource identity separately from current policy-derived grants and execution
 settings. Local creation records uncertainty before touching the target and reconciles only
@@ -143,10 +143,18 @@ unresolved conflicts retain the target checkpoint with applied=false and require
 resolution in a new request. Both paths preserve public refs, checkout files and the user index.
 Current source authority gates receipt replay; actual pin-gap death retains an interrupted receipt
 without repeating construction or committing partial source changes.
+Managed-ref cleanup works before or after task/workspace close and project detachment.
+It reserves the task, retains its publication identity, and removes an existing branch only
+at the exact recorded publication OID, preserving foreign/changed/checked-out branches.
+Deletion uncertainty is journaled before dispatch; replay/status/inspect observe the original
+request without repeating deletion. Task closure, ref retirement and the receipt commit together;
+source checkpoints and publication evidence remain retained. Empty unpublished branches need no
+Git mutation. Publication-backed cleanup is qualified with isolated retained-state fixtures;
+the publication handler itself remains a later deliverable.
 Published-task continuation is not yet advertised. The Python executable remains the
 behavioral reference for the full surface.
 No state format revision or resident cutover has been performed. P2 remains in progress:
-GitHub enrollment, published-task continuation, owned-ref cleanup and their policy
+GitHub enrollment, published-task continuation and their policy
 and recovery cases still need implementation. Execution, validation/publication, artifacts,
 deployment and operator/service commands retain their later delivery phases.
 The HTTP edge explicitly materializes finite floats before Schema validation, preserves raw

@@ -147,7 +147,7 @@ fn change(
         app.admission(context, input, original, OperationKind::Project, None, None)?;
     let mut intent = json!({"input":input,"authority":Context::policy_authority(policy)?,"construction":if create {"local-project-create"} else {"local-project-connect"}});
     admission.intent = identity::Value::parse(&intent.to_string())?;
-    let gate = app.project_work(&admission.operation.id)?;
+    let gate = app.operation_work(&admission.operation.id)?;
     let _guard = gate.lock().map_err(|_| Fault::new("OPERATION_STATE"))?;
     let admitted = app.store()?.admit(&admission, |_| Ok(()))?;
     if let Admitted::Replay(_) = admitted {
@@ -220,7 +220,7 @@ pub(crate) fn reconcile(
     if receipt.operation.status.is_terminal() {
         return Ok(receipt.operation.clone());
     }
-    let gate = app.project_work(&receipt.operation.id)?;
+    let gate = app.operation_work(&receipt.operation.id)?;
     let _guard = match gate.try_lock() {
         Ok(guard) => guard,
         Err(std::sync::TryLockError::WouldBlock) => return Ok(receipt.operation.clone()),

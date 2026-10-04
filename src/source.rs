@@ -10,6 +10,7 @@ use crate::{
 };
 use base64::{Engine, engine::general_purpose::STANDARD};
 use serde_json::{Value, json};
+pub(crate) mod cleanup;
 mod integration;
 mod start;
 
@@ -23,6 +24,7 @@ pub fn task(
         "start" => start::call(app, context, input, original),
         "open" | "compose" => open(app, context, input, original),
         "integrate" => integration::call(app, context, input, original),
+        "cleanup" => cleanup::call(app, context, input, original),
         "close" => {
             if let Some(op) = app.replay(context, input, "task", original)? {
                 return Ok(json!(op));
@@ -276,6 +278,17 @@ fn list(app: &Application, context: &Context, input: &Value) -> Result<Value> {
 }
 fn inspect(app: &Application, context: &Context, input: &Value) -> Result<Value> {
     let (task, repo) = app.task(context, wire::string(input, "taskId")?)?;
+    if let Some(id) = &task.busy {
+        let receipt = app
+            .store()?
+            .receipt(&context.principal, Some(id.as_str()), None)?;
+        if let Some(receipt) = receipt
+            && receipt.intent["input"]["action"] == "cleanup"
+        {
+            app.authorize_receipt(context, &receipt)?;
+            app.reconcile(context, &receipt)?;
+        }
+    }
     let remote = match app.git(&repo).and_then(|g| g.head(&task.branch)) {
         Ok(head) => json!({"head":head}),
         Err(error) => json!({"error":error}),
@@ -300,7 +313,18 @@ fn inspect(app: &Application, context: &Context, input: &Value) -> Result<Value>
     } else {
         None
     };
-    let mut value = json!({"task":task,"remote":remote,"operations":operations.into_iter().take(limit as usize).map(|(_,op)|op).collect::<Vec<_>>(),"active":active,"nextBefore":next,"mutationReady":task.closed==0 && task.busy.is_none(),"baseMatchesRemote":remote["head"]==json!(task.base),"processes":[],"builds":[],"refCleanup":if task.managed==0 {"unmanaged"} else {"observe"}});
+    let ref_cleanup = if task.managed == 0 {
+        "unmanaged"
+    } else if task.busy.is_some() || remote.get("error").is_some() {
+        "observe"
+    } else if task.ref_state.as_deref() == Some("deleted") && remote["head"].is_null() {
+        "done"
+    } else if remote["head"] == json!(task.published_oid) {
+        "ready"
+    } else {
+        "changed"
+    };
+    let mut value = json!({"task":task,"remote":remote,"operations":operations.into_iter().take(limit as usize).map(|(_,op)|op).collect::<Vec<_>>(),"active":active,"nextBefore":next,"mutationReady":task.closed==0 && task.busy.is_none(),"baseMatchesRemote":remote["head"]==json!(task.base),"processes":[],"builds":[],"refCleanup":ref_cleanup});
     wire::observe(
         &mut value,
         input["since"].as_str(),

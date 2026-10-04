@@ -24,7 +24,7 @@ pub struct Application {
     pub config: PathBuf,
     pub root: PathBuf,
     store: Mutex<Store>,
-    project_work: Mutex<BTreeMap<OperationId, Weak<Mutex<()>>>>,
+    operation_work: Mutex<BTreeMap<OperationId, Weak<Mutex<()>>>>,
 }
 impl Application {
     pub fn open(root: &Path, config: &Path) -> Result<Self> {
@@ -41,7 +41,7 @@ impl Application {
             config: config.into(),
             root: root.into(),
             store: Mutex::new(store),
-            project_work: Mutex::new(BTreeMap::new()),
+            operation_work: Mutex::new(BTreeMap::new()),
         })
     }
     pub(crate) fn store(&self) -> Result<MutexGuard<'_, Store>> {
@@ -52,9 +52,9 @@ impl Application {
         let projects = self.store()?.projects(&context.principal)?;
         context.enroll(projects)
     }
-    pub(crate) fn project_work(&self, id: &OperationId) -> Result<Arc<Mutex<()>>> {
+    pub(crate) fn operation_work(&self, id: &OperationId) -> Result<Arc<Mutex<()>>> {
         let mut work = self
-            .project_work
+            .operation_work
             .lock()
             .map_err(|_| Fault::new("OPERATION_STATE"))?;
         work.retain(|_, entry| entry.strong_count() > 0);
@@ -181,11 +181,7 @@ impl Application {
             if receipt.hash != wire::fingerprint(kind, original)?.as_str() {
                 return Err(Fault::new("IDEMPOTENCY_MISMATCH"));
             }
-            return Ok(Some(if receipt.operation.kind == OperationKind::Project {
-                crate::project::reconcile(self, context, &receipt)?
-            } else {
-                receipt.operation
-            }));
+            return Ok(Some(self.reconcile(context, &receipt)?));
         }
         Ok(None)
     }
@@ -215,6 +211,17 @@ impl Application {
                 error: None,
             },
         })
+    }
+    pub(crate) fn reconcile(&self, context: &Context, receipt: &Receipt) -> Result<Operation> {
+        if receipt.operation.kind == OperationKind::Project {
+            crate::project::reconcile(self, context, receipt)
+        } else if receipt.operation.kind == OperationKind::Task
+            && receipt.intent["input"]["action"] == "cleanup"
+        {
+            crate::source::cleanup::reconcile(self, context, receipt)
+        } else {
+            Ok(receipt.operation.clone())
+        }
     }
     pub fn call(
         &self,
@@ -257,11 +264,7 @@ impl Application {
                 )?
                 .ok_or_else(|| Fault::new("OPERATION_NOT_FOUND"))?;
             self.authorize_receipt(context, &receipt)?;
-            let operation = if receipt.operation.kind == OperationKind::Project {
-                crate::project::reconcile(self, context, &receipt)?
-            } else {
-                receipt.operation
-            };
+            let operation = self.reconcile(context, &receipt)?;
             let terminal = operation.status.is_terminal();
             if terminal || std::time::Instant::now() >= deadline {
                 let mut value =

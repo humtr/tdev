@@ -175,7 +175,7 @@ impl Store {
         task: &Task,
         expected: &Checkpoint,
     ) -> Result<Admitted> {
-        self.reserve_source_inputs(admission, task, expected, &[])
+        self.reserve_source_inputs(admission, task, expected, &[], false)
     }
     pub fn reserve_integration(
         &mut self,
@@ -184,7 +184,16 @@ impl Store {
         expected: &Checkpoint,
         source: &Task,
     ) -> Result<Admitted> {
-        self.reserve_source_inputs(admission, target, expected, std::slice::from_ref(source))
+        self.reserve_source_inputs(
+            admission,
+            target,
+            expected,
+            std::slice::from_ref(source),
+            false,
+        )
+    }
+    pub fn reserve_cleanup(&mut self, admission: &Admission, task: &Task) -> Result<Admitted> {
+        self.reserve_source_inputs(admission, task, &task.checkpoint, &[], true)
     }
     fn reserve_source_inputs(
         &mut self,
@@ -192,15 +201,20 @@ impl Store {
         task: &Task,
         expected: &Checkpoint,
         sources: &[Task],
+        cleanup: bool,
     ) -> Result<Admitted> {
         self.admit(admission, |db| {
-            workspace::available_member(
-                db,
-                &admission.owner,
-                &task.workspace,
-                &task.repo,
-                &task.identity,
-            )?;
+            if cleanup {
+                workspace::owned(db, &admission.owner, &task.workspace, false)?;
+            } else {
+                workspace::available_member(
+                    db,
+                    &admission.owner,
+                    &task.workspace,
+                    &task.repo,
+                    &task.identity,
+                )?;
+            }
             let current = db
                 .query_row(
                     &format!("SELECT {TASK_COLUMNS} FROM task WHERE id=? AND owner=?"),
@@ -208,7 +222,7 @@ impl Store {
                     self::task,
                 )
                 .map_err(database)?;
-            if current.closed != 0 {
+            if current.closed != 0 && !cleanup {
                 return Err(Fault::new("TASK_CLOSED"));
             }
             if current.busy.is_some() {
@@ -216,6 +230,16 @@ impl Store {
             }
             if &current.checkpoint != expected {
                 return Err(Fault::new("STALE_CHECKPOINT"));
+            }
+            if cleanup
+                && (current.repo != task.repo
+                    || current.identity != task.identity
+                    || current.branch != task.branch
+                    || current.managed != task.managed
+                    || current.ref_state != task.ref_state
+                    || current.published_oid != task.published_oid)
+            {
+                return Err(Fault::new("SOURCE_CHANGED"));
             }
             for observed in sources {
                 let current = db

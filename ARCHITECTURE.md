@@ -434,6 +434,25 @@ materialization/publication target. Absence can finish cleanup only when no prio
 writer is active. Branch names are never reused. Namespace operators must not delete/recreate
 or rewrite owned refs behind the controller; Git OID CAS cannot detect an external ABA rewrite.
 
+Cleanup admission rereads source/publication pointers and reserves only the owned task writer;
+closed/detached workspace membership is not a prerequisite for retained resource cleanup.
+Current repository/source/namespace authority still gates admission and receipt access. A
+distinct cleanup intent stays outside private-source interruption recovery. When the branch is
+absent and no other writer holds the task, task close/ref retirement and the original receipt
+commit together without Git mutation. Existing branches require published ownership at the exact
+recorded OID, an ordinary nonsymbolic ref, and no checkout on that branch in any local worktree.
+The local utility uses update-ref --no-deref with deletion-at-old-OID CAS and no user hooks.
+
+Before deletion dispatch, persist its frozen old OID and unknown effect. Per-operation gates
+prevent status/inspect/replay from completing an active worker from a temporary absence; other
+tasks remain available while Git waits. After controller death, a pre-dispatch intent can complete
+from current absence or fail interrupted while the branch exists. A dispatched deletion remains
+unknown while the ref exists or observation fails; only observed absence can complete it without
+another deletion. A utility CAS failure is conservatively unknown once dispatched, preserving
+the changed ref and the task fence. SQLite completion failure after deletion reports uncertainty,
+not effect=none. Completion preserves checkpoint/publication OIDs and clears only its owned busy
+slot. A completed receipt never deletes a subsequently recreated branch on replay.
+
 Remote ref mutations journal intent before dispatch and survive restart as unknown until
 observed; task cleanup is no longer classified as a purely local mutation. Unknown
 publication cannot be cleared by an absent ref. Known exact publication and absent deletion

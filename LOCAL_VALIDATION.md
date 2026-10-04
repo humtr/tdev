@@ -1,5 +1,45 @@
 # Local validation evidence — 2026-10-04
 
+## Owned local ref cleanup and deletion uncertainty — 2026-10-04
+
+P2 now serves task cleanup and current refCleanup inspection. Admission reserves only the
+owned task writer, rereads source/publication facts and allows retained cleanup after task or
+workspace close and project detachment. Current repository/source/namespace authority still
+gates admission, replay and operation access. Empty managed branches close/retire atomically
+without a Git mutation. Foreign, unmanaged, changed, symbolic and checked-out branches are
+preserved. A real deletion requires the exact recorded publication OID and uses no-dereference
+old-OID CAS, with current enrolled identity and worktree checks outside the SQLite lock.
+
+Before dispatch, the separate cleanup intent retains the exact old OID and marks effect/status
+unknown. Active per-operation gates prevent premature completion from temporary absence without
+blocking unrelated tasks. Actual SIGKILL before dispatch leaves no deletion; after dispatch,
+replay/status/inspect observe the original request and never repeat it. Existing refs and failed
+observation keep uncertainty and the task fence; absence can finish only its cleanup receipt,
+never an uncertain publication. Deletion followed by SQLite completion failure reports unknown
+with the original operation ID. Terminal replay preserves recreated refs. Source checkpoint,
+published OID, files/index/untracked content and canonical refs remain retained.
+
+The native deletion scenarios seed retained publication facts offline in disposable fixtures;
+they do not claim P3 publication admission/validation or a complete start→publish→cleanup path.
+Common empty-ref behavior runs independently against both executables with canonical output
+validation. Focused checks passed **5 reference in 27.668s**, **14 native/common boundary in
+147.528s**, **1 storage invariant in 0.04s** and **1 real Git invariant in 3.76s**. Format/lint/
+locked build and action inventory checks passed. An earlier native focused run had one isolated
+fixture server startup EPERM before any tool request; the final rerun passed all 14. Initial
+common-test field/error-code expectations were corrected against actual wire responses.
+Affected HTTP checks passed **80 in 776.837s**. The final `sh scripts/check.sh` completed
+with independently recorded exit status **0**: format/lint/locked build, **50 Rust checks**
+(35 library + 15 Git), **10,003 identity comparisons**, **136 compiled contract comparisons**,
+**80 native HTTP checks** (9 source + 4 project + 6 start + 7 import + 10 integration +
+5 cleanup + 39 native boundary/recovery) and **419 reference/common regressions in 1293.976s**
+passed. Existing reference SQLite ResourceWarnings remained visible; no failing or skipped
+suite was reported. These results qualify this increment, not the remaining full delivery.
+Logs live under `$PREFIX/tmp` as `tdev-cleanup-{reference-focused,reference-rerun,reference-final,
+native-focused,native-rerun,native-final,affected,full}.log`. Durations are test evidence, not a
+controlled performance comparison. P2 published-task continuation and GitHub enrollment,
+P3–P6 and full state qualification remain open. No schema/storage revision, main integration
+or production runtime/provider cutover occurred.
+
 ## Source composition and frozen delta integration — 2026-10-04
 
 P2 now serves task compose/integrate through authenticated native HTTP. Composition combines

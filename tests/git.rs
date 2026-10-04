@@ -148,6 +148,71 @@ fn files(store: &Git, checkpoint: &Checkpoint) -> BTreeMap<SourcePath, (FileMode
 }
 
 #[test]
+fn exact_ref_deletion_checks_format_cas_canonical_and_symbolic_refs() {
+    for format in ["sha1", "sha256"] {
+        let fixture = Fixture::new(format);
+        let store = fixture.open();
+        let remote = format!("--git-dir={}", fixture.remote.display());
+        let tree = git(
+            None,
+            &[&remote, "rev-parse", &format!("{}^{{tree}}", fixture.head)],
+        );
+        let published = Checkpoint::new(git(
+            None,
+            &[
+                &remote,
+                "commit-tree",
+                &tree,
+                "-p",
+                fixture.head.as_str(),
+                "-m",
+                "published fixture",
+            ],
+        ))
+        .unwrap();
+        let branch = BranchRef::new("refs/heads/work/owned").unwrap();
+        git(
+            None,
+            &[&remote, "update-ref", branch.as_str(), published.as_str()],
+        );
+        assert_eq!(
+            store.delete_ref(&branch, &fixture.head).unwrap_err().code,
+            "STALE_HEAD"
+        );
+        assert_eq!(
+            store
+                .delete_ref(&BranchRef::new("refs/heads/main").unwrap(), &fixture.head)
+                .unwrap_err()
+                .code,
+            "REF_DENIED"
+        );
+        let alias = BranchRef::new("refs/heads/work/alias").unwrap();
+        git(
+            None,
+            &[&remote, "symbolic-ref", alias.as_str(), branch.as_str()],
+        );
+        assert_eq!(
+            store.delete_ref(&alias, &published).unwrap_err().code,
+            "SYMBOLIC_REF"
+        );
+        assert_eq!(
+            git(None, &[&remote, "rev-parse", branch.as_str()]),
+            published.as_str()
+        );
+        store.delete_ref(&branch, &published).unwrap();
+        assert!(store.head(&branch).unwrap().is_none());
+        assert_eq!(
+            git(None, &[&remote, "rev-parse", "refs/heads/main"]),
+            fixture.head.as_str()
+        );
+        assert_eq!(
+            git(Some(&fixture.work), &["rev-parse", "HEAD"]),
+            fixture.head.as_str()
+        );
+    }
+}
+
+#[test]
 fn compose_and_integrate_use_single_parent_checkpoints_and_keep_public_refs() {
     let fixture = Fixture::new("sha256");
     let store = fixture.open();

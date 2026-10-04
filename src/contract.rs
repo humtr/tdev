@@ -118,6 +118,7 @@ impl Surface {
                     "start",
                     "compose",
                     "integrate",
+                    "cleanup",
                     "inspect",
                     "close",
                 ],
@@ -148,7 +149,7 @@ impl Surface {
             }
             tool["description"] = json!(match name {
                 "tdev_task" =>
-                    "Open, start, compose, integrate, list, inspect and close owned source tasks in local projects. Start can import final checkout bytes while preserving its index/files/refs. Compose exact same-branch source checkpoints; integrate a frozen source delta atomically or inspect and resolve conflicts. Published-task continuation is not available yet.",
+                    "Open, start, compose, integrate, inspect, close and clean up owned local source tasks. Cleanup closes the task and deletes only its exact recorded published branch; uncertainty is observed without repeating deletion. Start can import final checkout bytes while preserving the index/files/refs. Compose same-branch checkpoints and integrate frozen source deltas atomically. Published-task continuation is not available yet.",
                 "tdev_project" =>
                     "List and inspect granted projects; connect or create local projects within current delegated policy.",
                 "tdev_operation" =>

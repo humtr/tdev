@@ -191,8 +191,15 @@ reserved. Unresolved conflicts commit an applied=false receipt without changing 
 explicit resolutions advance it atomically. Both paths qualify actual private-pin controller
 death, current source authority on replay and SHA-256 checkpoints. Duplicate admission releases
 storage before nested replay; a deterministic concurrent duplicate test fixes that boundary.
-Next implement owned-ref cleanup, then published-task continuation with current policy and ref
-ownership/recovery, then the
+Owned local ref cleanup now reserves retained tasks even after workspace close/detach, freezes
+publication ownership, checks checked-out worktrees and uses exact-OID/no-dereference deletion.
+Its separate intent records uncertainty before public dispatch; replay/status/inspect reconcile
+only that original deletion. Actual SIGKILL before/after dispatch, CAS races, observation failures,
+SQLite completion failure and uncertain-publication blocking have focused executable evidence.
+Publication-backed deletion uses isolated retained-state fixtures; this does not qualify P3
+publication admission/validation. Shared per-operation gates keep active workers from premature
+reconciliation without holding the store across Git waits.
+Next implement published-task continuation with current policy and ref ownership/recovery, then the
 remaining GitHub enrollment/provider boundary. Do not advance the P2
 exit or advertise these actions solely because the initial local source scenarios pass.
 
