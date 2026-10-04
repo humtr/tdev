@@ -183,7 +183,15 @@ reservation and qualifies actual pin-gap death without repeating construction. L
 now captures the enrolled checkout through no-follow directory descriptors and two matching
 identity/selection/content/metadata scans, with private import-pin death qualified before atomic
 task/receipt completion. fromTaskId remains excluded from discovery/input acceptance.
-Next implement composition/integration/cleanup and published-task continuation with current policy and ref
+Composition now combines compatible deltas on one exact project/ref, checking declared source
+pointers before construction and again in the task/receipt transaction. Integration proves
+source ancestry outside storage, rechecks the observed source pointer at admission, then freezes
+the selected source version while allowing independent source edits. Only the target writer is
+reserved. Unresolved conflicts commit an applied=false receipt without changing the target;
+explicit resolutions advance it atomically. Both paths qualify actual private-pin controller
+death, current source authority on replay and SHA-256 checkpoints. Duplicate admission releases
+storage before nested replay; a deterministic concurrent duplicate test fixes that boundary.
+Next implement owned-ref cleanup, then published-task continuation with current policy and ref
 ownership/recovery, then the
 remaining GitHub enrollment/provider boundary. Do not advance the P2
 exit or advertise these actions solely because the initial local source scenarios pass.

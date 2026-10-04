@@ -125,9 +125,14 @@
         "tests/test_core.py",
         "tests/test_workspaces.py",
         "tests/test_projects.py",
-        "tests/test_environments.py"
+        "tests/test_environments.py",
+        "tests/test_recovery.py"
       ],
-      "externalScenarios": [],
+      "externalScenarios": [
+        "IntegrationTest.test_compose_independent_deltas_lost_reply_and_replay_after_sources_advance",
+        "IntegrationTest.test_compose_conflicts_stale_sources_and_identical_overlap_are_atomic",
+        "IntegrationTest.test_sha256_compose_and_integrate_keep_exact_source_identity"
+      ],
       "delivery": "P2"
     },
     {
@@ -152,9 +157,19 @@
         "tests/test_core.py",
         "tests/test_workspaces.py",
         "tests/test_projects.py",
-        "tests/test_environments.py"
+        "tests/test_environments.py",
+        "tests/test_recovery.py"
       ],
-      "externalScenarios": [],
+      "externalScenarios": [
+        "IntegrationTest.test_clean_three_way_merge_keeps_source_and_ignores_user_merge_driver",
+        "IntegrationTest.test_conflict_receipt_preserves_target_and_resolves_frozen_historical_source",
+        "IntegrationTest.test_binary_delete_modify_add_link_and_topology_conflicts_require_all_resolutions",
+        "IntegrationTest.test_invalid_resolution_and_admission_scope_never_change_target",
+        "IntegrationTest.test_old_delta_integrates_on_newer_base_and_reverse_direction_is_rejected",
+        "IntegrationTest.test_conflicts_are_sorted_bounded_and_can_be_resolved_in_a_new_request",
+        "IntegrationTest.test_duplicate_integration_has_one_receipt_and_distinct_writers_use_cas",
+        "IntegrationTest.test_sha256_compose_and_integrate_keep_exact_source_identity"
+      ],
       "delivery": "P2"
     },
     {

@@ -14,7 +14,9 @@ from acceptance.harness import Runtime, eventually, git
 
 class NativeImportTest(unittest.TestCase):
     def setUp(self):
-        r = self.runtime = Runtime()
+        # Two checkout scans each start several bounded native utilities. This
+        # fixture's HTTP budget must cover reaching and observing the barrier.
+        r = self.runtime = Runtime(request_timeout_seconds=45)
         self.addCleanup(r.close)
         r.config['projectPolicies'] = {'local': {'kind': 'local', 'root': str(r.root),
             'managedRefNamespace': 'refs/heads/imports/', 'validation': 'true'}}
@@ -64,9 +66,16 @@ class NativeImportTest(unittest.TestCase):
     def release_caller(self, caller):
         self.release.touch()
         caller.join(timeout=8)
-        eventually(lambda: self.done.exists(), bool, seconds=5)
+        if self.marker.exists():
+            eventually(lambda: self.done.exists(), bool, seconds=5)
         self.assertFalse(caller.is_alive())
         self.assertFalse(self.failures, self.failures)
+
+    def wait_barrier(self, caller):
+        # Do not mistake slow utility startup for the observed persistence gap,
+        # or hide an early request failure behind a missing marker timeout.
+        eventually(lambda: self.marker.exists() or not caller.is_alive(), bool, seconds=30)
+        self.assertTrue(self.marker.exists(), (self.replies, self.failures))
 
     def intent(self, request):
         connection = sqlite3.connect('file:' + str(self.runtime.state / 'state.sqlite') + '?mode=ro', uri=True)
@@ -82,7 +91,7 @@ class NativeImportTest(unittest.TestCase):
         args = {'action': 'start', 'requestId': 'changing', 'repo': self.repo, 'localChanges': True}
         caller = self.invoke(args)
         try:
-            eventually(lambda: self.marker.exists(), bool, seconds=8)
+            self.wait_barrier(caller)
             pending = r.call('operation', {'action': 'status', 'lookupRequestId': 'changing'})
             self.assertEqual((pending['status'], pending['task']), ('running', None))
             resolved = self.intent('changing')['resolved']
@@ -127,7 +136,7 @@ class NativeImportTest(unittest.TestCase):
         args = {'action': 'start', 'requestId': 'interrupted-import', 'repo': self.repo, 'localChanges': True}
         caller = self.invoke(args)
         try:
-            eventually(lambda: self.marker.exists(), bool, seconds=8)
+            self.wait_barrier(caller)
             pending = r.call('operation', {'action': 'status', 'lookupRequestId': args['requestId']})
             original = self.intent(args['requestId'])
             self.assertEqual((pending['status'], pending['task']), ('running', None))
@@ -167,7 +176,7 @@ class NativeImportTest(unittest.TestCase):
         self.barrier('scan')
         caller = self.invoke(args)
         try:
-            eventually(lambda: self.marker.exists(), bool, seconds=8)
+            self.wait_barrier(caller)
             pending = r.call('operation', {'action': 'status', 'lookupRequestId': 'bound'})
             config['checkoutIdentity'] = 'local:0:0'
             r.save_config()

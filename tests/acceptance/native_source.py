@@ -51,8 +51,7 @@ class NativeSourceTest(unittest.TestCase):
             original = next(t for t in CONTRACT['x-tools'] if t['name'] == tool['name'])
             self.assertEqual(tool['annotations'], original['annotations'])
         task = next(t for t in tools if t['name'] == 'tdev_task')
-        hidden = {'action': 'compose', 'requestId': 'hidden', 'repo': 'test',
-                  'ref': 'refs/heads/main', 'expectedHead': r.head, 'sources': [{'taskId': 'a', 'checkpoint': r.head}]}
+        hidden = {'action': 'cleanup', 'requestId': 'hidden', 'taskId': 'a'}
         self.assertFalse(jsonschema.Draft202012Validator(task['inputSchema']).is_valid({'request': hidden}))
         response = r.request('tools/call', {'name': 'tdev_task', 'arguments': {'request': hidden}})[2]
         self.assertEqual(response['result']['structuredContent']['error']['code'], 'SCHEMA')

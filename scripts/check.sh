@@ -19,6 +19,8 @@ TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.
 TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.abspath("target/debug/tdev"), "serve"]))') \
     python -m unittest discover -s tests/acceptance -t tests -p 'test_import.py' -v
 TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.abspath("target/debug/tdev"), "serve"]))') \
+    python -m unittest discover -s tests/acceptance -t tests -p 'test_integration.py' -v
+TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.abspath("target/debug/tdev"), "serve"]))') \
     python -m unittest discover -s tests/acceptance -t tests -p 'native_*.py' -v
 # tests/acceptance is a package: this discovery includes its executable scenarios.
 test -f tests/acceptance/__init__.py

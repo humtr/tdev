@@ -148,6 +148,84 @@ fn files(store: &Git, checkpoint: &Checkpoint) -> BTreeMap<SourcePath, (FileMode
 }
 
 #[test]
+fn compose_and_integrate_use_single_parent_checkpoints_and_keep_public_refs() {
+    let fixture = Fixture::new("sha256");
+    let store = fixture.open();
+    let first = store
+        .edit(
+            &fixture.head,
+            &[Edit::Replace {
+                path: path("a.txt"),
+                old: "hello".into(),
+                text: "ours".into(),
+                count: 1,
+            }],
+            &operation("first"),
+        )
+        .unwrap();
+    let second = store
+        .edit(
+            &fixture.head,
+            &[Edit::Replace {
+                path: path("b.txt"),
+                old: "world".into(),
+                text: "theirs".into(),
+                count: 1,
+            }],
+            &operation("second"),
+        )
+        .unwrap();
+    let composed = store
+        .compose(
+            &fixture.head,
+            &[
+                (fixture.head.clone(), first.clone()),
+                (fixture.head.clone(), second.clone()),
+            ],
+            &operation("compose"),
+        )
+        .unwrap();
+    assert_eq!(
+        fixture.stored(&["rev-list", "--parents", "-n", "1", composed.as_str()]),
+        format!("{composed} {}", fixture.head)
+    );
+    let result = store
+        .integrate(&first, &fixture.head, &second, &[], &operation("integrate"))
+        .unwrap();
+    assert!(result.applied);
+    assert_eq!(
+        fixture.stored(&[
+            "rev-list",
+            "--parents",
+            "-n",
+            "1",
+            result.checkpoint.as_str()
+        ]),
+        format!("{} {first}", result.checkpoint)
+    );
+    assert_eq!(
+        store.tree(&result.checkpoint).unwrap(),
+        store.tree(&composed).unwrap()
+    );
+    assert_eq!(
+        git(
+            None,
+            &[
+                "--git-dir",
+                fixture.remote.to_str().unwrap(),
+                "for-each-ref",
+                "--format=%(refname)"
+            ]
+        ),
+        "refs/heads/main"
+    );
+    assert_eq!(
+        git(Some(&fixture.work), &["rev-parse", "HEAD"]),
+        fixture.head.as_str()
+    );
+}
+
+#[test]
 fn both_object_formats_edit_capture_pin_and_reopen_without_checkout_effects() {
     for (format, expected) in [
         ("sha1", ObjectFormat::Sha1),

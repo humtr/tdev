@@ -175,6 +175,24 @@ impl Store {
         task: &Task,
         expected: &Checkpoint,
     ) -> Result<Admitted> {
+        self.reserve_source_inputs(admission, task, expected, &[])
+    }
+    pub fn reserve_integration(
+        &mut self,
+        admission: &Admission,
+        target: &Task,
+        expected: &Checkpoint,
+        source: &Task,
+    ) -> Result<Admitted> {
+        self.reserve_source_inputs(admission, target, expected, std::slice::from_ref(source))
+    }
+    fn reserve_source_inputs(
+        &mut self,
+        admission: &Admission,
+        task: &Task,
+        expected: &Checkpoint,
+        sources: &[Task],
+    ) -> Result<Admitted> {
         self.admit(admission, |db| {
             workspace::available_member(
                 db,
@@ -198,6 +216,25 @@ impl Store {
             }
             if &current.checkpoint != expected {
                 return Err(Fault::new("STALE_CHECKPOINT"));
+            }
+            for observed in sources {
+                let current = db
+                    .query_row(
+                        &format!("SELECT {TASK_COLUMNS} FROM task WHERE id=? AND owner=?"),
+                        params![observed.id.as_str(), admission.owner.as_str()],
+                        self::task,
+                    )
+                    .optional()
+                    .map_err(database)?
+                    .ok_or_else(|| Fault::new("SOURCE_CHANGED"))?;
+                if current.repo != observed.repo
+                    || current.branch != observed.branch
+                    || current.identity != observed.identity
+                    || current.base != observed.base
+                    || current.checkpoint != observed.checkpoint
+                {
+                    return Err(Fault::new("SOURCE_CHANGED"));
+                }
             }
             db.execute(
                 "UPDATE task SET busy=? WHERE id=?",
@@ -258,9 +295,20 @@ impl Store {
             if old.kind != crate::model::OperationKind::Task || task.owner != admission.owner || task.closed != 0 || task.busy.is_some() {
                 return Err(Fault::new("OPERATION_STATE"));
             }
+            let intent: String = db.query_row("SELECT intent FROM operation WHERE id=?",[admission.operation.id.as_str()],|row|row.get(0)).map_err(database)?;
+            let intent: Json = serde_json::from_str(&intent).map_err(|_|Fault::new("STATE_FORMAT"))?;
+            if intent["input"]["action"] == "compose" {
+                let sources = intent["input"]["sources"].as_array().ok_or_else(|| Fault::new("STATE_FORMAT"))?;
+                for source in sources {
+                    let current = db.query_row(
+                        &format!("SELECT {TASK_COLUMNS} FROM task WHERE id=? AND owner=?"),
+                        params![crate::wire::string(source, "taskId")?, admission.owner.as_str()], self::task)
+                        .optional().map_err(database)?.ok_or_else(|| Fault::new("SOURCE_CHANGED"))?;
+                    if current.repo != task.repo || current.branch != task.branch || current.identity != task.identity
+                        || json!(current.checkpoint) != source["checkpoint"] { return Err(Fault::new("SOURCE_CHANGED")); }
+                }
+            }
             if task.managed == 1 {
-                let intent: String = db.query_row("SELECT intent FROM operation WHERE id=?",[admission.operation.id.as_str()],|row|row.get(0)).map_err(database)?;
-                let intent: Json = serde_json::from_str(&intent).map_err(|_|Fault::new("STATE_FORMAT"))?;
                 let frozen = &intent["resolved"];
                 if (intent["input"]["localChanges"] == true) != imported.is_some()
                     || imported.is_some_and(|e| e["head"] != json!(task.base)) {
@@ -594,6 +642,93 @@ mod tests {
                 .unwrap()
                 .checkpoint,
             task.checkpoint
+        );
+    }
+
+    #[test]
+    fn integration_reservation_checks_source_snapshot_and_replay_skips_changed_prerequisites() {
+        let root = tempfile::tempdir().unwrap();
+        let mut store = Store::open(&root.path().join("state")).unwrap();
+        store.transaction(|db| {
+            db.execute("INSERT INTO workspace(id,owner,name) VALUES('space','alice','Space')", []).map_err(database)?;
+            db.execute("INSERT INTO workspace_project(workspace,repo,identity) VALUES('space','test','local:1:2')", []).map_err(database)?;
+            for id in ["target", "source"] {
+                db.execute("INSERT INTO task(id,owner,repo,ref,identity,base,checkpoint,workspace) VALUES(?,'alice','test','refs/heads/main','local:1:2',?,?,'space')", params![id, "a".repeat(40), "a".repeat(40)]).map_err(database)?;
+            }
+            Ok(())
+        }).unwrap();
+        let owner = PrincipalId::new("alice").unwrap();
+        let target = store.task(&owner, "target").unwrap();
+        let source = store.task(&owner, "source").unwrap();
+        let mut admission = admission("integration", OperationKind::Task, "private-source");
+        admission.operation.task = Some(target.id.clone());
+        admission.intent = Value::parse(&json!({"input":{"action":"integrate"},"construction":"private-source","integrationSource":{"taskId":source.id,"base":source.base,"checkpoint":source.checkpoint}}).to_string()).unwrap();
+        store
+            .connection()
+            .execute(
+                "UPDATE task SET checkpoint=? WHERE id='source'",
+                ["b".repeat(40)],
+            )
+            .unwrap();
+        assert_eq!(
+            store
+                .reserve_integration(&admission, &target, &target.checkpoint, &source)
+                .err()
+                .unwrap()
+                .code,
+            "SOURCE_CHANGED"
+        );
+        assert!(store.lookup(&owner, &admission.request).unwrap().is_none());
+        assert!(store.task(&owner, "target").unwrap().busy.is_none());
+        store
+            .connection()
+            .execute(
+                "UPDATE task SET checkpoint=? WHERE id='source'",
+                [source.checkpoint.as_str()],
+            )
+            .unwrap();
+        assert!(matches!(
+            store
+                .reserve_integration(&admission, &target, &target.checkpoint, &source)
+                .unwrap(),
+            Admitted::New(_)
+        ));
+        store
+            .connection()
+            .execute(
+                "UPDATE task SET checkpoint=? WHERE id='source'",
+                ["b".repeat(40)],
+            )
+            .unwrap();
+        assert!(matches!(
+            store
+                .reserve_integration(&admission, &target, &target.checkpoint, &source)
+                .unwrap(),
+            Admitted::Replay(_)
+        ));
+        let next = Checkpoint::new("c".repeat(40)).unwrap();
+        store
+            .complete_source(
+                &admission.operation.id,
+                Ok(json!({"checkpoint":next,"applied":true})),
+                Some(&next),
+                false,
+            )
+            .unwrap();
+        drop(store);
+        let store = Store::open(&root.path().join("state")).unwrap();
+        assert_eq!(store.task(&owner, "target").unwrap().checkpoint, next);
+        assert_eq!(
+            store.task(&owner, "source").unwrap().checkpoint.as_str(),
+            "b".repeat(40)
+        );
+        assert_eq!(
+            store
+                .receipt(&owner, Some(admission.operation.id.as_str()), None)
+                .unwrap()
+                .unwrap()
+                .intent["integrationSource"]["checkpoint"],
+            json!(source.checkpoint)
         );
     }
 

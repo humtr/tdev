@@ -119,8 +119,8 @@ opening/editing, unchanged capture and dirty-checkout preservation. Contract che
 with an independent validator across all thirteen described tool families; this does not
 advertise those families as implemented handlers. The command now serves authenticated loopback
 HTTP with fresh immutable authority snapshots. Discovery exposes six implemented tool families:
-workspace composition; task list/open/start/inspect/close; all read/edit actions; operation status with
-bounded JSON/SSE observation; and project list/inspect/local connect/create. Delegated
+workspace composition; task list/open/start/compose/integrate/inspect/close; all read/edit actions;
+operation status with bounded JSON/SSE observation; and project list/inspect/local connect/create. Delegated
 enrollment stores resource identity separately from current policy-derived grants and execution
 settings. Local creation records uncertainty before touching the target and reconciles only
 completed initialization with its original operation marker, Git-directory/checkout identity
@@ -136,10 +136,17 @@ Start also accepts localChanges=true for an enrolled working checkout. It captur
 and nonignored untracked bytes with two matching identity/selection/content/metadata scans,
 preserving the user index, refs and files. Import uses only private Git objects and commits its
 evidence with the task receipt; interrupted construction is never rescanned on replay.
+Task composition combines compatible source deltas on an enrolled branch, rechecking declared
+source pointers before task/receipt completion. Integration freezes an authorized source version
+and reserves only the target writer. Clean text changes merge through private Git utilities;
+unresolved conflicts retain the target checkpoint with applied=false and require explicit
+resolution in a new request. Both paths preserve public refs, checkout files and the user index.
+Current source authority gates receipt replay; actual pin-gap death retains an interrupted receipt
+without repeating construction or committing partial source changes.
 Published-task continuation is not yet advertised. The Python executable remains the
 behavioral reference for the full surface.
 No state format revision or resident cutover has been performed. P2 remains in progress:
-GitHub enrollment, published-task continuation, composition/integration/cleanup and their policy
+GitHub enrollment, published-task continuation, owned-ref cleanup and their policy
 and recovery cases still need implementation. Execution, validation/publication, artifacts,
 deployment and operator/service commands retain their later delivery phases.
 The HTTP edge explicitly materializes finite floats before Schema validation, preserves raw

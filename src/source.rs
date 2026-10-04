@@ -10,6 +10,7 @@ use crate::{
 };
 use base64::{Engine, engine::general_purpose::STANDARD};
 use serde_json::{Value, json};
+mod integration;
 mod start;
 
 pub fn task(
@@ -20,7 +21,8 @@ pub fn task(
 ) -> Result<Value> {
     match wire::string(input, "action")? {
         "start" => start::call(app, context, input, original),
-        "open" => open(app, context, input, original),
+        "open" | "compose" => open(app, context, input, original),
+        "integrate" => integration::call(app, context, input, original),
         "close" => {
             if let Some(op) = app.replay(context, input, "task", original)? {
                 return Ok(json!(op));
@@ -92,6 +94,27 @@ fn open(
     let result = (|| {
         let git = app.git(&repo)?;
         git.fetch(&branch, &head)?;
+        let checkpoint = if input["action"] == "compose" {
+            let mut sources = Vec::new();
+            for source in input["sources"]
+                .as_array()
+                .ok_or_else(|| Fault::new("SCHEMA"))?
+            {
+                let (task, _) = app.task(context, wire::string(source, "taskId")?)?;
+                let selected = Checkpoint::new(wire::string(source, "checkpoint")?)?;
+                if task.repo != repo.name
+                    || task.branch != branch
+                    || task.identity != repo.identity()?
+                    || task.checkpoint != selected
+                {
+                    return Err(Fault::new("SOURCE_CHANGED"));
+                }
+                sources.push((task.base, selected));
+            }
+            git.compose(&head, &sources, &admission.operation.id)?
+        } else {
+            head.clone()
+        };
         let task = Task {
             id: TaskId::new(uuid::Uuid::new_v4().to_string())?,
             owner: context.principal.clone(),
@@ -99,7 +122,7 @@ fn open(
             branch,
             identity: repo.identity()?.into(),
             base: head.clone(),
-            checkpoint: head,
+            checkpoint,
             busy: None,
             closed: 0,
             workspace,

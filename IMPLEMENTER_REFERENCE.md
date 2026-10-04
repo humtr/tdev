@@ -109,8 +109,16 @@ of published-predecessor variants. `test_import.py` carries final working bytes,
 staged/unstaged/deletion/ignore rules, executable/link modes, unchanged capture, unsupported index
 states and SHA-256 edit/replay against both executables. `native_import.py` forces byte/metadata/
 index changes between scans, pending/completed checkout-binding checks, linked-folder replacement,
-parent-link rejection and actual controller death after the private import pin. P2 continuation, composition/
-integration/cleanup, GitHub enrollment and full state transition remain unqualified.
+parent-link rejection and actual controller death after the private import pin.
+`test_integration.py` carries compatible/conflicting composition, exact project/ref/current source
+checks, clean text merge, binary/link/type/topology resolutions, bounded conflicts, historical
+source selection, newer upstream bases, duplicate/CAS writers, lost replies, restart and SHA-256
+against both executables. `native_integration.py` adds deterministic pre-admission source changes,
+post-admission source advancement and grant revocation, duplicate admission/replay lock release,
+composition completion recheck, actual controller death after compose/integrate pins and utility
+failure without partial target edits. Git fixtures prove single-parent checkpoints; storage tests
+fix source snapshot/replay/completion ordering. P2 owned-ref cleanup, published-task continuation,
+GitHub enrollment and full state transition remain unqualified.
 `git/process.rs` owns bounded utility groups only; it is not P3's detached supervisor
 or proof that arbitrary escaped command descendants have stopped. GitHub adapter/publication
 and source capture selection/materialization retain their later feature evidence.

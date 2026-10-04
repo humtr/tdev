@@ -112,7 +112,15 @@ impl Surface {
             ),
             (
                 "tdev_task",
-                vec!["list", "open", "start", "inspect", "close"],
+                vec![
+                    "list",
+                    "open",
+                    "start",
+                    "compose",
+                    "integrate",
+                    "inspect",
+                    "close",
+                ],
             ),
             ("tdev_project", vec!["list", "inspect", "connect", "create"]),
             ("tdev_read", vec![]),
@@ -140,7 +148,7 @@ impl Surface {
             }
             tool["description"] = json!(match name {
                 "tdev_task" =>
-                    "Open, start, list, inspect and close owned source tasks in local projects. Start uses an enrolled base and can import its checkout's final local changes while preserving the index/files/refs. Published-task continuation is not available yet.",
+                    "Open, start, compose, integrate, list, inspect and close owned source tasks in local projects. Start can import final checkout bytes while preserving its index/files/refs. Compose exact same-branch source checkpoints; integrate a frozen source delta atomically or inspect and resolve conflicts. Published-task continuation is not available yet.",
                 "tdev_project" =>
                     "List and inspect granted projects; connect or create local projects within current delegated policy.",
                 "tdev_operation" =>

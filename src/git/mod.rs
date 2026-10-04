@@ -1,6 +1,7 @@
 //! Private Git objects and atomic source construction. Authority and durable task
 //! CAS belong to admission/storage; these methods never update an enrolled ref.
 pub mod checkout;
+pub mod integration;
 mod process;
 pub mod project;
 
@@ -79,10 +80,19 @@ impl FileMode {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize)]
 pub struct Entry {
     pub mode: FileMode,
     pub blob: BlobId,
+}
+
+impl serde::Serialize for FileMode {
+    fn serialize<S: serde::Serializer>(
+        &self,
+        serializer: S,
+    ) -> std::result::Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
 }
 
 pub type Entries = BTreeMap<SourcePath, Entry>;

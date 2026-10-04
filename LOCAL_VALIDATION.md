@@ -1,5 +1,59 @@
 # Local validation evidence — 2026-10-04
 
+## Source composition and frozen delta integration — 2026-10-04
+
+P2 now serves task compose/integrate through authenticated native HTTP. Composition combines
+compatible base-to-checkpoint deltas on one enrolled project/ref. Declared source pointers are
+checked before construction and again inside atomic task/receipt completion; a concurrent
+advance fails without a partial task. Integration checks selected-source ancestry outside
+storage, rechecks the observed source pointer at admission, and freezes the selected version.
+Only the target writer is reserved; independent source edits remain available after admission.
+These pointer checks and current source authority on composition replay deliberately strengthen
+the reference boundaries. Completed replay retains the original result after source advancement.
+
+Clean text changes use bounded private Git merge-file utilities without user attributes/drivers
+or hooks. Binary, link/type, add/add, delete/modify and file/directory conflicts need explicit
+resolution. Unresolved integration succeeds with applied=false, the original checkpoint and
+sorted conflict details capped at 50, with the total/truncation recorded. No partial edits or
+markers reach the target. Complete resolutions produce a single-parent target commit; source
+lineage is retained in the receipt. Source, public refs, checkout files and index stay unchanged.
+
+Actual SIGKILL after either private Git pin retains INTERRUPTED/none, releases the target writer
+where applicable and never repeats construction on replay. Deterministic barriers qualify source
+changes before/after admission, grant revocation during construction, composition completion
+recheck, unrelated workspace availability and utility failure. A concurrent duplicate test fixes
+the requirement to drop the storage guard before nested replay after duplicate admission.
+
+Focused common checks passed **10 reference in 46.429s** and the native common/boundary rerun
+passed **16 in 202.315s**. The added deterministic duplicate-admission replay passed **1 in
+17.205s**; the source snapshot/replay storage invariant passed **1 in 0.07s**, and the SHA-256
+single-parent/public-ref Git fixture passed **1 in 1.98s**. Format/lint/locked build and the
+action inventory check passed. The affected native HTTP rerun passed **66 in 388.087s**.
+After the fixture budget correction below, focused import checks passed **7 in 67.618s**,
+lost-reply proxy checks passed **2 in 17.287s**, and the final affected native boundary group
+passed **30 in 214.377s**. The final `sh scripts/check.sh` completed with independently
+recorded exit status **0**: format/lint/locked build, **48 Rust checks** (34 library + 14 Git),
+**10,003 identity comparisons**, **136 compiled contract comparisons**, **66 native HTTP checks**
+(9 source + 4 project + 6 start + 7 import + 10 integration + 30 native boundary/recovery) and
+**414 reference/common regressions in 1006.115s** passed. Existing reference ResourceWarnings
+remained visible; no failing or skipped suite was reported.
+
+The first affected pass ran 66 checks in 514.988s with one existing import-pin barrier timeout
+at 8s; its isolated rerun passed in 17.513s. A 12s pin wait allowed the affected rerun to pass,
+but the first full check exited 1 after four import scan/pin barrier timeouts (30 native boundary
+checks in 318.135s). Diagnostic discovery reproduced active requests with only the first scan
+reached at the old deadline, rather than a failed source result. The import fixture now has a
+45s HTTP budget and a 30s gap-arrival bound; a request ending before the gap reports its actual
+response, and absent barriers no longer add misleading completion-marker failures. Other
+fixture request budgets keep their 15s default. Product timeouts and recovery rules did not
+change. The final focused import, affected boundary-group and full results above include this fix.
+Logs live under `$PREFIX/tmp` as `tdev-integration-{reference-rerun,native-rerun,
+duplicate-focused,import-pin,import-diagnostic,native-diagnostic,import-budget,proxy-rerun,
+affected,affected-rerun,boundary-rerun,full,full-rerun}.log`. These durations are test evidence,
+not a controlled performance comparison. P2 still needs owned-ref cleanup, published-task continuation and
+GitHub enrollment; P3–P6 remain open. No main integration, schema/storage revision or
+production runtime/provider cutover occurred.
+
 ## Local checkout import and private capture recovery — 2026-10-04
 
 P2 start now accepts localChanges=true for an enrolled working checkout. Admission retains its

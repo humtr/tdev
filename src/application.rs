@@ -106,6 +106,22 @@ impl Application {
         if let Some(task) = &receipt.operation.task {
             self.task(context, task.as_str())?;
         }
+        if receipt.operation.kind == OperationKind::Task {
+            if receipt.intent["input"]["action"] == "integrate" {
+                self.task(
+                    context,
+                    wire::string(&receipt.intent["integrationSource"], "taskId")?,
+                )?;
+            }
+            if receipt.intent["input"]["action"] == "compose" {
+                for source in receipt.intent["input"]["sources"]
+                    .as_array()
+                    .ok_or_else(|| Fault::new("STATE_FORMAT"))?
+                {
+                    self.task(context, wire::string(source, "taskId")?)?;
+                }
+            }
+        }
         if receipt.operation.kind == OperationKind::Task
             && receipt.intent["input"]["action"] == "start"
         {

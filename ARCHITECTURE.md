@@ -253,7 +253,7 @@ The retained reset intent, same-directory rename and replayed deletion recover i
 without deleting a newly rebuilt environment on replay of a completed request. Source, job
 receipts and logs are separate and retained. This extends schema-3 intents, not stored grants.
 
-### Local checkout import and task integration
+### Local checkout import, task composition and integration
 
 A connected non-bare local project records its working-folder identity separately from its
 Git common-directory identity. Linked checkouts use their own checked-out branch. Connecting
@@ -275,12 +275,25 @@ parent directories and special files before reading; regular file metadata is ch
 bounded read. Detached or switched checkout HEAD fails CHECKOUT_HEAD_CHANGED. Link targets also
 reject Git metadata aliases with trailing spaces/dots, matching the source-path boundary.
 
+Task composition creates a new task on an exact enrolled project/ref from declared current
+source checkpoints on that same project/ref. Each source base must be an ancestor of the new
+task's base. Apply each base-to-checkpoint delta; overlapping changes must be identical or
+compatible with the destination entry. Conflicting changes or file/directory collisions fail
+without creating a task. Recheck declared source pointers before construction and inside the
+task/receipt completion transaction. The composed checkpoint has the new base as its sole parent;
+source lineage remains in the retained intent. Current source authority also gates receipt replay,
+which returns the original receipt even after the sources advance. The completion recheck and
+source replay checks deliberately strengthen the reference's construction-only checks.
+
 Task integrate applies one task's delta (source base → selected source checkpoint) to another
 task in the same repository. Both tasks require current access. The source checkpoint must
 lie between its base and current checkpoint; source base must be an ancestor of target base.
 For a newer upstream base, start a new target there and integrate the older task into it.
-Admission freezes the source checkpoint in the operation; target checkpoint CAS and busy
-ownership prevent stale writes. Ordinary independent text changes use Git's built-in
+Ancestry observation happens outside storage; admission rereads the observed source pointer
+inside its short transaction and rejects a concurrent change. After admission the selected
+source checkpoint is frozen in the operation and independent source edits remain possible.
+This source-pointer recheck deliberately strengthens the reference admission boundary.
+Target checkpoint CAS and busy ownership prevent stale writes. Ordinary independent text changes use Git's built-in
 [three-way file merge](https://git-scm.com/docs/git-merge-file); user attributes, external merge
 drivers and hooks are not executed. Binary, add/add, delete/modify, link/type and path topology
 conflicts require explicit resolution when simple equality/unchanged-side rules cannot decide.

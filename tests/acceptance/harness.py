@@ -52,7 +52,8 @@ def eventually(read, predicate, seconds=15):
 
 
 class Runtime:
-    def __init__(self, object_format='sha1'):
+    def __init__(self, object_format='sha1', *, request_timeout_seconds=15):
+        self.request_timeout_seconds = request_timeout_seconds
         self.root = Path(tempfile.mkdtemp(prefix='tdev-acceptance-'))
         self.state = self.root / 'state'
         self.work = self.root / 'authored'
@@ -183,7 +184,7 @@ class Runtime:
             h['Mcp-Name'] = params.get('name', '')
         h.update(headers or {})
         h = {k: v for k, v in h.items() if v is not None}
-        conn = http.client.HTTPConnection('127.0.0.1', selected, timeout=15)
+        conn = http.client.HTTPConnection('127.0.0.1', selected, timeout=self.request_timeout_seconds)
         try:
             conn.request('POST', '/mcp', json.dumps({'jsonrpc': '2.0', 'id': self.next_id,
                 'method': method, 'params': params}), h)
@@ -227,13 +228,14 @@ class Runtime:
         completed = threading.Event()
         failures = []
         upstream_port = self.port
+        upstream_timeout = self.request_timeout_seconds
 
         class Discard(BaseHTTPRequestHandler):
             def log_message(self, *unused):
                 pass
 
             def do_POST(self):
-                upstream = http.client.HTTPConnection('127.0.0.1', upstream_port, timeout=15)
+                upstream = http.client.HTTPConnection('127.0.0.1', upstream_port, timeout=upstream_timeout)
                 try:
                     body = self.rfile.read(int(self.headers['Content-Length']))
                     headers = dict(self.headers)
