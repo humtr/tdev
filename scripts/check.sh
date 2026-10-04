@@ -15,6 +15,8 @@ TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.
 TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.abspath("target/debug/tdev"), "serve"]))') \
     python -m unittest discover -s tests/acceptance -t tests -p 'test_project.py' -v
 TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.abspath("target/debug/tdev"), "serve"]))') \
+    python -m unittest discover -s tests/acceptance -t tests -p 'test_github.py' -v
+TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.abspath("target/debug/tdev"), "serve"]))') \
     python -m unittest discover -s tests/acceptance -t tests -p 'test_start.py' -v
 TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.abspath("target/debug/tdev"), "serve"]))') \
     python -m unittest discover -s tests/acceptance -t tests -p 'test_import.py' -v

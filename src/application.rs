@@ -67,7 +67,7 @@ impl Application {
     }
     pub(crate) fn git(&self, repo: &Repository) -> Result<Git> {
         // Git construction and identity verification must never hold Store's mutex.
-        Git::open(&self.root.join("sources").join(&repo.name), repo.local()?)
+        Git::open(&self.root.join("sources").join(&repo.name), repo.git()?)
     }
     pub(crate) fn task(&self, context: &Context, id: &str) -> Result<(Task, Repository)> {
         let task = self.store()?.task(&context.principal, id)?;

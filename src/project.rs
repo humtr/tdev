@@ -1,10 +1,11 @@
-//! Current policy admission, local enrollment and exact creation reconciliation.
+//! Current policy admission, project enrollment and exact creation reconciliation.
 use crate::{
     admission::{Context, Repository},
     application::Application,
     git::project as local,
     identity,
     model::*,
+    provider,
     storage::{Admitted, project::Project, source::Receipt},
     wire,
 };
@@ -66,6 +67,12 @@ fn complete(
     let authority = Digest::new(wire::string(&receipt.intent, "authority")?)?;
     context.policy(name, Some(authority.as_str()))?;
     let identity = wire::string(&config, "identity")?.to_owned();
+    if receipt.intent["createdIdentity"]
+        .as_str()
+        .is_some_and(|created| created != identity)
+    {
+        return Err(Fault::new("REPOSITORY_IDENTITY"));
+    }
     let id = project_id(context, &identity)?;
     if context.project_conflict(id.as_str()) {
         return Err(Fault::new("CONFIG"));
@@ -125,6 +132,15 @@ fn fail(
     }
 }
 
+fn creation_uncertain(github: bool, intent: &Value, error: &Fault) -> bool {
+    intent["projectCreate"] == true
+        && if github {
+            intent["createdIdentity"].is_string() || error.effect == Effect::Unknown
+        } else {
+            error.code != "PROJECT_EXISTS"
+        }
+}
+
 fn change(
     app: &Application,
     context: &Context,
@@ -136,16 +152,14 @@ fn change(
     }
     let name = wire::string(input, "policy")?;
     let policy = context.policy(name, None)?;
-    if policy["kind"] != "local" {
-        return Err(Fault::new("UNSUPPORTED_PROVIDER"));
-    }
+    let github = policy["kind"] == "github";
     let create = input["action"] == "create";
     if create && policy["allowCreate"] != true {
         return Err(Fault::new("PROJECT_CREATE_DENIED"));
     }
     let mut admission =
         app.admission(context, input, original, OperationKind::Project, None, None)?;
-    let mut intent = json!({"input":input,"authority":Context::policy_authority(policy)?,"construction":if create {"local-project-create"} else {"local-project-connect"}});
+    let mut intent = json!({"input":input,"authority":Context::policy_authority(policy)?,"construction":match (github,create) {(true,true)=>"github-project-create",(true,false)=>"github-project-connect",(false,true)=>"local-project-create",(false,false)=>"local-project-connect"}});
     admission.intent = identity::Value::parse(&intent.to_string())?;
     let gate = app.operation_work(&admission.operation.id)?;
     let _guard = gate.lock().map_err(|_| Fault::new("OPERATION_STATE"))?;
@@ -156,9 +170,43 @@ fn change(
             .map(|op| json!(op))
             .ok_or_else(|| Fault::new("OPERATION_NOT_FOUND"));
     }
-    let root = Path::new(wire::string(policy, "root")?);
     let project_name = wire::string(input, "name")?;
     let work = (|| {
+        if github {
+            if create {
+                let endpoint = provider::create_endpoint(policy, project_name)?;
+                intent["projectCreate"] = json!(true);
+                app.store()?
+                    .project_intent(&admission.operation.id, &intent)?;
+                let data = provider::api(
+                    &endpoint,
+                    Some(&json!({"name":project_name,"private":true,"auto_init":true})),
+                )?;
+                // From a successful POST onward, no later failure proves absence.
+                let created = provider::identity(&data).map_err(|mut error| {
+                    error.effect = Effect::Unknown;
+                    error
+                })?;
+                intent["createdIdentity"] = json!(created);
+                app.store()?
+                    .project_intent(&admission.operation.id, &intent)?;
+                if data["private"] != true {
+                    return Err(Fault::new("PROVIDER_RESPONSE"));
+                }
+            }
+            let config =
+                provider::describe(policy, project_name, intent["createdIdentity"].as_str())?;
+            let receipt = app
+                .store()?
+                .receipt(
+                    &context.principal,
+                    Some(admission.operation.id.as_str()),
+                    None,
+                )?
+                .ok_or_else(|| Fault::new("OPERATION_NOT_FOUND"))?;
+            return complete(app, context, &receipt, config);
+        }
+        let root = Path::new(wire::string(policy, "root")?);
         if create {
             let path = local::target(root, project_name, true)?;
             intent["projectCreate"] = json!(true);
@@ -205,7 +253,7 @@ fn change(
     let operation = match work {
         Ok(op) => op,
         Err(error) => {
-            let uncertain = intent["projectCreate"] == true && error.code != "PROJECT_EXISTS";
+            let uncertain = creation_uncertain(github, &intent, &error);
             fail(app, &admission.operation.id, error, uncertain)?
         }
     };
@@ -238,10 +286,34 @@ pub(crate) fn reconcile(
         return Ok(receipt.operation);
     }
     let role = receipt.intent["construction"].as_str();
-    if role == Some("local-project-connect")
-        || (role == Some("local-project-create") && receipt.intent["projectCreate"] != true)
+    if matches!(
+        role,
+        Some("local-project-connect" | "github-project-connect")
+    ) || (matches!(role, Some("local-project-create" | "github-project-create"))
+        && receipt.intent["projectCreate"] != true)
     {
         return fail(app, &receipt.operation.id, Fault::new("INTERRUPTED"), false);
+    }
+    if role == Some("github-project-create") {
+        let recovery = (|| {
+            let created = receipt.intent["createdIdentity"]
+                .as_str()
+                .ok_or_else(|| Fault::new("PROJECT_UNKNOWN"))?;
+            let policy = context.policy(
+                wire::string(&receipt.intent["input"], "policy")?,
+                Some(wire::string(&receipt.intent, "authority")?),
+            )?;
+            let config = provider::describe(
+                policy,
+                wire::string(&receipt.intent["input"], "name")?,
+                Some(created),
+            )?;
+            complete(app, context, &receipt, config)
+        })();
+        return match recovery {
+            Ok(operation) => Ok(operation),
+            Err(error) => fail(app, &receipt.operation.id, error, true),
+        };
     }
     if role != Some("local-project-create") {
         return Ok(receipt.operation);
@@ -304,7 +376,7 @@ pub fn call(
         "list" => {
             let policies = context.policies().into_iter().filter_map(|name| {
                 let policy = context.policy(&name,None).ok()?;
-                (policy["kind"] == "local").then(||json!({"name":name,"provider":"local","scope":policy["root"],"canCreate":policy["allowCreate"].as_bool().unwrap_or(false)}))
+                Some(json!({"name":name,"provider":policy["kind"],"scope":if policy["kind"] == "local" {&policy["root"]} else {&policy["owner"]},"canCreate":policy["allowCreate"].as_bool().unwrap_or(false)}))
             }).collect::<Vec<_>>();
             Ok(
                 json!({"projects":context.repositories().iter().map(|name|context.repository(name,None).map(|repo|public(&repo))).collect::<Result<Vec<_>>>()?,"policies":policies}),
@@ -314,6 +386,21 @@ pub fn call(
             let repo = context.repository(wire::string(input, "repo")?, None)?;
             let mut value = public(&repo);
             let observation: Result<()> = (|| {
+                if repo.config["kind"] == "github" {
+                    let provider = provider::GithubRepository::new(
+                        wire::string(&repo.config, "name")?,
+                        wire::string(&repo.config, "remote")?,
+                        repo.identity()?,
+                    )?;
+                    let data = provider.inspect()?;
+                    let mut permissions = json!({});
+                    for key in ["push", "admin"] {
+                        if let Some(flag) = data["permissions"][key].as_bool() {
+                            permissions[key] = json!(flag);
+                        }
+                    }
+                    value["permissions"] = permissions;
+                }
                 let git = app.git(&repo)?;
                 git.verify_identity()?;
                 if let Some(branch) = repo
@@ -337,5 +424,34 @@ pub fn call(
         }
         "connect" | "create" => change(app, context, input, original),
         _ => Err(Fault::new("SCHEMA")),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn observation_loss_is_not_creation_and_returned_id_survives_definite_late_failure() {
+        let lost = Fault {
+            effect: Effect::Unknown,
+            ..Fault::new("TRANSPORT_TIMEOUT")
+        };
+        assert!(!creation_uncertain(true, &json!({}), &lost));
+        assert!(creation_uncertain(
+            true,
+            &json!({"projectCreate":true}),
+            &lost
+        ));
+        let denied = Fault::new("PROVIDER_PERMISSION_DENIED");
+        assert!(!creation_uncertain(
+            true,
+            &json!({"projectCreate":true}),
+            &denied
+        ));
+        assert!(creation_uncertain(
+            true,
+            &json!({"projectCreate":true,"createdIdentity":"github:1234"}),
+            &denied
+        ));
     }
 }

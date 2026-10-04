@@ -29,7 +29,7 @@ pub(super) fn call(
         return Ok(json!(operation));
     }
     let (task, repo) = app.task(context, wire::string(input, "taskId")?)?;
-    repo.local()?;
+    repo.git()?;
     let mut admission = app.admission(
         context,
         input,

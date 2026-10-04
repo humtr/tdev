@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 
 pub(super) const OUTPUT_LIMIT: usize = 48 * 1024 * 1024;
 
-pub(super) struct Output {
+pub(crate) struct Output {
     pub status: ExitStatus,
     pub stdout: Vec<u8>,
     pub stderr: Vec<u8>,
@@ -50,7 +50,7 @@ fn nonblocking(fd: RawFd) -> Result<()> {
 /// Feed stdin and drain both outputs together, including when input exceeds pipe
 /// capacity. Every exit closes pipes; deadline/overflow/error kills and reaps the
 /// owned utility group. There are no detached reader/writer threads to leak.
-pub(super) fn run(
+pub(crate) fn run(
     command: &mut Command,
     input: &[u8],
     timeout: Duration,

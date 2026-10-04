@@ -390,6 +390,30 @@ project/Git operations own those effects for native and explicitly selected remo
 Provider scope and actual OS permissions remain upper bounds. Discovery distinguishes delegated
 scope from live provider authentication/permissions; inspect performs current repository checks.
 
+The controller provider adapter invokes bounded `gh api` utilities against github.com with
+explicit API headers and JSON stdin. Organization creation uses the fixed owner's endpoint;
+personal creation first verifies the authenticated login equals that owner. HTTP status drives
+explicit rejection versus uncertainty; provider/credential diagnostics never become receipt text.
+Git transport accepts only the canonical HTTPS URL and rechecks the enrolled repository ID
+around observations/fetch. New stores determine object format from advertised OIDs; existing
+stores validate retained Git format without requiring a live base branch. Transport uses an ephemeral
+GitHub-scoped credential helper. Controller token/config environment enters only provider and
+authenticated transport utilities; private object plumbing receives neither token variables nor
+the helper, and no credential/helper is persisted in the object store. This follows the
+[GitHub CLI API](https://cli.github.com/manual/gh_api) and
+[authentication environment](https://cli.github.com/manual/gh_help_environment) interfaces;
+provider permissions and successful transport still remain independent upper bounds.
+
+Creation journals uncertainty before POST and persists a returned repository ID before any
+subsequent observation or enrollment. Recovery with that ID checks current owner/name/ID and
+private visibility, then commits enrollment and the terminal receipt together. Without the ID,
+replay/status perform no provider lookup or POST: a same-name repository cannot prove creation.
+An explicit HTTP rejection before a returned ID can finish failed/none; malformed success,
+server failure or lost response stays unknown. A late permission/storage failure retains the ID.
+Active per-operation gates also protect provider workers without holding SQLite across waits.
+The API's optional permission fields are exposed only as observed; explicit push denial rejects
+new enrollment, while field omission does not fabricate a grant or replace actual Git access.
+
 Local creation journals uncertainty before the exclusive target-directory creation. Initialization
 finishes its README commit before recording the exact Git/checkout identity and initial HEAD,
 then writes and syncs the original operation marker. Recovery requires all these facts at the
@@ -455,6 +479,11 @@ absent and no other writer holds the task, task close/ref retirement and the ori
 commit together without Git mutation. Existing branches require published ownership at the exact
 recorded OID, an ordinary nonsymbolic ref, and no checkout on that branch in any local worktree.
 The local utility uses update-ref --no-deref with deletion-at-old-OID CAS and no user hooks.
+GitHub deletion uses controller-authenticated push with an explicit force-with-lease binding
+that exact branch to its retained publication OID. Ref/identity checks surround transport;
+the lease protects dispatch races. Local worktree checks apply only to local repositories.
+Both adapters share the same journal, task fence and observation-only recovery. Failed dispatch
+or unavailable readback cannot turn absence into proof, clear another publication or repeat push.
 
 Before deletion dispatch, persist its frozen old OID and unknown effect. Per-operation gates
 prevent status/inspect/replay from completing an active worker from a temporary absence; other
@@ -1468,7 +1497,7 @@ as operator commands. A shared executable does not merge their lifetimes.
 | `workspace`, `project`, `source` | Composition, enrollment, checkpoints, edits, validation/publication joins and their recovery | Process lifetime or inferred provider grants |
 | `artifact`, `deployment` | Frozen inputs, sealing/verification/retirement, pins, release switching and recovery | New execution receipts or duplicated source authority |
 | `storage` | SQLite transactions, persisted record decoding, CAS, schema compatibility | Subprocess/network waits inside a transaction |
-| `git`, `execution` | Git plumbing; accepted execution submission/observation/control; dormant SSH compatibility | Reinterpreting an accepted backend, policy or request identity |
+| `git`, `provider`, `execution` | Git plumbing and bounded controller provider access; accepted execution submission/observation/control; dormant SSH compatibility | Reinterpreting an accepted backend, policy or request identity |
 | `supervisor`, `release` | Child identity, input/output, limits, stop proof and owned capture/runtime evidence | Controller-owned admission or fabricated success from stdout |
 | `contract`, `transport`, `operator` | Existing JSON contract validation, MCP HTTP, selected stdio adapter, CLI, config/install/connection/service operations | A second schema authority, duplicated domain decisions or direct ad hoc mutation of core tables |
 | `diagnostics`, `observer` | Optional bounded evidence and independent observation | Core liveness, execution authority or mandatory dependency of an ordinary call |

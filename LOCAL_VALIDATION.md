@@ -1,5 +1,56 @@
 # Local validation evidence — 2026-10-04
 
+## GitHub delegated enrollment and controller provider boundary — 2026-10-04
+
+P2 now implements delegated GitHub connect/private initialized create and current policy
+discovery/inspection. Controller-owned bounded gh/Git utilities use fixed github.com and the
+configured owner; personal creation checks the authenticated login first. Repository ID and
+canonical name/URL checks reject same-name replacements and scope expansion. Explicit HTTP
+rejection before any returned ID can fail with effect=none; response loss/malformed success
+stays unknown. Returned IDs are persisted before later reads or atomic enrollment/receipt commit.
+Replay without a retained ID does no provider lookup or POST; independent connect cannot finish
+that creation. Policy/identity/visibility gates ID-backed recovery under current settings.
+Per-operation gates protect active provider workers without holding SQLite over external waits.
+
+Controller token/config environment and ephemeral credential helper enter provider/transport
+utilities only. Private Git commands, retained config and receipts receive no token/helper or
+provider diagnostics. Source work uses the shared Git/source paths. New private stores infer
+format from advertised scoped OIDs; retained work survives removal of its canonical base refs.
+GitHub cleanup uses the existing ownership journal/task fence with explicit exact-OID
+force-with-lease. Actual death before/after deletion and a racing branch retain
+or finish only the original receipt without repeating push. Deletion fixtures seed retained
+publication facts offline and do not qualify P3 publication.
+
+Focused executable checks passed **5 reference in 34.671s** and **15 native/common in 97.386s**,
+both with ResourceWarning treated as an error and no such warnings in their logs. Fixtures use
+synthetic provider executables, controller HTTP, explicitly closed SQLite connections and real
+disposable Git transport; no real GitHub repository/account/credential was changed. The initial
+native focused run exposed remaining local-only source admission gates; these were replaced by
+validated enrolled transport before the passing reruns. Provider identity/status parsing and
+the observation-versus-creation effect invariant passed Rust checks. Format/lint/locked build
+passed after correcting an unused method and test-module placement reported by lint.
+Installed CLI version is **gh 2.98.0**. Its
+[versioned API implementation](https://github.com/cli/cli/blob/v2.98.0/pkg/cmd/api/api.go)
+was inspected read-only: include emits status/headers before HTTP-error handling, and stdin
+is the POST body. This verifies fixture interface assumptions, not live provider access.
+Affected local project/source/start/import checks passed **26 in 140.206s**, with independently
+recorded exit status **0**. The earlier affected run failed one fixture startup with OS EPERM
+before any tool admission; its final rerun passed all 26 without masking that failure.
+
+The final full `sh scripts/check.sh` completed with independently recorded exit status **0**:
+format/lint/locked build, **55 Rust checks** (39 library + 16 Git), **10,003 identity comparisons**,
+**136 compiled contract comparisons**, **105 native HTTP checks** (9 source + 4 project +
+5 GitHub + 6 start + 7 import + 10 integration + 5 cleanup + 5 predecessor + 54 native
+boundary/recovery) and **429 reference/common regressions in 1205.278s** passed. The 54 native
+boundary/recovery checks took 554.957s. Existing reference SQLite ResourceWarnings remained
+visible; no failing or skipped suite was reported. These counts qualify the P2 local/provider
+gate, which is now complete, and do not claim native execution/artifact/deployment coverage.
+Logs live under `$PREFIX/tmp` as `tdev-github-{reference-focused,reference-final,native-focused,
+native-rerun,native-final,native-complete,rust-affected,affected,affected-final,full}.log`.
+Live GitHub authentication/TLS remains a host/provider qualification obligation, distinct from
+these isolated adapter checks. No storage revision, main integration or production runtime/provider
+cutover occurred. Execution/publication and the P3–P6 delivery gates remain open.
+
 ## Published predecessor continuation — 2026-10-04
 
 P2 start now accepts fromTaskId through the canonical contract. It creates independent work

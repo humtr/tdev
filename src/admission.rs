@@ -58,6 +58,50 @@ impl Repository {
                 })?,
         )
     }
+    pub fn git(&self) -> Result<crate::git::Repository> {
+        if self.config["kind"] == "local" {
+            return Ok(self.local()?.into());
+        }
+        if self.config["kind"] != "github" {
+            return Err(Fault::new("CONFIG"));
+        }
+        let repository = crate::provider::GithubRepository::new(
+            wire::string(&self.config, "name")?,
+            wire::string(&self.config, "remote")?,
+            self.identity()?,
+        )?;
+        let refs = self.config["refs"]
+            .as_array()
+            .ok_or_else(|| Fault::new("CONFIG"))?
+            .iter()
+            .map(|r| BranchRef::new(r.as_str().ok_or_else(|| Fault::new("CONFIG"))?))
+            .collect::<Result<BTreeSet<_>>>()?;
+        let namespaces = self.config["managedRefNamespaces"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .map(|ns| {
+                ns.as_str()
+                    .map(str::to_owned)
+                    .ok_or_else(|| Fault::new("CONFIG"))
+            })
+            .collect::<Result<Vec<_>>>()?;
+        for ns in &namespaces {
+            if !ns.ends_with('/')
+                || BranchRef::new(format!("{ns}probe")).is_err()
+                || refs
+                    .iter()
+                    .any(|r| r.as_str().starts_with(ns) || ns.starts_with(&format!("{r}/")))
+            {
+                return Err(Fault::new("CONFIG"));
+            }
+        }
+        Ok(crate::git::Repository::Github {
+            repository,
+            refs,
+            namespaces,
+        })
+    }
 }
 
 impl Context {
@@ -126,14 +170,14 @@ impl Context {
                 BranchRef::new(branch.as_str().ok_or_else(|| Fault::new("CONFIG"))?)
                     .map_err(|_| Fault::new("CONFIG"))?;
             }
-            if repository["kind"] == "local" {
+            {
                 Repository {
                     name: name.clone(),
                     config: repository.clone(),
                     refs: BTreeSet::new(),
                     namespaces: vec![],
                 }
-                .local()
+                .git()
                 .map_err(|_| Fault::new("CONFIG"))?;
             }
         }
@@ -331,9 +375,7 @@ impl Context {
                 repository["managedRefNamespaces"].clone();
             self.config["repositories"][project.id.as_str()] = repository;
             let repository = self.repository(project.id.as_str(), Some(&project.identity))?;
-            if repository.config["kind"] == "local" {
-                repository.local().map_err(|_| Fault::new("STATE_FORMAT"))?;
-            }
+            repository.git().map_err(|_| Fault::new("STATE_FORMAT"))?;
         }
         Ok(self)
     }

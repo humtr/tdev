@@ -175,8 +175,8 @@ layout. Remaining artifact/deployment/operator scenarios have explicit later own
 
 The serving increment now implements current authentication, six narrowed tool families,
 workspace membership/revision guards, local open/read/edit/close, source/request replay,
-bounded JSON/SSE status, and the private Git-pin-before-pointer SIGKILL boundary. P2 is still
-open: local delegated connect/create now uses current policy projections and exact creation
+bounded JSON/SSE status, and the private Git-pin-before-pointer SIGKILL boundary. The P2
+local/provider gate is now qualified: local delegated connect/create uses current policy projections and exact creation
 evidence, including actual controller-death boundaries. Remote-base managed start now freezes
 selection, HEAD and unique task/ref identity before fetch; it rechecks workspace selection at
 reservation and qualifies actual pin-gap death without repeating construction. LocalChanges=true
@@ -205,8 +205,23 @@ publication facts and destination membership without reserving the predecessor w
 Construction pins the retained private commit without HEAD resolution/fetch; private-pin death
 keeps the interrupted receipt. Current predecessor/resolved scope gates original receipt access
 after cleanup or later source changes. Retained publication fixtures do not qualify P3 publication.
-Next implement the remaining GitHub enrollment/provider boundary. Do not advance the P2
-exit or advertise these actions solely because the initial local source scenarios pass.
+GitHub enrollment/provider now implements fixed-owner connect/private initialized create,
+current policy discovery and live identity/permission observation. Returned repository IDs are
+durable before enrollment; response loss without an ID never triggers another POST or name-based
+success. Actual controller death around ID persistence, late permission/SQLite failure,
+same-name replacement and current policy revocation have executable provider fixtures.
+Source reads/edits use authenticated controller Git transport with fresh repository-ID checks;
+private utilities and retained Git config receive no token/helper. Remote managed-ref deletion
+joins the existing ownership journal with explicit exact-OID force-with-lease, observing the
+original effect after death without repeating push. Retained publication fixtures qualify deletion,
+not P3 publication. Static GitHub enrollment accepts absent configured refs when another scoped
+ref can initialize the store; retained work does not need a live base branch after that.
+Final affected and full `sh scripts/check.sh` regressions passed with exit status 0, including
+55 Rust checks, 105 native HTTP checks and 429 reference/common regressions. This closes the
+P2 local/provider gate; see LOCAL_VALIDATION.md for focused evidence and qualifications. Live GitHub
+authentication/TLS is not qualified by these isolated executable adapters and remains a host/provider
+qualification obligation. Next implement P3's independent supervisor/spool and execution ownership;
+no production provider/runtime activation or main integration is implied by completion of P2.
 
 Exit: an on-device build passes the local source slice and canonical identity fixtures. Existing
 Python tests remain available as evidence until each affected behavior has an adequate successor.

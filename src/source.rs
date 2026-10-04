@@ -73,8 +73,8 @@ fn open(
         return Err(Fault::new("PERMISSION_DENIED"));
     }
     let head = Checkpoint::new(wire::string(input, "expectedHead")?)?;
-    // Fail unsupported providers before reserving a local-construction operation.
-    repo.local()?;
+    // Validate the enrolled transport before reserving private construction.
+    repo.git()?;
     let admission = app.admission(
         context,
         input,

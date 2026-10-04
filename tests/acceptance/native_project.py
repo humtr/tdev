@@ -138,21 +138,8 @@ class NativeProjectTest(unittest.TestCase):
         self.assertEqual(git('rev-parse', 'HEAD', cwd=target), replacement)
         self.assertEqual(len(trace.read_text().splitlines()), 1)
 
-    def test_unsupported_provider_and_caller_execution_policy_are_rejected_before_admission(self):
+    def test_caller_execution_policy_is_rejected_before_admission(self):
         r = self.runtime
-        r.config['projectPolicies']['cloud'] = {'kind': 'github', 'owner': 'example',
-            'allowCreate': True, 'managedRefNamespace': 'refs/heads/managed/', 'validation': 'true'}
-        r.config['principals']['alice']['projectPolicies'].append('cloud')
-        r.save_config()
-        policies = r.call('project', {'action': 'list'})['policies']
-        self.assertEqual([policy['name'] for policy in policies], ['local'])
-        for action in ('connect', 'create'):
-            request = {'action': action, 'requestId': 'cloud-' + action, 'policy': 'cloud', 'name': 'Example'}
-            value = r.request('tools/call', {'name': 'tdev_project', 'arguments': {'request': request}})[2]['result']['structuredContent']
-            self.assertEqual(value['error']['code'], 'UNSUPPORTED_PROVIDER')
-            missing = r.request('tools/call', {'name': 'tdev_operation', 'arguments': {'request':
-                {'action': 'status', 'lookupRequestId': request['requestId']}}})[2]['result']['structuredContent']
-            self.assertEqual(missing['error']['code'], 'OPERATION_NOT_FOUND')
         request = {'action': 'create', 'requestId': 'injected', 'policy': 'local',
             'name': 'Injected', 'validation': 'caller command'}
         value = r.request('tools/call', {'name': 'tdev_project', 'arguments': {'request': request}})[2]['result']['structuredContent']

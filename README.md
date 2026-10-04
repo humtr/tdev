@@ -158,9 +158,19 @@ fetching a replacement; pin-gap death retains the interrupted receipt. Receipt r
 original base under current authority. These tests also seed publication facts offline; they
 do not qualify publication itself. The Python executable remains the
 behavioral reference for the full surface.
-No state format revision or resident cutover has been performed. P2 remains in progress:
-GitHub enrollment and its policy
-and recovery cases still need implementation. Execution, validation/publication, artifacts,
+GitHub delegated connect/create now uses bounded controller provider utilities, current owner
+policy and immutable repository ID. Creation retains its returned ID before enrollment;
+lost/malformed responses without that ID remain unknown without repeating POST or adopting a name.
+Current policy/identity gates recovery, and enrollment commits with its terminal receipt.
+Authenticated Git transport supports source work and exact-OID managed-ref deletion; credentials
+and provider diagnostics stay out of private plumbing, receipts and retained Git configuration.
+Provider API/transport fixtures exercise actual HTTP, SQLite and disposable Git, including
+controller death, permission loss, same-name replacement and remote deletion races. These are
+isolated provider boundary qualifications; live GitHub authentication/TLS and P3 publication
+remain separate qualification scope. No real GitHub project was created by these checks.
+No state format revision or resident cutover has been performed. P2's local/provider slice
+has passed its regression gate; the next implementation phase is P3 execution and recovery.
+Execution, validation/publication, artifacts,
 deployment and operator/service commands retain their later delivery phases.
 The HTTP edge explicitly materializes finite floats before Schema validation, preserves raw
 request identity and unbounded integer offsets, and separates RPC ID types from integer-valued

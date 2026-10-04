@@ -68,7 +68,7 @@ pub(super) fn call(
             .ok_or_else(|| Fault::new("PROJECT_REQUIRED"))?;
         context.repository(name, None)?
     };
-    repo.local()?;
+    repo.git()?;
     let source = predecessor
         .as_ref()
         .and_then(|task| task.source_ref.as_ref().map(BranchRef::as_str))

@@ -136,7 +136,7 @@ impl<'a> Checkout<'a> {
             true,
         )?;
         if fs::canonicalize(line(&common.stdout)?).map_err(|_| Fault::new("CHECKOUT_IDENTITY"))?
-            != self.git.repository.remote
+            != self.git.repository.local()?.remote
         {
             return Err(Fault::new("CHECKOUT_IDENTITY"));
         }

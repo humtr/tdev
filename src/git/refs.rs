@@ -1,4 +1,4 @@
-//! Exact local ref deletion; configured namespaces alone never establish ownership.
+//! Exact ref deletion; configured namespaces alone never establish ownership.
 use super::*;
 use crate::model::Effect;
 
@@ -6,10 +6,10 @@ impl Git {
     pub fn check_delete(&self, branch: &BranchRef, expected: &Checkpoint) -> Result<()> {
         let result = (|| {
             self.format.check(expected.as_str())?;
-            if self.repository.refs.contains(branch)
+            if self.repository.refs().contains(branch)
                 || !self
                     .repository
-                    .namespaces
+                    .namespaces()
                     .iter()
                     .any(|ns| branch.as_str().starts_with(ns))
             {
@@ -18,20 +18,22 @@ impl Git {
             if self.head(branch)?.as_ref() != Some(expected) {
                 return Err(Fault::new("STALE_HEAD"));
             }
-            let worktrees = utility(
-                Some(&self.repository.remote),
-                &["worktree", "list", "--porcelain", "-z"],
-                &[],
-                UTILITY_TIMEOUT,
-                true,
-            )?;
-            let checked = format!("branch {branch}");
-            if worktrees
-                .stdout
-                .split(|b| *b == 0)
-                .any(|record| record == checked.as_bytes())
-            {
-                return Err(Fault::new("REF_CHECKED_OUT"));
+            if let Repository::Local(local) = &self.repository {
+                let worktrees = utility(
+                    Some(&local.remote),
+                    &["worktree", "list", "--porcelain", "-z"],
+                    &[],
+                    UTILITY_TIMEOUT,
+                    true,
+                )?;
+                let checked = format!("branch {branch}");
+                if worktrees
+                    .stdout
+                    .split(|b| *b == 0)
+                    .any(|record| record == checked.as_bytes())
+                {
+                    return Err(Fault::new("REF_CHECKED_OUT"));
+                }
             }
             self.verify_identity()
         })();
@@ -46,19 +48,35 @@ impl Git {
     pub fn delete_ref(&self, branch: &BranchRef, expected: &Checkpoint) -> Result<()> {
         self.check_delete(branch, expected)?;
         let result = (|| {
-            utility(
-                Some(&self.repository.remote),
-                &[
-                    "update-ref",
-                    "--no-deref",
-                    "-d",
-                    branch.as_str(),
-                    expected.as_str(),
-                ],
-                &[],
-                UTILITY_TIMEOUT,
-                true,
-            )?;
+            match &self.repository {
+                Repository::Local(local) => {
+                    utility(
+                        Some(&local.remote),
+                        &[
+                            "update-ref",
+                            "--no-deref",
+                            "-d",
+                            branch.as_str(),
+                            expected.as_str(),
+                        ],
+                        &[],
+                        UTILITY_TIMEOUT,
+                        true,
+                    )?;
+                }
+                Repository::Github { .. } => {
+                    self.repository.run_transport(
+                        self.repository
+                            .transport(Some(&self.root))
+                            .arg("push")
+                            .arg(format!("--force-with-lease={branch}:{expected}"))
+                            .arg("--")
+                            .arg(self.repository.remote())
+                            .arg(format!(":{branch}")),
+                        FETCH_TIMEOUT,
+                    )?;
+                }
+            }
             if self.head(branch)?.is_some() {
                 return Err(Fault::new("REF_MUTATION_UNKNOWN"));
             }

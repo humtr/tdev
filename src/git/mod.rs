@@ -2,7 +2,7 @@
 //! CAS belong to admission/storage; ref deletion has an explicit dispatch boundary.
 pub mod checkout;
 pub mod integration;
-mod process;
+pub(crate) mod process;
 pub mod project;
 pub mod refs;
 
@@ -177,14 +177,6 @@ impl LocalRepository {
         })
     }
 
-    fn allowed(&self, branch: &BranchRef) -> bool {
-        self.refs.contains(branch)
-            || self
-                .namespaces
-                .iter()
-                .any(|ns| branch.as_str().starts_with(ns))
-    }
-
     pub fn identity(&self) -> &str {
         &self.identity
     }
@@ -224,9 +216,151 @@ impl LocalRepository {
     }
 }
 
+#[derive(Clone, Debug)]
+pub enum Repository {
+    Local(LocalRepository),
+    Github {
+        repository: crate::provider::GithubRepository,
+        refs: BTreeSet<BranchRef>,
+        namespaces: Vec<String>,
+    },
+}
+
+impl From<LocalRepository> for Repository {
+    fn from(repository: LocalRepository) -> Self {
+        Self::Local(repository)
+    }
+}
+
+impl Repository {
+    fn refs(&self) -> &BTreeSet<BranchRef> {
+        match self {
+            Self::Local(local) => &local.refs,
+            Self::Github { refs, .. } => refs,
+        }
+    }
+    fn namespaces(&self) -> &[String] {
+        match self {
+            Self::Local(local) => &local.namespaces,
+            Self::Github { namespaces, .. } => namespaces,
+        }
+    }
+    fn allowed(&self, branch: &BranchRef) -> bool {
+        self.refs().contains(branch)
+            || self
+                .namespaces()
+                .iter()
+                .any(|ns| branch.as_str().starts_with(ns))
+    }
+    fn local(&self) -> Result<&LocalRepository> {
+        match self {
+            Self::Local(local) => Ok(local),
+            _ => Err(Fault::new("UNSUPPORTED_PROVIDER")),
+        }
+    }
+    fn remote(&self) -> &std::ffi::OsStr {
+        match self {
+            Self::Local(local) => local.remote.as_os_str(),
+            Self::Github { repository, .. } => repository.remote.as_ref(),
+        }
+    }
+    fn transport(&self, root: Option<&Path>) -> Command {
+        let mut command = command(root);
+        if matches!(self, Self::Github { .. }) {
+            crate::provider::credentials(&mut command);
+            command.args([
+                "-c",
+                "credential.helper=",
+                "-c",
+                "credential.https://github.com.helper=!gh auth git-credential",
+                "-c",
+                "credential.useHttpPath=true",
+            ]);
+        }
+        command
+    }
+    fn run_transport(&self, command: &mut Command, timeout: Duration) -> Result<Output> {
+        run(command, &[], timeout, OUTPUT_LIMIT, true).map_err(|mut error| {
+            if matches!(self, Self::Github { .. }) {
+                // Credential helpers and HTTP diagnostics are controller-private.
+                error.message = error.code.clone();
+            }
+            error
+        })
+    }
+    fn verify(&self) -> Result<()> {
+        match self {
+            Self::Local(local) => local.verify().map(|_| ()),
+            Self::Github { repository, .. } => repository.inspect().map(|_| ()),
+        }
+    }
+    fn format(&self, root: &Path) -> Result<ObjectFormat> {
+        match self {
+            Self::Local(local) => local.verify(),
+            Self::Github { .. } => {
+                self.verify()?;
+                // Retained work must remain readable when canonical branches no
+                // longer exist. Existing private format is durable Git evidence.
+                match root.symlink_metadata() {
+                    Ok(_) => {
+                        store_layout(root)?;
+                        let output = utility(
+                            Some(root),
+                            &["rev-parse", "--show-object-format"],
+                            &[],
+                            UTILITY_TIMEOUT,
+                            true,
+                        )?;
+                        return ObjectFormat::parse(line(&output.stdout)?);
+                    }
+                    Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+                    Err(_) => return Err(Fault::new("GIT_STORE")),
+                }
+                if self.refs().is_empty() {
+                    return Err(Fault::new("REF_DENIED"));
+                }
+                let output = self.run_transport(
+                    self.transport(None)
+                        .args(["ls-remote", "--refs", "--"])
+                        .arg(self.remote())
+                        .args(self.refs().iter().map(BranchRef::as_str)),
+                    FETCH_TIMEOUT,
+                )?;
+                let text = line(&output.stdout)?;
+                let mut length = None;
+                let mut seen = BTreeSet::new();
+                for record in text.lines() {
+                    let mut parts = record.split_whitespace();
+                    let oid = parts.next().ok_or_else(|| Fault::new("GIT_OUTPUT"))?;
+                    let branch =
+                        BranchRef::new(parts.next().ok_or_else(|| Fault::new("GIT_OUTPUT"))?)?;
+                    if parts.next().is_some()
+                        || !self.refs().contains(&branch)
+                        || !seen.insert(branch)
+                    {
+                        return Err(Fault::new("GIT_OUTPUT"));
+                    }
+                    Checkpoint::new(oid)?;
+                    if length.is_some_and(|size| size != oid.len()) {
+                        return Err(Fault::new("OBJECT_FORMAT"));
+                    }
+                    length = Some(oid.len());
+                }
+                self.verify()?;
+                match length {
+                    Some(40) => Ok(ObjectFormat::Sha1),
+                    Some(64) => Ok(ObjectFormat::Sha256),
+                    None => Err(Fault::new("REF_NOT_FOUND")),
+                    _ => Err(Fault::new("OBJECT_FORMAT")),
+                }
+            }
+        }
+    }
+}
+
 pub struct Git {
     root: PathBuf,
-    repository: LocalRepository,
+    repository: Repository,
     format: ObjectFormat,
 }
 
@@ -368,11 +502,12 @@ fn no_collisions<'a>(names: impl Iterator<Item = &'a SourcePath>) -> Result<()> 
 impl Git {
     /// Publish an initialized bare directory by same-parent rename. A racing
     /// opener validates the winner rather than using a half-initialized store.
-    pub fn open(root: &Path, repository: LocalRepository) -> Result<Self> {
+    pub fn open(root: &Path, repository: impl Into<Repository>) -> Result<Self> {
+        let repository = repository.into();
         if !root.is_absolute() {
             return Err(Fault::new("GIT_STORE"));
         }
-        let format = repository.verify()?;
+        let format = repository.format(root)?;
         let parent = root.parent().ok_or_else(|| Fault::new("GIT_STORE"))?;
         DirBuilder::new()
             .recursive(true)
@@ -436,8 +571,13 @@ impl Git {
     }
 
     pub fn verify_identity(&self) -> Result<()> {
-        if self.repository.verify()? != self.format {
-            return Err(Fault::new("OBJECT_FORMAT"));
+        match &self.repository {
+            Repository::Local(local) => {
+                if local.verify()? != self.format {
+                    return Err(Fault::new("OBJECT_FORMAT"));
+                }
+            }
+            Repository::Github { .. } => self.repository.verify()?,
         }
         Ok(())
     }
@@ -451,24 +591,26 @@ impl Git {
         if !self.repository.allowed(branch) {
             return Err(Fault::new("REF_DENIED"));
         }
-        let symbolic = utility(
-            Some(&self.repository.remote),
-            &["symbolic-ref", "-q", branch.as_str()],
-            &[],
-            UTILITY_TIMEOUT,
-            false,
-        )?;
-        if symbolic.status.success() {
-            return Err(Fault::new("SYMBOLIC_REF"));
+        if let Repository::Local(local) = &self.repository {
+            let symbolic = utility(
+                Some(&local.remote),
+                &["symbolic-ref", "-q", branch.as_str()],
+                &[],
+                UTILITY_TIMEOUT,
+                false,
+            )?;
+            if symbolic.status.success() {
+                return Err(Fault::new("SYMBOLIC_REF"));
+            }
+            if symbolic.status.code() != Some(1) {
+                return Err(Fault::new("GIT_OUTPUT"));
+            }
         }
-        if symbolic.status.code() != Some(1) {
-            return Err(Fault::new("GIT_OUTPUT"));
-        }
-        let mut cmd = command(Some(&self.root));
+        let mut cmd = self.repository.transport(Some(&self.root));
         cmd.args(["ls-remote", "--refs", "--"])
-            .arg(&self.repository.remote)
+            .arg(self.repository.remote())
             .arg(branch.as_str());
-        let output = run(&mut cmd, &[], UTILITY_TIMEOUT, OUTPUT_LIMIT, true)?;
+        let output = self.repository.run_transport(&mut cmd, FETCH_TIMEOUT)?;
         self.verify_identity()?;
         let text = line(&output.stdout)?;
         if text.is_empty() {
@@ -491,11 +633,11 @@ impl Git {
         if &current != expected {
             return Err(Fault::new("STALE_HEAD"));
         }
-        let mut cmd = command(Some(&self.root));
+        let mut cmd = self.repository.transport(Some(&self.root));
         cmd.args(["fetch", "--no-tags", "--no-write-fetch-head", "--"])
-            .arg(&self.repository.remote)
+            .arg(self.repository.remote())
             .arg(expected.as_str());
-        run(&mut cmd, &[], FETCH_TIMEOUT, OUTPUT_LIMIT, true)?;
+        self.repository.run_transport(&mut cmd, FETCH_TIMEOUT)?;
         self.verify_identity()?;
         if line(
             &self

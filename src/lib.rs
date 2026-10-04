@@ -6,6 +6,7 @@ pub mod git;
 pub mod identity;
 pub mod model;
 pub mod project;
+pub mod provider;
 pub mod source;
 pub mod storage;
 pub mod transport;
