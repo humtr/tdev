@@ -13,6 +13,7 @@ pub use environment::{DEPENDENCY_LIMIT, Environment, ExclusiveEnvironment};
 pub use input::{Delivery, Input, InputReceipt};
 pub use platform::ProcessIdentity;
 pub use source::{Capture, Manifest, Pack, Source, SourceFile};
+pub(crate) use spool::validate_env;
 pub(crate) use spool::{Bound, lock_file};
 pub use spool::{Budget, Job, Observation, Outcome, Report, Request};
 
@@ -77,16 +78,40 @@ fn run_job(job: &Job) -> io::Result<()> {
     let stdout: OwnedFd = writer.into();
     let stderr = stdout.try_clone()?;
     let shell = job.shell()?;
+    let mut env = platform::environment(job.path(), &shell, None)?;
+    env.extend(request.env.clone());
+    if let Some(dependencies) = dependencies.as_ref() {
+        let selected = platform::environment(job.path(), &shell, Some(dependencies.path()))?;
+        let base_path = env.get("PATH").expect("Native PATH");
+        let path = std::env::join_paths(
+            [
+                dependencies.path().join("venv/bin"),
+                dependencies.path().join("bin"),
+            ]
+            .into_iter()
+            .chain(std::env::split_paths(base_path)),
+        )
+        .map_err(io::Error::other)?;
+        env.insert(
+            "PATH".into(),
+            path.into_string()
+                .map_err(|_| io::Error::other("Invalid PATH"))?,
+        );
+        for key in [
+            "TDEV_ENV_DIR",
+            "PIP_CACHE_DIR",
+            "npm_config_cache",
+            "XDG_CACHE_HOME",
+        ] {
+            env.insert(key.into(), selected[key].clone());
+        }
+    }
     let mut command = Command::new(&shell);
     command
         .args(["-c", &request.command])
         .current_dir(job.cwd(&request)?)
         .env_clear()
-        .envs(platform::environment(
-            job.path(),
-            &shell,
-            dependencies.as_ref().map(SharedEnvironment::path),
-        )?)
+        .envs(env)
         .stdin(Stdio::piped())
         .stdout(Stdio::from(stdout))
         .stderr(Stdio::from(stderr));
@@ -236,7 +261,11 @@ impl Session {
             }
         }
         log.sync_all()?;
-        let capture = if stopped { source::capture(job)? } else { None };
+        let capture = if stopped && request.capture {
+            source::capture(job)?
+        } else {
+            None
+        };
         job.complete(Report {
             worker: worker.clone(),
             digest: job.digest()?,

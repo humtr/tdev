@@ -45,17 +45,17 @@ class NativeSourceTest(unittest.TestCase):
         r = self.runtime
         tools = r.request()[2]['result']['tools']
         names = {tool['name'] for tool in tools}
-        self.assertEqual(names, {'tdev_workspace', 'tdev_task', 'tdev_project', 'tdev_read', 'tdev_edit', 'tdev_operation'})
+        self.assertEqual(names, {'tdev_workspace', 'tdev_task', 'tdev_project', 'tdev_read', 'tdev_edit', 'tdev_operation', 'tdev_exec'})
         self.assertNotIn('$ref', json.dumps(tools))
         for tool in tools:
             original = next(t for t in CONTRACT['x-tools'] if t['name'] == tool['name'])
             self.assertEqual(tool['annotations'], original['annotations'])
         task = next(t for t in tools if t['name'] == 'tdev_task')
-        hidden = {'action': 'resetEnvironment', 'requestId': 'hidden', 'taskId': 'a'}
+        hidden = {'action': 'refresh', 'requestId': 'hidden', 'taskId': 'a', 'expected': 'a'*40}
         self.assertFalse(jsonschema.Draft202012Validator(task['inputSchema']).is_valid({'request': hidden}))
         response = r.request('tools/call', {'name': 'tdev_task', 'arguments': {'request': hidden}})[2]
         self.assertEqual(response['result']['structuredContent']['error']['code'], 'SCHEMA')
-        for tool in ('tdev_exec', 'tdev_validate', 'tdev_publish', 'tdev_find', 'tdev_deploy', 'tdev_artifact', 'tdev_diagnostics'):
+        for tool in ('tdev_validate', 'tdev_publish', 'tdev_find', 'tdev_deploy', 'tdev_artifact', 'tdev_diagnostics'):
             self.assertEqual(r.request('tools/call', {'name': tool, 'arguments': {'request': {}}})[0], 400)
         self.assertEqual(r.call('task', {'action': 'list'})['tasks'], [])
 

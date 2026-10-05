@@ -11,6 +11,8 @@ use std::collections::BTreeMap;
 use std::fs::{self, File};
 use std::io::{self, Seek, SeekFrom, Write};
 use std::path::Path;
+pub(crate) mod api;
+pub(crate) mod reset;
 
 fn evidence(error: io::Error) -> Fault {
     error

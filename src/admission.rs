@@ -392,4 +392,12 @@ impl Context {
     pub fn default_repository(&self) -> Option<&str> {
         self.config["principals"][self.principal.as_str()]["defaultRepo"].as_str()
     }
+    pub fn working_bytes(&self) -> Result<u64> {
+        crate::wire::bounded(
+            &self.config["artifactLimits"],
+            "workingBytes",
+            128 * 1024 * 1024,
+            2 * 1024 * 1024 * 1024,
+        )
+    }
 }

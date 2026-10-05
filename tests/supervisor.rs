@@ -29,6 +29,8 @@ impl Fixture {
             stdin: String::new(),
             environment: None,
             source: None,
+            capture: true,
+            env: Default::default(),
         })
     }
 
@@ -779,6 +781,8 @@ fn fixture_request() -> Request {
         stdin: String::new(),
         environment: None,
         source: None,
+        capture: true,
+        env: Default::default(),
     }
 }
 

@@ -113,6 +113,7 @@ impl Surface {
                     "compose",
                     "integrate",
                     "cleanup",
+                    "resetEnvironment",
                     "inspect",
                     "close",
                 ],
@@ -120,7 +121,11 @@ impl Surface {
             ("tdev_project", vec!["list", "inspect", "connect", "create"]),
             ("tdev_read", vec![]),
             ("tdev_edit", vec![]),
-            ("tdev_operation", vec!["status"]),
+            ("tdev_exec", vec![]),
+            (
+                "tdev_operation",
+                vec!["status", "stdin", "cancel", "retire"],
+            ),
         ];
         let mut tools = Vec::new();
         let mut inputs = BTreeMap::new();
@@ -143,7 +148,7 @@ impl Surface {
                 "tdev_project" =>
                     "List and inspect granted projects; connect or create local projects within current delegated policy.",
                 "tdev_operation" =>
-                    "Observe accepted source, workspace and local project operations by operation or request identity with a bounded wait.",
+                    "Observe accepted operations by operation or request identity with a bounded wait and paged logs. Send ordered stdin, request cancellation or retire proved-stopped execution copies. Unknown effects require reconciliation of the original operation.",
                 _ => original["description"]
                     .as_str()
                     .unwrap_or("Source development tool."),

@@ -25,11 +25,12 @@ pub fn task(
         "open" | "compose" => open(app, context, input, original),
         "integrate" => integration::call(app, context, input, original),
         "cleanup" => cleanup::call(app, context, input, original),
+        "resetEnvironment" => crate::execution::reset::call(app, context, input, original),
         "close" => {
             if let Some(op) = app.replay(context, input, "task", original)? {
                 return Ok(json!(op));
             }
-            let (task, _) = app.task(context, wire::string(input, "taskId")?)?;
+            let (task, _) = app.ready_task(context, wire::string(input, "taskId")?)?;
             let expected = Checkpoint::new(wire::string(input, "expected")?)?;
             let admission = app.admission(
                 context,
@@ -155,7 +156,7 @@ pub fn edit(
     if let Some(op) = app.replay(context, input, "edit", original)? {
         return Ok(json!(op));
     }
-    let (task, repo) = app.task(context, wire::string(input, "taskId")?)?;
+    let (task, repo) = app.ready_task(context, wire::string(input, "taskId")?)?;
     let expected = Checkpoint::new(wire::string(input, "expected")?)?;
     let admission = app.admission(
         context,
@@ -277,17 +278,15 @@ fn list(app: &Application, context: &Context, input: &Value) -> Result<Value> {
     )
 }
 fn inspect(app: &Application, context: &Context, input: &Value) -> Result<Value> {
-    let (task, repo) = app.task(context, wire::string(input, "taskId")?)?;
-    if let Some(id) = &task.busy {
-        let receipt = app
-            .store()?
-            .receipt(&context.principal, Some(id.as_str()), None)?;
-        if let Some(receipt) = receipt
-            && receipt.intent["input"]["action"] == "cleanup"
-        {
-            app.authorize_receipt(context, &receipt)?;
-            app.reconcile(context, &receipt)?;
-        }
+    let (task, repo) = app.ready_task(context, wire::string(input, "taskId")?)?;
+    let outstanding = app
+        .store()?
+        .outstanding_execution(&context.principal, &task.id, true)?;
+    let mut processes = Vec::new();
+    for receipt in outstanding {
+        app.authorize_receipt(context, &receipt)?;
+        let operation = app.reconcile(context, &receipt)?;
+        processes.push(crate::execution::api::summary(&receipt, operation)?);
     }
     let remote = match app.git(&repo).and_then(|g| g.head(&task.branch)) {
         Ok(head) => json!({"head":head}),
@@ -307,9 +306,15 @@ fn inspect(app: &Application, context: &Context, input: &Value) -> Result<Value>
         None
     };
     let active = if let Some(id) = &task.busy {
-        app.store()?
-            .receipt(&context.principal, Some(id.as_str()), None)?
-            .map(|r| r.operation)
+        let receipt = app
+            .store()?
+            .receipt(&context.principal, Some(id.as_str()), None)?;
+        receipt
+            .map(|r| {
+                let operation = r.operation.clone();
+                crate::execution::api::summary(&r, operation)
+            })
+            .transpose()?
     } else {
         None
     };
@@ -324,7 +329,7 @@ fn inspect(app: &Application, context: &Context, input: &Value) -> Result<Value>
     } else {
         "changed"
     };
-    let mut value = json!({"task":task,"remote":remote,"operations":operations.into_iter().take(limit as usize).map(|(_,op)|op).collect::<Vec<_>>(),"active":active,"nextBefore":next,"mutationReady":task.closed==0 && task.busy.is_none(),"baseMatchesRemote":remote["head"]==json!(task.base),"processes":[],"builds":[],"refCleanup":ref_cleanup});
+    let mut value = json!({"task":task,"remote":remote,"operations":operations.into_iter().take(limit as usize).map(|(_,op)|op).collect::<Vec<_>>(),"active":active,"nextBefore":next,"mutationReady":task.closed==0 && task.busy.is_none(),"baseMatchesRemote":remote["head"]==json!(task.base),"processes":processes,"builds":[],"refCleanup":ref_cleanup});
     wire::observe(
         &mut value,
         input["since"].as_str(),

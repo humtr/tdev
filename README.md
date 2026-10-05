@@ -131,9 +131,9 @@ SHA-1/SHA-256 stores and private indices; real fixtures cover atomic batch failu
 opening/editing, unchanged capture and dirty-checkout preservation. Contract checks are compared
 with an independent validator across all thirteen described tool families; this does not
 advertise those families as implemented handlers. The command now serves authenticated loopback
-HTTP with fresh immutable authority snapshots. Discovery exposes six implemented tool families:
+HTTP with fresh immutable authority snapshots. Discovery exposes seven implemented tool families:
 workspace composition; task list/open/start/compose/integrate/inspect/close/cleanup; all read/edit actions;
-operation status with bounded JSON/SSE observation; and project list/inspect/local connect/create. Delegated
+native execution; operation status/control with bounded JSON/SSE observation; and project list/inspect/local connect/create. Delegated
 enrollment stores resource identity separately from current policy-derived grants and execution
 settings. Local creation records uncertainty before touching the target and reconciles only
 completed initialization with its original operation marker, Git-directory/checkout identity
@@ -191,15 +191,20 @@ acceptance before pipe writes and retains uncertainty on partial delivery or wor
 returns the original acceptance without resending bytes. Initial stdin precedes sequence zero,
 and a reserved EOF rejects subsequent input. Task dependency directories retain caches/tools
 under shared executor leases, with a separate 2 GiB sampled/final budget. Exclusive reset guards
-alone do not prove that an unknown consumer has stopped. This is an execution primitive,
-not completed public execution admission. Owned source materialization, stopped capture,
-private Git candidate import and retirement are now implemented and qualified.
-Command/process admission and SQLite operation/control reconciliation are the next P3 increment;
-execution tools remain unadvertised by the implemented HTTP surface until those boundaries qualify. The supervisor suite now has
-31 actual-process checks; see [local validation evidence](LOCAL_VALIDATION.md#execution-source-lifecycle--2026-10-05)
-for the current gate result and remaining scope.
-Execution, validation/publication, artifacts,
-deployment and operator/service commands retain their later delivery phases.
+alone do not prove that an unknown consumer has stopped. Owned source materialization,
+stopped capture, private Git candidate import and retirement are implemented and qualified.
+Source 0.1.29 connects command/process admission, SQLite completion and stdin/cancel/retire
+controls to these boundaries. Bounded background preparation/import keeps immediate admission
+and status independent of large source copying. Staged controls are retained during preparation
+and applied to the original spool before launch. The HTTP surface includes native execution; command capture
+commits checkpoint/receipt together, while fixed-source process completion cannot change another
+writer or reopen a task. Task/workspace observation reconciles busy work; task inspect observes
+up to eight outstanding processes independently of history pagination. Explicit dependency reset
+checks logical consumers plus the kernel lease and recovers the original directory rename.
+See [local validation evidence](LOCAL_VALIDATION.md#public-execution-and-completion--2026-10-05)
+for qualification results and remaining scope. Validation/publication, artifacts,
+deployment and operator/service commands retain their delivery phases. This is not the P3
+exit gate or resident cutover; the complete installed controller remains 0.1.27.
 The HTTP edge explicitly materializes finite floats before Schema validation, preserves raw
 request identity and unbounded integer offsets, and separates RPC ID types from integer-valued
 tool fields. New ingress requires scalar Unicode and bounded depth; the legacy identity codec

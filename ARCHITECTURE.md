@@ -270,8 +270,8 @@ the controller's canonical source identity.
 
 Normal persistent worktrees save copying but add partial-edit recovery/index lifetime;
 tree-only pointers cannot distinguish ABA; custom content-addressed storage duplicates Git.
-Keep Git plumbing plus temporary command copies. File payload and shallow pack currently
-duplicate transfer/storage; optimize only with measurements.
+Keep Git plumbing plus temporary command copies. Streaming bodies and a single shallow pack keep content separate from control metadata;
+copy/storage costs remain independently budgeted.
 
 Task dependency storage survives process retirement, controller reconnect and task/workspace
 close. `task resetEnvironment` explicitly removes only that task's native dependency directory,
@@ -1660,7 +1660,8 @@ complete pipe acceptance (and closure for EOF) can persist committed delivery. T
 acceptance, not candidate acknowledgement. Partial writes, EPIPE or worker death retain unknown;
 queued input not attempted remains queued. Nonblocking bounded writes share the output/deadline
 loop, so a candidate that does not read cannot block cancellation or output draining. Internal
-spool format 3 includes the frozen source binding alongside command/input/environment; unsupported earlier records are rejected without
+spool format 4 binds capture selection and the merged non-secret environment alongside the
+source binding and command/input/dependency selection; unsupported earlier records are rejected without
 rewriting them or authorizing dispatch. This does not revise SQLite schema 3 or the wire contract.
 
 Task dependency selection acquires a shared lease before child dispatch and holds it through
@@ -1670,7 +1671,7 @@ separate namespace from replaceable task directories, including for task IDs end
 The task's caches and venv/bin/bin PATH entries are persistent; HOME/TMP/config remain per-job.
 Dependency paths that cannot be represented as single PATH entries fail before child dispatch;
 they are not silently split into additional tool locations.
-The dependency directory has its own preflight, sampled and final 2 GiB/100000-node budget,
+The dependency directory has its own preflight, sampled and final 2 GiB/100000-file budget with a separate 1000000-node scan bound,
 independent of the working-copy budget. Leases do not serialize arbitrary package-manager writes.
 Kernel lease release on worker death is not a stop proof: controller admission must also reject
 reset while any consumer is running or unknown. The primitive exclusive guard supplies exclusion,
@@ -1698,8 +1699,59 @@ private construction evidence; SQLite still exclusively owns task checkpoint and
 receipt completion. Explicit retirement uses the same lock, rejects unproved stop, and removes
 input/work/capture bodies and source metadata while preserving request identity, terminal
 result, controls, bounded logs and any constructed Git candidate. Replay never rebuilds or
-relaunches a retired copy. This private source lifecycle does not complete public execution
-admission, control reconciliation or task dependency reset.
+relaunches a retired copy.
+
+Public command/process admission now joins this proof to the same SQLite task/operation owner.
+Current task/ref/identity/workspace authority and expected checkpoint are checked at admission;
+command reserves the task writer, while process reserves only one of eight outstanding slots.
+The intent freezes merged tooling/caller environment, dependency selection, command/cwd/deadline,
+source checkpoint and operator workingBytes. Private launch records allow 8 MiB for these bounded
+strings; source manifests retain their separate 48 MiB metadata budget. Source bodies remain
+outside either record and caller response budgets are unchanged. Task/workspace execution
+summaries omit log bodies; operation status pages logs independently.
+Preparation occurs only for the physical new admission, outside SQLite. Preparation and private
+Git completion use at most eight controller background activities shared across operations; slot
+exhaustion reports executionWork configured/observed values before a new admission commits.
+Observation does not wait on their per-operation reconciliation locks, so waitMs=0 does not
+wait for large source copying/import. These activities share the original SQLite connection/lock
+and have no authority after controller death; restart observes uncertainty rather than rescheduling
+preparation. A retained stopped job may reconcile private completion again without dispatch.
+Its exact spool digest
+is retained in the intent before dispatch. A known preparation failure before launch completes
+with effect none; a lost preparation/dispatch/worker observation remains unknown, retaining any
+command writer and process slot. Reconnect/replay observes the original evidence and never
+reconstructs a copy or calls launch. Public interpretation requires the native construction tag;
+other historical execution/control intents are not silently reinterpreted.
+Proved-stopped command capture imports one retained private Git candidate, then commits the task
+checkpoint, writer release and terminal receipt in one SQLite transaction with the original
+checkpoint/busy CAS. Failed/cancelled commands can capture stopped partial work; capture rejection
+keeps the previous checkpoint. Process completion never updates a task pointer or writer/closed
+state. Before a fresh task mutation, its busy predecessor is observed once outside the admission
+transaction, then the mutation's busy/CAS checks remain authoritative. A retained writer from an
+unconnected feature remains busy without effect interpretation; task-authorized summaries remain
+available and fresh mutation admission still rejects it. Task inspect also observes
+all bounded outstanding processes independently of its history page; workspace inspect observes
+busy task predecessors. No controller/store mutex spans supervisor, Git or filesystem waits.
+
+Public stdin/cancel/retire controls retain their own operation receipt before the spool effect.
+At most 64 pending controls per target are retained; configured/observed exhaustion is explicit.
+Controls accepted while the original source is preparing remain pending, then the constructor
+reconciles their original intents before dispatch. Initial stdin still precedes queued controls.
+Loss of that constructor preserves unknown target/control state without starting a new copy.
+Retained spool input acceptance reconciles a missed SQLite completion without pipe resending;
+known input rejection completes with effect none, while unreadable control evidence remains
+unknown. Control status can project current pipe-delivery evidence separately from acceptance.
+Retirement requires target completion and original supervisor stop proof, preserves logs/control
+records and never reconstructs source. Per-operation reconciliation locks exclude only the
+original operation; controller disconnect ends observation without cancelling it.
+Dependency reset reserves task busy ownership, including for closed tasks, in the same transaction
+that rejects every running/unknown execution consumer. It also acquires the stable exclusive
+kernel lease. A synced retained operation/task/directory-identity record precedes a same-device
+rename to owned trash; recovery checks both sides of rename and finishes deleting that original
+directory. Identity conflict preserves a rebuilt environment and the unresolved reset/writer;
+completed replay never touches new dependencies. Reset errors identify the original operation and
+retain effect unknown for reconciliation. This public execution increment does not close P3's
+validation/publication/recovery exit gate or qualify a resident cutover.
 
 ### Identity, storage and compatibility
 

@@ -110,17 +110,21 @@ fn inspect(app: &Application, context: &Context, input: &Value) -> Result<Value>
     let mut tasks = Vec::new();
     for (_, task) in rows.into_iter().take(limit as usize) {
         let mut value = json!({"taskId":task.id,"repo":task.repo});
-        match app.task(context, task.id.as_str()) {
+        match app.ready_task(context, task.id.as_str()) {
             Ok((task, _)) => {
                 value["checkpoint"] = json!(task.checkpoint);
                 value["closed"] = json!(task.closed != 0);
                 value["busy"] = json!(task.busy);
-                if let Some(id) = task.busy
-                    && let Some(receipt) =
+                let active = match task.busy {
+                    Some(id) => {
                         app.store()?
                             .receipt(&context.principal, Some(id.as_str()), None)?
-                {
-                    value["active"] = json!(receipt.operation);
+                    }
+                    None => None,
+                };
+                if let Some(receipt) = active {
+                    let operation = receipt.operation.clone();
+                    value["active"] = crate::execution::api::summary(&receipt, operation)?;
                 }
             }
             Err(error) => value["error"] = json!(error),

@@ -1,7 +1,7 @@
 //! Ordered input intent and pipe acceptance are separate durable observations.
 use super::spool::{Bound, fingerprint, lock_file};
 use super::{Job, Observation, ProcessIdentity};
-use crate::model::{Digest, RequestId};
+use crate::model::{Digest, Fault, RequestId};
 use serde::{Deserialize, Serialize};
 use std::fs::TryLockError;
 use std::io::{self, Write};
@@ -87,7 +87,10 @@ impl Job {
                     }
                     if queued.input.request_id == input.request_id {
                         if queued.input != input {
-                            return Err(io::Error::other("Stdin request identity conflict"));
+                            return Err(io::Error::other(Fault::message(
+                                "IDEMPOTENCY_MISMATCH",
+                                "Stdin request identity conflict",
+                            )));
                         }
                         return Ok(receipt(input.sequence));
                     }
@@ -98,17 +101,31 @@ impl Job {
             }
         }
         if input.sequence != next {
-            return Err(io::Error::other(
+            return Err(io::Error::other(Fault::message(
+                "STDIN_SEQUENCE",
                 "Stdin sequence is already reserved or skips input",
-            ));
+            )));
         }
         if eof {
-            return Err(io::Error::other("Stdin EOF is already reserved"));
+            return Err(io::Error::other(Fault::message(
+                "STDIN_CLOSED",
+                "Stdin EOF is already reserved",
+            )));
         }
         match self.observe()? {
             Observation::Reserved | Observation::Running(_) => {}
-            Observation::Complete(_) => return Err(io::Error::other("Process is terminal")),
-            Observation::Unknown => return Err(io::Error::other("Supervisor evidence is unknown")),
+            Observation::Complete(_) => {
+                return Err(io::Error::other(Fault::message(
+                    "PROCESS_TERMINAL",
+                    "Process is terminal",
+                )));
+            }
+            Observation::Unknown => {
+                return Err(io::Error::other(Fault::message(
+                    "SUPERVISOR_UNKNOWN",
+                    "Supervisor evidence is unknown",
+                )));
+            }
         }
         let queued = Queued {
             digest: fingerprint(&(&reservation, &input))?,

@@ -9,9 +9,38 @@ use std::os::unix::fs::{DirBuilderExt, MetadataExt, OpenOptionsExt, PermissionsE
 use std::path::{Component, Path, PathBuf};
 use std::process::{Command, Stdio};
 
-const FORMAT: u32 = 3;
-const RECORD_LIMIT: u64 = 1024 * 1024;
+const FORMAT: u32 = 4;
+const RECORD_LIMIT: u64 = 8 * 1024 * 1024;
 const WORKING_MAX: u64 = 2 * 1024 * 1024 * 1024;
+
+pub(crate) fn validate_env(env: &std::collections::BTreeMap<String, String>) -> io::Result<()> {
+    if env.len() > 128
+        || env.iter().any(|(key, value)| {
+            key.is_empty()
+                || !key.bytes().enumerate().all(|(i, b)| {
+                    b.is_ascii_alphabetic() || b == b'_' || (i > 0 && b.is_ascii_digit())
+                })
+                || value.chars().count() > 8192
+                || value.contains('\0')
+                || matches!(
+                    key.as_str(),
+                    "HOME"
+                        | "TMPDIR"
+                        | "XDG_CONFIG_HOME"
+                        | "XDG_CACHE_HOME"
+                        | "GIT_CONFIG_GLOBAL"
+                        | "GIT_CONFIG_SYSTEM"
+                        | "SSH_AUTH_SOCK"
+                        | "TDEV_ENV_DIR"
+                )
+        })
+    {
+        return Err(io::Error::other(
+            "Invalid or reserved execution environment",
+        ));
+    }
+    Ok(())
+}
 
 /// Frozen internal launch input; the controller supplies owned materialization separately.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -24,10 +53,12 @@ pub struct Request {
     pub stdin: String,
     pub environment: Option<Environment>,
     pub source: Option<super::Source>,
+    pub capture: bool,
+    pub env: std::collections::BTreeMap<String, String>,
 }
 
 impl Request {
-    pub(super) fn validate(&self) -> io::Result<()> {
+    pub(crate) fn validate(&self) -> io::Result<()> {
         if self.command.is_empty()
             || self.command.chars().count() > 65536
             || self.command.contains('\0')
@@ -52,6 +83,7 @@ impl Request {
         if let Some(source) = &self.source {
             source.validate()?;
         }
+        validate_env(&self.env)?;
         Ok(())
     }
 }
@@ -379,7 +411,7 @@ impl Job {
         Ok(bytes)
     }
 
-    fn log_length(&self) -> io::Result<u64> {
+    pub fn log_length(&self) -> io::Result<u64> {
         Ok(self.open_file("output.bin")?.metadata()?.len())
     }
 
@@ -653,6 +685,8 @@ mod visibility_tests {
             &directory.path().join("spool"),
             &OperationId::new("visibility").unwrap(),
             Request {
+                capture: true,
+                env: Default::default(),
                 command: "true".into(),
                 cwd: ".".into(),
                 timeout_seconds: Some(5),

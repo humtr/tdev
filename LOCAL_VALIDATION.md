@@ -1,5 +1,122 @@
 # Local validation evidence — 2026-10-05
 
+## Public execution and completion — 2026-10-05
+
+Source base: `4c60bd13f80b8b48811e81298d127ae45eece436`; product input revision **0.1.29**.
+This increment connects public command/process execution, observation, controls and dependency
+reset. It does not close the P3 validation/publication/recovery gate or activate the partial
+controller. SQLite format 3 and public wire definitions remain unchanged; private supervisor
+spool format is now 4. The installed complete controller remains 0.1.27.
+
+`src/execution/api.rs` owns frozen public execution/control intent, supervisor proof matching,
+bounded background preparation/import and caller projection. `src/storage/execution.rs` joins
+admission, source checkpoint/writer CAS and terminal receipt in the existing SQLite owner.
+`src/execution/reset.rs` journals operation/task/directory identity before same-device rename
+and deletion, excluding logical running/unknown consumers as well as the stable kernel lease.
+Completed reset replay preserves rebuilt dependencies. Identity conflict retains the original
+unknown reset/writer and both directories. Process completion never changes source, another
+writer or task closure. A retained writer from an unconnected feature remains busy; task
+summaries stay observable without interpreting that feature's effects.
+
+Only physical new admission schedules preparation/dispatch. At most eight controller execution
+activities prepare/import concurrently; rejection reports `executionWork configured=8 observed=9`
+and rolls back the new receipt/writer. This is independent of the existing eight outstanding
+process slots per task. Immediate admission/status do not wait on preparation/import locks.
+At most 64 pending controls per target are retained; the 65th reports
+`pendingControls configured=64 observed=65` without a new row. Controls retained during
+preparation reconcile to the original spool before launch, after initial stdin. Preparation
+controller death preserves unknown execution/control records and never dispatches on replay.
+Stopped proof permits private import/completion reconciliation; neither recovery nor replay
+reconstructs input or launches another command. Logs are paged independently; task/workspace
+summaries omit their bodies and stdin text.
+
+| Budget | Qualified configured boundary / owner |
+|---|---|
+| Source/file bytes | 536870912 each; existing source/capture capacity owner, streaming bodies |
+| Source files | 100000; independent of body bytes |
+| Binary source pack | 1073741824; separate physical transport budget |
+| Source manifest metadata | 50331648; no source bodies in JSON |
+| Private launch/control record | 8388608; supervisor spool format 4, separate from source metadata |
+| Native working bytes | Frozen per admission, default 134217728 / configured maximum 2147483648 |
+| Task dependency bytes/files | 2147483648 / 100000; separate 1000000-node scan ceiling |
+| Caller logs | 1048576 retained; default 24000 / maximum 65536 bytes per page |
+
+The private record ceiling increases from 1048576 to 8388608 bytes for merged tooling/caller
+environment and bounded launch strings. Source, pack, source metadata, native working,
+dependency and caller response budgets remain unchanged relative to this increment's base.
+
+The first synchronous draft exposed a large-source admission wait, despite passing private
+source and small HTTP cases. Preparation/import now run in bounded controller activities.
+The initial asynchronous HTTP selection passed 29/31 in **358.541s**; two fixtures incorrectly
+required immediate terminal stdin-control responses during preparation. Corrected observation
+checks passed **2 in 7.578s**. An initial full attempt then passed Rust/identity/contract and
+131/133 native HTTP cases but failed two retained-publication writer cases. Its **2162.862s**
+result is not a PASS; implementation inputs changed while those old-binary fixtures finished.
+The fix preserves unsupported writer state instead of trying to interpret it. The expanded
+fixture first failed because it expected busy instead of closed-task admission; it now checks
+closed-state preservation and open-state writer exclusion separately. Final focused cleanup
+and predecessor regressions passed **2 in 18.125s**, with all-target locked clippy/build passing.
+
+Final full qualification freezes **282** implementation/test/script/contract inputs, manifest
+SHA-256 `8f41b93c320acdaeffaee410e5f4601d7152d12186d390f4b93f6a41c13d3dbe`, with the actual
+corpus selected explicitly. The completed prefix passes fmt/clippy, **115 Rust tests** (48
+library in **5.99s**, 19 source execution in **483.18s**, 17 Git in **49.50s**, 31 supervisor
+in **6.86s**), **10003 identity** comparisons, **136 compiled-contract** cases, the native
+build and **133 native HTTP** cases. The 73-case native fault/recovery stage took **842.301s**.
+The complete `scripts/check.sh` run then passed **453 reference/common cases in 1242.803s**,
+**7 native capacity cases in 270.579s** and final diff check. It exited **0 in 3660.714s**;
+all **282** frozen inputs remained identical. This is an uninterrupted whole-script PASS:
+**708 test executions**, plus the independent identity/compiled-contract comparisons above.
+Reference/common emitted **15** pre-existing SQLite unclosed-database warning events (30
+ResourceWarning lines including tracing hints); no test failed. Native HTTP emitted none.
+Qualified executable SHA-256 is
+`bc52d9c2816fed966a5d7061b50a3f0508fe640c98e9e459cceec2fe525ee7c2`.
+
+The actual corpus at `/data/data/com.termux/files/home/prj/house-md-distill/corpus/originals`
+was selected for Rust source execution, native/reference HTTP and native capacity qualification:
+**190 files / 37724943 bytes**, with ordered path/NUL/body-SHA-256 manifest
+`d472c85cb1d54046b49b9a325be9596638f987489e8152e9b569370d5b201151`.
+The outer qualification witness confirms identical corpus contents before/after; no corpus
+bodies are added to this repository. The byte count is 37.7 decimal MB / approximately 35.98 MiB;
+the separately qualified generated 190-file fixture is 39690240 bytes (37.85 MiB).
+
+| Final capacity journey fixture | Result | Seconds | Controller / utility peak KiB |
+|---|---|---:|---:|
+| 512 MiB aggregate, including 12-byte base | PASS | 65.610 | 40272 / 40272 |
+| Committed same 512 MiB aggregate | PASS | 75.331 | 40272 / 40272 |
+| Committed single file, 181403679 bytes | PASS | 27.112 | 40272 / 40272 |
+| Actual corpus, 190 files / 37724943 bytes | PASS | 23.082 | 40272 / 40272 |
+| >=173 MiB artifact source input | PASS | included in suite | not separately measured |
+| 1024 files / 1024 fixture body bytes | PASS | 3.113 | 40884 / 40884 |
+| Single file, 181403679 bytes | PASS | 13.814 | 42956 / 42956 |
+
+These reference native journeys cover admission → capture → checkpoint → integration →
+workspace → retirement/cleanup, including validation/publication for committed-source cases.
+Their peaks are cumulative process/child high-water observations, not a hard memory quota.
+Native HTTP separately passed the same corpus (**37.448s**), 173 MiB file (**45.313s**),
+committed 173 MiB source (**51.193s**) and 512 MiB aggregate (**203.353s**). The aggregate's
+536870900 fixture bytes plus the original 12 bytes meet the exact 536870912 source boundary.
+The new public native execution test additionally proves <2-second immediate admission for a
+181403679-byte source, changed-byte capture, atomic SQLite checkpoint, restart readback and
+retirement with a <4096-byte frozen intent. Private Rust source tests qualify 512 MiB capture,
+one-byte overflow preserving source, file/metadata edges and many-file retirement. Public
+HTTP also qualifies exact sparse dependency length 2147483648 and 2147483649-byte refusal,
+1-byte frozen working allowance vs newly configured 2 GiB, process/work/control capacity edges,
+preparation death, lost input acknowledgment and reset rename/rebuilt-directory recovery.
+The final qualification logs, source manifest and result/corpus witnesses are retained under
+`.artifacts/public-execution-0.1.29/`; LOCAL_VALIDATION remains the evidence narrative owner.
+
+Source/capture capacity does not expand native working allowance, dependency storage or caller
+context. Capture retains its 300-second deadline. Native same-UID execution and inherited OS
+limits are unchanged; there is no hard aggregate RAM/PID/disk quota, and Git algorithm/internal
+utility resources remain separate. Sparse exact-2-GiB dependency fixtures test accounted length
+and preflight refusal, not guaranteed physical free disk. Missing preparation/worker/stop proof
+remains unknown and cannot authorize retirement/reset or another launch. Source validation,
+exact non-force publication and remaining recovery qualification are the next P3 increment.
+Read-only installed alignment confirms bundle
+`e502ae7ee8a1b19fc524e761b523e357659a18cf24c8553f976fcc60f53855d3`, version **0.1.27**
+and workingBytes **2147483648**; no installed service/config/provider replacement was performed.
+
 ## Execution source lifecycle — 2026-10-05
 
 Source base: `05cbee3a944fec07fe2e760edc3584bc03efd59a`; product input revision **0.1.28**.

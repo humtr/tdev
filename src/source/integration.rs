@@ -11,7 +11,7 @@ pub(super) fn call(
     if let Some(operation) = app.replay(context, input, "task", original)? {
         return Ok(json!(operation));
     }
-    let (target, repo) = app.task(context, wire::string(input, "taskId")?)?;
+    let (target, repo) = app.ready_task(context, wire::string(input, "taskId")?)?;
     let (source, _) = app.task(context, wire::string(input, "sourceTaskId")?)?;
     if target.id == source.id || source.repo != target.repo || source.identity != target.identity {
         return Err(Fault::new("INTEGRATION_SOURCE"));

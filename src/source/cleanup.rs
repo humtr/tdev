@@ -28,7 +28,7 @@ pub(super) fn call(
     if let Some(operation) = app.replay(context, input, "task", original)? {
         return Ok(json!(operation));
     }
-    let (task, repo) = app.task(context, wire::string(input, "taskId")?)?;
+    let (task, repo) = app.ready_task(context, wire::string(input, "taskId")?)?;
     repo.git()?;
     let mut admission = app.admission(
         context,

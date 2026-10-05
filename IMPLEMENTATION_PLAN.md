@@ -253,14 +253,19 @@ with separate dependency preflight, sampling and final budgets. A released kerne
 worker death does not authorize reset while a consumer remains logically unknown.
 The owned source increment now binds immutable Git inputs to execution, seals stopped capture,
 constructs one original private Git candidate and retires copies. Source and actual-process
-qualification closes this private increment. Public execution is not connected
-by these primitives. Next join command/process admission and SQLite operation/control
-reconciliation, including the no-running/unknown-consumer gate for reset; do not expose the primitive as a completed API or
-close the P3 exit gate yet. The supervisor suite now has 31 actual-process checks. All full-gate
-stages passed on identical frozen inputs: 115 Rust, 108 native HTTP, 447 reference/common and
-7 native capacity checks, plus identity/contract comparisons. This combines the interrupted
-script's completed prefix with its qualified continuation, not an uninterrupted script exit 0.
-See LOCAL_VALIDATION.md for exact evidence and remaining scope.
+qualification closes this private increment. The next increment now connects public native
+command/process admission, original supervisor observation and SQLite checkpoint/receipt
+completion, immediate admission with bounded background preparation/import, sequenced
+stdin/cancel/retire controls (including preparation gaps), bounded task/workspace reconciliation and
+logical/kernel consumer exclusion for dependency reset. The same-directory reset journal
+preserves directory identity across interruption and completed replay cannot remove rebuilt
+storage. Process completion never changes source/writer/closed state. No dispatch belongs in
+replay or recovery. See LOCAL_VALIDATION.md for this increment's complete qualification evidence.
+Do not close the P3 exit gate yet: next join source-validation candidate/policy admission and
+exact non-force publication to the same stop/completion owners, then finish P3 recovery/frontier
+and qualification obligations. The earlier private increment qualified 115 Rust, 108 native HTTP,
+447 reference/common and 7 native capacity checks on identical frozen inputs; its interrupted
+script prefix plus qualified continuation remains historical evidence, not a script exit 0.
 
 1. Implement the independent native supervisor process and durable spool protocol: reserve before
    dispatch, PID/start identity, clean environment, task dependency leases, stdin sequencing,

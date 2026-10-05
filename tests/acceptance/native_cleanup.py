@@ -251,6 +251,25 @@ class NativeCleanupTest(unittest.TestCase):
         r.start()
         self.error('task', self.args, 'TASK_BUSY')
         current = self.inspect()
+        self.assertTrue(current['task']['closed'])
+        self.assertEqual(current['task']['busy'], 'publication-unknown')
+        r.stop()
+        self.sql('UPDATE task SET closed=0 WHERE id=?', (self.task['taskId'],))
+        r.start()
+        base = {'taskId': self.task['taskId'], 'expected': self.task['checkpoint']}
+        rejected = [
+            ('task', {**base, 'action': 'close', 'requestId': 'busy-close'}),
+            ('task', {**base, 'action': 'resetEnvironment', 'requestId': 'busy-reset'}),
+            ('edit', {**base, 'requestId': 'busy-edit',
+                      'edits': [{'action': 'put', 'path': 'forbidden', 'content': 'never',
+                                 'before': None}]}),
+            ('exec', {**base, 'requestId': 'busy-exec', 'command': 'printf never > forbidden'}),
+        ]
+        for tool, args in rejected:
+            self.error(tool, args, 'TASK_BUSY')
+            self.error('operation', {'action': 'status', 'lookupRequestId': args['requestId']},
+                       'OPERATION_NOT_FOUND')
+        current = self.inspect()
         self.assertEqual((current['refCleanup'],current['task']['busy'],current['active']['status']), ('observe','publication-unknown','unknown'))
         self.error('operation', {'action':'status','lookupRequestId':'cleanup'}, 'OPERATION_NOT_FOUND')
         self.assertEqual(self.head(), '')

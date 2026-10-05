@@ -109,6 +109,8 @@ impl Fixture {
             stdin: String::new(),
             environment: None,
             source: None,
+            capture: true,
+            env: Default::default(),
         }
     }
 

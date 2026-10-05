@@ -13,18 +13,31 @@ use crate::{
 };
 use serde_json::{Value, json};
 use std::{
-    collections::BTreeMap,
+    collections::{BTreeMap, BTreeSet},
     path::{Path, PathBuf},
     sync::{Arc, Mutex, MutexGuard, Weak},
 };
 
+#[derive(Clone)]
 pub struct Application {
-    pub contract: Contract,
-    pub surface: Surface,
+    pub contract: Arc<Contract>,
+    pub surface: Arc<Surface>,
     pub config: PathBuf,
     pub root: PathBuf,
-    store: Mutex<Store>,
-    operation_work: Mutex<BTreeMap<OperationId, Weak<Mutex<()>>>>,
+    store: Arc<Mutex<Store>>,
+    operation_work: Arc<Mutex<BTreeMap<OperationId, Weak<Mutex<()>>>>>,
+    execution_work: Arc<Mutex<BTreeSet<OperationId>>>,
+}
+pub(crate) struct ExecutionWork {
+    active: Arc<Mutex<BTreeSet<OperationId>>>,
+    id: OperationId,
+}
+impl Drop for ExecutionWork {
+    fn drop(&mut self) {
+        if let Ok(mut active) = self.active.lock() {
+            active.remove(&self.id);
+        }
+    }
 }
 impl Application {
     pub fn open(root: &Path, config: &Path) -> Result<Self> {
@@ -36,16 +49,47 @@ impl Application {
         let mut store = Store::open(root)?;
         store.recover_source()?;
         Ok(Self {
-            contract,
-            surface,
+            contract: Arc::new(contract),
+            surface: Arc::new(surface),
             config: config.into(),
             root: root.into(),
-            store: Mutex::new(store),
-            operation_work: Mutex::new(BTreeMap::new()),
+            store: Arc::new(Mutex::new(store)),
+            operation_work: Arc::new(Mutex::new(BTreeMap::new())),
+            execution_work: Arc::new(Mutex::new(BTreeSet::new())),
         })
     }
     pub(crate) fn store(&self) -> Result<MutexGuard<'_, Store>> {
         self.store.lock().map_err(|_| Fault::new("STORAGE"))
+    }
+    pub(crate) fn execution_pending(&self, id: &OperationId) -> Result<bool> {
+        Ok(self
+            .execution_work
+            .lock()
+            .map_err(|_| Fault::new("EXECUTION_BUSY"))?
+            .contains(id))
+    }
+    pub(crate) fn reserve_execution_work(&self, id: &OperationId) -> Result<Option<ExecutionWork>> {
+        let mut active = self
+            .execution_work
+            .lock()
+            .map_err(|_| Fault::new("EXECUTION_BUSY"))?;
+        if active.contains(id) {
+            return Ok(None);
+        }
+        if active.len() >= 8 {
+            return Err(Fault::message(
+                "EXECUTION_BUSY",
+                format!(
+                    "budget=executionWork configured=8 observed={}",
+                    active.len() + 1
+                ),
+            ));
+        }
+        active.insert(id.clone());
+        Ok(Some(ExecutionWork {
+            active: self.execution_work.clone(),
+            id: id.clone(),
+        }))
     }
     pub(crate) fn context(&self, bearer: &str) -> Result<Context> {
         let context = Context::load(&self.config, bearer, &self.contract)?;
@@ -99,8 +143,23 @@ impl Application {
         // feature has not been connected to this executable yet.
         if !matches!(
             receipt.operation.kind,
-            OperationKind::Workspace | OperationKind::Task | OperationKind::Edit
+            OperationKind::Workspace
+                | OperationKind::Task
+                | OperationKind::Edit
+                | OperationKind::Exec
+                | OperationKind::Operation
         ) {
+            return Err(Fault::new("UNSUPPORTED_OPERATION"));
+        }
+        let expected = match receipt.operation.kind {
+            OperationKind::Exec => Some("native-execution"),
+            OperationKind::Operation => Some("native-control"),
+            OperationKind::Task if receipt.intent["input"]["action"] == "resetEnvironment" => {
+                Some("native-environment-reset")
+            }
+            _ => None,
+        };
+        if expected.is_some_and(|expected| receipt.intent["construction"] != expected) {
             return Err(Fault::new("UNSUPPORTED_OPERATION"));
         }
         if let Some(task) = &receipt.operation.task {
@@ -168,6 +227,27 @@ impl Application {
         }
         Ok(())
     }
+    pub(crate) fn ready_task(&self, context: &Context, id: &str) -> Result<(Task, Repository)> {
+        let (task, repo) = self.task(context, id)?;
+        if let Some(busy) = &task.busy {
+            let receipt = self
+                .store()?
+                .receipt(&context.principal, Some(busy.as_str()), None)?
+                .ok_or_else(|| Fault::new("STATE_FORMAT"))?;
+            if let Err(error) = self.authorize_receipt(context, &receipt) {
+                // A retained writer from an unconnected feature stays busy. Task
+                // authority permits its summary, not reinterpretation of its effect.
+                if error.code == "UNSUPPORTED_OPERATION" {
+                    return Ok((task, repo));
+                }
+                return Err(error);
+            }
+            self.reconcile(context, &receipt)?;
+            self.task(context, id)
+        } else {
+            Ok((task, repo))
+        }
+    }
     pub(crate) fn replay(
         &self,
         context: &Context,
@@ -218,6 +298,14 @@ impl Application {
     pub(crate) fn reconcile(&self, context: &Context, receipt: &Receipt) -> Result<Operation> {
         if receipt.operation.kind == OperationKind::Project {
             crate::project::reconcile(self, context, receipt)
+        } else if receipt.operation.kind == OperationKind::Exec {
+            crate::execution::api::reconcile(self, context, receipt)
+        } else if receipt.operation.kind == OperationKind::Operation {
+            crate::execution::api::reconcile_control(self, context, receipt)
+        } else if receipt.operation.kind == OperationKind::Task
+            && receipt.intent["input"]["action"] == "resetEnvironment"
+        {
+            crate::execution::reset::reconcile(self, context, receipt)
         } else if receipt.operation.kind == OperationKind::Task
             && receipt.intent["input"]["action"] == "cleanup"
         {
@@ -241,7 +329,9 @@ impl Application {
                 "tdev_read" => crate::source::read(self, context, input),
                 "tdev_workspace" => crate::workspace::call(self, context, input, original),
                 "tdev_project" => crate::project::call(self, context, input, original),
-                "tdev_operation" => self.status(context, input),
+                "tdev_exec" => crate::execution::api::call(self, context, input, original),
+                "tdev_operation" if input["action"] == "status" => self.status(context, input),
+                "tdev_operation" => crate::execution::api::control(self, context, input, original),
                 _ => Err(Fault::new("SCHEMA")),
             }
         })();
@@ -270,8 +360,16 @@ impl Application {
             let operation = self.reconcile(context, &receipt)?;
             let terminal = operation.status.is_terminal();
             if terminal || std::time::Instant::now() >= deadline {
+                let latest = self
+                    .store()?
+                    .receipt(
+                        &context.principal,
+                        Some(receipt.operation.id.as_str()),
+                        None,
+                    )?
+                    .ok_or_else(|| Fault::new("OPERATION_NOT_FOUND"))?;
                 let mut value =
-                    serde_json::to_value(operation).map_err(|_| Fault::new("STATE_FORMAT"))?;
+                    crate::execution::api::project(self, context, &latest, operation, input)?;
                 wire::observe(&mut value, input["since"].as_str(), &["operation"])?;
                 return Ok(value);
             }
