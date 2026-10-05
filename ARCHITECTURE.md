@@ -204,9 +204,35 @@ workingBytes budget into its execution payload and retained intent. Native child
 and sampled/final working-storage checks use that same value (subject to inherited OS hard limits).
 Replay/reconnect observes the accepted budget; changing config never rewrites or relaunches an
 existing operation. Legacy payloads without the field retain the runner's default. Source capture,
-transfer, retained output and task dependency budgets remain separate; remote execution is unchanged.
+transfer, retained output and task dependency budgets remain separate. Working storage includes
+private Git objects and source files; a source that fits content capacity can still require a
+larger configured working budget. Rejection names the budget and its configured/observed values.
+The dormant OCI backend uses the frozen working budget for its work tmpfs; its memory/tmp
+quotas and qualification remain independent.
 
 ## 4. Durable state and source
+
+Source content capacity belongs to Git tree admission/construction and the contract's execution
+budgets. Immutable object sizes are checked before source acceptance; checkout double scans hash
+opened files without keeping their bodies in memory, matching SHA-256 content and metadata on both scans;
+the first scan writes its exact bytes to an owned temporary file for object construction,
+so equal metadata around a later original-file read cannot substitute different object content;
+matching content reuses its verified private object instead of writing it again, and composition/integration check the resulting tree.
+Source bytes move separately from control metadata: one shallow binary pack for materialization,
+and a stopped capture archive with a size/digest and path/mode/blob manifest. No second inline
+file-body copy belongs in the execution request. Capture bodies require matching server-owned
+stop/input evidence and stream through private Git construction before checkpoint completion.
+Private temporary files, utility pipes and retained bodies have explicit cleanup owners.
+Read pages and search/utility metadata retain independent caller/scan budgets; increasing source
+capacity never authorizes larger model context, command working storage or task dependencies.
+Large text replacement uses bounded UTF-8 carry; merge utilities receive private file inputs and
+stream output. Git bulk writes use regular file input; bounded pack mapping/cache avoids keeping
+a whole transferred pack resident. Git's own text merge/diff algorithms may still allocate
+memory internally; this is not a native aggregate memory quota. Fetch keeps received objects
+packed rather than producing whole-file loose mappings. Local upload-pack receives its own
+bounded pack/large-file settings; client settings alone do not configure the sender.
+Externally created large delta objects can still require Git's internal full-object decoding.
+
 
 | Row | Durable ownership |
 |---|---|
@@ -1288,7 +1314,8 @@ Operator `artifactLimits` independently bounds exported bytes, acquired bytes, o
 working storage and build/verification deadlines. Defaults preserve 64 MiB output, 64 MiB input,
 4,096 files and 128 MiB sampled working storage; manifest size remains capped at 1 MiB.
 Output/input/file settings can lower these format ceilings; working storage can be raised within
-its contract bound. Source-copy limits are unchanged. Sealing temporarily uses additional copies.
+its contract bound. Source admission remains independent of these acquired/exported input
+budgets. Sealing temporarily uses additional copies.
 These conservative limits do not qualify large Android toolchains or hostile-process containment.
 
 The worker fsyncs a private staged capture and atomically renames it. Reconciliation verifies

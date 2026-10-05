@@ -1,5 +1,5 @@
 //! A task's dependency lease outlives changes to its dependency directory.
-use super::spool::{checked_directory, lock_file, private_directory, within_budget};
+use super::spool::{checked_directory, lock_file, private_directory};
 use crate::model::TaskId;
 use serde::{Deserialize, Serialize};
 use std::fs::{File, TryLockError};
@@ -97,9 +97,9 @@ impl SharedEnvironment {
         &self.path
     }
 
-    pub fn within_budget(&self) -> io::Result<bool> {
+    pub fn within_budget(&self, job: &super::Job) -> io::Result<bool> {
         checked_directory(&self.path)?;
-        within_budget([self.path.clone()], DEPENDENCY_LIMIT)
+        job.check_budget([self.path.clone()], DEPENDENCY_LIMIT, 100000, "dependency")
     }
 }
 

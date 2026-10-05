@@ -1,11 +1,15 @@
 """Read an enrolled working tree without changing its index, refs or files."""
-import base64
 import os
+import hashlib
+import time
 import stat
+import tempfile
+from contextlib import nullcontext
 from pathlib import Path
 
 from .common import Fault, digest, path, require, run
 from .executor import safe_link
+from .capacity import SOURCE_BYTES, FILE_BYTES, SOURCE_FILES, check
 
 
 class Checkout:
@@ -49,14 +53,14 @@ class Checkout:
                 'CHECKOUT_SPARSE', 'Sparse/skip-worktree entries require a full checkout before importing')
         others = self.call('ls-files', '--others', '--exclude-standard', '-z')
         names.update(path(name.decode()) for name in others.split(b'\0') if name)
-        require(len(names) <= 100000, 'SOURCE_LIMIT')
+        check('checkoutSelectionPaths', 250000, len(names))
         return sorted(names), digest([index.hex(), flags.hex(), others.hex()])
 
     @staticmethod
     def signature(st):
         return (st.st_dev, st.st_ino, st.st_mode, st.st_size, st.st_mtime_ns, st.st_ctime_ns)
 
-    def file(self, root_fd, name):
+    def file(self, root_fd, name, cache, write):
         # Open every directory without following links, and reject FIFOs/devices before reading.
         parent = os.dup(root_fd)
         try:
@@ -78,19 +82,46 @@ class Checkout:
                 fd = os.open(parts[-1], os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=parent)
                 with os.fdopen(fd, 'rb') as stream:
                     require(self.signature(os.fstat(stream.fileno())) == self.signature(before), 'CHECKOUT_CHANGED')
-                    data = stream.read(16 * 1024 * 1024 + 1)
-                    require(len(data) <= 16 * 1024 * 1024, 'SOURCE_LIMIT')
+                    check('sourceFileBytes', FILE_BYTES, before.st_size)
+                    with (tempfile.TemporaryFile(dir=self.git.root) if write else nullcontext(None)) as captured:
+                        digest, seen = hashlib.sha256(), 0
+                        started = time.monotonic()
+                        while chunk := stream.read(min(65536, max(1, before.st_size - seen))):
+                            seen += len(chunk)
+                            check('sourceFileBytes', FILE_BYTES, seen)
+                            require(seen <= before.st_size, 'CHECKOUT_CHANGED')
+                            require(time.monotonic() - started <= 120, 'CHECKOUT_HASH_TIMEOUT')
+                            digest.update(chunk)
+                            if captured is not None:
+                                captured.write(chunk)
+                        require(seen == before.st_size, 'CHECKOUT_CHANGED')
+                        fingerprint = digest.hexdigest()
+                        oid = cache.get(fingerprint)
+                        if oid is None:
+                            require(write, 'CHECKOUT_CHANGED')
+                            oid = self.git.hash_file(captured)
+                            cache[fingerprint] = oid
                     require(self.signature(os.fstat(stream.fileno())) == self.signature(before), 'CHECKOUT_CHANGED')
                 mode = '100755' if before.st_mode & 0o111 else '100644'
             after = os.stat(parts[-1], dir_fd=parent, follow_symlinks=False)
             require(self.signature(before) == self.signature(after), 'CHECKOUT_CHANGED')
-            return {'path': name, 'mode': mode, 'data': base64.b64encode(data).decode()}, self.signature(after), len(data)
+            if mode == '120000':
+                fingerprint = hashlib.sha256(data).hexdigest()
+                oid = cache.get(fingerprint)
+                if oid is None:
+                    require(write, 'CHECKOUT_CHANGED')
+                    oid = self.git.call('hash-object', '-w', '--stdin', data=data).stdout.decode().strip()
+                    cache[fingerprint] = oid
+                size = len(data)
+            else:
+                size = before.st_size
+            return {'path': name, 'mode': mode, 'blob': oid, 'size': size}, (*self.signature(after), fingerprint), size
         except FileNotFoundError:
             return None, None, 0  # A consistently missing tracked file is an unstaged deletion.
         finally:
             os.close(parent)
 
-    def scan(self, expected, ref):
+    def scan(self, expected, ref, cache, write):
         self.identity(expected, ref)
         names, selected = self.selection()
         files, signatures, total = [], {}, 0
@@ -99,11 +130,12 @@ class Checkout:
             st = os.fstat(fd)
             require(f'local:{st.st_dev}:{st.st_ino}' == self.git.config['checkoutIdentity'], 'CHECKOUT_IDENTITY')
             for name in names:
-                item, signature, size = self.file(fd, name)
+                item, signature, size = self.file(fd, name, cache, write)
                 signatures[name] = signature
                 total += size
-                require(total <= 32 * 1024 * 1024, 'SOURCE_LIMIT')
+                check('sourceBytes', SOURCE_BYTES, total)
                 if item:
+                    check('sourceFiles', SOURCE_FILES, len(files) + 1)
                     files.append(item)
         finally:
             os.close(fd)
@@ -113,10 +145,11 @@ class Checkout:
 
     def capture(self, base, ref, marker):
         try:
-            first = self.scan(base, ref)
-            second = self.scan(base, ref)
+            cache = {}
+            first = self.scan(base, ref, cache, True)
+            second = self.scan(base, ref, cache, False)
             require(first == second, 'CHECKOUT_CHANGED', 'Local files changed during import; no source task was committed')
-            checkpoint = self.git.capture(base, first[0], marker)
+            checkpoint = self.git.capture_entries(base, {f['path']: (f['mode'], f['blob']) for f in first[0]}, marker)
             return checkpoint, {'head': base, 'tree': self.git.tree(checkpoint),
                                 'files': len(first[0]), 'selectionDigest': first[2]}
         except OSError:

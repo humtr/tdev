@@ -132,8 +132,8 @@ class BoundaryTest(Base):
     def test_late_dispatch_failure_cannot_overwrite_reconciled_terminal_result(self):
         w = self.open()
         submit = self.executor.submit
-        def lost(payload):
-            submit(payload)
+        def lost(payload, source=None):
+            submit(payload, source=source)
             self.wait(payload['id'])
             raise Fault('LOST_SUBMIT_REPLY', effect='unknown')
         args = self.args(w)

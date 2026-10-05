@@ -14,7 +14,7 @@ from pathlib import Path
 
 from .common import Fault, atomic_write, canonical, digest, private_file, require
 from .deployment_runtime import verify_release, stop_previous, check_release_runtime
-from .executor import materialize
+from .executor import materialize_source
 from .native import identity
 from .resident import Runit, sync
 from .store import Store
@@ -66,7 +66,14 @@ class NativeDeployment:
                                 os.fsync(stream.fileno())
                     sync_tree(directory)
                 else:
-                    materialize(files, directory / 'source')
+                    git, checkpoint = files
+                    with git.execution_source(checkpoint) as (entries, descriptor, pack):
+                        pack_path = directory / 'source.pack'
+                        from .executor import copy_source
+                        copy_source(pack, pack_path, descriptor)
+                        materialize_source(directory / 'source', {'files': entries, 'checkpoint': checkpoint, 'gitPack': descriptor}, pack_path)
+                        shutil.rmtree(directory / 'source/.git')
+                        pack_path.unlink()
                 atomic_write(directory / 'manifest.json', canonical(manifest))
                 os.rename(directory, target)
                 sync(releases)
@@ -290,10 +297,10 @@ class Deployments:
                             'artifact': {'artifactId': vi['artifactId'], 'contentDigest': vi['contentDigest'],
                                          'sourceValidationId': vi['sourceValidationId']}}
             else:
-                files = self.c.git(validation['repo']).export(vi['candidate'])
+                files = self.c.git(validation['repo']).content_manifest(vi['candidate'])
                 manifest = {'validationId': validation['id'], 'candidate': vi['candidate'], 'command': args['command'],
                             'health': args['health'], 'environment': vi['execution']['env'],
-                            'files': {f['path']: {'mode': f['mode'], 'digest': digest(base64.b64decode(f['data']))} for f in files}}
+                            'files': files}
                 require(all('\0' not in v for v in (manifest['command'], *manifest['environment'].values())), 'ENV')
             intent.update(manifest=manifest, repositoryIdentity=cfg['identity'])
             record = {**old_record, 'previous': old_record['release'], 'release': digest(manifest), 'desired': 'up'}
@@ -389,7 +396,7 @@ class Deployments:
                         if 'artifact' in manifest:
                             _, _, source, _ = self.c.artifacts.validated(row['owner'], manifest['validationId'])
                         else:
-                            source = self.c.git(row['repo']).export(manifest['candidate'])
+                            source = (self.c.git(row['repo']), manifest['candidate'])
                         self.backend.prepare(intent['new'], manifest, source)
                     if intent['new']['desired'] == 'up':
                         manifest = check_release_runtime(root / 'releases' / intent['new']['release'])

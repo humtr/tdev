@@ -85,26 +85,38 @@ def atomic_write(filename, data, mode=0o600):
             os.unlink(temporary)
 
 
-def run(argv, data=None, env=None, timeout=30, check=True, limit=48 * 1024 * 1024):
+def run(argv, data=None, env=None, timeout=30, check=True, limit=48 * 1024 * 1024,
+        output=None, budget='utilityOutputBytes'):
     try:
-        proc = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+        file_input = data is not None and hasattr(data, 'fileno') and data.fileno() >= 0
+    except (OSError, AttributeError):
+        file_input = False
+    try:
+        proc = subprocess.Popen(argv, stdin=data if file_input else subprocess.PIPE, stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE, env=env, start_new_session=True)
     except OSError:
         raise Fault("EXECUTABLE_UNAVAILABLE") from None
     # Feed potentially large pack/input concurrently while draining both pipes.
     def feed():
         try:
-            if data:
-                proc.stdin.write(data)
+            if data is not None:
+                if hasattr(data, 'read'):
+                    while chunk := data.read(65536):
+                        proc.stdin.write(chunk)
+                else:
+                    proc.stdin.write(data)
                 proc.stdin.flush()
         except (BrokenPipeError, OSError):
             pass
         finally:
             proc.stdin.close()
-    writer = threading.Thread(target=feed, daemon=True)
-    writer.start()
+    writer = None
+    if not file_input:
+        writer = threading.Thread(target=feed, daemon=True)
+        writer.start()
     selector = selectors.DefaultSelector()
     stdout, stderr = bytearray(), bytearray()
+    received = 0
     selector.register(proc.stdout, selectors.EVENT_READ, stdout)
     selector.register(proc.stderr, selectors.EVENT_READ, stderr)
     deadline = time.monotonic() + timeout
@@ -118,11 +130,23 @@ def run(argv, data=None, env=None, timeout=30, check=True, limit=48 * 1024 * 102
                 if not chunk:
                     selector.unregister(key.fileobj)
                 else:
-                    key.data.extend(chunk)
-                    if len(stdout) + len(stderr) > limit:
-                        raise Fault("OUTPUT_LIMIT", "Fixed utility output exceeded limit", "unknown")
+                    if key.fileobj is proc.stdout:
+                        received += len(chunk)
+                        observed = received if output is not None else received + len(stderr)
+                        if observed > limit:
+                            raise Fault("OUTPUT_LIMIT", f'budget={budget} configured={limit} observed={observed}', "unknown")
+                        if output is None:
+                            stdout.extend(chunk)
+                        else:
+                            output.write(chunk)
+                    else:
+                        stderr.extend(chunk)
+                        configured = 48 * 1024 * 1024 if output is not None else limit
+                        observed = len(stderr) if output is not None else received + len(stderr)
+                        if observed > configured:
+                            raise Fault("OUTPUT_LIMIT", f'budget=utilityDiagnosticBytes configured={configured} observed={observed}', "unknown")
         proc.wait(timeout=max(.01, deadline - time.monotonic()))
-    except (Fault, subprocess.TimeoutExpired) as error:
+    except BaseException as error:
         try:
             os.killpg(proc.pid, signal.SIGKILL)
         except ProcessLookupError:
@@ -135,7 +159,8 @@ def run(argv, data=None, env=None, timeout=30, check=True, limit=48 * 1024 * 102
         selector.close()
         proc.stdout.close()
         proc.stderr.close()
-        writer.join(timeout=1)
+        if writer is not None:
+            writer.join(timeout=1)
     result = subprocess.CompletedProcess(argv, proc.returncode, bytes(stdout), bytes(stderr))
     if check and result.returncode:
         raise Fault("COMMAND_FAILED", result.stderr[:2048].decode(errors="replace"))

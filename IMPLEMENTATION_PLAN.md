@@ -93,6 +93,14 @@ not competing queues. README owns implementation/current status; LOCAL_VALIDATIO
 results. Earlier incident/install/connection requests do not remain perpetual prerequisites once
 implemented. Current user instructions may reprioritize an item; record the resulting order here.
 
+The current instruction selects source capacity before the next public execution increment.
+Use the current implementation as evidence: inventory checkout/blob/capture/integration/pack
+and transport budgets, then provide 512 MiB source/file capacity through bounded streaming and
+remove duplicate file-plus-pack payloads. Preserve separate native working/dependency budgets
+and bounded model responses. Qualify the 190-file/37.7 MiB corpus, a >=173 MiB single file,
+many-file and 512 MiB aggregate journeys and boundary diagnostics before commit/push; assess
+resident alignment only after that qualification. Earlier branches are not capacity authority.
+
 The selected order is P0–P6 below: establish behavioral test boundaries, then redesign and
 implement directly in Rust using ARCHITECTURE §10. Do not first refactor the whole Python
 implementation. The prior product qualification queue later in this document supplies acceptance

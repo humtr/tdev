@@ -1,4 +1,244 @@
-# Local validation evidence — 2026-10-04
+# Local validation evidence — 2026-10-05
+
+## Source capacity and streaming transport — 2026-10-04
+
+The inspected source base is `ec3479b4feb118ef9ce6b41dca4abab8a0018df9` on the
+current `runtime-foundation` branch. The working implementation, not earlier branches or
+design notes, supplied the following effective-limit inventory. Product revision is 0.1.26.
+
+| Budget/path | Inspected implementation | Current implementation |
+|---|---|---|
+| Git single blob / checkout file | 16 MiB | 512 MiB |
+| Checkout / stopped source capture aggregate | 32 MiB | 512 MiB |
+| Admission and final compose/integration tree | admission depended on subsequent readers; final aggregate not consistently checked | immutable sizes, 512 MiB aggregate / 100000 files |
+| Execution source transfer | duplicate inline base64 files and base64 pack inside 48 MiB JSON guards | one shallow binary pack, 1 GiB physical transfer |
+| Capture transfer | whole inline file bodies; 32 MiB content / 48 MiB response guards | stopped binary tar, 1 GiB physical transfer |
+| Source/control metadata and utility output | 48 MiB | 48 MiB, independent of binary bodies |
+| Checkout selected paths | 100000 | 250000 selected paths; final source remains 100000 files |
+| Native working storage | 128 MiB default, operator maximum 2 GiB | same frozen byte budget; prelaunch/sample/final checks |
+| Working files / scan nodes | owner-dependent 100000 entries/nodes | 250000 files / 1000000 scan nodes |
+| Task dependencies | 2 GiB, 100000 entries/nodes | 2 GiB / 100000 files, separate 1000000 scan nodes |
+| Model HTTP input / read page / search scan | 2 MiB / 64 KiB / 16 MiB | unchanged and independent |
+| Artifact recipe source inputs | additional 32 MiB check and body buffering | admitted source capacity; streaming SHA-256 |
+
+Actual owners: `contracts/tools.schema.json` owns the wire semantics; Rust
+`src/git/capacity.rs` and Python `src/tdev/capacity.py` implement content/transport budgets.
+The standalone dormant executor repeats these values because it is digest-pinned and installed
+independently; tests compare all owners with the contract. `src/git/mod.rs` and
+`src/tdev/git.py` validate admission/final construction, stream blobs and shallow packs,
+and expose bounded read pages. Verified immutable object sizes are reused locally, while
+aggregate accounting still counts every source path, including repeated object identities.
+`src/git/checkout.rs` and `src/tdev/checkout.py` use matching file-descriptor/stat/SHA-256
+scans without retaining file bodies in memory. The first scan couples its content witness
+to an owned temporary file used by Git; it never rereads the mutable original to construct
+the private object. A controlled equal-metadata A → B → A test proves the stored blob still
+matches the witnessed bytes. Temporary copies close on every outcome.
+`src/git/integration.rs`, `src/git/replacement.rs`
+and `src/tdev/integration.py` stream private merge/replacement inputs and output.
+
+`src/tdev/core.py` and `src/tdev/artifacts.py` freeze metadata plus one binary descriptor;
+`src/tdev/native.py` and `src/tdev/executor.py` own materialization, stopped archive capture,
+storage checks and cleanup. `src/tdev/remote.py` carries length-framed bounded metadata plus
+binary streams over SSH. Capture requires the exact stopped operation/input/descriptor
+evidence before Git checkpoint construction. Native retirement removes source pack, capture
+archive, execution request and working directories while retaining receipts. Deployment
+source hashing/materialization uses the same streaming owners through
+`src/tdev/deployments.py` and `src/tdev/deployment_runtime.py`. Private Rust supervisor
+storage diagnostics live in `src/supervisor/{spool,environment,mod}.rs`; its structured budget
+evidence does not add unowned public Fault fields.
+
+The removed structure was repeated whole-source guards at checkout, capture, export, core
+submission, artifact submission and utility transport. Admission and final construction still
+validate the same content budget deliberately; downstream transport checks physical archive
+bytes and metadata, rather than imposing a smaller content ceiling. Large bodies use 64 KiB
+chunks or regular file descriptors. Git bulk writes have a 1 MiB large-file threshold;
+pack windows/cache are bounded separately (1 MiB window, 16 MiB mapped limit/cache).
+Text diff retains its prior 512 MiB threshold/semantics. Official
+[Git configuration documentation](https://git-scm.com/docs/git-config) explains why a
+large default pack mapping and the text/binary threshold required separate handling.
+
+Additional committed-source qualification exposed a second issue: a few fetched objects
+were unpacked into loose files, whose mappings raised utility peak RSS to approximately
+185 MiB on a 173 MiB source. Client settings alone did not configure local upload-pack.
+The fetch owners now configure the local sender independently and set `fetch.unpackLimit=1`
+to retain the received pack. A zero setting did not retain the pack in the measured Git
+2.55.0 run; changing `cat-file blob` to `-p` also did not resolve loose mappings.
+The same Python transfer owner serves admission, ancestry observation and local publication/
+managed-ref object transfer; Rust source fetch applies the same settings. Corrected focused
+native journeys passed: committed 181403679-byte source **25.496s / 42900 KiB peak**, and
+committed 536870912-byte aggregate including base files **121.481s / 38292 KiB peak**.
+These include stopped capture, checkpoint, integration, workspace inspection and cleanup,
+plus the aggregate's one-byte overflow rejection. Git affected checks passed **17 in 59.78s**;
+all-target clippy passed. The final full gate result is recorded below.
+The committed single-file fixture additionally passed real validation/publication and
+managed-ref cleanup **44.334s / 42656 KiB peak**. The actual corpus passed with the ordinary
+**128 MiB workingBytes** default **24.514s / 41368 KiB peak**. An initial combined Python
+affected selection passed its behavior checks but failed the HTTP fixture's memory assertion:
+it measured cumulative unittest-runner child peaks from earlier physical-budget fixtures.
+The HTTP fixture now measures its own live controller's `/proc` high-water mark; the isolated
+native journey continues to bound controller and utility child peaks separately. That failed
+selection (36 checks / 108.595s) is not a PASS.
+
+The actual user corpus is read-only evidence at
+`/data/data/com.termux/files/home/prj/house-md-distill/corpus/originals`: **190 files,
+37724943 bytes** (37.7 decimal MB, approximately 35.98 MiB). Its ordered path/NUL/body-SHA-256
+manifest digest is `d472c85cb1d54046b49b9a325be9596638f987489e8152e9b569370d5b201151`.
+No corpus body is added to this repository. Generated 190-file evidence separately uses
+39690240 bytes (37.85 MiB), meeting the requested binary-unit size as well.
+
+`tests/capacity_journey.py` exercises actual native source admission → capture → checkpoint →
+integration → workspace inspection → retirement/task cleanup, preserving original index/refs.
+Fixtures include the actual/generated corpus, a **181403679-byte single file**, 1024 files,
+and eight distinct files totaling **536870912 source bytes including the original 12 bytes**.
+The last also attempts one-byte growth, rejects capture with
+`budget=sourceBytes configured=536870912 observed=536870913`, and preserves its checkpoint.
+Another journey validates/builds an artifact using a >=173 MiB source input, eliminating the
+former recipe-specific ceiling. `tests/acceptance/test_capacity.py` checks checkout/edit/
+integration/read/workspace/cleanup through executable HTTP against both implementations.
+The Rust public execution handlers are not yet implemented; full native execution/capture
+journeys qualify the current full Python surface, while Rust checks qualify its implemented
+HTTP surface and private supervisor foundation.
+
+Physical edge fixtures in `tests/git.rs` cover 512 MiB−1/exact single-file hashing, bounded
+pages, a 512 MiB text replacement crossing a chunk boundary, final aggregate bounds and
+100000/100001-file construction. `tests/test_capacity.py` covers manifest byte/count edges,
+48 MiB−1/exact/over metadata frames, **1 GiB−1/exact/over physical binary transfer**, exact
+digest/length/EOF/nofollow checks and uncertain reservation replay without relaunch.
+Sparse physical fixtures are streamed/read, not allocated as whole in-memory bodies.
+Additional checks keep working scan nodes distinct from file count and retain exact configured/
+observed dependency/working byte diagnostics. A wrongly named `test_integration` selection
+produced an import error, not PASS; the corrected affected selection passed **28 in 95.427s**.
+Rust Git affected checks passed **17 in 58.01s** and all-target clippy passed.
+
+Small-workload comparison uses disposable executable HTTP fixtures, excludes server startup,
+alternates baseline/current order and takes ten samples per version for both implementations. It runs
+connect + checkout start + 12 six-byte replacement/read pairs; Python additionally runs actual
+native exec/capture/retire. Median Rust latency is **10.964558 → 10.414968 seconds** (0.950×);
+Python is **4.931108 → 4.705780 seconds** (0.954×). No regression was observed in this bounded
+local workload; this is not a concurrency or broad device performance guarantee. The final
+measurement ran after focused tests completed, including the committed-source fetch correction.
+Rust sampling was expanded after three samples had high variance (initial median 1.043×);
+all ten samples are included, not selected by result. The Rust-only helper completed all
+fourteen additional timed workloads but then selected an absent Python group in the summary
+and exited 1. The corrected combiner verifies 26 initial and 14 additional completed workload
+rows and ten samples in each group before computing these medians; this is not a product
+failure or a PASS claim for the faulty helper. Earlier exploratory/pre-fetch measurements
+remain retained but do not identify the final implementation.
+Baseline Rust binary SHA-256 is
+`ea8c2096005998e73c53d09ef53ff0c3f3fcb96c4defa918f0db0ff27678caec`;
+measured debug binary before the independent spool publication correction is
+`76043319a0db71b260dfd9a397632e4abb44f5057126bf73efb1d9fdcf474e1a`.
+
+The next complete gate exited **101 / 50.448s** in one shared-dependency cancellation
+fixture: its worker retained incomplete evidence (`kind=Other`). A deterministic serializer
+barrier then proved that the old `once` implementation exposes empty cancellation JSON
+before serialization completes: the baseline countertest exits **101** with **EOF while
+parsing a value**. The original worker diagnostic did not record the detailed cause, so the
+countertest establishes the race rather than attributing that single diagnostic uniquely.
+`src/supervisor/spool.rs` now serializes/syncs a private temporary file and publishes it
+with the existing tempfile no-replace primitive. On Android this uses no-replace rename;
+the initial direct hard-link implementation failed PermissionDenied and was replaced.
+Existing fences are never overwritten, and failed serialization removes the temporary file
+without publishing a fence. Both focused visibility tests passed; clippy passed; the
+supervisor's **30 tests passed five consecutive runs** after the correction. An intermediate
+clippy placement error was corrected by placing the test module after production items.
+Those rejected attempts are not PASS. Source/Git owners measured above did not change in
+this private-spool correction. Full gate qualification of the corrected input passed below.
+
+The subsequent full run was deliberately interrupted with actual exit **130 / 531.731s**
+to correct two diagnostic owners. Rust's combined stdout/stderr utility ceiling now reports
+the original configured total and the observed combined total, rather than a remaining
+allowance. GitHub transport preserves these owned numeric budget errors while still hiding
+provider child diagnostics. Actual-process unit fixtures prove both properties; focused Git
+checks passed **17 in 48.95s**, all-target clippy passed, and Rust HTTP GitHub checks passed
+**5 in 27.262s**. These changes do not alter successful source/Git work measured above.
+
+Remaining independent boundaries: source 512 MiB/100000 files, physical pack/capture 1 GiB,
+metadata/control 48 MiB, capture extension header 16 KiB, read page 64 KiB, search scan 16 MiB
+and model input 2 MiB. Searching one larger file now returns a named scan-budget error instead
+of rereading it or leaving a pagination cursor stuck. Native workingBytes still defaults to
+128 MiB; qualification selects 2 GiB because a materialized source also holds private Git
+objects. Dependency capacity stays independently 2 GiB. Filesystem space, inherited OS limits,
+bounded utility/capture deadlines and private retained history remain separate constraints.
+Git text merge/diff algorithms may allocate complete internal inputs; there is no hard native
+aggregate memory quota. Externally packed large deltas can also require full-object Git
+decoding; measured bounded-RSS fixtures contain ordinary non-delta large objects. Git's
+[packed streaming implementation](https://github.com/git/git/blob/v2.55.0/packfile.c)
+explicitly falls back for delta objects. The 512 MiB aggregate journey after pack-window correction measured
+42760 KiB peak controller/child RSS; an earlier 531788 KiB utility peak exposed the mapping
+issue and is not evidence of bounded memory. Dormant SSH/OCI stream fixtures do not qualify a
+live remote host: OCI memory remains 512 MiB and /tmp 128 MiB, independent of /work's frozen
+workingBytes. No partial Rust server is activated as the resident.
+Retained legacy inline requests/captures remain readable for previously accepted work; their
+whole-body JSON path has a 48 MiB control frame and is not a large-source streaming format.
+New source operations always use the binary descriptor path, without caller format selection.
+
+Evidence is retained under `$PREFIX/tmp/tdev-capacity-*.log`, including
+`actual-corpus-final`, `aggregate-memory`, `large-artifact`, `physical-edges`,
+`size-cache-{lint,rust,python-qualified}`, and `small-performance-final`. The explicit full
+gate's first run was deliberately interrupted with actual exit **130** for the checkout
+content/object coupling correction; its evidence is `full-interrupted.log/.exit` and is
+not PASS. A subsequent run completed 89 Rust checks, identity/contract comparisons and all
+107 Rust HTTP checks, but disappeared during reference artifact validation with no terminal
+record. `full-lost.log/.pid` preserves that evidence, not a full-gate PASS. A third run was
+deliberately interrupted for the committed-source correction: `full-before-fetch.log/.exit`
+records actual exit **130**, 1074.882s. `full-before-spool` records the supervisor failure
+above; `full-before-diagnostics` records the deliberately interrupted diagnostic correction.
+The next full run freezes the corrected
+source/test/contract/script inputs and the actual corpus, runs in a
+foreground session, and independently records `full.exit` plus `full-result.json`; its
+terminal result and resident readback are recorded below.
+
+Final qualification completed **2026-10-05**: `sh scripts/check.sh` exited **0 / 2914.137s**.
+Fmt and all-target clippy passed; **93 Rust checks** (46 library, 17 Git, 30 supervisor),
+**10003 canonical identity cases**, **136 compiled contract cases**, **108 Rust executable
+HTTP scenarios**, **443 reference/common checks in 1448.660s**, and **7 large native
+lifecycle checks in 266.106s** passed. Four existing SQLite ResourceWarnings were nonfatal;
+there were no skipped or failed tests. The 165 source/test/contract/script inputs remained
+identical before and after the gate, with canonical input-map SHA-256
+`53d8c4e3452042abf950457e61cdaa5a7c726bc3ea94f3a75eda1bafd621865a`.
+Qualified debug binary SHA-256 is
+`1b57e555ba28002e556b4a4a861ad0b2df07850807351efb940c1b94f9a73ad8`.
+Only documentation closeout changed after qualification.
+
+| Final native lifecycle fixture | Source bytes (excluding two original 6-byte files) | Result / journey seconds |
+|---|---:|---|
+| Actual corpus, 190 files, ordinary 128 MiB working default | 37724943 | PASS / 18.656 |
+| Single >=173 MiB file | 181403679 | PASS / 24.772 |
+| Committed >=173 MiB source, validation/publication/managed-ref cleanup | 181403679 | PASS / 26.284 |
+| 512 MiB aggregate, capture one-byte overflow/checkpoint preservation | 536870900 | PASS / 54.326 |
+| Committed 512 MiB aggregate, same capture overflow/cleanup | 536870900 | PASS / 66.951 |
+| 1024 files | 1024 | PASS / 4.508 |
+| >=173 MiB artifact source input, validation/build/cleanup | 181403679 | PASS |
+
+Maximum cumulative controller/utility child high-water mark across the final seven journeys
+was **49696 KiB**. Rust and Python HTTP independently passed the actual corpus, >=173 MiB
+uncommitted/committed files, exact 512 MiB aggregate and one-byte admission overflow.
+Committed-file HTTP controller peaks were **26876 KiB Rust / 37236 KiB Python**.
+Physical single-file, aggregate/count, 48 MiB metadata and 1 GiB binary transfer edge fixtures
+also passed in the complete gate. Because the actual corpus is 37.7 decimal MB rather than
+37.7 MiB, the existing generated-corpus scenario was separately run without the corpus override:
+**190 files / 39690240 bytes / 37.85 MiB**, native full journey **26.068s**, one check
+**27.698s**, controller/utility peak **41080 KiB**, PASS. Its log is
+`generated-corpus-final.log`; final gate evidence is `full.log/.exit` and `full-result.json`.
+
+Resident readback after qualification reports **0.1.25**, healthy controller/two tunnels,
+active bundle `f1d10cf548ff2cbc1169db2ab239b3c772a0b8264e61ad8b31bffad777877ee7`.
+The qualified 217-file source bundle preview is
+`a0fcb16bae5215c4e03ad219d1cd67544e929f492b5a9e39605b6d48bfa517fe` (0.1.26).
+Canonical maintenance readiness still rejects **OUTSTANDING_EFFECT**: pre-existing unknown
+stdin control `9b2a9a574fea49a98a0b93cd1a6a127a` targets failed execution
+`c5ededc2a5c043f9a6a543cfa76535ba`; absence of retained acceptance proof cannot establish
+whether prior input was delivered. No stdin was resent, operation changed, service stopped,
+bundle staged or resident activated. Canonical staging also writes service desired-state
+files, so it is not used merely to prepare an inactive update while this guard is closed.
+Historical unknown managed publication `2531fb0f9bbd4aa584865f62898e1010` retains the exact
+complete SQL-row-array digest; config/settings digests and active bundle match the prior
+snapshot. An initial readback helper compared a row dictionary to the prior row array and
+failed its assertion; using the same canonical array encoding proves the row is unchanged.
+Snapshots are `resident-before.json` and `resident-after.json` under the evidence prefix.
+The live workingBytes setting remains 512 MiB; it is not silently raised. A 512 MiB source
+plus its private Git objects requires a larger independent working budget, as qualified above.
 
 ## Sequenced input and task dependency leases — 2026-10-04
 

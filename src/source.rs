@@ -373,9 +373,18 @@ pub fn read(app: &Application, context: &Context, input: &Value) -> Result<Value
                     let entry = entries
                         .get(&path)
                         .ok_or_else(|| Fault::new("FILE_NOT_FOUND"))?;
-                    let data = git.blob(&entry.blob)?;
                     item = json!({"action":action,"path":path,"blob":entry.blob,"mode":entry.mode.as_str()});
-                    chunk(&mut item, &data, query, &offset, &mut remaining, false)?;
+                    let count =
+                        (wire::bounded(query, "limit", 24000, 65536)? as usize).min(remaining);
+                    let (size, data) =
+                        git.blob_range(&entry.blob, offset.index(usize::MAX), count)?;
+                    remaining -= data.len();
+                    item["size"] = json!(size);
+                    item["offset"] = offset.original.clone();
+                    item["nextOffset"] = offset.plus(data.len())?;
+                    item["complete"] = json!(offset.index(size) + data.len() >= size);
+                    item["data"] = json!(STANDARD.encode(data));
+                    item["encoding"] = json!("base64");
                 }
                 "list" => {
                     let start = offset.index(names.len());
@@ -405,10 +414,19 @@ pub fn read(app: &Application, context: &Context, input: &Value) -> Result<Value
                         if remaining < cost {
                             break;
                         }
-                        let data = git.blob(&entry.blob)?;
-                        if scanned + data.len() > 16 * 1024 * 1024 {
+                        let size = git.blob_size(&entry.blob)?;
+                        if size > 16 * 1024 * 1024 {
+                            return Err(Fault::message(
+                                "READ_SCAN_LIMIT",
+                                format!(
+                                    "budget=readSearchScanBytes configured=16777216 observed={size}"
+                                ),
+                            ));
+                        }
+                        if scanned + size > 16 * 1024 * 1024 {
                             break;
                         }
+                        let data = git.blob(&entry.blob)?;
                         scanned += data.len();
                         index += 1;
                         if let Some(hit) = memchr::memmem::find(&data, needle) {

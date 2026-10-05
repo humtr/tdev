@@ -143,8 +143,8 @@ class EnvironmentTest(Base):
     def test_process_lost_reply_replay_and_deadline(self):
         w = self.open()
         original = NativeExecutor.submit
-        def lost(executor, payload):
-            original(executor, payload)
+        def lost(executor, payload, source=None):
+            original(executor, payload, source=source)
             raise Fault('LOST_REPLY', effect='unknown')
         with patch.object(NativeExecutor, 'submit', lost):
             process = self.execute(w, 'lost-process', 'printf once; printf discarded > a.txt; sleep 30', mode='process', timeout=1)
@@ -266,5 +266,5 @@ class EnvironmentTest(Base):
             with open(root / ('large-' + str(index)), 'wb') as stream:
                 stream.truncate(128 * 1024 * 1024 if index < 16 else 1)
         result = self.wait(self.execute(w, 'detect-environment-limit', 'sleep 1')['id'])
-        self.assertEqual(result['result']['captureError'], 'ENVIRONMENT_DISK_LIMIT')
+        self.assertEqual(result['result']['captureError'], 'ENVIRONMENT_DISK_LIMIT budget=dependencyBytes configured=2147483648 observed=2147483649')
         self.assertEqual(self.c.task('alice', w['taskId'])['checkpoint'], w['checkpoint'])

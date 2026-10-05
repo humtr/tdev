@@ -21,6 +21,8 @@ TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.
 TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.abspath("target/debug/tdev"), "serve"]))') \
     python -m unittest discover -s tests/acceptance -t tests -p 'test_import.py' -v
 TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.abspath("target/debug/tdev"), "serve"]))') \
+    python -m unittest discover -s tests/acceptance -t tests -p 'test_capacity.py' -v
+TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.abspath("target/debug/tdev"), "serve"]))') \
     python -m unittest discover -s tests/acceptance -t tests -p 'test_integration.py' -v
 TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.abspath("target/debug/tdev"), "serve"]))') \
     python -m unittest discover -s tests/acceptance -t tests -p 'test_cleanup.py' -v
@@ -31,4 +33,5 @@ TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.
 # tests/acceptance is a package: this discovery includes its executable scenarios.
 test -f tests/acceptance/__init__.py
 python -m unittest discover -s tests -p 'test_*.py' -v
+python scripts/check_capacity.py
 git diff --check

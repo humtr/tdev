@@ -13,6 +13,7 @@ if __package__ in (None, ''):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from tdev.common import canonical, digest, require, atomic_write
+from tdev.executor import file_digest
 from tdev.native import environment, identity, signal_exact, stop_children
 
 
@@ -39,7 +40,9 @@ def verify_release(directory):
         if entry['mode'] == '120000':
             require(file.is_symlink() and digest(os.readlink(file).encode()) == entry['digest'], 'RELEASE_CHANGED')
         else:
-            require(not file.is_symlink() and file.is_file() and digest(file.read_bytes()) == entry['digest'], 'RELEASE_CHANGED')
+            require(not file.is_symlink() and file.is_file(), 'RELEASE_CHANGED')
+            with file.open('rb') as stream:
+                require(file_digest(stream) == entry['digest'], 'RELEASE_CHANGED')
             require(bool(file.stat().st_mode & 0o111) == (entry['mode'] == '100755'), 'RELEASE_CHANGED')
     return manifest
 

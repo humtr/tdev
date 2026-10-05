@@ -133,27 +133,20 @@ impl Git {
                             } else {
                                 None
                             };
-                            let data = [
-                                self.blob(&o.blob)?,
-                                self.blob(&b.blob)?,
-                                self.blob(&t.blob)?,
-                            ];
-                            if data.iter().any(|bytes| bytes.contains(&0)) {
-                                Some("binary")
-                            } else if let Some(mode) = mode {
-                                if let Some(data) = self.merge_file(&data)? {
+                            match self.merge_file(&[o, b, t], mode.is_some())? {
+                                Merge::Binary => Some("binary"),
+                                Merge::Merged(blob) => {
                                     merged.insert(
                                         name.clone(),
                                         Entry {
-                                            mode,
-                                            blob: self.hash_blob(&data)?,
+                                            mode: mode.expect("Merge mode"),
+                                            blob,
                                         },
                                     );
                                     continue;
                                 }
-                                Some("content")
-                            } else {
-                                Some("mode")
+                                Merge::Conflict if mode.is_none() => Some("mode"),
+                                Merge::Conflict => Some("content"),
                             }
                         }
                     }
@@ -187,9 +180,7 @@ impl Git {
                 Choice::Base => before.get(name).cloned(),
                 Choice::Delete => None,
                 Choice::Content { mode, data } => {
-                    if data.len() > BLOB_LIMIT {
-                        return Err(Fault::new("SOURCE_LIMIT"));
-                    }
+                    capacity::check("SOURCE_LIMIT", "sourceFileBytes", BLOB_LIMIT, data.len())?;
                     Some(Entry {
                         mode: *mode,
                         blob: self.hash_blob(data)?,
@@ -225,33 +216,54 @@ impl Git {
         })
     }
 
-    fn merge_file(&self, data: &[Vec<u8>; 3]) -> Result<Option<Vec<u8>>> {
+    fn merge_file(&self, entries: &[&Entry; 3], merge_mode: bool) -> Result<Merge> {
         let directory = tempfile::Builder::new()
             .prefix("merge-")
             .tempdir_in(&self.root)
             .map_err(|_| Fault::new("GIT_STORE"))?;
         let files = ["current", "base", "incoming"].map(|side| directory.path().join(side));
-        for (path, bytes) in files.iter().zip(data) {
-            fs::write(path, bytes).map_err(|_| Fault::new("GIT_STORE"))?;
+        for (path, entry) in files.iter().zip(entries) {
+            let mut file = File::create(path).map_err(|_| Fault::new("GIT_STORE"))?;
+            self.blob_to(&entry.blob, &mut file)?;
+            let mut file = File::open(path).map_err(|_| Fault::new("GIT_STORE"))?;
+            let mut chunk = [0; 65536];
+            loop {
+                let size = file.read(&mut chunk).map_err(|_| Fault::new("GIT_STORE"))?;
+                if size == 0 {
+                    break;
+                }
+                if chunk[..size].contains(&0) {
+                    return Ok(Merge::Binary);
+                }
+            }
         }
-        let output = run(
+        if !merge_mode {
+            return Ok(Merge::Conflict);
+        }
+        let path = directory.path().join("merged");
+        let mut merged = File::create(&path).map_err(|_| Fault::new("GIT_STORE"))?;
+        let output = process::stream(
             command(Some(&self.root))
                 .args(["merge-file", "-p", "--diff3"])
                 .args(&files),
-            &[],
-            UTILITY_TIMEOUT,
-            OUTPUT_LIMIT,
+            None,
+            FETCH_TIMEOUT,
+            BLOB_LIMIT,
             false,
+            &mut merged,
         )?;
         match output.status.code() {
-            Some(0) => {
-                if output.stdout.len() > BLOB_LIMIT {
-                    return Err(Fault::new("SOURCE_LIMIT"));
-                }
-                Ok(Some(output.stdout))
-            }
-            Some(1..=127) => Ok(None),
+            Some(0) => Ok(Merge::Merged(self.hash_blob_file(
+                &File::open(path).map_err(|_| Fault::new("GIT_STORE"))?,
+            )?)),
+            Some(1..=127) => Ok(Merge::Conflict),
             _ => Err(Fault::new("MERGE_FAILED")),
         }
     }
+}
+
+enum Merge {
+    Binary,
+    Conflict,
+    Merged(BlobId),
 }

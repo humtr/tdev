@@ -3,6 +3,7 @@ import tempfile
 from pathlib import Path
 
 from .common import decode, path, require
+from .capacity import FILE_BYTES, check
 
 
 def record(entry):
@@ -42,24 +43,34 @@ def integrate(git, checkpoint, base, incoming, resolutions, marker):
                 conflict(name, 'type-or-link')
             else:
                 mode = t[0] if o[0] == b[0] else o[0] if t[0] in (b[0], o[0]) else None
-                data = [git.blob(entry[1]) for entry in (o, b, t)]
-                if any(b'\0' in content for content in data):
-                    conflict(name, 'binary')
-                elif mode is None:
-                    conflict(name, 'mode')
-                else:
-                    # No user attributes, drivers, filters or hooks are executed.
-                    with tempfile.TemporaryDirectory(prefix='merge-', dir=git.root) as tmp:
-                        files = [Path(tmp) / side for side in ('current', 'base', 'incoming')]
-                        for filename, content in zip(files, data):
-                            filename.write_bytes(content)
-                        result = git.call('merge-file', '-p', '--diff3', *map(str, files), check=False)
-                    require(0 <= result.returncode <= 127, 'MERGE_FAILED')
-                    if result.returncode:
-                        conflict(name, 'content')
+                # Each source goes straight to a private file; merge output is streamed too.
+                with tempfile.TemporaryDirectory(prefix='merge-', dir=git.root) as tmp:
+                    files = [Path(tmp) / side for side in ('current', 'base', 'incoming')]
+                    binary = False
+                    for filename, entry in zip(files, (o, b, t)):
+                        with filename.open('wb') as stream:
+                            git.blob_to(entry[1], stream)
+                        with filename.open('rb') as stream:
+                            while chunk := stream.read(65536):
+                                if b'\0' in chunk:
+                                    binary = True
+                                    break
+                        if binary:
+                            break
+                    if binary:
+                        conflict(name, 'binary')
+                    elif mode is None:
+                        conflict(name, 'mode')
                     else:
-                        blob = git.call('hash-object', '-w', '--stdin', data=result.stdout).stdout.decode().strip()
-                        selected = (mode, blob)
+                        with (Path(tmp) / 'merged').open('w+b') as merged_file:
+                            result = git.call('merge-file', '-p', '--diff3', *map(str, files),
+                                              check=False, output=merged_file, limit=FILE_BYTES,
+                                              timeout=120, budget='sourceFileBytes')
+                            require(0 <= result.returncode <= 127, 'MERGE_FAILED')
+                            if result.returncode:
+                                conflict(name, 'content')
+                            else:
+                                selected = (mode, git.hash_file(merged_file))
         if selected:
             merged[name] = selected
     for name in collisions(merged):
@@ -74,7 +85,7 @@ def integrate(git, checkpoint, base, incoming, resolutions, marker):
         choice = resolution['choice']
         if choice == 'content':
             content = decode(resolution['content'], resolution.get('encoding', 'utf8'))
-            require(len(content) <= 16 * 1024 * 1024, 'SOURCE_LIMIT')
+            check('sourceFileBytes', FILE_BYTES, len(content))
             selected = (resolution.get('mode', '100644'),
                         git.call('hash-object', '-w', '--stdin', data=content).stdout.decode().strip())
         else:

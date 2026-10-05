@@ -839,18 +839,15 @@ fn literal_diff_paths_modes_and_invalid_utf8_replace_are_explicit() {
         "SOURCE_ENCODING"
     );
     let oversized = BTreeMap::from([(
-        path("too-large"),
+        path("large-valid"),
         (FileMode::File, vec![0; 32 * 1024 * 1024 + 1]),
     )]);
     let refs = fixture.refs();
-    assert_eq!(
-        store
-            .capture(&edited, &oversized, &operation("overflow"))
-            .unwrap_err()
-            .code,
-        "CAPTURE_LIMIT"
-    );
-    assert_eq!(fixture.refs(), refs);
+    let captured = store
+        .capture(&edited, &oversized, &operation("large-valid"))
+        .unwrap();
+    assert_eq!(store.entries(&captured).unwrap().len(), 1);
+    assert_ne!(fixture.refs(), refs);
 }
 
 #[test]
@@ -964,8 +961,14 @@ fn gitlinks_invalid_utf8_and_unsafe_git_names_do_not_become_source_paths() {
                 "HEAD:refs/heads/main",
             ],
         );
-        let store = fixture.open();
-        assert_eq!(store.entries(&fixture.head).unwrap_err().code, "PATH");
+        let store = Git::open(&fixture.cache, fixture.repository()).unwrap();
+        assert_eq!(
+            store
+                .fetch(&BranchRef::new("refs/heads/main").unwrap(), &fixture.head)
+                .unwrap_err()
+                .code,
+            "PATH"
+        );
     }
     let mut fixture = Fixture::new("sha1");
     git(
@@ -988,7 +991,11 @@ fn gitlinks_invalid_utf8_and_unsafe_git_names_do_not_become_source_paths() {
         ],
     );
     assert_eq!(
-        fixture.open().entries(&fixture.head).unwrap_err().code,
+        Git::open(&fixture.cache, fixture.repository())
+            .unwrap()
+            .fetch(&BranchRef::new("refs/heads/main").unwrap(), &fixture.head)
+            .unwrap_err()
+            .code,
         "UNSUPPORTED_GITLINK"
     );
 }
@@ -1050,8 +1057,7 @@ fn hooks_filters_textconv_and_replace_refs_cannot_reinterpret_checkpoint_bytes()
 fn capture_budget_is_distinct_from_the_bounded_blob_read_budget() {
     let fixture = Fixture::new("sha1");
     let store = fixture.open();
-    // The existing capture budget is 32 MiB total; bounded file reads are 16 MiB.
-    // A read limit must not silently become a narrower capture acceptance limit.
+    // Source acceptance is independent of the bounded caller response.
     let captured = BTreeMap::from([(
         path("large"),
         (FileMode::File, vec![0; 16 * 1024 * 1024 + 1]),
@@ -1061,8 +1067,12 @@ fn capture_budget_is_distinct_from_the_bounded_blob_read_budget() {
         .unwrap();
     let entries = store.entries(&checkpoint).unwrap();
     assert_eq!(
-        store.blob(&entries[&path("large")].blob).unwrap_err().code,
-        "SOURCE_LIMIT"
+        store
+            .blob_range(&entries[&path("large")].blob, 0, 65536)
+            .unwrap()
+            .1
+            .len(),
+        65536
     );
     assert_eq!(
         store
@@ -1104,4 +1114,123 @@ fn replacement_expansion_is_bounded_before_allocating_the_result() {
     assert_eq!(error.code, "SOURCE_LIMIT");
     assert_eq!(fixture.refs(), refs);
     assert_eq!(files(&store, &starting)[&path("repeat")].1.len(), 10000);
+}
+
+#[test]
+fn source_file_edges_stream_from_files_and_tree_admission_checks_aggregate() {
+    use tdev::git::capacity::{FILE_BYTES, SOURCE_BYTES, SOURCE_FILES};
+    let fixture = Fixture::new("sha1");
+    let store = fixture.open();
+    let file = fs::File::options()
+        .create_new(true)
+        .write(true)
+        .read(true)
+        .open(fixture.work.join("capacity-fixture"))
+        .unwrap();
+    for size in [FILE_BYTES - 1, FILE_BYTES] {
+        file.set_len(size as u64).unwrap();
+        let blob = store.hash_blob_file(&file).unwrap();
+        let entries = BTreeMap::from([(
+            path("large"),
+            tdev::git::Entry {
+                mode: FileMode::File,
+                blob,
+            },
+        )]);
+        let checkpoint = store
+            .capture_entries(&fixture.head, &entries, &operation("capacity-edge"))
+            .unwrap();
+        if size == FILE_BYTES {
+            use std::io::{Seek, SeekFrom, Write};
+            let mut marker_file = file.try_clone().unwrap();
+            marker_file.seek(SeekFrom::Start(65533)).unwrap();
+            marker_file.write_all(b"MARKER").unwrap();
+            let marked = store.hash_blob_file(&file).unwrap();
+            let marked_entries = BTreeMap::from([(
+                path("large"),
+                tdev::git::Entry {
+                    mode: FileMode::File,
+                    blob: marked,
+                },
+            )]);
+            let marked_checkpoint = store
+                .capture_entries(&checkpoint, &marked_entries, &operation("marked-source"))
+                .unwrap();
+            let replaced = store
+                .edit(
+                    &marked_checkpoint,
+                    &[Edit::Replace {
+                        path: path("large"),
+                        old: "MARKER".into(),
+                        text: "TARGET".into(),
+                        count: 1,
+                    }],
+                    &operation("large-replace"),
+                )
+                .unwrap();
+            let replaced_blob = &store.entries(&replaced).unwrap()[&path("large")].blob;
+            assert_eq!(
+                store.blob_range(replaced_blob, 65533, 6).unwrap(),
+                (size, b"TARGET".to_vec())
+            );
+        }
+        let selected = store.entries(&checkpoint).unwrap();
+        assert_eq!(
+            store
+                .blob_range(&selected[&path("large")].blob, size - 1, 31)
+                .unwrap(),
+            (size, vec![0])
+        );
+        let mut aggregate = entries.clone();
+        let one = store
+            .edit(
+                &fixture.head,
+                &[Edit::Put {
+                    path: path("one"),
+                    data: vec![1],
+                    mode: FileMode::File,
+                    before: None,
+                }],
+                &operation("one-byte"),
+            )
+            .unwrap();
+        aggregate.insert(
+            path("one"),
+            store.entries(&one).unwrap()[&path("one")].clone(),
+        );
+        if size == SOURCE_BYTES {
+            let error = store
+                .capture_entries(&checkpoint, &aggregate, &operation("aggregate-over"))
+                .unwrap_err();
+            assert!(error.message.contains(&format!(
+                "budget=sourceBytes configured={SOURCE_BYTES} observed={}",
+                SOURCE_BYTES + 1
+            )));
+        } else {
+            store
+                .capture_entries(&checkpoint, &aggregate, &operation("aggregate-at"))
+                .unwrap();
+        }
+    }
+    file.set_len(FILE_BYTES as u64 + 1).unwrap();
+    let error = store.hash_blob_file(&file).unwrap_err();
+    assert!(error.message.contains(&format!(
+        "budget=sourceFileBytes configured={FILE_BYTES} observed={}",
+        FILE_BYTES + 1
+    )));
+    let entry = store.entries(&fixture.head).unwrap()[&path("a.txt")].clone();
+    let mut many: BTreeMap<_, _> = (0..SOURCE_FILES)
+        .map(|i| (path(&format!("file-{i:06}")), entry.clone()))
+        .collect();
+    store
+        .capture_entries(&fixture.head, &many, &operation("many-at"))
+        .unwrap();
+    many.insert(path("over"), entry);
+    let error = store
+        .capture_entries(&fixture.head, &many, &operation("many-over"))
+        .unwrap_err();
+    assert!(error.message.contains(&format!(
+        "budget=sourceFiles configured={SOURCE_FILES} observed={}",
+        SOURCE_FILES + 1
+    )));
 }

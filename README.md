@@ -100,6 +100,16 @@ isolation. See the [trust boundary](ARCHITECTURE.md#3-native-trust-and-containme
 
 ## Current work
 
+Source-capacity work now separates content from metadata and caller responses. Private Git
+source admission/construction, checkout import, stopped native capture, integration and
+execution materialization use streaming bodies; execution no longer duplicates source as
+inline files plus a pack. The source/file and transport budgets are in the contract.
+Full regression and native lifecycle qualification passed with the actual 190-file corpus,
+a >=173 MiB single file, 512 MiB aggregate, many files and byte/count edge rejection.
+Installed runtime alignment remains blocked by a pre-existing unknown stdin effect;
+the resident is still 0.1.25. See LOCAL_VALIDATION for exact results and independent budgets.
+
+
 The selected work is to redesign and implement the tdev runtime in Rust, starting with
 implementation-independent acceptance boundaries. The existing product architecture remains
 the semantic foundation; this is not a line-by-line translation or a second product variant.

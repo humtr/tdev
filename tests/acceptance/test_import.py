@@ -133,7 +133,7 @@ class ImportTest(unittest.TestCase):
         self.failed('fifo', repo, 'CHECKOUT_FILE_TYPE')
         (r.work / 'a.txt').unlink()
         with (r.work / 'a.txt').open('wb') as stream:
-            stream.truncate(16 * 1024 * 1024 + 1)
+            stream.truncate(512 * 1024 * 1024 + 1)
         self.failed('large', repo, 'SOURCE_LIMIT')
         self.assertEqual(git('rev-parse', 'HEAD', cwd=r.work), r.head)
 

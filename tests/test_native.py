@@ -97,7 +97,7 @@ for name in ('one','two'):
 """
         done = self.wait(self.execute(w,'python -c '+shlex.quote(script))['id'])
         self.assertEqual('failed',done['status'],done)
-        self.assertEqual('DISK_LIMIT',done['result']['captureError'])
+        self.assertTrue(done['result']['captureError'].startswith('DISK_LIMIT budget=workingBytes configured=2097152 observed='), done)
 
     def test_default_complete_path_and_clean_environment(self):
         w = self.open()
@@ -241,8 +241,8 @@ for name in ('one','two'):
     def test_lost_dispatch_reply_does_not_launch_twice(self):
         w = self.open()
         original = NativeExecutor.submit
-        def lost(executor, payload):
-            original(executor, payload)
+        def lost(executor, payload, source=None):
+            original(executor, payload, source=source)
             raise Fault("LOST_REPLY", effect="unknown")
         args = {"requestId": "lost", "taskId": w["taskId"], "expected": w["checkpoint"], "command": "printf once >> a.txt"}
         with patch.object(NativeExecutor, "submit", lost):

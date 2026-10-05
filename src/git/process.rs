@@ -57,9 +57,37 @@ pub(crate) fn run(
     limit: usize,
     check: bool,
 ) -> Result<Output> {
+    let mut stdout = Vec::new();
+    let mut output = run_io(command, input, None, timeout, limit, check, &mut stdout)?;
+    output.stdout = stdout;
+    Ok(output)
+}
+
+/// File input and a bounded streaming sink keep source bytes out of utility buffers.
+pub(super) fn stream(
+    command: &mut Command,
+    input_file: Option<std::fs::File>,
+    timeout: Duration,
+    limit: usize,
+    check: bool,
+    sink: &mut dyn Write,
+) -> Result<Output> {
+    run_io(command, &[], input_file, timeout, limit, check, sink)
+}
+
+fn run_io(
+    command: &mut Command,
+    input: &[u8],
+    input_file: Option<std::fs::File>,
+    timeout: Duration,
+    limit: usize,
+    check: bool,
+    sink: &mut dyn Write,
+) -> Result<Output> {
+    let streamed = input_file.is_some() || limit > OUTPUT_LIMIT;
     let child = command
         .process_group(0)
-        .stdin(Stdio::piped())
+        .stdin(input_file.map_or_else(Stdio::piped, Stdio::from))
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
@@ -71,15 +99,16 @@ pub(crate) fn run(
     let mut stdin = group.child.stdin.take();
     let mut stdout = group.child.stdout.take();
     let mut stderr = group.child.stderr.take();
-    for fd in [
-        stdin.as_ref().unwrap().as_raw_fd(),
-        stdout.as_ref().unwrap().as_raw_fd(),
-        stderr.as_ref().unwrap().as_raw_fd(),
-    ] {
+    for fd in stdin
+        .iter()
+        .map(AsRawFd::as_raw_fd)
+        .chain(stdout.iter().map(AsRawFd::as_raw_fd))
+        .chain(stderr.iter().map(AsRawFd::as_raw_fd))
+    {
         nonblocking(fd)?;
     }
     let deadline = Instant::now() + timeout;
-    let mut out = Vec::new();
+    let mut retained = 0usize;
     let mut err = Vec::new();
     let mut written = 0;
     let status = loop {
@@ -104,7 +133,15 @@ pub(crate) fn run(
                 Err(_) => return Err(uncertain("UTILITY_IO")),
             }
         }
-        fn drain<T: Read>(pipe: &mut Option<T>, output: &mut Vec<u8>, room: usize) -> Result<()> {
+        fn drain<T: Read>(
+            pipe: &mut Option<T>,
+            output: &mut dyn Write,
+            count: &mut usize,
+            limit: usize,
+            budget: &str,
+            configured: usize,
+            other: usize,
+        ) -> Result<()> {
             if let Some(reader) = pipe.as_mut() {
                 let mut buffer = [0; 65536];
                 // One bounded read per loop keeps all three pipes and the deadline fair.
@@ -113,10 +150,23 @@ pub(crate) fn run(
                         pipe.take();
                     }
                     Ok(n) => {
-                        if n > room {
-                            return Err(uncertain("OUTPUT_LIMIT"));
+                        let observed = count.saturating_add(n);
+                        if observed > limit {
+                            return Err(Fault {
+                                effect: Effect::Unknown,
+                                ..Fault::message(
+                                    "OUTPUT_LIMIT",
+                                    format!(
+                                        "budget={budget} configured={configured} observed={}",
+                                        observed.saturating_add(other)
+                                    ),
+                                )
+                            });
                         }
-                        output.extend_from_slice(&buffer[..n]);
+                        output
+                            .write_all(&buffer[..n])
+                            .map_err(|_| uncertain("UTILITY_IO"))?;
+                        *count = observed;
                     }
                     Err(e)
                         if matches!(
@@ -128,10 +178,43 @@ pub(crate) fn run(
             }
             Ok(())
         }
-        let room = limit.saturating_sub(out.len() + err.len());
-        drain(&mut stdout, &mut out, room)?;
-        let room = limit.saturating_sub(out.len() + err.len());
-        drain(&mut stderr, &mut err, room)?;
+        let stdout_limit = if streamed {
+            limit
+        } else {
+            limit.saturating_sub(err.len())
+        };
+        drain(
+            &mut stdout,
+            sink,
+            &mut retained,
+            stdout_limit,
+            if limit > OUTPUT_LIMIT {
+                "utilityBodyBytes"
+            } else {
+                "utilityOutputBytes"
+            },
+            limit,
+            if streamed { 0 } else { err.len() },
+        )?;
+        let stderr_limit = if streamed {
+            OUTPUT_LIMIT
+        } else {
+            limit.saturating_sub(retained)
+        };
+        let mut error_count = err.len();
+        drain(
+            &mut stderr,
+            &mut err,
+            &mut error_count,
+            stderr_limit,
+            if streamed {
+                "utilityDiagnosticBytes"
+            } else {
+                "utilityOutputBytes"
+            },
+            if streamed { OUTPUT_LIMIT } else { limit },
+            if streamed { 0 } else { retained },
+        )?;
         // Retain the unreaped PID until pipes close: deadline/error cleanup must
         // never signal a process group whose leader PID has become reusable.
         if stdout.is_none()
@@ -181,7 +264,7 @@ pub(crate) fn run(
     }
     Ok(Output {
         status,
-        stdout: out,
+        stdout: Vec::new(),
         stderr: err,
     })
 }
@@ -225,6 +308,23 @@ mod tests {
         .unwrap();
         assert_eq!(error.code, "OUTPUT_LIMIT");
         assert_eq!(error.effect, Effect::Unknown);
+    }
+
+    #[test]
+    fn combined_output_budget_reports_the_configured_total_and_observed_total() {
+        let error = run(
+            &mut shell("printf 12345678; printf 1234567890123456 >&2"),
+            &[],
+            Duration::from_secs(5),
+            20,
+            true,
+        )
+        .err()
+        .unwrap();
+        assert_eq!(
+            error.message,
+            "budget=utilityOutputBytes configured=20 observed=24"
+        );
     }
 
     #[test]

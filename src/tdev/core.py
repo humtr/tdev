@@ -21,6 +21,7 @@ from .integration import integrate
 from .deployments import Deployments
 from .artifacts import Artifacts, source_validation
 from .artifact_retention import limits as artifact_limits
+from .capacity import METADATA_BYTES, check as capacity_check
 
 
 class Controller:
@@ -345,11 +346,10 @@ class Controller:
                 if action == "file":
                     require(prefix in entries, "FILE_NOT_FOUND")
                     mode, oid = entries[prefix]
-                    data = g.blob(oid)
-                    chunk = data[offset:offset + min(query.get("limit", 24000), remaining)]
-                    item.update(path=prefix, blob=oid, mode=mode, size=len(data), offset=offset,
+                    size, chunk = g.blob_range(oid, offset, min(query.get("limit", 24000), remaining))
+                    item.update(path=prefix, blob=oid, mode=mode, size=size, offset=offset,
                                 data=base64.b64encode(chunk).decode(), encoding="base64",
-                                nextOffset=offset + len(chunk), complete=offset + len(chunk) >= len(data))
+                                nextOffset=offset + len(chunk), complete=offset + len(chunk) >= size)
                     remaining -= len(chunk)
                 elif action == "list":
                     selected, used = [], 0
@@ -365,10 +365,12 @@ class Controller:
                     needle = query["text"].encode()
                     hits, scanned, next_offset = [], 0, offset
                     for n in names[offset:]:
-                        data = g.blob(entries[n][1])
-                        if scanned + len(data) > 16 * 1024 * 1024 or remaining < len(n.encode()) + 100:
+                        size = g.blob_size(entries[n][1])
+                        capacity_check('readSearchScanBytes', 16 * 1024 * 1024, size, 'READ_SCAN_LIMIT')
+                        if scanned + size > 16 * 1024 * 1024 or remaining < len(n.encode()) + 100:
                             break
-                        scanned += len(data)
+                        data = g.blob(entries[n][1])
+                        scanned += size
                         at = data.find(needle)
                         if at >= 0:
                             hits.append({"path": n, "byteOffset": at})
@@ -774,25 +776,26 @@ class Controller:
             timeout, timeout_source = config['validationTimeoutSeconds'], 'repository'
         else:
             timeout, timeout_source = None if process else 300, 'default'
-        payload = {"id": opid, "checkpoint": source_commit, "candidate": candidate,
-                   "files": g.export(source_commit), "command": config["validation"] if kind == "validate" else args["command"],
-                   "cwd": path(args.get("cwd", "."), dot=True), "env": execution_env,
-                   "stdin": args.get("stdin", ""), "network": network,
-                   "timeout": timeout, "readonly": kind == "validate",
-                   "capturePaths": args.get("capturePaths", []), "gitPack": g.execution_pack(source_commit),
-                   "networkPolicyDigest": executor.get("networkPolicyDigest")}
-        if native:
-            payload.update(mode='process' if process else 'command',
-                           environmentId=w['id'] if environment_mode == 'task' else None,
-                           artifactLimits={'workingBytes': artifact_limits(self)['workingBytes']})
-        require(len(canonical(payload)) <= 48 * 1024 * 1024, "SOURCE_LIMIT")
-        # Keep bytes in Git; exact execution input can be reconstructed for auditing.
-        execution = {k: v for k, v in payload.items() if k not in ("files", "gitPack")}
-        intent = self.save_intent(opid, execution=execution, inputDigest=digest(payload),
-                                  executor=executor, policy=self.validation_policy(config), candidate=candidate,
-                                  timeoutSource=timeout_source,
-                                  **({'validationSubject': 'source'} if kind == 'validate' else {}))
-        self.backend(intent).submit(payload)
+        with g.execution_source(source_commit) as (files, pack_descriptor, source_pack):
+            payload = {"id": opid, "checkpoint": source_commit, "candidate": candidate,
+                       "files": files, "command": config["validation"] if kind == "validate" else args["command"],
+                       "cwd": path(args.get("cwd", "."), dot=True), "env": execution_env,
+                       "stdin": args.get("stdin", ""), "network": network,
+                       "timeout": timeout, "readonly": kind == "validate",
+                       "capturePaths": args.get("capturePaths", []), "gitPack": pack_descriptor,
+                       "networkPolicyDigest": executor.get("networkPolicyDigest")}
+            if native:
+                payload.update(mode='process' if process else 'command',
+                               environmentId=w['id'] if environment_mode == 'task' else None,
+                               artifactLimits={'workingBytes': artifact_limits(self)['workingBytes']})
+            capacity_check('sourceMetadataBytes', METADATA_BYTES, len(canonical(payload)))
+            # Keep bytes in Git; exact execution input can be reconstructed for auditing.
+            execution = {k: v for k, v in payload.items() if k not in ("files", "gitPack")}
+            intent = self.save_intent(opid, execution=execution, inputDigest=digest(payload),
+                                      executor=executor, policy=self.validation_policy(config), candidate=candidate,
+                                      timeoutSource=timeout_source,
+                                      **({'validationSubject': 'source'} if kind == 'validate' else {}))
+            self.backend(intent).submit(payload, source=source_pack)
 
     def publish(self, opid, w, args, validation):
         vi, vr = source_validation(validation)
@@ -878,14 +881,18 @@ class Controller:
                     w = intent["task"]
                     checkpoint = None
                     if row["kind"] == "exec" and intent['input'].get('mode') != 'process':
-                        require("files" in result or result.get("captureError"), "CAPTURE_MISSING")
-                        if "files" in result and not result.get("captureError"):
+                        require("files" in result or 'capture' in result or result.get("captureError"), "CAPTURE_MISSING")
+                        if ("files" in result or 'capture' in result) and not result.get("captureError"):
                             try:
-                                checkpoint = self.git(row["repo"]).capture(w["checkpoint"], result["files"], row["id"])
+                                if 'capture' in result:
+                                    with self.backend(intent).capture(row['id'], result['capture']) as stream:
+                                        checkpoint = self.git(row['repo']).capture_archive(w['checkpoint'], result['capture'], stream, row['id'])
+                                else:
+                                    checkpoint = self.git(row["repo"]).capture(w["checkpoint"], result["files"], row["id"])
                             except (Fault, ValueError, KeyError, TypeError) as e:
                                 # Stop is proved even if capture is unusable. Preserve
                                 # the old checkpoint and do not make a stale lock.
-                                result["captureError"] = e.value["code"] if isinstance(e, Fault) else "CAPTURE_INVALID"
+                                result["captureError"] = (e.value["message"] if isinstance(e, Fault) and 'budget=' in e.value['message'] else e.value["code"]) if isinstance(e, Fault) else "CAPTURE_INVALID"
                     public = {k: result[k] for k in ("id", "terminal", "stopped", "exitCode", "cancelled", "timedOut", "captureError", "discardedBytes") if k in result}
                     public.update(checkpoint=checkpoint or w["checkpoint"], candidate=intent.get("candidate"))
                     status = "succeeded" if result.get("exitCode") == 0 and not any(result.get(k) for k in ("cancelled", "timedOut", "captureError")) else "failed"

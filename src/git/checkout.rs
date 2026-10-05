@@ -2,13 +2,14 @@
 use super::*;
 use crate::identity;
 use serde_json::{Value, json};
+use sha2::{Digest as _, Sha256};
 use std::ffi::CString;
-use std::io::{self, Read};
+use std::io;
 use std::os::fd::{AsRawFd, FromRawFd};
 use std::os::unix::fs::OpenOptionsExt;
 
 type Signature = (u64, u64, u32, u64, i64, i64, i64, i64);
-type Files = BTreeMap<SourcePath, (FileMode, Vec<u8>)>;
+type Files = Entries;
 
 #[derive(PartialEq)]
 struct Selection {
@@ -21,6 +22,7 @@ struct Scan {
     files: Files,
     signatures: BTreeMap<SourcePath, Option<Signature>>,
     selected: Selection,
+    contents: BTreeMap<SourcePath, [u8; 32]>,
 }
 
 pub struct Checkout<'a> {
@@ -196,24 +198,36 @@ impl<'a> Checkout<'a> {
         for name in others.split(|b| *b == 0).filter(|r| !r.is_empty()) {
             names.insert(path(name)?);
         }
-        if names.len() > 100000 {
-            return Err(Fault::new("SOURCE_LIMIT"));
-        }
+        capacity::check(
+            "SOURCE_LIMIT",
+            "checkoutSelectionPaths",
+            250000,
+            names.len(),
+        )?;
         Ok(Selection {
             names,
             raw: [index, flags, others],
         })
     }
 
-    fn file(root: &File, path: &SourcePath) -> Result<Option<(FileMode, Vec<u8>, Signature)>> {
+    fn file(
+        &self,
+        root: &File,
+        path: &SourcePath,
+        cache: &mut BTreeMap<[u8; 32], BlobId>,
+        write: bool,
+    ) -> Result<Option<(Entry, Signature, [u8; 32])>> {
         fn read(
+            git: &Git,
             parent: &File,
             part: &str,
             path: &SourcePath,
             leaf: File,
-        ) -> Result<(FileMode, Vec<u8>, Signature)> {
+            cache: &mut BTreeMap<[u8; 32], BlobId>,
+            write: bool,
+        ) -> Result<(Entry, Signature, [u8; 32])> {
             let before = leaf.metadata().map_err(changed)?;
-            let (mode, data) = if before.file_type().is_symlink() {
+            let (mode, blob, content) = if before.file_type().is_symlink() {
                 let name = CString::new(part).map_err(|_| Fault::new("PATH"))?;
                 let mut bytes = vec![0u8; 4097];
                 // SAFETY: parent and name are live; bytes is a writable buffer of its stated length.
@@ -236,27 +250,80 @@ impl<'a> Checkout<'a> {
                     path,
                     std::str::from_utf8(&bytes).map_err(|_| Fault::new("CHECKOUT_SYMLINK"))?,
                 )?;
-                (FileMode::Symlink, bytes)
+                let content: [u8; 32] = Sha256::digest(&bytes).into();
+                let blob = match cache.get(&content) {
+                    Some(blob) => blob.clone(),
+                    None if write => {
+                        let blob = git.hash_blob(&bytes)?;
+                        cache.insert(content, blob.clone());
+                        blob
+                    }
+                    None => return Err(Fault::new("CHECKOUT_CHANGED")),
+                };
+                (FileMode::Symlink, blob, content)
             } else {
                 if !before.is_file() {
                     return Err(Fault::new("CHECKOUT_FILE_TYPE"));
                 }
-                if before.len() > BLOB_LIMIT as u64 {
-                    return Err(Fault::new("SOURCE_LIMIT"));
-                }
+                capacity::check(
+                    "SOURCE_LIMIT",
+                    "sourceFileBytes",
+                    BLOB_LIMIT,
+                    before.len().try_into().unwrap_or(usize::MAX),
+                )?;
                 let mut file =
                     open_at(parent, part, libc::O_RDONLY | libc::O_NONBLOCK).map_err(changed)?;
                 if signature(&file.metadata().map_err(changed)?) != signature(&before) {
                     return Err(Fault::new("CHECKOUT_CHANGED"));
                 }
-                let mut bytes = Vec::new();
-                (&mut file)
-                    .take(BLOB_LIMIT as u64 + 1)
-                    .read_to_end(&mut bytes)
-                    .map_err(changed)?;
-                if bytes.len() > BLOB_LIMIT {
-                    return Err(Fault::new("SOURCE_LIMIT"));
+                // The content witness and the private object must use the same bytes.
+                // Metadata checks alone cannot attest a second read of a mutable file.
+                let mut captured = if write {
+                    Some(tempfile::tempfile_in(&git.root).map_err(changed)?)
+                } else {
+                    None
+                };
+                let mut digest = Sha256::new();
+                let mut buffer = [0u8; 65536];
+                let mut seen = 0u64;
+                let started = std::time::Instant::now();
+                loop {
+                    if started.elapsed() > FETCH_TIMEOUT {
+                        return Err(Fault::new("CHECKOUT_HASH_TIMEOUT"));
+                    }
+                    let size = file.read(&mut buffer).map_err(changed)?;
+                    if size == 0 {
+                        break;
+                    }
+                    seen += size as u64;
+                    capacity::check(
+                        "SOURCE_LIMIT",
+                        "sourceFileBytes",
+                        BLOB_LIMIT,
+                        seen.try_into().unwrap_or(usize::MAX),
+                    )?;
+                    digest.update(&buffer[..size]);
+                    if let Some(output) = captured.as_mut() {
+                        output.write_all(&buffer[..size]).map_err(changed)?;
+                    }
                 }
+                if seen != before.len() {
+                    return Err(Fault::new("CHECKOUT_CHANGED"));
+                }
+                let content: [u8; 32] = digest.finalize().into();
+                let blob = match cache.get(&content) {
+                    Some(blob) => blob.clone(),
+                    None if write => {
+                        let blob = git.hash_blob_file(
+                            captured
+                                .as_ref()
+                                .ok_or_else(|| Fault::new("CHECKOUT_CHANGED"))?,
+                        )?;
+                        cache.insert(content, blob.clone());
+                        blob
+                    }
+                    None => return Err(Fault::new("CHECKOUT_CHANGED")),
+                };
                 if signature(&file.metadata().map_err(changed)?) != signature(&before) {
                     return Err(Fault::new("CHECKOUT_CHANGED"));
                 }
@@ -266,7 +333,8 @@ impl<'a> Checkout<'a> {
                     } else {
                         FileMode::File
                     },
-                    bytes,
+                    blob,
+                    content,
                 )
             };
             let after = open_at(parent, part, libc::O_PATH)
@@ -276,7 +344,7 @@ impl<'a> Checkout<'a> {
             if signature(&before) != signature(&after) {
                 return Err(Fault::new("CHECKOUT_CHANGED"));
             }
-            Ok((mode, data, signature(&after)))
+            Ok((Entry { mode, blob }, signature(&after), content))
         }
         // Missing selected files represent unstaged deletion. Check absence through
         // the same no-follow directory walk, never by resolving a pathname outside it.
@@ -290,7 +358,7 @@ impl<'a> Checkout<'a> {
             };
             match open_at(&parent, part, flags) {
                 Ok(file) if i + 1 == parts.len() => {
-                    return read(&parent, part, path, file).map(Some);
+                    return read(self.git, &parent, part, path, file, cache, write).map(Some);
                 }
                 Ok(file) => parent = file,
                 Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
@@ -300,7 +368,13 @@ impl<'a> Checkout<'a> {
         Err(Fault::new("PATH"))
     }
 
-    fn scan(&self, base: &Checkpoint, branch: &BranchRef) -> Result<Scan> {
+    fn scan(
+        &self,
+        base: &Checkpoint,
+        branch: &BranchRef,
+        cache: &mut BTreeMap<[u8; 32], BlobId>,
+        write: bool,
+    ) -> Result<Scan> {
         self.verify(base, branch)?;
         let selected = self.selection()?;
         let root = fs::OpenOptions::new()
@@ -314,15 +388,16 @@ impl<'a> Checkout<'a> {
         }
         let mut files = Files::new();
         let mut signatures = BTreeMap::new();
-        let mut total = 0;
+        let mut contents = BTreeMap::new();
+        let mut total = 0usize;
         for name in &selected.names {
-            if let Some((mode, bytes, signature)) = Self::file(&root, name)? {
-                total += bytes.len();
-                if total > SOURCE_LIMIT {
-                    return Err(Fault::new("SOURCE_LIMIT"));
-                }
+            if let Some((entry, signature, content)) = self.file(&root, name, cache, write)? {
+                capacity::check("SOURCE_LIMIT", "sourceFiles", SOURCE_FILES, files.len() + 1)?;
+                contents.insert(name.clone(), content);
+                total = total.saturating_add(signature.3 as usize);
+                capacity::check("SOURCE_LIMIT", "sourceBytes", SOURCE_LIMIT, total)?;
                 signatures.insert(name.clone(), Some(signature));
-                files.insert(name.clone(), (mode, bytes));
+                files.insert(name.clone(), entry);
             } else {
                 signatures.insert(name.clone(), None);
             }
@@ -335,6 +410,7 @@ impl<'a> Checkout<'a> {
             files,
             signatures,
             selected,
+            contents,
         })
     }
 
@@ -344,12 +420,13 @@ impl<'a> Checkout<'a> {
         branch: &BranchRef,
         operation: &OperationId,
     ) -> Result<(Checkpoint, Value)> {
-        let first = self.scan(base, branch)?;
-        let second = self.scan(base, branch)?;
+        let mut cache = BTreeMap::new();
+        let first = self.scan(base, branch, &mut cache, true)?;
+        let second = self.scan(base, branch, &mut cache, false)?;
         if first != second {
             return Err(Fault::new("CHECKOUT_CHANGED"));
         }
-        let checkpoint = self.git.capture(base, &first.files, operation)?;
+        let checkpoint = self.git.capture_entries(base, &first.files, operation)?;
         let hex = |bytes: &Vec<u8>| bytes.iter().map(|b| format!("{b:02x}")).collect::<String>();
         let selected = identity::Value::parse(
             &json!(first.selected.raw.iter().map(hex).collect::<Vec<_>>()).to_string(),

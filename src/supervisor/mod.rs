@@ -10,7 +10,7 @@ mod spool;
 pub use environment::{DEPENDENCY_LIMIT, Environment, ExclusiveEnvironment};
 pub use input::{Delivery, Input, InputReceipt};
 pub use platform::ProcessIdentity;
-pub use spool::{Job, Observation, Outcome, Report, Request};
+pub use spool::{Budget, Job, Observation, Outcome, Report, Request};
 
 use environment::SharedEnvironment;
 use input::InputPump;
@@ -58,7 +58,7 @@ fn run_job(job: &Job) -> io::Result<()> {
     };
     if dependencies
         .as_ref()
-        .map(SharedEnvironment::within_budget)
+        .map(|environment| environment.within_budget(job))
         .transpose()?
         == Some(false)
     {
@@ -124,6 +124,7 @@ fn no_child(
         stopped: true,
         retained_bytes: 0,
         discarded_bytes: 0,
+        budget: None,
     })
 }
 
@@ -184,7 +185,7 @@ impl Session {
             if sampled_dependencies.elapsed() >= Duration::from_secs(5) {
                 sampled_dependencies = Instant::now();
                 if dependencies
-                    .map(SharedEnvironment::within_budget)
+                    .map(|environment| environment.within_budget(job))
                     .transpose()?
                     == Some(false)
                 {
@@ -217,7 +218,7 @@ impl Session {
         }
         let working_ok = job.within_budget(request.working_bytes)?;
         let dependencies_ok = dependencies
-            .map(SharedEnvironment::within_budget)
+            .map(|environment| environment.within_budget(job))
             .transpose()?
             .unwrap_or(true);
         if outcome == Outcome::Exited {
@@ -237,6 +238,7 @@ impl Session {
             stopped,
             retained_bytes: output.retained,
             discarded_bytes: output.discarded,
+            budget: None,
         })
     }
 }

@@ -1,22 +1,25 @@
 //! Private Git objects and atomic source construction. Authority and durable task
 //! CAS belong to admission/storage; ref deletion has an explicit dispatch boundary.
+pub mod capacity;
 pub mod checkout;
 pub mod integration;
 pub(crate) mod process;
 pub mod project;
 pub mod refs;
+mod replacement;
 
 use crate::model::{BlobId, BranchRef, Checkpoint, Fault, OperationId, Result, SourcePath, TreeId};
 use process::{OUTPUT_LIMIT, Output, run};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs::{self, DirBuilder, File};
+use std::io::{Read, Seek, SeekFrom, Write};
 use std::os::unix::fs::{DirBuilderExt, MetadataExt};
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::sync::Mutex;
 use std::time::Duration;
 
-const BLOB_LIMIT: usize = 16 * 1024 * 1024;
-const SOURCE_LIMIT: usize = 32 * 1024 * 1024;
+use capacity::{FILE_BYTES as BLOB_LIMIT, SOURCE_BYTES as SOURCE_LIMIT, SOURCE_FILES};
 const UTILITY_TIMEOUT: Duration = Duration::from_secs(30);
 const FETCH_TIMEOUT: Duration = Duration::from_secs(120);
 
@@ -281,8 +284,9 @@ impl Repository {
     }
     fn run_transport(&self, command: &mut Command, timeout: Duration) -> Result<Output> {
         run(command, &[], timeout, OUTPUT_LIMIT, true).map_err(|mut error| {
-            if matches!(self, Self::Github { .. }) {
+            if matches!(self, Self::Github { .. }) && error.code != "OUTPUT_LIMIT" {
                 // Credential helpers and HTTP diagnostics are controller-private.
+                // OUTPUT_LIMIT contains only our budget counters, never child text.
                 error.message = error.code.clone();
             }
             error
@@ -362,6 +366,41 @@ pub struct Git {
     root: PathBuf,
     repository: Repository,
     format: ObjectFormat,
+    sizes: Mutex<BTreeMap<String, usize>>,
+}
+
+struct Counted<'a> {
+    sink: &'a mut dyn Write,
+    bytes: usize,
+}
+impl Write for Counted<'_> {
+    fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+        self.sink.write_all(bytes)?;
+        self.bytes += bytes.len();
+        Ok(bytes.len())
+    }
+    fn flush(&mut self) -> std::io::Result<()> {
+        self.sink.flush()
+    }
+}
+
+struct RangeSink {
+    offset: usize,
+    limit: usize,
+    seen: usize,
+    bytes: Vec<u8>,
+}
+impl Write for RangeSink {
+    fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+        let start = self.offset.saturating_sub(self.seen).min(bytes.len());
+        let end = start + (bytes.len() - start).min(self.limit.saturating_sub(self.bytes.len()));
+        self.bytes.extend_from_slice(&bytes[start..end]);
+        self.seen += bytes.len();
+        Ok(bytes.len())
+    }
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
 }
 
 fn line(bytes: &[u8]) -> Result<&str> {
@@ -403,6 +442,14 @@ fn command(root: Option<&Path>) -> Command {
         "core.filesRefLockTimeout=5000",
         "-c",
         "gc.auto=0",
+        "-c",
+        "core.bigFileThreshold=1m",
+        "-c",
+        "core.packedGitWindowSize=1m",
+        "-c",
+        "core.packedGitLimit=16m",
+        "-c",
+        "core.deltaBaseCacheLimit=16m",
         "-c",
         "http.followRedirects=false",
     ]);
@@ -549,6 +596,7 @@ impl Git {
             root: root.to_owned(),
             repository,
             format,
+            sizes: Mutex::new(BTreeMap::new()),
         };
         if line(
             &store
@@ -634,7 +682,13 @@ impl Git {
             return Err(Fault::new("STALE_HEAD"));
         }
         let mut cmd = self.repository.transport(Some(&self.root));
-        cmd.args(["fetch", "--no-tags", "--no-write-fetch-head", "--"])
+        // Avoid unpacking a few large objects into whole-file loose mappings.
+        // Local upload-pack needs its own configuration; transport clears ours.
+        cmd.args(["-c", "fetch.unpackLimit=1", "fetch"]);
+        if matches!(self.repository, Repository::Local(_)) {
+            cmd.arg("--upload-pack=git -c core.bigFileThreshold=1m -c core.packedGitWindowSize=1m -c core.packedGitLimit=16m -c core.deltaBaseCacheLimit=16m -c pack.threads=1 -c core.hooksPath=/dev/null upload-pack");
+        }
+        cmd.args(["--no-tags", "--no-write-fetch-head", "--"])
             .arg(self.repository.remote())
             .arg(expected.as_str());
         self.repository.run_transport(&mut cmd, FETCH_TIMEOUT)?;
@@ -647,6 +701,7 @@ impl Git {
         {
             return Err(Fault::new("COMMIT_REQUIRED"));
         }
+        self.entries(expected)?;
         self.pin(expected)
     }
 
@@ -689,8 +744,9 @@ impl Git {
 
     pub fn entries(&self, checkpoint: &Checkpoint) -> Result<Entries> {
         self.format.check(checkpoint.as_str())?;
-        let output = self.call(&["ls-tree", "-rz", checkpoint.as_str()], &[])?;
+        let output = self.call(&["ls-tree", "-rlz", checkpoint.as_str()], &[])?;
         let mut entries = Entries::new();
+        let mut total = 0usize;
         for record in output.stdout.split(|b| *b == 0).filter(|r| !r.is_empty()) {
             let tab = record
                 .iter()
@@ -702,10 +758,25 @@ impl Git {
                 return Err(Fault::new("UNSUPPORTED_GITLINK"));
             }
             let oid = fields.next().ok_or_else(|| Fault::new("GIT_OUTPUT"))?;
+            let size = fields
+                .next()
+                .ok_or_else(|| Fault::new("GIT_OUTPUT"))?
+                .parse::<usize>()
+                .map_err(|_| Fault::new("GIT_OUTPUT"))?;
+            capacity::check("SOURCE_LIMIT", "sourceFileBytes", BLOB_LIMIT, size)?;
+            total = total.saturating_add(size);
+            capacity::check("SOURCE_LIMIT", "sourceBytes", SOURCE_LIMIT, total)?;
+            capacity::check(
+                "SOURCE_LIMIT",
+                "sourceFiles",
+                SOURCE_FILES,
+                entries.len() + 1,
+            )?;
             if fields.next().is_some() {
                 return Err(Fault::new("GIT_OUTPUT"));
             }
             self.format.check(oid)?;
+            self.remember_size(oid, size)?;
             // Do not trim names: trailing spaces and newlines are source bytes,
             // and the path constructor explicitly rejects control characters.
             let path = SourcePath::new(
@@ -727,33 +798,121 @@ impl Git {
         Ok(entries)
     }
 
-    pub fn blob(&self, blob: &BlobId) -> Result<Vec<u8>> {
+    fn known_size(&self, oid: &str) -> Result<Option<usize>> {
+        Ok(self
+            .sizes
+            .lock()
+            .map_err(|_| Fault::new("GIT_STORE"))?
+            .get(oid)
+            .copied())
+    }
+
+    fn remember_size(&self, oid: &str, size: usize) -> Result<()> {
+        self.sizes
+            .lock()
+            .map_err(|_| Fault::new("GIT_STORE"))?
+            .insert(oid.to_owned(), size);
+        Ok(())
+    }
+
+    pub fn blob_size(&self, blob: &BlobId) -> Result<usize> {
         self.format.check(blob.as_str())?;
+        if let Some(size) = self.known_size(blob.as_str())? {
+            return Ok(size);
+        }
         let size = line(&self.call(&["cat-file", "-s", blob.as_str()], &[])?.stdout)?
             .parse::<usize>()
             .map_err(|_| Fault::new("GIT_OUTPUT"))?;
-        if size > BLOB_LIMIT {
-            return Err(Fault::new("SOURCE_LIMIT"));
-        }
-        let data = self.call(&["cat-file", "blob", blob.as_str()], &[])?.stdout;
-        if data.len() != size {
+        capacity::check("SOURCE_LIMIT", "sourceFileBytes", BLOB_LIMIT, size)?;
+        self.remember_size(blob.as_str(), size)?;
+        Ok(size)
+    }
+
+    pub fn blob_to(&self, blob: &BlobId, sink: &mut dyn Write) -> Result<usize> {
+        let size = self.blob_size(blob)?;
+        let mut counted = Counted { sink, bytes: 0 };
+        process::stream(
+            command(Some(&self.root)).args(["cat-file", "blob", blob.as_str()]),
+            None,
+            FETCH_TIMEOUT,
+            BLOB_LIMIT,
+            true,
+            &mut counted,
+        )?;
+        if counted.bytes != size {
             return Err(Fault::new("GIT_OUTPUT"));
         }
+        Ok(size)
+    }
+
+    pub fn blob(&self, blob: &BlobId) -> Result<Vec<u8>> {
+        let mut data = Vec::new();
+        self.blob_to(blob, &mut data)?;
         Ok(data)
     }
 
-    fn hash_blob(&self, data: &[u8]) -> Result<BlobId> {
-        if data.len() > SOURCE_LIMIT {
-            return Err(Fault::new("SOURCE_LIMIT"));
+    pub fn blob_range(
+        &self,
+        blob: &BlobId,
+        offset: usize,
+        limit: usize,
+    ) -> Result<(usize, Vec<u8>)> {
+        let mut sink = RangeSink {
+            offset,
+            limit,
+            seen: 0,
+            bytes: Vec::new(),
+        };
+        let size = self.blob_to(blob, &mut sink)?;
+        Ok((size, sink.bytes))
+    }
+
+    pub fn hash_blob_file(&self, file: &File) -> Result<BlobId> {
+        let metadata = file.metadata().map_err(|_| Fault::new("GIT_STORE"))?;
+        if !metadata.is_file() {
+            return Err(Fault::new("CAPTURE_TYPE"));
         }
+        let size = metadata.len();
+        capacity::check(
+            "SOURCE_LIMIT",
+            "sourceFileBytes",
+            BLOB_LIMIT,
+            size.try_into().unwrap_or(usize::MAX),
+        )?;
+        let mut input = file.try_clone().map_err(|_| Fault::new("GIT_STORE"))?;
+        input
+            .seek(SeekFrom::Start(0))
+            .map_err(|_| Fault::new("GIT_STORE"))?;
+        let mut bytes = Vec::new();
+        process::stream(
+            command(Some(&self.root)).args(["hash-object", "-w", "--stdin"]),
+            Some(input),
+            FETCH_TIMEOUT,
+            4096,
+            true,
+            &mut bytes,
+        )?;
+        let oid = line(&bytes)?;
+        self.format.check(oid)?;
+        let blob = BlobId::new(oid)?;
+        if self.blob_size(&blob)? != size as usize {
+            return Err(Fault::new("CAPTURE_CHANGED"));
+        }
+        Ok(blob)
+    }
+
+    fn hash_blob(&self, data: &[u8]) -> Result<BlobId> {
+        capacity::check("SOURCE_LIMIT", "sourceFileBytes", BLOB_LIMIT, data.len())?;
         let output = self.call(&["hash-object", "-w", "--stdin"], data)?;
         let oid = line(&output.stdout)?;
         self.format.check(oid)?;
+        self.remember_size(oid, data.len())?;
         BlobId::new(oid)
     }
 
     fn write_tree(&self, entries: &Entries) -> Result<TreeId> {
         no_collisions(entries.keys())?;
+        self.check_entries(entries)?;
         let temporary = tempfile::Builder::new()
             .prefix("index-")
             .tempdir_in(&self.root)
@@ -784,6 +943,53 @@ impl Git {
         let oid = line(&output.stdout)?;
         self.format.check(oid)?;
         TreeId::new(oid)
+    }
+
+    fn check_entries(&self, entries: &Entries) -> Result<()> {
+        capacity::check("SOURCE_LIMIT", "sourceFiles", SOURCE_FILES, entries.len())?;
+        let mut missing = BTreeSet::new();
+        for entry in entries.values() {
+            self.format.check(entry.blob.as_str())?;
+            if self.known_size(entry.blob.as_str())?.is_none() {
+                missing.insert(entry.blob.as_str());
+            }
+        }
+        if !missing.is_empty() {
+            let input = missing
+                .iter()
+                .map(|oid| format!("{oid}\n"))
+                .collect::<String>();
+            let output = self.call(
+                &["cat-file", "--batch-check=%(objecttype) %(objectsize)"],
+                input.as_bytes(),
+            )?;
+            let records = line(&output.stdout)?.lines().collect::<Vec<_>>();
+            if records.len() != missing.len() {
+                return Err(Fault::new("GIT_OUTPUT"));
+            }
+            for (oid, record) in missing.into_iter().zip(records) {
+                let mut fields = record.split_whitespace();
+                if fields.next() != Some("blob") {
+                    return Err(Fault::new("GIT_OUTPUT"));
+                }
+                let size = fields
+                    .next()
+                    .ok_or_else(|| Fault::new("GIT_OUTPUT"))?
+                    .parse::<usize>()
+                    .map_err(|_| Fault::new("GIT_OUTPUT"))?;
+                if fields.next().is_some() {
+                    return Err(Fault::new("GIT_OUTPUT"));
+                }
+                capacity::check("SOURCE_LIMIT", "sourceFileBytes", BLOB_LIMIT, size)?;
+                self.remember_size(oid, size)?;
+            }
+        }
+        let mut total = 0usize;
+        for entry in entries.values() {
+            total = total.saturating_add(self.blob_size(&entry.blob)?);
+            capacity::check("SOURCE_LIMIT", "sourceBytes", SOURCE_LIMIT, total)?;
+        }
+        Ok(())
     }
 
     fn commit(&self, tree: &TreeId, parent: &Checkpoint, message: &str) -> Result<Checkpoint> {
@@ -826,7 +1032,7 @@ impl Git {
                         return Err(Fault::new("EDIT_CONFLICT"));
                     }
                     if data.len() > BLOB_LIMIT {
-                        return Err(Fault::new("SOURCE_LIMIT"));
+                        capacity::check("SOURCE_LIMIT", "sourceFileBytes", BLOB_LIMIT, data.len())?;
                     }
                     puts.insert(path.clone(), (*mode, data.clone()));
                 }
@@ -839,28 +1045,46 @@ impl Git {
                     let previous = previous
                         .filter(|entry| entry.mode != FileMode::Symlink)
                         .ok_or_else(|| Fault::new("EDIT_CONFLICT"))?;
-                    let data = self.blob(&previous.blob)?;
-                    let contents =
-                        std::str::from_utf8(&data).map_err(|_| Fault::new("SOURCE_ENCODING"))?;
-                    if contents.matches(old).count() != *count {
-                        return Err(Fault::new("EDIT_CONFLICT"));
+                    let size = self.blob_size(&previous.blob)?;
+                    let estimate = size
+                        .saturating_sub(count.saturating_mul(old.len()))
+                        .saturating_add(count.saturating_mul(text.len()));
+                    capacity::check("SOURCE_LIMIT", "sourceFileBytes", BLOB_LIMIT, estimate)?;
+                    if size <= 65536 && estimate <= 65536 {
+                        let data = self.blob(&previous.blob)?;
+                        let contents = std::str::from_utf8(&data)
+                            .map_err(|_| Fault::new("SOURCE_ENCODING"))?;
+                        if contents.matches(old).count() != *count {
+                            return Err(Fault::new("EDIT_CONFLICT"));
+                        }
+                        puts.insert(
+                            path.clone(),
+                            (previous.mode, contents.replace(old, text).into_bytes()),
+                        );
+                        continue;
                     }
-                    let removed = count
-                        .checked_mul(old.len())
-                        .ok_or_else(|| Fault::new("SOURCE_LIMIT"))?;
-                    let inserted = count
-                        .checked_mul(text.len())
-                        .ok_or_else(|| Fault::new("SOURCE_LIMIT"))?;
-                    let size = contents
-                        .len()
-                        .checked_sub(removed)
-                        .and_then(|n| n.checked_add(inserted))
-                        .ok_or_else(|| Fault::new("SOURCE_LIMIT"))?;
-                    if size > BLOB_LIMIT {
-                        return Err(Fault::new("SOURCE_LIMIT"));
+                    let directory =
+                        tempfile::tempdir_in(&self.root).map_err(|_| Fault::new("GIT_IO"))?;
+                    let mut output = File::options()
+                        .read(true)
+                        .write(true)
+                        .create_new(true)
+                        .open(directory.path().join("replacement"))
+                        .map_err(|_| Fault::new("GIT_IO"))?;
+                    let mut sink = replacement::Replacement::new(&mut output, old, text, *count);
+                    let streamed = self.blob_to(&previous.blob, &mut sink);
+                    if let Some(error) = sink.failure.take() {
+                        return Err(error);
                     }
-                    let data = contents.replace(old, text).into_bytes();
-                    puts.insert(path.clone(), (previous.mode, data));
+                    streamed?;
+                    sink.finish()?;
+                    entries.insert(
+                        path.clone(),
+                        Entry {
+                            mode: previous.mode,
+                            blob: self.hash_blob_file(&output)?,
+                        },
+                    );
                 }
                 Edit::Delete { before, .. } => {
                     if previous.as_ref().map(|e| &e.blob) != Some(before) {
@@ -885,8 +1109,8 @@ impl Git {
         }
         let names: BTreeSet<&SourcePath> = entries.keys().chain(puts.keys()).collect();
         no_collisions(names.into_iter())?;
-        // Validate the entire batch before writing any new objects. Only this
-        // private tree/commit changes; SQLite pointer + receipt are a later CAS.
+        // Only private objects may precede full batch validation. Tree construction
+        // validates the result before the later SQLite pointer/receipt CAS.
         for (path, (mode, data)) in puts {
             entries.insert(
                 path,
@@ -938,6 +1162,8 @@ impl Git {
         self.format.check(base.as_str())?;
         self.format.check(checkpoint.as_str())?;
         let mut args = vec![
+            "-c",
+            "core.bigFileThreshold=512m",
             "diff",
             "--no-ext-diff",
             "--no-textconv",
@@ -969,17 +1195,16 @@ impl Git {
         files: &BTreeMap<SourcePath, (FileMode, Vec<u8>)>,
         operation: &OperationId,
     ) -> Result<Checkpoint> {
-        if files.len() > 100000 {
-            return Err(Fault::new("CAPTURE_LIMIT"));
-        }
+        capacity::check("CAPTURE_LIMIT", "sourceFiles", SOURCE_FILES, files.len())?;
         no_collisions(files.keys())?;
+        for (_, data) in files.values() {
+            capacity::check("CAPTURE_LIMIT", "sourceFileBytes", BLOB_LIMIT, data.len())?;
+        }
         let total = files
             .values()
             .try_fold(0usize, |total, (_, data)| total.checked_add(data.len()))
-            .ok_or_else(|| Fault::new("CAPTURE_LIMIT"))?;
-        if total > SOURCE_LIMIT {
-            return Err(Fault::new("CAPTURE_LIMIT"));
-        }
+            .unwrap_or(usize::MAX);
+        capacity::check("CAPTURE_LIMIT", "sourceBytes", SOURCE_LIMIT, total)?;
         let mut entries = Entries::new();
         for (path, (mode, data)) in files {
             entries.insert(
@@ -990,7 +1215,17 @@ impl Git {
                 },
             );
         }
-        let tree = self.write_tree(&entries)?;
+        self.capture_entries(checkpoint, &entries, operation)
+    }
+
+    /// Immutable blob identities from a bounded capture; no source payload is buffered here.
+    pub fn capture_entries(
+        &self,
+        checkpoint: &Checkpoint,
+        entries: &Entries,
+        operation: &OperationId,
+    ) -> Result<Checkpoint> {
+        let tree = self.write_tree(entries)?;
         if tree == self.tree(checkpoint)? {
             return Ok(checkpoint.clone());
         }
@@ -1012,5 +1247,42 @@ impl DiffFormat {
             Self::Patch => "--patch",
             Self::Names => "--name-status",
         }
+    }
+}
+
+#[cfg(test)]
+mod transport_budget_tests {
+    use super::*;
+
+    #[test]
+    fn provider_transport_preserves_owned_budget_counters_and_hides_child_diagnostics() {
+        let repository = Repository::Github {
+            repository: crate::provider::GithubRepository {
+                name: "owner/repo".into(),
+                remote: "https://github.com/owner/repo.git".into(),
+                identity: "github:1".into(),
+            },
+            refs: BTreeSet::new(),
+            namespaces: Vec::new(),
+        };
+        let mut oversized = Command::new("sh");
+        oversized.args(["-c", "head -c 50331649 /dev/zero >&2"]);
+        let error = repository
+            .run_transport(&mut oversized, UTILITY_TIMEOUT)
+            .err()
+            .unwrap();
+        assert_eq!(error.code, "OUTPUT_LIMIT");
+        assert_eq!(
+            error.message,
+            "budget=utilityOutputBytes configured=50331648 observed=50331649"
+        );
+        let mut failed = Command::new("sh");
+        failed.args(["-c", "printf private-provider-diagnostic >&2; exit 1"]);
+        let error = repository
+            .run_transport(&mut failed, UTILITY_TIMEOUT)
+            .err()
+            .unwrap();
+        assert_eq!(error.message, error.code);
+        assert!(!error.message.contains("private-provider-diagnostic"));
     }
 }

@@ -128,8 +128,8 @@ class NativeBuildTest(Base):
     def test_lost_dispatch_response_reconciles_one_process(self):
         from tdev.native import NativeExecutor
         original = NativeExecutor.submit
-        def lost(executor, payload):
-            original(executor, payload)
+        def lost(executor, payload, source=None):
+            original(executor, payload, source=source)
             raise OSError('lost reply')
         with patch.object(NativeExecutor, 'submit', lost):
             _, args, op = self.start()

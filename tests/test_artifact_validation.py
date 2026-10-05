@@ -173,8 +173,8 @@ class ArtifactValidationTest(Base):
         _, _, build = self.prepare(True)
         from tdev.native import NativeExecutor
         submit = NativeExecutor.submit
-        def lost(executor, payload):
-            submit(executor, payload)
+        def lost(executor, payload, source=None):
+            submit(executor, payload, source=source)
             raise OSError('lost response')
         args = {'subject': 'artifact', 'artifactId': build['id'], 'requestId': 'lost', 'health': {'port': free_port(), 'path': '/healthz'}}
         with patch.object(NativeExecutor, 'submit', lost):

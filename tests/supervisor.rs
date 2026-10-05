@@ -496,6 +496,10 @@ fn dependency_budget_rejects_preflight_and_fast_exit_growth_separately_from_work
     fixture.start();
     let report = fixture.complete();
     assert_eq!(report.outcome, Outcome::DependencyBudget);
+    let budget = report.budget.as_ref().unwrap();
+    assert_eq!(budget.budget, "dependencyBytes");
+    assert_eq!(budget.configured, DEPENDENCY_LIMIT);
+    assert_eq!(budget.observed, DEPENDENCY_LIMIT + 1);
     assert!(report.stopped);
     assert_eq!(report.exit_code, None);
     assert!(!fixture.job.path().join("child-dispatch.json").exists());
@@ -863,6 +867,10 @@ fn working_storage_is_checked_after_fast_exit() {
     assert!(report.stopped);
     assert_eq!(report.exit_code, Some(0));
     assert_eq!(report.outcome, Outcome::WorkingBudget);
+    let budget = report.budget.unwrap();
+    assert_eq!(budget.budget, "workingBytes");
+    assert_eq!(budget.configured, 10);
+    assert!(budget.observed > 10);
 }
 
 #[test]

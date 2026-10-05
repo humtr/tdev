@@ -1,3 +1,4 @@
+import hashlib
 """Frozen recipe bindings and retained native builds, independent of deployment."""
 import copy
 import json
@@ -8,6 +9,7 @@ from urllib.parse import urlsplit
 from jsonschema import Draft202012Validator
 
 from .common import Fault, canonical, digest, load_contract, path, require
+from .capacity import METADATA_BYTES, check as capacity_check
 
 
 @lru_cache(maxsize=8)
@@ -139,13 +141,16 @@ def inspect_recipe(controller, principal, args):
     require(name in entries and entries[name][0] in ('100644', '100755'), 'ARTIFACT_RECIPE_MISSING')
     raw = git.blob(entries[name][1], limit=65536)
     recipe = parse_recipe(raw)
-    inputs, total = {}, 0
+    inputs = {}
     for name_input in recipe['inputs']:
         require(name_input in entries and entries[name_input][0] in ('100644', '100755'), 'ARTIFACT_INPUT_MISSING', name_input)
-        data = git.blob(entries[name_input][1])
-        total += len(data)
-        require(total <= 32 * 1024 * 1024, 'ARTIFACT_INPUT_LIMIT')
-        inputs[name_input] = {'mode': entries[name_input][0], 'sha256': digest(data), 'size': len(data)}
+        class Hash:
+            hash = hashlib.sha256()
+            def write(self, chunk):
+                self.hash.update(chunk)
+        sink = Hash()
+        size = git.blob_to(entries[name_input][1], sink)
+        inputs[name_input] = {'mode': entries[name_input][0], 'sha256': sink.hash.hexdigest(), 'size': size}
     value = {'validationId': row['id'], 'candidate': intent['candidate'], 'sourcePolicy': intent['policy'],
              'artifactPolicy': artifact_policy(controller, config),
              'source': {'repositoryIdentity': config['identity'], 'tree': tree, 'recipePath': name,
@@ -305,33 +310,34 @@ class Artifacts:
         opid = uuid.uuid4().hex
         git = c.git(source['repo'])
         candidate = binding['candidate']
-        payload = {'id': opid, 'checkpoint': candidate, 'candidate': candidate,
-                   'files': git.export(candidate), 'gitPack': git.execution_pack(candidate),
-                   'command': binding['recipe']['build']['command'], 'cwd': '.', 'env': {},
-                   'stdin': '', 'network': 'host', 'timeout': args.get('timeout', min(300, selected['timeoutSeconds'])),
-                   'artifactLimits': selected,
-                   'readonly': True, 'capturePaths': [], 'mode': 'command', 'environmentId': None,
-                   'networkPolicyDigest': None, 'artifactBinding': binding}
-        require(len(canonical(payload)) <= 48 * 1024 * 1024, 'SOURCE_LIMIT')
-        intent = {'input': args, 'repositoryIdentity': cfg['identity'], 'binding': binding,
-                  'executor': executor, 'inputDigest': digest(payload), 'reservedBytes': reserved,
-                  'execution': {k: v for k, v in payload.items() if k not in ('files', 'gitPack', 'artifactBinding')}}
-        with c.store.tx() as db:
-            old = db.execute('SELECT * FROM operation WHERE owner=? AND request=?', (principal, args['requestId'])).fetchone()
-            if old:
-                require(old['hash'] == fingerprint, 'IDEMPOTENCY_MISMATCH')
-                return Store.public(dict(old))
-            require(db.execute("SELECT count(*) FROM operation WHERE owner=? AND kind='artifact' AND status IN ('running','unknown')",
-                               (principal,)).fetchone()[0] < 8, 'ARTIFACT_BUILD_LIMIT')
-            db.execute("PRAGMA user_version=5")
-            db.execute("INSERT INTO operation(id,owner,request,hash,kind,task,repo,ref,status,effect,intent) "
-                       "VALUES(?,?,?,?,'artifact',?,?,?,'running','unknown',?)",
-                       (opid, principal, args['requestId'], fingerprint, source['task'], source['repo'], source['ref'], canonical(intent).decode()))
-        try:
-            c.backend(intent).submit(payload)
-        except Exception:
-            c.fail(opid, Fault('ARTIFACT_DISPATCH_UNKNOWN', 'Observe the retained build identity; never resubmit with a new request', 'unknown'))
-        return Store.public(c.operation(principal, opid))
+        with git.execution_source(candidate) as (files, pack_descriptor, source_pack):
+            payload = {'id': opid, 'checkpoint': candidate, 'candidate': candidate,
+                       'files': files, 'gitPack': pack_descriptor,
+                       'command': binding['recipe']['build']['command'], 'cwd': '.', 'env': {},
+                       'stdin': '', 'network': 'host', 'timeout': args.get('timeout', min(300, selected['timeoutSeconds'])),
+                       'artifactLimits': selected,
+                       'readonly': True, 'capturePaths': [], 'mode': 'command', 'environmentId': None,
+                       'networkPolicyDigest': None, 'artifactBinding': binding}
+            capacity_check('sourceMetadataBytes', METADATA_BYTES, len(canonical(payload)))
+            intent = {'input': args, 'repositoryIdentity': cfg['identity'], 'binding': binding,
+                      'executor': executor, 'inputDigest': digest(payload), 'reservedBytes': reserved,
+                      'execution': {k: v for k, v in payload.items() if k not in ('files', 'gitPack', 'artifactBinding')}}
+            with c.store.tx() as db:
+                old = db.execute('SELECT * FROM operation WHERE owner=? AND request=?', (principal, args['requestId'])).fetchone()
+                if old:
+                    require(old['hash'] == fingerprint, 'IDEMPOTENCY_MISMATCH')
+                    return Store.public(dict(old))
+                require(db.execute("SELECT count(*) FROM operation WHERE owner=? AND kind='artifact' AND status IN ('running','unknown')",
+                                   (principal,)).fetchone()[0] < 8, 'ARTIFACT_BUILD_LIMIT')
+                db.execute("PRAGMA user_version=5")
+                db.execute("INSERT INTO operation(id,owner,request,hash,kind,task,repo,ref,status,effect,intent) "
+                           "VALUES(?,?,?,?,'artifact',?,?,?,'running','unknown',?)",
+                           (opid, principal, args['requestId'], fingerprint, source['task'], source['repo'], source['ref'], canonical(intent).decode()))
+            try:
+                c.backend(intent).submit(payload, source=source_pack)
+            except Exception:
+                c.fail(opid, Fault('ARTIFACT_DISPATCH_UNKNOWN', 'Observe the retained build identity; never resubmit with a new request', 'unknown'))
+            return Store.public(c.operation(principal, opid))
 
     def reconcile(self, row):
         import os

@@ -48,26 +48,36 @@ class TrustedFixtureExecutor:
         self.launches = 0
         self.mutex = threading.RLock()
 
-    def submit(self, payload):
+    def submit(self, payload, source=None):
         with self.mutex:
             if payload["id"] in self.jobs:
                 return {}
             self.launches += 1
             p = self.root / payload["id"]
-            p.mkdir()
-            for f in payload["files"]:
-                dest = p / f["path"]
-                dest.parent.mkdir(parents=True, exist_ok=True)
-                data = base64.b64decode(f["data"])
-                if f["mode"] == "120000":
-                    dest.symlink_to(data.decode())
-                else:
-                    dest.write_bytes(data)
-                    dest.chmod(0o755 if f["mode"] == "100755" else 0o644)
+            if isinstance(payload.get('gitPack'), dict):
+                from tdev.executor import materialize_source, copy_source
+                packed = self.root / (payload['id'] + '.pack')
+                source.seek(0)
+                copy_source(source, packed, payload['gitPack'])
+                try:
+                    materialize_source(p, payload, packed)
+                finally:
+                    packed.unlink()
+            else:
+                p.mkdir()
+                for f in payload["files"]:
+                    dest = p / f["path"]
+                    dest.parent.mkdir(parents=True, exist_ok=True)
+                    data = base64.b64decode(f["data"])
+                    if f["mode"] == "120000":
+                        dest.symlink_to(data.decode())
+                    else:
+                        dest.write_bytes(data)
+                        dest.chmod(0o755 if f["mode"] == "100755" else 0o644)
+                if "gitPack" in payload:
+                    from tdev.executor import prepare_git
+                    prepare_git(p, payload)
             log = tempfile.TemporaryFile()
-            if "gitPack" in payload:
-                from tdev.executor import prepare_git
-                prepare_git(p, payload)
             proc = subprocess.Popen(["sh", "-c", payload["command"]], cwd=p / payload["cwd"],
                                     env={"PATH": os.environ["PATH"], **payload["env"]},
                                     stdin=subprocess.PIPE, stdout=log, stderr=log, start_new_session=True)

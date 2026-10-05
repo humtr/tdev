@@ -90,6 +90,16 @@ pub struct Report {
     pub stopped: bool,
     pub retained_bytes: u64,
     pub discarded_bytes: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub budget: Option<Budget>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct Budget {
+    pub budget: String,
+    pub configured: u64,
+    pub observed: u64,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -360,7 +370,13 @@ impl Job {
         self.create_file("output.bin")
     }
 
-    pub(crate) fn complete(&self, report: Report) -> io::Result<()> {
+    pub(crate) fn complete(&self, mut report: Report) -> io::Result<()> {
+        report.budget = match self.read::<Bound<Budget>>("budget.json") {
+            Ok(bound) if bound.digest == self.digest()? => Some(bound.value),
+            Ok(_) => return Err(io::Error::other("Budget evidence identity mismatch")),
+            Err(error) if error.kind() == io::ErrorKind::NotFound => None,
+            Err(error) => return Err(error),
+        };
         self.atomic("result.json", &report)
     }
 
@@ -398,10 +414,32 @@ impl Job {
     }
 
     pub(crate) fn within_budget(&self, budget: u64) -> io::Result<bool> {
-        within_budget(
+        self.check_budget(
             ["work", "home", "tmp", "config", "cache"].map(|name| self.path.join(name)),
             budget,
+            250000,
+            "working",
         )
+    }
+
+    pub(super) fn check_budget(
+        &self,
+        roots: impl IntoIterator<Item = PathBuf>,
+        bytes: u64,
+        files: u64,
+        prefix: &str,
+    ) -> io::Result<bool> {
+        if let Some(budget) = budget_violation(roots, bytes, files, prefix)? {
+            self.once(
+                "budget.json",
+                &Bound {
+                    digest: self.digest()?,
+                    value: budget,
+                },
+            )?;
+            return Ok(false);
+        }
+        Ok(true)
     }
 
     pub(super) fn read<T: DeserializeOwned>(&self, name: &str) -> io::Result<T> {
@@ -435,13 +473,17 @@ impl Job {
     }
 
     pub(super) fn once(&self, name: &str, value: &impl Serialize) -> io::Result<bool> {
-        let mut file = match self.create_file(name) {
-            Ok(file) => file,
-            Err(error) if error.kind() == io::ErrorKind::AlreadyExists => return Ok(false),
-            Err(error) => return Err(error),
-        };
-        serde_json::to_writer(&mut file, value).map_err(io::Error::other)?;
-        file.sync_all()?;
+        // Publish complete bytes without replacing an existing fence. Creating
+        // the final name before serialization lets concurrent readers see EOF.
+        let mut temporary = tempfile::NamedTempFile::new_in(&self.path)?;
+        serde_json::to_writer(temporary.as_file_mut(), value).map_err(io::Error::other)?;
+        temporary.as_file_mut().flush()?;
+        temporary.as_file().sync_all()?;
+        match temporary.persist_noclobber(self.path.join(name)) {
+            Ok(_) => {}
+            Err(error) if error.error.kind() == io::ErrorKind::AlreadyExists => return Ok(false),
+            Err(error) => return Err(error.error),
+        }
         File::open(&self.path)?.sync_all()?;
         Ok(true)
     }
@@ -457,17 +499,27 @@ impl Job {
     }
 }
 
-pub(super) fn within_budget(
+fn budget_violation(
     roots: impl IntoIterator<Item = PathBuf>,
     budget: u64,
-) -> io::Result<bool> {
+    file_limit: u64,
+    prefix: &str,
+) -> io::Result<Option<Budget>> {
     let mut pending: Vec<_> = roots.into_iter().collect();
     let mut bytes = 0u64;
-    let mut count = 0;
+    let mut files = 0u64;
+    let mut nodes = 0u64;
+    let violation = |suffix: &str, configured, observed| {
+        Some(Budget {
+            budget: format!("{prefix}{suffix}"),
+            configured,
+            observed,
+        })
+    };
     while let Some(path) = pending.pop() {
-        count += 1;
-        if count > 100000 {
-            return Ok(false);
+        nodes += 1;
+        if nodes > 1000000 {
+            return Ok(violation("ScanNodes", 1000000, nodes));
         }
         let metadata = match fs::symlink_metadata(&path) {
             Ok(metadata) => metadata,
@@ -477,18 +529,22 @@ pub(super) fn within_budget(
         if metadata.is_dir() {
             for entry in fs::read_dir(path)? {
                 pending.push(entry?.path());
-                if pending.len() > 100000 {
-                    return Ok(false);
+                if pending.len() > 1000000 {
+                    return Ok(violation("ScanNodes", 1000000, pending.len() as u64));
                 }
             }
         } else {
+            files += 1;
+            if files > file_limit {
+                return Ok(violation("Files", file_limit, files));
+            }
             bytes = bytes.saturating_add(metadata.len());
             if bytes > budget {
-                return Ok(false);
+                return Ok(violation("Bytes", budget, bytes));
             }
         }
     }
-    Ok(true)
+    Ok(None)
 }
 
 pub(super) fn fingerprint(request: &impl Serialize) -> io::Result<Digest> {
@@ -552,4 +608,81 @@ pub(super) fn lock_file(path: &Path) -> io::Result<File> {
         ));
     }
     Ok(file)
+}
+
+#[cfg(test)]
+mod visibility_tests {
+    use super::*;
+    use std::sync::mpsc;
+
+    struct PausedDigest {
+        digest: Digest,
+        ready: mpsc::SyncSender<()>,
+        resume: mpsc::Receiver<()>,
+    }
+
+    impl Serialize for PausedDigest {
+        fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+            self.ready.send(()).unwrap();
+            self.resume.recv().unwrap();
+            self.digest.serialize(serializer)
+        }
+    }
+
+    #[test]
+    fn cancellation_is_absent_until_its_complete_identity_is_published() {
+        let directory = tempfile::tempdir().unwrap();
+        let job = Job::reserve(
+            &directory.path().join("spool"),
+            &OperationId::new("visibility").unwrap(),
+            Request {
+                command: "true".into(),
+                cwd: ".".into(),
+                timeout_seconds: Some(5),
+                working_bytes: 128 * 1024 * 1024,
+                stdin: String::new(),
+                environment: None,
+            },
+        )
+        .unwrap();
+        let writer = Job::open(job.path()).unwrap();
+        let (ready, waiting) = mpsc::sync_channel(0);
+        let (resume, paused) = mpsc::sync_channel(0);
+        let value = PausedDigest {
+            digest: job.digest().unwrap(),
+            ready,
+            resume: paused,
+        };
+        let thread = std::thread::spawn(move || writer.once("cancel.json", &value));
+        waiting
+            .recv_timeout(std::time::Duration::from_secs(5))
+            .unwrap();
+        let observed = job.cancelled();
+        resume.send(()).unwrap();
+        assert!(thread.join().unwrap().unwrap());
+        assert!(!observed.expect("A reader must never see partial cancellation JSON"));
+        assert!(job.cancelled().unwrap());
+        let original = fs::read(job.path().join("cancel.json")).unwrap();
+        assert!(!job.once("cancel.json", &"different identity").unwrap());
+        assert_eq!(fs::read(job.path().join("cancel.json")).unwrap(), original);
+    }
+
+    #[test]
+    fn failed_serialization_leaves_no_visible_fence_or_temporary_file() {
+        struct Failure;
+        impl Serialize for Failure {
+            fn serialize<S: serde::Serializer>(&self, _serializer: S) -> Result<S::Ok, S::Error> {
+                Err(serde::ser::Error::custom("fixture serialization failure"))
+            }
+        }
+        let directory = tempfile::tempdir().unwrap();
+        let job = Job {
+            path: directory.path().into(),
+        };
+        assert!(job.once("marker.json", &Failure).is_err());
+        assert_eq!(fs::read_dir(job.path()).unwrap().count(), 0);
+        assert!(job.once("marker.json", &"complete").unwrap());
+        assert_eq!(fs::read_dir(job.path()).unwrap().count(), 1);
+        assert_eq!(job.read::<String>("marker.json").unwrap(), "complete");
+    }
 }
