@@ -55,7 +55,46 @@ Qualified debug executable SHA-256 is
 the **217-file** resident bundle identity is
 `e502ae7ee8a1b19fc524e761b523e357659a18cf24c8553f976fcc60f53855d3`.
 The executable is qualification evidence; resident activation uses the complete currently
-implemented controller. Canonical publication and live readback follow next.
+implemented controller. The qualified implementation was committed and pushed on
+`runtime-foundation` as `03c59906a3f56976c118cade01ec65a2021dfc88`, following capacity
+commit `b594de1cfc7fea10e511977a2d357ad22d8b6928`. This closeout changes documentation only;
+its final Git HEAD is the branch's canonical HEAD and has the same qualified bundle inputs.
+
+The existing resident at
+`~/.local/share/tdev/composition-upgrade-53vwtpp8` was aligned through `admin.stage` and
+`Installation.install`, using the existing journal/fence/config-digest CAS with the two
+explicit historical operation IDs. Live readback verifies **0.1.25 → 0.1.27**, the complete
+217-file bundle above, and **workingBytes 536870912 → 2147483648**. This is the only semantic
+config change; credentials, grants, connection settings and resident settings remain intact.
+The before/after config digests are
+`886b860604dd697cf8ff4729543c9297a5df0922184d839bdd6d1c1830413b81` /
+`cb397b2c431c4788af6f513d64b7223e8d63817d5595b81b0f87def3beb7f9ad`.
+The settings digest remains
+`3ebc7986557c83cb87396e2629441bd9fb6a7e124cf171b37847c0ba4e6f60dd`.
+2 GiB is a frozen native working-storage allowance, not a RAM reservation or an increase
+in source/model budgets. The native source journeys above select this allowance and prove
+lifecycle through 512 MiB source; they do not claim a new 2 GiB source-content capacity.
+
+Exact full SQL-row hashes before/after remain equal:
+
+| Retained operation | Status / effect | Full row SHA-256 |
+|---|---|---|
+| Managed create publication `2531fb0f9bbd4aa584865f62898e1010` | unknown / unknown | `1dc66a0e490eb272d7366d30a7ff296d99e7d55c9109320ac9f469bfe20a8e06` |
+| Native stdin `9b2a9a574fea49a98a0b93cd1a6a127a` | unknown / unknown | `6ba6b6ebed6006e593176a11e59807ff4988daed572448697c85e8f6ef4ecfc2` |
+
+Consumer `c5ededc2a5c043f9a6a543cfa76535ba` retains its terminal/stopped committed proof.
+There was no input resend or historical certainty promotion. Default maintenance admission
+still returns `OUTSTANDING_EFFECT`; only the explicitly named exemptions allow this update.
+Installation journal and maintenance fence are cleared, with previous config retained for
+canonical recovery. The initial immediate post-update assertion found both external Tunnel
+polls degraded even though local installation had committed. Subsequent direct owner checks
+proved both successful control-plane polls without reinstalling or changing credentials.
+Final controller PID was **24786**, with Tunnel PIDs **25139 / 25148**, all desired UP.
+PID values are observations, not durable identities. Backend live readback does not certify
+ChatGPT-visible refresh/continuity; host refresh remains a separate acceptance action.
+Safe readback evidence is retained in `$TMPDIR/tdev-maintenance-live-{before,after}.json`,
+and qualification in `tdev-maintenance-{full,remaining}.log`, `remaining-result.json` and
+`qualification.json`.
 
 ## Source capacity and streaming transport — 2026-10-04
 

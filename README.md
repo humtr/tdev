@@ -108,8 +108,9 @@ Full regression and native lifecycle qualification passed with the actual 190-fi
 a >=173 MiB single file, 512 MiB aggregate, many files and byte/count edge rejection.
 The operator approved installed runtime alignment with an explicit record-preserving stdin
 maintenance exception for a proved-stopped native consumer, and 2 GiB live workingBytes.
-The update passed qualification; resident activation is next and the resident is still
-0.1.25. See LOCAL_VALIDATION for exact results and independent budgets.
+The qualified resident is now 0.1.27 with 2 GiB workingBytes; controller and both Tunnel
+control-plane polls passed live readback. The historical unknown records remain unchanged.
+See LOCAL_VALIDATION for exact results and independent budgets.
 
 
 The selected work is to redesign and implement the tdev runtime in Rust, starting with
