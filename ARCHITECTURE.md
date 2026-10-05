@@ -1753,6 +1753,34 @@ completed replay never touches new dependencies. Reset errors identify the origi
 retain effect unknown for reconciliation. This public execution increment does not close P3's
 validation/publication/recovery exit gate or qualify a resident cutover.
 
+Source validation shares the accepted execution/spool owner, with a separately typed retained
+validation binding: admitted checkpoint/base, adopted policy digest, deadline origin and private
+candidate. Only a physical new admission constructs the sole-child candidate, records it in
+SQLite, then prepares its readonly source and binds the original job before launch. Replay never
+constructs or launches an incomplete candidate. The frozen policy binds command, executor and
+operator tooling environment; deadline defaults and working capacity are execution budgets, not
+acceptance-policy identity. The supervisor seals capture only when all existing source metadata
+and body witnesses match the initial manifest; newly created outputs are excluded. Completion
+checks that seal against the original input and report, retains candidate/receipt and releases its
+owned writer without changing the source checkpoint. Pre-launch budget failures retain their
+configured/observed diagnostics rather than being misreported as missing source capture.
+
+Source publication has its own feature transition: reserve writer plus unique validation binding
+in one short transaction, check the retained candidate tree/sole parent, current policy and target,
+then persist dispatch uncertainty before any public ref effect. Local transfer writes only objects
+before exact old-OID update-ref; GitHub uses one ordinary non-force push with a trusted pre-push hook
+checking actual advertised old/new/full ref. Receipt and task closure/publication identity complete
+atomically. A lost dispatch/SQLite reply retains unknown and the writer; reconciliation only reads
+the original target, accepting its exact candidate or a verified descendant under the enrolled
+no-rewrite/no-delete policy. An old or unrelated head cannot prove non-dispatch. New request IDs
+for the same validation retain aliases to the original publication without another effect; different
+publication input still conflicts. Interrupted pre-dispatch preparation can fail with effect=none.
+Current policy/source/explicit expected-head refusals happen before a new publication reservation;
+no inadmissible request owns the validation's unique publication slot. Reference post-admission
+refusals may instead retain a failed/effect=none receipt. Both rejection shapes are explicit in
+common acceptance; accepted publications retain one effect under all request aliases.
+Historical receipts with unrelated construction tags remain unconnected and preserve their fences.
+
 ### Identity, storage and compatibility
 
 Separate ordinary JSON serialization from bytes used for request, policy, spool, artifact and

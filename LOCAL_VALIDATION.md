@@ -1,5 +1,122 @@
 # Local validation evidence — 2026-10-05
 
+## Source validation and publication — 2026-10-05
+
+Source base: `6899bd10849ecc3bfb25cf5a563035f3ecdf1dd4`; product input revision **0.1.30**.
+This increment joins exact source validation and non-force publication to the original execution,
+Git and SQLite owners. SQLite format 3, spool format 4 and the wire contract remain unchanged.
+Discovery now exposes nine implemented families; source validation only is advertised, with
+artifact validation still reserved for P4. The installed complete controller remains 0.1.27;
+this is not a partial-controller cutover or the complete P3 exit gate.
+
+Ownership:
+
+- `src/execution/api.rs`: frozen source/base/policy/candidate binding, adopted command/deadline
+  origin/working capacity, new-admission-only candidate construction, original job proof, controls,
+  bounded background preparation/completion and paged projection.
+- `src/supervisor/source.rs` and `src/execution.rs`: stopped readonly source seal plus original
+  manifest/report matching; changed/deleted/mode-changed source fails validation, new outputs
+  never enter its candidate, and capture is not imported into the task checkpoint.
+- `src/storage/execution.rs`: candidate binding before dispatch, original execution/validation
+  CAS completion, and transaction rollback if any validation completion attempts source import.
+- `src/source/publication.rs`, `src/storage/publication.rs`, `src/git/refs.rs`: current policy/source/
+  expected-head checks, one writer and unique publication per validation in one transaction,
+  original intent before external effects, ordinary non-force pre-push advertisement checking,
+  explicit local old-OID CAS, atomic receipt/task closure and observation-only recovery.
+- `src/transport.rs`, `src/application.rs`, `src/contract.rs`: source-only narrowed discovery,
+  current receipt authority, source validation/control/status routing and opt-in progress SSE.
+
+A validation candidate has the admitted source tree and exactly the canonical base as its sole
+parent. Its command comes from current operator policy, not source content or stdout. Policy
+identity includes adopted command, executor and tooling environment; deadline default and
+working capacity are execution budgets. Changing a repository timeout alone does not invalidate
+an existing successful exact candidate. Missing candidate/job preparation after controller death
+stays unknown and never reconstructs/relaunches on replay. Ordinary command/process behavior
+continues through the same execution owner.
+
+Publication aliases retain every request identity but return the original effect. Different
+publication input conflicts; neither aliases nor recovery push again. Exact candidate head or a
+verified descendant under the enrolled no-rewrite/no-delete policy can prove completion; an old
+or unrelated head leaves unknown and retains its writer. GitHub transport keeps controller
+credentials out of private execution input and receipts. Fixtures use isolated provider executables
+and disposable Git; no real provider or service mutation is qualified by these cases.
+
+Focused evidence:
+
+- Initial native source-validation HTTP cases: 9 passed in 57.943 s.
+- Expanded native/capacity plus publication-writer cases: 25 passed in 322.337 s, including
+  immediate (<2 s) admission of a 181403679-byte file, unchanged-source validation, exact candidate
+  publication and retirement. Intent remains below 8 KiB, with no inline source body.
+- Final affected native checks: 41 passed in 273.717 s, covering the 11 common validation cases,
+  12 native validation/publication cases excluding the previously exercised large-file journey,
+  15 existing GitHub cases and three discovery/uncertain-writer cases.
+- Corrected reference/common validation cases: 11 passed in 60.517 s.
+- Final native affected completion/budget/alias/forged-seal/SQL-recovery/discovery cases: 6 passed
+  in 26.554 s. Standalone discovery/inventory: 2 passed in 2.222 s.
+- Rust readonly changed-source stop proof: 1 passed in 1.26 s. Rust SQLite validation import
+  rejection/rollback: 1 passed in 0.06 s. Formatting, strict clippy and locked native build passed
+  before the whole regression gate.
+
+Draft failures are not qualifications: one 19-case run had a malformed test edit input (SCHEMA
+instead of its intended TASK_BUSY), then corrected cases passed. The first reference run had
+four failures because it assumed only pre-admission rejection; reference publication can retain
+failed/effect=none receipts and a refused accepted publication's unique slot. Common assertions
+now check the explicit rejection or failed/effect=none result and use new validation attempts
+where needed. Rust current-policy/source/explicit-head refusal happens before reservation; this
+behavior difference is intentional and documented in ARCHITECTURE. One parallel standalone
+fixture startup exited with EPERM; the serial rerun passed. Its cause is unproved, not a product
+fix or permission rejection.
+
+Whole regression gate: `scripts/check.sh` exited **0 in 3480.335 s** on **286** frozen
+source/test/documentation inputs, all unchanged before/after. Input manifest SHA-256 is
+`78641ddc1702028c8ea1c52f62aeed882ad3b0b9e440a1f2a5fa97b5fe324656`;
+qualified executable SHA-256 is
+`0cefbb32699f0963696d6fd73cbed77a10da2fd565bfaa9472aefb8f7252a2d9`.
+The uninterrupted run passes formatting, strict clippy, **116 Rust tests**, **10003 identity**
+comparisons, **136 compiled-contract** cases, the locked native build, **157 native HTTP**
+cases, **464 reference/common** cases in **986.274 s**, **7 native capacity** cases in
+**254.622 s**, and final diff checks: **744 test executions**, plus the two comparisons.
+Python emitted **20** SQLite unclosed-database warning events: five in native HTTP fixture
+processes and fifteen in reference/common tests. These warnings did not fail checks; they
+are not evidence that fixture connection cleanup is complete.
+
+The selected actual corpus remains **190 files / 37724943 bytes**, unchanged before/after,
+at `/data/data/com.termux/files/home/prj/house-md-distill/corpus/originals`. Its capacity-journey
+ordered path/NUL/body-SHA-256 digest is
+`d472c85cb1d54046b49b9a325be9596638f987489e8152e9b569370d5b201151`;
+the outer qualification witness uses its separate encoding and records
+`ed814bb6d98f0d3c4daeaef3d31ea422b6a6e011227247d13cbba502228bab1f`.
+The size is 37.7 decimal MB / approximately 35.98 MiB; the separate generated 190-file
+39690240-byte fixture qualifies the requested >=37.7 MiB class.
+
+| Final native capacity journey | Result | Seconds | Controller / utility peak KiB |
+|---|---|---:|---:|
+| 512 MiB aggregate (536870900-byte fixture plus base) | PASS | 58.733 | 41920 / 41920 |
+| Committed 512 MiB aggregate | PASS | 63.232 | 43300 / 43300 |
+| Committed 181403679-byte single file | PASS | 25.225 | 43844 / 43844 |
+| Actual 190-file corpus | PASS | 17.477 | 43844 / 43844 |
+| 181403679-byte artifact source input | PASS | Included in seven-case total | Not separately reported |
+| 1024 files | PASS | 4.166 | 49840 / 49840 |
+| 181403679-byte single file | PASS | 17.133 | 51896 / 51896 |
+
+Peak figures are cumulative process resource high-water measurements, not a hard RAM quota.
+The focused large-source validation/publication journey uses a file already present in the
+remote base; it does not qualify a new 173 MiB blob upload to a live provider. Evidence logs
+and frozen-input witnesses are retained under `.artifacts/source-publication-0.1.30/`, outside
+tracked product inputs. Only this evidence document was excluded from the frozen input set.
+Read-only installed bundle/config inspection confirms **0.1.27**, with
+`artifactLimits.workingBytes=2147483648`; this increment does not change the resident.
+
+Remaining boundaries: P3 human-name continuation lookup, remaining bounded current-frontier/
+no-change/recovery inventory and exit qualification; P4 artifacts/deployment; P5 operator/state/
+installation/performance; P6 final client/installed/host journeys, removal of superseded runtime
+and canonical integration. Optional remote backend and real GitHub authentication/TLS remain
+separate qualifications. Native execution still carries ordinary Termux UID authority with
+sampled working/dependency budgets, not hostile-code isolation or hard aggregate RAM/PID/disk
+quotas. Source/file 512 MiB, binary source pack 1 GiB, source metadata 48 MiB, launch/control
+metadata 8 MiB, task dependencies 2 GiB, source/context response bounds and existing utility/
+capture deadlines remain independent and unchanged in this increment.
+
 ## Public execution and completion — 2026-10-05
 
 Source base: `4c60bd13f80b8b48811e81298d127ae45eece436`; product input revision **0.1.29**.

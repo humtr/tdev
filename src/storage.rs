@@ -12,6 +12,7 @@ use std::path::Path;
 pub mod cleanup;
 pub mod execution;
 pub mod project;
+pub mod publication;
 pub mod source;
 pub mod workspace;
 

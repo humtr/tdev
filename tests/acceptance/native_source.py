@@ -45,7 +45,7 @@ class NativeSourceTest(unittest.TestCase):
         r = self.runtime
         tools = r.request()[2]['result']['tools']
         names = {tool['name'] for tool in tools}
-        self.assertEqual(names, {'tdev_workspace', 'tdev_task', 'tdev_project', 'tdev_read', 'tdev_edit', 'tdev_operation', 'tdev_exec'})
+        self.assertEqual(names, {'tdev_workspace', 'tdev_task', 'tdev_project', 'tdev_read', 'tdev_edit', 'tdev_operation', 'tdev_exec', 'tdev_validate', 'tdev_publish'})
         self.assertNotIn('$ref', json.dumps(tools))
         for tool in tools:
             original = next(t for t in CONTRACT['x-tools'] if t['name'] == tool['name'])
@@ -55,8 +55,11 @@ class NativeSourceTest(unittest.TestCase):
         self.assertFalse(jsonschema.Draft202012Validator(task['inputSchema']).is_valid({'request': hidden}))
         response = r.request('tools/call', {'name': 'tdev_task', 'arguments': {'request': hidden}})[2]
         self.assertEqual(response['result']['structuredContent']['error']['code'], 'SCHEMA')
-        for tool in ('tdev_validate', 'tdev_publish', 'tdev_find', 'tdev_deploy', 'tdev_artifact', 'tdev_diagnostics'):
+        for tool in ('tdev_find', 'tdev_deploy', 'tdev_artifact', 'tdev_diagnostics'):
             self.assertEqual(r.request('tools/call', {'name': tool, 'arguments': {'request': {}}})[0], 400)
+        hidden_artifact = {'subject':'artifact','requestId':'hidden-artifact','artifactId':'absent'}
+        response = r.request('tools/call', {'name':'tdev_validate','arguments':{'request':hidden_artifact}})[2]
+        self.assertEqual(response['result']['structuredContent']['error']['code'],'SCHEMA')
         self.assertEqual(r.call('task', {'action': 'list'})['tasks'], [])
 
     def test_numeric_materialization_scalar_unicode_and_rpc_identity(self):

@@ -12,6 +12,7 @@ use base64::{Engine, engine::general_purpose::STANDARD};
 use serde_json::{Value, json};
 pub(crate) mod cleanup;
 mod integration;
+pub(crate) mod publication;
 mod start;
 
 pub fn task(

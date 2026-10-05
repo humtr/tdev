@@ -122,6 +122,8 @@ impl Surface {
             ("tdev_read", vec![]),
             ("tdev_edit", vec![]),
             ("tdev_exec", vec![]),
+            ("tdev_validate", vec![]),
+            ("tdev_publish", vec![]),
             (
                 "tdev_operation",
                 vec!["status", "stdin", "cancel", "retire"],
@@ -142,7 +144,13 @@ impl Surface {
             {
                 return Err(Fault::new("CONTRACT"));
             }
+            if name == "tdev_validate" {
+                tool["inputSchema"]["properties"]["request"] =
+                    tool["inputSchema"]["properties"]["request"]["oneOf"][0].clone();
+            }
             tool["description"] = json!(match name {
+                "tdev_validate" =>
+                    "Validate the exact source candidate using the current operator command. Success requires proved stop and unchanged existing source; outputs are never published. Does not publish or deploy.",
                 "tdev_task" =>
                     "Open, start, compose, integrate, inspect, close and clean up owned local source tasks. Start fromTaskId creates new work at the predecessor's retained published commit, including after cleanup; it does not resume the old task. Start can import final checkout bytes while preserving the index/files/refs. Cleanup deletes only the exact recorded published branch and observes uncertainty without repeating deletion. Compose same-branch checkpoints and integrate frozen source deltas atomically.",
                 "tdev_project" =>

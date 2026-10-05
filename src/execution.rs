@@ -150,6 +150,31 @@ pub fn prepare(
     Ok(job)
 }
 
+/// Validation consumes sealed unchanged-source proof without importing test outputs.
+pub(crate) fn validation_proof(job: &Job, report: &crate::supervisor::Report) -> Result<()> {
+    let capture = report
+        .capture
+        .as_ref()
+        .ok_or_else(|| Fault::new("CAPTURE_MISSING"))?;
+    let seal: Bound<Capture> = job.read("capture.json").map_err(evidence)?;
+    if seal.digest != job.digest().map_err(evidence)? || &seal.value != capture {
+        return Err(Fault::new("CAPTURE_IDENTITY"));
+    }
+    let expected = match capture {
+        Capture::Sealed { manifest } => manifest,
+        Capture::Rejected { error } => return Err(error.clone()),
+    };
+    let input = source::input_manifest(job)
+        .map_err(evidence)?
+        .ok_or_else(|| Fault::new("EXECUTION_SOURCE"))?;
+    let manifest =
+        source::read_manifest(&job.path().join("capture/manifest.json")).map_err(evidence)?;
+    if manifest.digest().map_err(evidence)? != *expected || manifest != input {
+        return Err(Fault::new("VALIDATION_SOURCE_CHANGED"));
+    }
+    Ok(())
+}
+
 /// Require original worker/stop/source proof before importing any blob into private Git.
 /// The caller subsequently commits this checkpoint with its operation receipt using SQLite CAS.
 pub fn checkpoint(git: &Git, job: &Job, operation: &OperationId) -> Result<Checkpoint> {

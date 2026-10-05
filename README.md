@@ -131,9 +131,9 @@ SHA-1/SHA-256 stores and private indices; real fixtures cover atomic batch failu
 opening/editing, unchanged capture and dirty-checkout preservation. Contract checks are compared
 with an independent validator across all thirteen described tool families; this does not
 advertise those families as implemented handlers. The command now serves authenticated loopback
-HTTP with fresh immutable authority snapshots. Discovery exposes seven implemented tool families:
+HTTP with fresh immutable authority snapshots. Discovery exposes nine implemented tool families:
 workspace composition; task list/open/start/compose/integrate/inspect/close/cleanup; all read/edit actions;
-native execution; operation status/control with bounded JSON/SSE observation; and project list/inspect/local connect/create. Delegated
+native execution; source validation and publication; operation status/control with bounded JSON/SSE observation; and project list/inspect/local connect/create. Delegated
 enrollment stores resource identity separately from current policy-derived grants and execution
 settings. Local creation records uncertainty before touching the target and reconciles only
 completed initialization with its original operation marker, Git-directory/checkout identity
@@ -201,8 +201,18 @@ commits checkpoint/receipt together, while fixed-source process completion canno
 writer or reopen a task. Task/workspace observation reconciles busy work; task inspect observes
 up to eight outstanding processes independently of history pagination. Explicit dependency reset
 checks logical consumers plus the kernel lease and recovers the original directory rename.
-See [local validation evidence](LOCAL_VALIDATION.md#public-execution-and-completion--2026-10-05)
-for qualification results and remaining scope. Validation/publication, artifacts,
+Source 0.1.30 joins source validation to that same admission/spool/completion path. A private
+sole-child candidate is recorded before preparation/launch; the adopted command, tooling policy,
+deadline origin and working budget are frozen. Stopped capture rejects changed/deleted/mode-changed
+existing source and excludes new test outputs. Successful validation retains the candidate without
+advancing the task checkpoint. Publication rechecks current policy, exact source and old head,
+reserves one writer/publication per validation, and journals uncertainty before non-force Git CAS.
+Lost replies and controller death only observe the original ref; exact candidate or verified
+descendant can finish it, while old/unrelated heads retain unknown. Duplicate publication requests
+resolve to the original effect. Source validation includes ordered controls, paged logs and opt-in
+progress SSE; artifact validation is not exposed in this increment.
+See [local validation evidence](LOCAL_VALIDATION.md#source-validation-and-publication--2026-10-05)
+for qualification results and remaining scope. Remaining P3 recovery/frontier qualification, artifacts,
 deployment and operator/service commands retain their delivery phases. This is not the P3
 exit gate or resident cutover; the complete installed controller remains 0.1.27.
 The HTTP edge explicitly materializes finite floats before Schema validation, preserves raw

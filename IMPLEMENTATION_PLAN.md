@@ -261,9 +261,12 @@ logical/kernel consumer exclusion for dependency reset. The same-directory reset
 preserves directory identity across interruption and completed replay cannot remove rebuilt
 storage. Process completion never changes source/writer/closed state. No dispatch belongs in
 replay or recovery. See LOCAL_VALIDATION.md for this increment's complete qualification evidence.
-Do not close the P3 exit gate yet: next join source-validation candidate/policy admission and
-exact non-force publication to the same stop/completion owners, then finish P3 recovery/frontier
-and qualification obligations. The earlier private increment qualified 115 Rust, 108 native HTTP,
+Source-validation candidate/policy admission and exact non-force publication now join the same
+stop/completion owners: readonly integrity, frozen deadline origin, exact original candidate,
+unique publication identity and observation-only ref recovery. Next finish P3's remaining
+recovery/frontier and executable acceptance inventory, then assess its exit gate before P4.
+Do not infer P3 exit or installed activation from this increment alone. The earlier private
+increment qualified 115 Rust, 108 native HTTP,
 447 reference/common and 7 native capacity checks on identical frozen inputs; its interrupted
 script prefix plus qualified continuation remains historical evidence, not a script exit 0.
 

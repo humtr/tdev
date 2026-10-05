@@ -465,7 +465,12 @@
         "tests/test_boundaries.py"
       ],
       "externalScenarios": [
-        "ObjectFormatTest.test_sha256_checkpoint_and_exact_publication_survive_restart"
+        "ObjectFormatTest.test_sha256_checkpoint_and_exact_publication_survive_restart",
+        "ValidationTest.test_exact_candidate_outputs_never_import_and_noop_keeps_validation_usable",
+        "ValidationTest.test_source_mutation_deletion_and_mode_change_fail_without_checkpoint_advance",
+        "ValidationTest.test_policy_change_rejects_but_timeout_default_change_preserves_exact_candidate",
+        "ValidationTest.test_frozen_timeout_origin_wait_replay_and_explicit_timeout",
+        "ValidationTest.test_stdout_pass_and_nonzero_exit_never_authorize_publication"
       ],
       "delivery": "P3"
     },
@@ -477,7 +482,12 @@
         "tests/test_recovery.py"
       ],
       "externalScenarios": [
-        "ObjectFormatTest.test_sha256_checkpoint_and_exact_publication_survive_restart"
+        "ObjectFormatTest.test_sha256_checkpoint_and_exact_publication_survive_restart",
+        "ValidationTest.test_lost_publication_reply_alias_and_concurrent_duplicates_observe_one_effect",
+        "ValidationTest.test_concurrent_new_publication_requests_share_one_original_effect",
+        "ValidationTest.test_managed_publication_cleanup_and_real_published_predecessor",
+        "ValidationTest.test_changed_checkpoint_and_wrong_expected_head_cannot_publish",
+        "ValidationTest.test_current_authority_required_for_validation_and_publication_replay"
       ],
       "delivery": "P3"
     },

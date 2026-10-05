@@ -303,7 +303,7 @@ fn descendants_are_stopped_before_capture_seal() {
 }
 
 #[test]
-fn readonly_capture_excludes_new_files_but_retains_tracked_changes() {
+fn readonly_capture_rejects_tracked_changes_and_preserves_stop_proof() {
     let fixture = Fixture::new("sha1");
     let job = execution::prepare(
         &fixture.store,
@@ -316,14 +316,12 @@ fn readonly_capture_excludes_new_files_but_retains_tracked_changes() {
     )
     .unwrap();
     fixture.start(&job);
-    let checkpoint = execution::checkpoint(&fixture.store, &job, &fixture.operation).unwrap();
-    assert!(
-        !fixture
-            .store
-            .entries(&checkpoint)
-            .unwrap()
-            .contains_key(&SourcePath::new("extra").unwrap())
-    );
+    let report = fixture.complete(&job);
+    assert!(report.stopped);
+    assert_eq!(report.exit_code, Some(0));
+    let error = execution::checkpoint(&fixture.store, &job, &fixture.operation).unwrap_err();
+    assert_eq!(error.code, "VALIDATION_SOURCE_CHANGED");
+    assert!(!job.path().join("candidate.json").exists());
 }
 
 #[test]

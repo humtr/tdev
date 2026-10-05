@@ -28,6 +28,68 @@ struct Frozen {
     capture_paths: Vec<SourcePath>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     job_digest: Option<Digest>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    validation: Option<Validation>,
+}
+
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct Validation {
+    pub base: Checkpoint,
+    pub checkpoint: Checkpoint,
+    pub policy: Digest,
+    pub timeout_source: String,
+    pub candidate: Option<Checkpoint>,
+}
+
+pub(crate) fn policy(repo: &crate::admission::Repository) -> Result<Digest> {
+    let command = wire::string(&repo.config, "validation")?;
+    identity::Value::parse(
+        &json!({"command":command,
+        "executor":repo.config.get("executor").cloned().unwrap_or(json!({"kind":"native"})),
+        "toolingEnvironment":repo.config.get("toolingEnvironment").cloned().unwrap_or(json!({}))})
+        .to_string(),
+    )?
+    .fingerprint()
+}
+
+pub(crate) fn validated(receipt: &Receipt) -> Result<Validation> {
+    if receipt.operation.kind != OperationKind::Validate
+        || receipt.operation.status != Status::Succeeded
+        || receipt.operation.effect != Effect::Committed
+        || receipt.operation.result.as_ref().is_none_or(|r| {
+            r["exitCode"] != 0
+                || r["stopped"] != true
+                || r["cancelled"] != false
+                || r["timedOut"] != false
+        })
+    {
+        return Err(Fault::new("VALIDATION_REQUIRED"));
+    }
+    let frozen = frozen(receipt)?;
+    let validation = frozen
+        .validation
+        .ok_or_else(|| Fault::new("SOURCE_VALIDATION_REQUIRED"))?;
+    if validation.candidate.is_none()
+        || frozen.job_digest.is_none()
+        || receipt.operation.result.as_ref().unwrap()["checkpoint"] != json!(validation.checkpoint)
+        || receipt.operation.result.as_ref().unwrap()["candidate"] != json!(validation.candidate)
+    {
+        return Err(Fault::new("STATE_FORMAT"));
+    }
+    Ok(validation)
+}
+
+impl Frozen {
+    fn source(&self) -> Result<&Checkpoint> {
+        match &self.validation {
+            Some(validation) => validation
+                .candidate
+                .as_ref()
+                .ok_or_else(|| Fault::new("STATE_FORMAT")),
+            None => Ok(&self.checkpoint),
+        }
+    }
 }
 
 // The intent uses the wire-style field name in existing storage queries.
@@ -37,7 +99,19 @@ fn frozen(receipt: &Receipt) -> Result<Frozen> {
         value["job_digest"] = digest;
     }
     let frozen: Frozen = serde_json::from_value(value).map_err(|_| Fault::new("STATE_FORMAT"))?;
-    if frozen.construction != "native-execution"
+    let validating = receipt.operation.kind == OperationKind::Validate;
+    if frozen.construction
+        != if validating {
+            "source-validation"
+        } else {
+            "native-execution"
+        }
+        || validating != frozen.validation.is_some()
+        || (validating && frozen.mode != "command")
+        || frozen.validation.as_ref().is_some_and(|v| {
+            v.checkpoint != frozen.checkpoint
+                || !["request", "repository", "default"].contains(&v.timeout_source.as_str())
+        })
         || !["command", "process"].contains(&frozen.mode.as_str())
         || frozen.request.source.is_some()
         || frozen.request.capture != (frozen.mode == "command")
@@ -61,8 +135,32 @@ pub fn call(
     input: &Value,
     original: &identity::Value,
 ) -> Result<Value> {
+    submit(app, context, input, original, false)
+}
+
+pub(crate) fn validate(
+    app: &Application,
+    context: &Context,
+    input: &Value,
+    original: &identity::Value,
+) -> Result<Value> {
+    submit(app, context, input, original, true)
+}
+
+fn submit(
+    app: &Application,
+    context: &Context,
+    input: &Value,
+    original: &identity::Value,
+    validating: bool,
+) -> Result<Value> {
     let original = effect_input(original);
-    if let Some(op) = app.replay(context, input, "exec", &original)? {
+    if let Some(op) = app.replay(
+        context,
+        input,
+        if validating { "validate" } else { "exec" },
+        &original,
+    )? {
         return wait(app, context, &op.id, input);
     }
     let (task, repo) = app.ready_task(context, wire::string(input, "taskId")?)?;
@@ -93,11 +191,29 @@ pub fn call(
     } else {
         Some(Environment::new(&app.root.join("environments"), task.id.clone()).map_err(evidence)?)
     };
+    let timeout_source = if input.get("timeout").is_some() {
+        "request"
+    } else if validating && repo.config.get("validationTimeoutSeconds").is_some() {
+        "repository"
+    } else {
+        "default"
+    };
     let request = Request {
-        command: wire::string(input, "command")?.into(),
+        command: wire::string(
+            if validating { &repo.config } else { input },
+            if validating { "validation" } else { "command" },
+        )?
+        .into(),
         cwd: input["cwd"].as_str().unwrap_or(".").into(),
         timeout_seconds: input
             .get("timeout")
+            .or_else(|| {
+                if validating {
+                    repo.config.get("validationTimeoutSeconds")
+                } else {
+                    None
+                }
+            })
             .map(|v| wire::integer(v, 3600))
             .transpose()?
             .or(if mode == "process" { None } else { Some(300) }),
@@ -131,19 +247,39 @@ pub fn call(
         context,
         input,
         &original,
-        OperationKind::Exec,
+        if validating {
+            OperationKind::Validate
+        } else {
+            OperationKind::Exec
+        },
         Some(task.id.clone()),
         Some(&task.identity),
     )?;
     let frozen = Frozen {
         input: input.clone(),
         identity: task.identity.clone(),
-        construction: "native-execution".into(),
+        construction: if validating {
+            "source-validation"
+        } else {
+            "native-execution"
+        }
+        .into(),
         mode: mode.into(),
         checkpoint: checkpoint.clone(),
         request: request.clone(),
         capture_paths: capture_paths.clone(),
         job_digest: None,
+        validation: if validating {
+            Some(Validation {
+                base: task.base.clone(),
+                checkpoint: checkpoint.clone(),
+                policy: policy(&repo)?,
+                timeout_source: timeout_source.into(),
+                candidate: None,
+            })
+        } else {
+            None
+        },
     };
     admission.intent = identity::Value::parse(
         &serde_json::to_string(&frozen).map_err(|_| Fault::new("STATE_FORMAT"))?,
@@ -216,21 +352,43 @@ fn construct(
     context: &Context,
     id: &OperationId,
     repo: crate::admission::Repository,
-    frozen: Frozen,
+    mut frozen: Frozen,
 ) -> Result<()> {
     // Only the physical new admission schedules preparation/dispatch. This worker is
     // bounded controller work; actual command lifetime belongs to the independent supervisor.
     let gate = app.operation_work(id)?;
     let _guard = gate.lock().map_err(|_| Fault::new("OPERATION_BUSY"))?;
     match app.git(&repo).and_then(|git| {
+        if let Some(validation) = &mut frozen.validation {
+            let (task, _) = app.task(context, wire::string(&frozen.input, "taskId")?)?;
+            let expected = if task.managed == 1 {
+                None
+            } else {
+                Some(&validation.base)
+            };
+            if (task.managed == 1 && task.ref_state.as_deref() != Some("reserved"))
+                || git.head(&task.branch)?.as_ref() != expected
+            {
+                return Err(Fault::new("STALE_HEAD"));
+            }
+            let candidate = git.validation_candidate(
+                &validation.checkpoint,
+                &validation.base,
+                wire::string(&frozen.input, "message")?,
+                id,
+            )?;
+            app.store()?.bind_validation(id, &candidate)?;
+            validation.candidate = Some(candidate);
+        }
+        let source = frozen.source()?.clone();
         prepare(
             &git,
-            &frozen.checkpoint,
+            &source,
             &app.root.join("jobs"),
             id,
             frozen.request,
             frozen.capture_paths,
-            false,
+            frozen.validation.is_some(),
         )
     }) {
         Ok(job) => {
@@ -279,9 +437,9 @@ fn job(app: &Application, receipt: &Receipt, frozen: &Frozen) -> Result<Job> {
         .source
         .as_ref()
         .ok_or_else(|| Fault::new("EXECUTION_SOURCE"))?;
-    if source.checkpoint != frozen.checkpoint
+    if &source.checkpoint != frozen.source()?
         || source.capture_paths != frozen.capture_paths
-        || source.readonly
+        || source.readonly != frozen.validation.is_some()
     {
         return Err(Fault::new("EXECUTION_IDENTITY"));
     }
@@ -374,7 +532,13 @@ fn complete(app: &Application, context: &Context, receipt: &Receipt) -> Result<O
     let job = job(app, &receipt, &frozen)?;
     let mut captured = None;
     let mut capture_error = None;
-    if frozen.mode == "command" && report.capture.is_some() {
+    if frozen.validation.is_some()
+        && (report.capture.is_some() || report.outcome == Outcome::Exited)
+    {
+        if let Err(error) = super::validation_proof(&job, &report) {
+            capture_error = Some(error);
+        }
+    } else if frozen.mode == "command" && report.capture.is_some() {
         let (_, repo) = app.task(
             context,
             receipt
@@ -421,7 +585,7 @@ fn complete(app: &Application, context: &Context, receipt: &Receipt) -> Result<O
     } else {
         Status::Succeeded
     };
-    let mut result = json!({"id":receipt.operation.id,"terminal":true,"stopped":true,"exitCode":report.exit_code,"checkpoint":captured.as_ref().unwrap_or(&frozen.checkpoint),"candidate":null,"cancelled":report.outcome==Outcome::Cancelled,"timedOut":report.outcome==Outcome::Deadline,"discardedBytes":report.discarded_bytes});
+    let mut result = json!({"id":receipt.operation.id,"terminal":true,"stopped":true,"exitCode":report.exit_code,"checkpoint":captured.as_ref().unwrap_or(&frozen.checkpoint),"candidate":frozen.validation.as_ref().and_then(|v| v.candidate.as_ref()),"cancelled":report.outcome==Outcome::Cancelled,"timedOut":report.outcome==Outcome::Deadline,"discardedBytes":report.discarded_bytes});
     if let Some(error) = capture_error {
         result["captureError"] = json!(error.message);
     }
@@ -437,9 +601,12 @@ fn complete(app: &Application, context: &Context, receipt: &Receipt) -> Result<O
 
 pub fn summary(receipt: &Receipt, operation: Operation) -> Result<Value> {
     let mut value = json!(operation);
-    if receipt.operation.kind == OperationKind::Exec {
+    if matches!(
+        receipt.operation.kind,
+        OperationKind::Exec | OperationKind::Validate
+    ) {
         let frozen = frozen(receipt)?;
-        value["execution"] = json!({"mode":frozen.mode,"checkpoint":frozen.checkpoint,"environment":if frozen.request.environment.is_some(){"task"}else{"fresh"},"timeout":frozen.request.timeout_seconds,"timeoutSource":if frozen.input.get("timeout").is_some(){"request"}else{"default"}});
+        value["execution"] = json!({"mode":frozen.mode,"checkpoint":frozen.checkpoint,"environment":if frozen.request.environment.is_some(){"task"}else{"fresh"},"timeout":frozen.request.timeout_seconds,"timeoutSource":frozen.validation.as_ref().map(|v|v.timeout_source.as_str()).unwrap_or(if frozen.input.get("timeout").is_some(){"request"}else{"default"})});
     }
     Ok(value)
 }
@@ -474,7 +641,10 @@ pub fn project(
             }
         }
     }
-    if receipt.operation.kind != OperationKind::Exec {
+    if !matches!(
+        receipt.operation.kind,
+        OperationKind::Exec | OperationKind::Validate
+    ) {
         return Ok(value);
     }
     let frozen = frozen(receipt)?;
@@ -562,7 +732,10 @@ pub fn control(
         )?
         .ok_or_else(|| Fault::new("OPERATION_NOT_FOUND"))?;
     app.authorize_receipt(context, &target)?;
-    if target.operation.kind != OperationKind::Exec {
+    if !matches!(
+        target.operation.kind,
+        OperationKind::Exec | OperationKind::Validate
+    ) {
         return Err(Fault::new("UNSUPPORTED_OPERATION"));
     }
     reconcile(app, context, &target)?;

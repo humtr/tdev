@@ -716,6 +716,9 @@ pub(super) fn capture(job: &Job) -> io::Result<Option<Capture>> {
             return Err(Fault::new("CAPTURE_CHANGED"));
         }
         check_roots(job).map_err(io_fault)?;
+        if source.readonly && manifest != initial {
+            return Err(Fault::new("VALIDATION_SOURCE_CHANGED"));
+        }
         write_manifest(&staging.path().join("manifest.json"), &manifest).map_err(io_fault)?;
         File::open(staging.path())
             .and_then(|f| f.sync_all())

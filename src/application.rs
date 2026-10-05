@@ -147,12 +147,16 @@ impl Application {
                 | OperationKind::Task
                 | OperationKind::Edit
                 | OperationKind::Exec
+                | OperationKind::Validate
+                | OperationKind::Publish
                 | OperationKind::Operation
         ) {
             return Err(Fault::new("UNSUPPORTED_OPERATION"));
         }
         let expected = match receipt.operation.kind {
             OperationKind::Exec => Some("native-execution"),
+            OperationKind::Validate => Some("source-validation"),
+            OperationKind::Publish => Some("source-publication"),
             OperationKind::Operation => Some("native-control"),
             OperationKind::Task if receipt.intent["input"]["action"] == "resetEnvironment" => {
                 Some("native-environment-reset")
@@ -298,8 +302,13 @@ impl Application {
     pub(crate) fn reconcile(&self, context: &Context, receipt: &Receipt) -> Result<Operation> {
         if receipt.operation.kind == OperationKind::Project {
             crate::project::reconcile(self, context, receipt)
-        } else if receipt.operation.kind == OperationKind::Exec {
+        } else if matches!(
+            receipt.operation.kind,
+            OperationKind::Exec | OperationKind::Validate
+        ) {
             crate::execution::api::reconcile(self, context, receipt)
+        } else if receipt.operation.kind == OperationKind::Publish {
+            crate::source::publication::reconcile(self, context, receipt)
         } else if receipt.operation.kind == OperationKind::Operation {
             crate::execution::api::reconcile_control(self, context, receipt)
         } else if receipt.operation.kind == OperationKind::Task
@@ -329,6 +338,8 @@ impl Application {
                 "tdev_read" => crate::source::read(self, context, input),
                 "tdev_workspace" => crate::workspace::call(self, context, input, original),
                 "tdev_project" => crate::project::call(self, context, input, original),
+                "tdev_validate" => crate::execution::api::validate(self, context, input, original),
+                "tdev_publish" => crate::source::publication::call(self, context, input, original),
                 "tdev_exec" => crate::execution::api::call(self, context, input, original),
                 "tdev_operation" if input["action"] == "status" => self.status(context, input),
                 "tdev_operation" => crate::execution::api::control(self, context, input, original),

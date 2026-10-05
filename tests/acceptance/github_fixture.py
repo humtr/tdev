@@ -55,23 +55,23 @@ class GithubFixture:
             'args=sys.argv[1:]; transport=any(a.startswith("https://github.com/") for a in args)\n' +
             'with (root/"calls.jsonl").open("a") as f: f.write(json.dumps({"kind":"git","args":args,"transport":transport,"credential":bool(os.getenv("GH_TOKEN"))})+"\\n")\n' +
             'if transport:\n' +
-            ' assert "ls-remote" in args or "fetch" in args or ("push" in args and any(a.startswith("--force-with-lease=refs/heads/managed/") for a in args) and any(a.startswith(":refs/heads/managed/") for a in args)), args\n' +
+            ' assert "ls-remote" in args or "fetch" in args or ("push" in args and any(a.startswith("--force-with-lease=refs/heads/managed/") for a in args) and any(a.startswith(":refs/heads/managed/") for a in args)) or ("push" in args and not any(a.startswith("--force") for a in args) and any(":refs/heads/managed/" in a and not a.startswith(":") for a in args)), args\n' +
             ' args=[remote if a.startswith("https://github.com/") else a for a in args]\n' +
             ' state=json.loads((root/"provider.json").read_text())\n' +
             ' if state.get("transport_failure"):\n' +
             '  print("helper rejected "+os.getenv("GH_TOKEN",""), file=sys.stderr); sys.exit(129)\n' +
             ' if "push" in args:\n' +
             '  if state.get("git_race"):\n' +
-            '   branch=next(a[1:] for a in args if a.startswith(":refs/heads/"))\n' +
+            '   branch=next(a.split(":",1)[1] for a in args if ":refs/heads/" in a)\n' +
             '   subprocess.check_call([real,"--git-dir="+remote,"update-ref",branch,state["git_race"]])\n' +
             '  gap=state.get("git_gap"); code=None\n' +
-            '  if gap == "after-delete": code=subprocess.call([real,*args])\n' +
-            '  if gap in ("before-delete","after-delete") and not (root/"gap").exists():\n' +
+            '  if gap in ("after-delete","after-publish"): code=subprocess.call([real,*args])\n' +
+            '  if gap in ("before-delete","after-delete","before-publish","after-publish") and not (root/"gap").exists():\n' +
             '   (root/"gap").write_text(str(os.getpid()))\n' +
             '   end=time.monotonic()+20\n' +
             '   while not (root/"release").exists() and time.monotonic()<end: time.sleep(.02)\n' +
             '   (root/"done").touch()\n' +
-            '  if gap == "before-delete": sys.exit(129)\n' +
+            '  if gap in ("before-delete","before-publish"): sys.exit(129)\n' +
             '  if code is not None: sys.exit(code)\n' +
             'os.execv(real, [real, *args])\n')
         script.chmod(0o700)

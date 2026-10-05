@@ -232,8 +232,9 @@ async fn handle(State(server): State<Server>, request: Request) -> Response {
                 .original_at(&["params", "arguments", "request"])
                 .cloned()
                 .unwrap_or(identity::Value::Null);
-            let stream = name == "tdev_operation"
-                && arguments["request"]["action"] == "status"
+            let stream = ((name == "tdev_operation" && arguments["request"]["action"] == "status")
+                || name == "tdev_validate"
+                || (name == "tdev_exec" && arguments["request"]["mode"] != "process"))
                 && wire::bounded(&arguments["request"], "waitMs", 0, 30000).is_ok_and(|n| n > 0)
                 && progress.is_some();
             let app = server.app.clone();
