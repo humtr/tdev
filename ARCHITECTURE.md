@@ -894,6 +894,13 @@ control-plane poll. Public liveness metadata grants no authorization.
 An advisory shared admission lock surrounds API dispatch. The installer exclusively acquires
 it to durably place a maintenance marker, then releases it so observations remain available.
 Mutations while fenced fail explicitly; outstanding/unknown operations block installation.
+An operator may explicitly name one retained unknown native stdin control for an existing
+resident update. Its consumer must have a reconciled terminal committed result with exact
+native execution identity and a stopped receipt; owner, repository/ref and enrolled identity
+must match. This maintenance exception preserves every operation row and never certifies
+past input delivery or sends input again. Other outstanding effects still block installation.
+The exact exemption is rechecked under the admission fence and pointer lock, journaled for
+failed-update recovery, and not carried into ordinary future updates automatically.
 Install/update/uninstall serialize with root and shared-service locks, journal before changes,
 stop owned services, and switch only compatible bundles. Recovery restores old files/pointer
 and desired state before clearing the fence. A process interruption leaves recoverable intent;

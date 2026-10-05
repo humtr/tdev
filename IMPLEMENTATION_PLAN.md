@@ -100,6 +100,10 @@ remove duplicate file-plus-pack payloads. Preserve separate native working/depen
 and bounded model responses. Qualify the 190-file/37.7 MiB corpus, a >=173 MiB single file,
 many-file and 512 MiB aggregate journeys and boundary diagnostics before commit/push; assess
 resident alignment only after that qualification. Earlier branches are not capacity authority.
+The current instruction authorizes qualified resident alignment, preserving the exact unknown
+stdin record for a proved-stopped native consumer, and selecting 2 GiB live workingBytes in
+the recoverable update transaction. Qualify this narrow explicit maintenance exception before
+activation; never resolve delivery uncertainty merely to make installation admissible.
 
 The selected order is P0–P6 below: establish behavioral test boundaries, then redesign and
 implement directly in Rust using ARCHITECTURE §10. Do not first refactor the whole Python

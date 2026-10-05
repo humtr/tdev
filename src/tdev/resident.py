@@ -312,7 +312,7 @@ class Installation:
         return {'files': {f: base64.b64encode(private_file(directory / f)).decode() for f in FILES},
                 'down': self.backend.wanted_down(directory)}
 
-    def fence(self, ident, allow_unknown_publish=None):
+    def fence(self, ident, allow_unknown_publish=None, allow_unknown_stdin=None):
         state = self.root / 'state'
         state.mkdir(mode=0o700, exist_ok=True)
         with open(state / 'admission.lock', 'a+b') as lock:
@@ -333,7 +333,7 @@ class Installation:
             db = sqlite3.connect('file:' + str(dbfile) + '?mode=ro', uri=True)
             try:
                 from .admin import maintenance_ready
-                maintenance_ready(db, allow_unknown_publish)
+                maintenance_ready(db, allow_unknown_publish, allow_unknown_stdin)
             finally:
                 db.close()
 
@@ -424,7 +424,8 @@ class Installation:
             previous = j['active']
             if previous:
                 from .admin import point
-                point(self.root, Path(previous).name, j.get('allowUnknownPublish'))
+                point(self.root, Path(previous).name, j.get('allowUnknownPublish'),
+                      j.get('allowUnknownStdin'))
             elif (self.root / 'active').is_symlink():
                 (self.root / 'active').unlink()
             if 'config' in j:
@@ -445,7 +446,8 @@ class Installation:
         self.journal.unlink()
         sync(self.root)
 
-    def install(self, bundle, config=None, expected_config=None, allow_unknown_publish=None):
+    def install(self, bundle, config=None, expected_config=None, allow_unknown_publish=None,
+                allow_unknown_stdin=None):
         from .admin import point, verify
         with self.lock():
             infra = self.backend.preflight()
@@ -476,12 +478,14 @@ class Installation:
             j = {'id': uuid.uuid4().hex, 'phase': 'prepared', 'svdir': str(self.svdir), 'active': active, 'services': snapshots}
             if allow_unknown_publish is not None:
                 j['allowUnknownPublish'] = allow_unknown_publish
+            if allow_unknown_stdin is not None:
+                j['allowUnknownStdin'] = allow_unknown_stdin
             if config_before is not None:
                 j['config'] = {'before': base64.b64encode(config_before).decode(),
                                'afterDigest': digest(canonical(config))}
             atomic_write(self.journal, canonical(j))
             try:
-                self.fence(j['id'], allow_unknown_publish)
+                self.fence(j['id'], allow_unknown_publish, allow_unknown_stdin)
                 j['phase'] = 'changing'
                 atomic_write(self.journal, canonical(j))
                 for name in reversed(tuple(snapshots)):
@@ -489,7 +493,7 @@ class Installation:
                         self.backend.down(self.svdir / name)
                 if config_before is not None:
                     self.replace_config(canonical(config), (expected_config,))
-                point(self.root, bundle, allow_unknown_publish)
+                point(self.root, bundle, allow_unknown_publish, allow_unknown_stdin)
                 templates(self.root, settings)
                 for name in snapshots:
                     self.write_service(name, settings)

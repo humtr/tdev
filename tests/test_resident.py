@@ -218,6 +218,146 @@ class ResidentTest(unittest.TestCase):
         self.assertEqual(json.loads(row[2])['new'], 'a' * 40)
         self.assertFalse(self.i.journal.exists())
 
+    def unknown_stdin(self):
+        control, target = 'c' * 32, 'e' * 32
+        dbfile = self.root / 'state/state.sqlite'
+        dbfile.parent.mkdir(exist_ok=True, mode=0o700)
+        control_intent = {'input': {'action': 'stdin', 'operationId': target},
+                          'targetOperation': target, 'executor': {'kind': 'native'},
+                          'repositoryIdentity': 'local:fixture'}
+        target_intent = {'executor': {'kind': 'native'}, 'execution': {'id': target},
+                         'inputDigest': 'd' * 64, 'repositoryIdentity': 'local:fixture'}
+        with sqlite3.connect(dbfile) as db:
+            db.execute('PRAGMA user_version=3')
+            db.execute('''CREATE TABLE operation (id TEXT PRIMARY KEY, kind TEXT,
+                status TEXT, effect TEXT, intent TEXT, task TEXT, ref TEXT,
+                owner TEXT, repo TEXT, result TEXT)''')
+            db.execute('INSERT INTO operation(id,kind,status,effect,intent,ref,owner,repo) VALUES(?,?,?,?,?,?,?,?)',
+                       (control, 'operation', 'unknown', 'unknown', json.dumps(control_intent),
+                        'refs/heads/tasks/fixture', 'alice', 'fixture'))
+            db.execute('INSERT INTO operation(id,kind,status,effect,intent,ref,owner,repo,result) VALUES(?,?,?,?,?,?,?,?,?)',
+                       (target, 'exec', 'failed', 'committed', json.dumps(target_intent),
+                        'refs/heads/tasks/fixture', 'alice', 'fixture',
+                        json.dumps({'id': target, 'terminal': True, 'stopped': True, 'exitCode': -9})))
+        return control, target, dbfile
+
+    def test_unknown_stdin_update_preserves_rows_and_changes_only_working_budget(self):
+        self.i.install(self.one)
+        control, target, dbfile = self.unknown_stdin()
+        publication, _ = self.unknown_publish()
+        before_config = json.loads((self.root / 'config.json').read_bytes())
+        before_config.setdefault('artifactLimits', {})['workingBytes'] = 512 * 1024 * 1024
+        atomic_write(self.root / 'config.json', canonical(before_config))
+        with sqlite3.connect(dbfile) as db:
+            before_rows = db.execute('SELECT * FROM operation ORDER BY id').fetchall()
+            with self.assertRaises(Fault) as error:
+                maintenance_ready(db)
+            self.assertEqual(error.exception.value['code'], 'OUTSTANDING_EFFECT')
+            with self.assertRaises(Fault) as error:
+                maintenance_ready(db, allow_unknown_stdin=control)
+            self.assertEqual(error.exception.value['code'], 'OUTSTANDING_EFFECT')
+            maintenance_ready(db, publication, control)
+        second = self.next_bundle()
+        changed = {**before_config, 'artifactLimits': {
+            **before_config['artifactLimits'], 'workingBytes': 2 * 1024 * 1024 * 1024}}
+        self.i.install(second, changed, digest(canonical(before_config)),
+                       allow_unknown_publish=publication, allow_unknown_stdin=control)
+        self.assertEqual((self.root / 'active').resolve().name, second)
+        self.assertEqual(json.loads((self.root / 'config.json').read_bytes()), changed)
+        with sqlite3.connect(dbfile) as db:
+            self.assertEqual(before_rows, db.execute('SELECT * FROM operation ORDER BY id').fetchall())
+        self.assertFalse(self.i.journal.exists())
+        self.assertFalse((self.root / 'state/maintenance.json').exists())
+
+    def test_unknown_stdin_exemption_rejects_unproved_or_other_effects_without_writes(self):
+        control, target, dbfile = self.unknown_stdin()
+        with sqlite3.connect(dbfile) as db:
+            db.row_factory = sqlite3.Row
+            original = {r['id']: dict(r) for r in db.execute('SELECT * FROM operation')}
+            ci, ti, proof = (json.loads(original[control]['intent']),
+                             json.loads(original[target]['intent']), json.loads(original[target]['result']))
+            cases = [(control, 'status', 'running'), (control, 'effect', 'none'),
+                     (control, 'kind', 'exec'), (control, 'owner', 'bob'),
+                     (control, 'repo', 'other'), (control, 'ref', 'refs/heads/other'),
+                     (control, 'intent', {**ci, 'input': {**ci['input'], 'action': 'cancel'}}),
+                     (control, 'intent', {**ci, 'input': {**ci['input'], 'operationId': 'other'}}),
+                     (control, 'intent', {**ci, 'executor': {'kind': 'ssh'}}),
+                     (control, 'intent', {**ci, 'targetOperation': 'missing'}),
+                     (target, 'status', 'running'), (target, 'status', 'unknown'),
+                     (target, 'effect', 'unknown'), (target, 'kind', 'publish'),
+                     (target, 'intent', {**ti, 'executor': {'kind': 'ssh'}}),
+                     (target, 'intent', {**ti, 'repositoryIdentity': 'other'}),
+                     (target, 'intent', {**ti, 'execution': {'id': 'other'}}),
+                     (target, 'result', None),
+                     (target, 'result', {**proof, 'id': 'other'}),
+                     (target, 'result', {**proof, 'terminal': False}),
+                     (target, 'result', {**proof, 'stopped': False}),
+                     (target, 'result', {**proof, 'stopped': 'true'})]
+            for ident, column, value in cases:
+                with self.subTest(operation=ident, column=column, value=value):
+                    stored = json.dumps(value) if isinstance(value, dict) else value
+                    db.execute('UPDATE operation SET ' + column + '=? WHERE id=?', (stored, ident))
+                    before = [tuple(r) for r in db.execute('SELECT * FROM operation ORDER BY id')]
+                    with self.assertRaises(Fault) as error:
+                        maintenance_ready(db, allow_unknown_stdin=control)
+                    self.assertEqual(error.exception.value['code'], 'STDIN_EXEMPTION')
+                    self.assertEqual(before, [tuple(r) for r in db.execute('SELECT * FROM operation ORDER BY id')])
+                    db.execute('UPDATE operation SET ' + column + '=? WHERE id=?', (original[ident][column], ident))
+            with self.assertRaises(Fault) as error:
+                maintenance_ready(db, allow_unknown_stdin='missing')
+            self.assertEqual(error.exception.value['code'], 'STDIN_EXEMPTION')
+            db.execute("INSERT INTO operation(id,kind,status,effect,intent) VALUES('other','exec','unknown','unknown','{}')")
+            with self.assertRaises(Fault) as error:
+                maintenance_ready(db, allow_unknown_stdin=control)
+            self.assertEqual(error.exception.value['code'], 'OUTSTANDING_EFFECT')
+
+    def test_unknown_stdin_exemption_survives_readiness_failure_and_config_rollback(self):
+        self.i.install(self.one)
+        control, target, dbfile = self.unknown_stdin()
+        with sqlite3.connect(dbfile) as db:
+            before_rows = db.execute('SELECT * FROM operation ORDER BY id').fetchall()
+        before_config = (self.root / 'config.json').read_bytes()
+        changed = json.loads(before_config)
+        changed.setdefault('artifactLimits', {})['workingBytes'] = 2 * 1024 * 1024 * 1024
+        second = self.next_bundle()
+        ready = self.backend.controller_ready
+        def fail(root, settings, bundle):
+            if bundle == second:
+                raise Fault('FIXTURE_NOT_READY')
+            return ready(root, settings, bundle)
+        with patch.object(self.backend, 'controller_ready', fail), patch('tdev.resident.retry', lambda fn: fn()):
+            with self.assertRaises(Fault):
+                self.i.install(second, changed, digest(before_config), allow_unknown_stdin=control)
+        self.assertEqual((self.root / 'active').resolve().name, self.one)
+        self.assertEqual((self.root / 'config.json').read_bytes(), before_config)
+        with sqlite3.connect(dbfile) as db:
+            self.assertEqual(before_rows, db.execute('SELECT * FROM operation ORDER BY id').fetchall())
+        self.assertFalse(self.i.journal.exists())
+        self.assertFalse((self.root / 'state/maintenance.json').exists())
+
+    def test_unknown_stdin_interrupted_install_recovers_with_original_rows_and_config(self):
+        self.i.install(self.one)
+        control, target, dbfile = self.unknown_stdin()
+        with sqlite3.connect(dbfile) as db:
+            before_rows = db.execute('SELECT * FROM operation ORDER BY id').fetchall()
+        before_config = (self.root / 'config.json').read_bytes()
+        changed = json.loads(before_config)
+        changed.setdefault('artifactLimits', {})['workingBytes'] = 2 * 1024 * 1024 * 1024
+        second = self.next_bundle()
+        with patch.object(self.i, 'write_service', side_effect=KeyboardInterrupt), self.assertRaises(KeyboardInterrupt):
+            self.i.install(second, changed, digest(before_config), allow_unknown_stdin=control)
+        self.assertEqual(json.loads(self.i.journal.read_bytes())['allowUnknownStdin'], control)
+        self.assertEqual((self.root / 'active').resolve().name, second)
+        self.assertEqual(json.loads((self.root / 'config.json').read_bytes()), changed)
+        with self.i.lock():
+            self.i.recover()
+        self.assertEqual((self.root / 'active').resolve().name, self.one)
+        self.assertEqual((self.root / 'config.json').read_bytes(), before_config)
+        with sqlite3.connect(dbfile) as db:
+            self.assertEqual(before_rows, db.execute('SELECT * FROM operation ORDER BY id').fetchall())
+        self.assertFalse(self.i.journal.exists())
+        self.assertFalse((self.root / 'state/maintenance.json').exists())
+
     def test_unknown_publish_exemption_survives_failed_update_recovery(self):
         self.i.install(self.one)
         ident, dbfile = self.unknown_publish()

@@ -1,5 +1,62 @@
 # Local validation evidence — 2026-10-05
 
+## Resident maintenance and stopped stdin preservation — 2026-10-05
+
+The source base is `b594de1cfc7fea10e511977a2d357ad22d8b6928`. After the earlier automatic
+review rejected a new guard exception without explicit policy authorization, the operator
+explicitly authorized preserving one unknown native stdin whose consumer has proved stopped,
+and increasing live workingBytes from 512 MiB to 2 GiB. Product revision is 0.1.27.
+This does not resolve historical input delivery or authorize a partial Rust controller.
+
+`src/tdev/admin.py` owns the exact-ID maintenance exception. It requires an unknown stdin
+control, native backend, matching consumer/owner/repository/ref/identity, and a reconciled
+terminal committed consumer with exact execution identity and stopped receipt. Defaults still
+reject every outstanding effect. `resident.py` rechecks the exception at fencing and pointer
+switch, and retains it in the installation journal so rollback can restore the previous bundle
+without erasing the original unknown control. `installer.py` and `cli.py` expose
+`--allow-unknown-stdin OPERATION_ID` only for explicit existing-resident updates.
+No public tool contract or credential policy changes. The workingBytes config change uses
+the existing digest-CAS journaled config transaction, preserving other configuration.
+
+Focused resident/CLI/admin checks passed **51 in 75.716s**. After adding the actual combined
+publication/stdin case and interrupted-update recovery, the final four maintenance fixtures
+passed **4 in 1.949s**; locked Cargo check passed. Twenty-two negative stop/identity/owner/
+backend/status cases reject without changing rows, and another outstanding effect still blocks
+maintenance. Positive update raises only workingBytes; readiness failure and interruption
+restore the old pointer/config and preserve the original operation rows. The real resident
+also passes the new read-only guard with the two explicitly named historical exemptions;
+its consumer retains terminal/stopped proof, while delivery remains unknown.
+All required `scripts/check.sh` stages passed on the same frozen **165-file** input
+snapshot, SHA-256 `c633fc66744cca5c928a0cbfa5bd05ebb67260b7b9fe0bf8cc0347b154b90b24`:
+fmt, all-target locked clippy, **93 Rust** tests, **10003 identity** comparisons,
+**136 compiled-contract** cases, **108 Rust executable HTTP** cases and **447 Python**
+reference/common cases (**949.074s**). The code-mode host was killed after that Python stage,
+just as the capacity stage started; the original full script has no terminal exit code.
+After confirming all frozen inputs unchanged, the remaining capacity stage passed **7 in
+338.657s**, and final `git diff --check` exited 0. This is completed stage coverage across
+an interrupted run and its continuation, not a claimed uninterrupted script exit 0.
+The prefix emitted **15** SQLite unclosed-connection ResourceWarnings; no test failed.
+
+| Final native capacity fixture | Result | Journey seconds | Controller / utility peak KiB |
+|---|---|---:|---:|
+| Actual 190-file corpus, 37724943 bytes | PASS | 19.903 | 41352 / 41352 |
+| >=173 MiB single file, 181403679 bytes | PASS | 20.384 | 46104 / 46104 |
+| Committed >=173 MiB source, same bytes | PASS | 32.567 | 41352 / 41352 |
+| 512 MiB aggregate, 536870912 bytes including base | PASS | 74.154 | 41352 / 41352 |
+| Committed 512 MiB aggregate, same total | PASS | 102.342 | 41352 / 41352 |
+| Many-file source, 1024 files | PASS | 4.942 | 44056 / 44056 |
+| >=173 MiB artifact source input | PASS | included in stage | not separately measured |
+
+The source journeys exercise admission → capture → checkpoint → integration → workspace
+→ cleanup; the aggregate also exercises one-byte overflow rejection. Actual corpus manifest
+remains `d472c85cb1d54046b49b9a325be9596638f987489e8152e9b569370d5b201151`.
+Qualified debug executable SHA-256 is
+`bcc906f885672c80e686af4f24cc0426794dcc4c99510e5c7d18c7f6b8d34584`;
+the **217-file** resident bundle identity is
+`e502ae7ee8a1b19fc524e761b523e357659a18cf24c8553f976fcc60f53855d3`.
+The executable is qualification evidence; resident activation uses the complete currently
+implemented controller. Canonical publication and live readback follow next.
+
 ## Source capacity and streaming transport — 2026-10-04
 
 The inspected source base is `ec3479b4feb118ef9ce6b41dca4abab8a0018df9` on the

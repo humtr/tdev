@@ -106,8 +106,10 @@ execution materialization use streaming bodies; execution no longer duplicates s
 inline files plus a pack. The source/file and transport budgets are in the contract.
 Full regression and native lifecycle qualification passed with the actual 190-file corpus,
 a >=173 MiB single file, 512 MiB aggregate, many files and byte/count edge rejection.
-Installed runtime alignment remains blocked by a pre-existing unknown stdin effect;
-the resident is still 0.1.25. See LOCAL_VALIDATION for exact results and independent budgets.
+The operator approved installed runtime alignment with an explicit record-preserving stdin
+maintenance exception for a proved-stopped native consumer, and 2 GiB live workingBytes.
+The update passed qualification; resident activation is next and the resident is still
+0.1.25. See LOCAL_VALIDATION for exact results and independent budgets.
 
 
 The selected work is to redesign and implement the tdev runtime in Rust, starting with

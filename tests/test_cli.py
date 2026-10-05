@@ -116,15 +116,20 @@ class CLITest(unittest.TestCase):
         other=self.root/'fresh'
         with patch('tdev.cli.installer') as install, patch('tdev.cli.interactive',return_value=True), patch('tdev.cli.answer',return_value='n'):
             cli.main(['--root',str(other),'install'])
-        install.assert_called_once_with(other,'install',None,controller_only=True,allow_unknown_publish=None)
+        install.assert_called_once_with(other,'install',None,controller_only=True,allow_unknown_publish=None,allow_unknown_stdin=None)
         with patch('tdev.cli.installer') as install:
             cli.main(['--root',str(self.root),'update'])
-        install.assert_called_once_with(self.root,'update',None,controller_only=False,allow_unknown_publish=None)
+        install.assert_called_once_with(self.root,'update',None,controller_only=False,allow_unknown_publish=None,allow_unknown_stdin=None)
         with patch('tdev.cli.installer') as install:
             cli.main(['--root',str(self.root),'update','/qualified/source',
                       '--allow-unknown-publish','publish-op'])
         install.assert_called_once_with(self.root,'update','/qualified/source',controller_only=False,
-                                        allow_unknown_publish='publish-op')
+                                        allow_unknown_publish='publish-op',allow_unknown_stdin=None)
+        with patch('tdev.cli.installer') as install:
+            cli.main(['--root',str(self.root),'update','/qualified/source',
+                      '--allow-unknown-publish','publish-op','--allow-unknown-stdin','stdin-op'])
+        install.assert_called_once_with(self.root,'update','/qualified/source',controller_only=False,
+                                        allow_unknown_publish='publish-op',allow_unknown_stdin='stdin-op')
 
     def dedicated_connection(self):
         ident='conn_'+'a'*32; cred='cred_'+'b'*32; token=b'fixture-dedicated-secret'
@@ -280,7 +285,7 @@ class MenuTest(unittest.TestCase):
             self.assertEqual(self.main(['maintenance'], ['6', '', '0']), 0)
             install.assert_not_called()
             self.assertEqual(self.main(['maintenance'], ['6', 'y']), 0)
-            install.assert_called_once_with(Path('/unused-menu-fixture'),'uninstall',None,controller_only=False,allow_unknown_publish=None)
+            install.assert_called_once_with(Path('/unused-menu-fixture'),'uninstall',None,controller_only=False,allow_unknown_publish=None,allow_unknown_stdin=None)
 
     def test_diagnostics_and_observer_dispatch_once(self):
         with patch.object(cli, 'bridge') as bridge:

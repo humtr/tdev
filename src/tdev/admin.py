@@ -177,8 +177,8 @@ def stage(root, source):
             "tunnelMode": tunnel_runtime["mode"]}
 
 
-def maintenance_ready(db, allow_unknown_publish=None):
-    """Require a maintenance-safe frontier without resolving publication ambiguity."""
+def maintenance_ready(db, allow_unknown_publish=None, allow_unknown_stdin=None):
+    """Check maintenance readiness without changing historical effect certainty."""
     rows = db.execute(
         "SELECT id,kind,status,effect,intent,task,ref FROM operation "
         "WHERE status IN ('running','unknown')"
@@ -203,11 +203,40 @@ def maintenance_ready(db, allow_unknown_publish=None):
             rows = [row for row in rows if row[0] != allow_unknown_publish]
         else:
             require(target[2] in ('succeeded','failed','cancelled'), 'PUBLICATION_EXEMPTION')
+    if allow_unknown_stdin is not None:
+        fields = 'id,owner,kind,status,effect,intent,repo,ref,result'
+        control = db.execute('SELECT ' + fields + ' FROM operation WHERE id=?',
+                             (allow_unknown_stdin,)).fetchone()
+        require(control is not None, 'STDIN_EXEMPTION', 'Expected one retained unknown stdin operation')
+        intent = json.loads(control[5])
+        require(control[2:5] == ('operation', 'unknown', 'unknown')
+                and intent.get('input', {}).get('action') == 'stdin'
+                and intent.get('executor') == {'kind': 'native'}, 'STDIN_EXEMPTION')
+        target_id = intent.get('targetOperation')
+        require(isinstance(target_id, str) and intent['input'].get('operationId') == target_id,
+                'STDIN_EXEMPTION')
+        target = db.execute('SELECT ' + fields + ' FROM operation WHERE id=?', (target_id,)).fetchone()
+        require(target is not None and target[2] in ('exec', 'validate')
+                and target[3] in ('succeeded', 'failed', 'cancelled') and target[4] == 'committed'
+                and (control[1], control[6], control[7]) == (target[1], target[6], target[7]),
+                'STDIN_EXEMPTION', 'The native stdin consumer must have a reconciled terminal result')
+        target_intent = json.loads(target[5])
+        proof = json.loads(target[8] or '{}')
+        require(target_intent.get('executor') == {'kind': 'native'}
+                and isinstance(target_intent.get('execution'), dict)
+                and target_intent['execution'].get('id') == target_id
+                and isinstance(target_intent.get('inputDigest'), str)
+                and isinstance(intent.get('repositoryIdentity'), str)
+                and target_intent.get('repositoryIdentity') == intent['repositoryIdentity']
+                and proof.get('id') == target_id and proof.get('terminal') is True
+                and proof.get('stopped') is True, 'STDIN_EXEMPTION',
+                'Retained stop proof is required; prior stdin delivery remains unknown')
+        rows = [row for row in rows if row[0] != allow_unknown_stdin]
     require(not rows, 'OUTSTANDING_EFFECT',
             'Observe or finish existing operations before updating services')
 
 
-def point(root, ident, allow_unknown_publish=None):
+def point(root, ident, allow_unknown_publish=None, allow_unknown_stdin=None):
     root = Path(root)
     require(len(ident) == 64 and all(c in "0123456789abcdef" for c in ident), "BUNDLE_IDENTITY")
     destination = root / "versions" / ident
@@ -227,7 +256,7 @@ def point(root, ident, allow_unknown_publish=None):
             try:
                 require(db.execute("PRAGMA user_version").fetchone()[0] in manifest.get('stateVersions', [1]),
                         "SCHEMA_VERSION", 'Selected bundle cannot read the current state schema; rollback requires a compatible bundle')
-                maintenance_ready(db, allow_unknown_publish)
+                maintenance_ready(db, allow_unknown_publish, allow_unknown_stdin)
             finally:
                 db.close()
         active = root / "active"
