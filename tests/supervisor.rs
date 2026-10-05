@@ -28,6 +28,7 @@ impl Fixture {
             working_bytes: budget,
             stdin: String::new(),
             environment: None,
+            source: None,
         })
     }
 
@@ -571,7 +572,7 @@ fn unsupported_spool_and_linked_dependency_paths_preserve_existing_bytes() {
     let fixture = Fixture::new("touch never", Some(5), 128 * 1024 * 1024);
     let path = fixture.job.path().join("request.json");
     let mut value: serde_json::Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
-    value["format"] = 1.into();
+    value["format"] = 2.into();
     let bytes = serde_json::to_vec(&value).unwrap();
     fs::write(&path, &bytes).unwrap();
     assert!(Job::open(fixture.job.path()).is_err());
@@ -777,6 +778,7 @@ fn fixture_request() -> Request {
         working_bytes: 128 * 1024 * 1024,
         stdin: String::new(),
         environment: None,
+        source: None,
     }
 }
 
@@ -943,6 +945,35 @@ fn exited_shell_double_fork_children_are_stopped_and_reaped() {
         !Path::new(&format!("/proc/{}", descendant.pid)).exists(),
         "Adopted child was not reaped"
     );
+}
+
+#[test]
+fn cancellation_freezes_waiting_parents_before_killing_their_children() {
+    let jobs: Vec<_> = (0..8)
+        .map(|_| {
+            std::thread::spawn(|| {
+                let fixture = Fixture::new(
+                    "(printf waiting >waiting; sleep 60; printf late >late) & printf ready; wait",
+                    None,
+                    128 * 1024 * 1024,
+                );
+                fixture.start();
+                log_ready(&fixture);
+                wait(|| fixture.job.work().join("waiting").exists().then_some(()));
+                fixture.job.cancel().unwrap();
+                let report = fixture.complete();
+                assert_eq!(report.outcome, Outcome::Cancelled);
+                assert!(report.stopped);
+                assert!(
+                    !fixture.job.work().join("late").exists(),
+                    "Cleanup resumed a waiting parent before stopping it"
+                );
+            })
+        })
+        .collect();
+    for job in jobs {
+        job.join().unwrap();
+    }
 }
 
 #[test]

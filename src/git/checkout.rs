@@ -48,7 +48,7 @@ fn signature(metadata: &fs::Metadata) -> Signature {
     )
 }
 
-fn open_at(parent: &File, name: &str, flags: i32) -> io::Result<File> {
+pub(crate) fn open_at(parent: &File, name: &str, flags: i32) -> io::Result<File> {
     let name = CString::new(name).map_err(|_| io::Error::from(io::ErrorKind::InvalidInput))?;
     // SAFETY: parent is a live directory descriptor and name is NUL terminated.
     // No creation flag is passed. On success ownership of the new descriptor is transferred.
@@ -66,7 +66,7 @@ fn open_at(parent: &File, name: &str, flags: i32) -> io::Result<File> {
     Ok(unsafe { File::from_raw_fd(fd) })
 }
 
-fn safe_link(path: &SourcePath, target: &str) -> Result<()> {
+pub(crate) fn safe_link(path: &SourcePath, target: &str) -> Result<()> {
     if target.starts_with('/') || target.chars().any(|c| c < ' ' || c == '\\') {
         return Err(Fault::new("CHECKOUT_SYMLINK"));
     }

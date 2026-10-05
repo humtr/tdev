@@ -219,8 +219,10 @@ the first scan writes its exact bytes to an owned temporary file for object cons
 so equal metadata around a later original-file read cannot substitute different object content;
 matching content reuses its verified private object instead of writing it again, and composition/integration check the resulting tree.
 Source bytes move separately from control metadata: one shallow binary pack for materialization,
-and a stopped capture archive with a size/digest and path/mode/blob manifest. No second inline
-file-body copy belongs in the execution request. Capture bodies require matching server-owned
+and stopped capture bodies sealed with exact identities and a path/mode/content manifest.
+A same-host native capture may use an owned sealed directory; transport archives carry the same
+content/proof across the retained optional boundary. No second inline file-body copy belongs
+in the execution request. Capture bodies require matching server-owned
 stop/input evidence and stream through private Git construction before checkpoint completion.
 Private temporary files, utility pipes and retained bodies have explicit cleanup owners.
 Read pages and search/utility metadata retain independent caller/scan budgets; increasing source
@@ -1643,6 +1645,8 @@ dead worker cannot authorize another launch. Worker/child records bind PID, star
 identity. The independent worker starts a separate session and subreaps descendants; terminal
 evidence is separate from candidate stdout and bound to that reservation/worker. Final output is
 fsynced after descendant stop and before the result record; incomplete stop proof stays unknown.
+Cleanup freezes observed parents before killing their wait targets, preventing those kills
+from resuming waiting shells into subsequent writes before capture.
 The controller must join this evidence to its existing admission/capture lifecycle rather than
 copy terminal truth into a second task owner.
 
@@ -1656,7 +1660,7 @@ complete pipe acceptance (and closure for EOF) can persist committed delivery. T
 acceptance, not candidate acknowledgement. Partial writes, EPIPE or worker death retain unknown;
 queued input not attempted remains queued. Nonblocking bounded writes share the output/deadline
 loop, so a candidate that does not read cannot block cancellation or output draining. Internal
-spool format 2 includes the new frozen input; unsupported earlier records are rejected without
+spool format 3 includes the frozen source binding alongside command/input/environment; unsupported earlier records are rejected without
 rewriting them or authorizing dispatch. This does not revise SQLite schema 3 or the wire contract.
 
 Task dependency selection acquires a shared lease before child dispatch and holds it through
@@ -1672,6 +1676,30 @@ Kernel lease release on worker death is not a stop proof: controller admission m
 reset while any consumer is running or unknown. The primitive exclusive guard supplies exclusion,
 not reset intent/recovery or API authority; those join the existing task/operation lifecycle.
 No spool record grants API authority or provides hostile same-UID tamper resistance.
+
+The execution owner constructs source from the admitted immutable Git checkpoint before
+launch, streaming bodies and one shallow non-delta pack into owned storage. The working copy
+retains the exact detached shallow Git HEAD/index; only starting ignore files are duplicated
+in a separate trusted selection directory. The reservation binds the checkpoint, canonical
+manifest digest, physical pack length/digest, explicit capture paths and readonly selection;
+a ready record binds the owned ignore/work/Git directory identities. Incomplete preparation is
+never repaired by replay. Launch and worker entry verify original source selection and bodies.
+The worker captures only after descendant stop, output closure and final budget observations.
+Capture uses directory descriptors and no-follow file reads; bounded owned temporary bytes
+couple the content witness to the imported body. Two matching source scans, exact body digests,
+starting ignore rules and atomic directory/record publication seal the result before terminal
+proof. A recorded capture rejection retains stopped execution evidence with a named source fault and grants
+no source advancement. Capture has a separate 300-second deadline and 48 MiB metadata budget;
+source content/count budgets remain those in the contract. No body enters a JSON record.
+The execution owner requires original worker/stop/digest proof before private Git import.
+A per-job import lock and bound candidate record retain the first recorded Git candidate,
+so concurrent or delayed observations cannot substitute a newly timestamped commit. That is
+private construction evidence; SQLite still exclusively owns task checkpoint and operation
+receipt completion. Explicit retirement uses the same lock, rejects unproved stop, and removes
+input/work/capture bodies and source metadata while preserving request identity, terminal
+result, controls, bounded logs and any constructed Git candidate. Replay never rebuilds or
+relaunches a retired copy. This private source lifecycle does not complete public execution
+admission, control reconciliation or task dependency reset.
 
 ### Identity, storage and compatibility
 

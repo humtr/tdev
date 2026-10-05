@@ -9,7 +9,7 @@ use std::os::unix::fs::{DirBuilderExt, MetadataExt, OpenOptionsExt, PermissionsE
 use std::path::{Component, Path, PathBuf};
 use std::process::{Command, Stdio};
 
-const FORMAT: u32 = 2;
+const FORMAT: u32 = 3;
 const RECORD_LIMIT: u64 = 1024 * 1024;
 const WORKING_MAX: u64 = 2 * 1024 * 1024 * 1024;
 
@@ -23,6 +23,7 @@ pub struct Request {
     pub working_bytes: u64,
     pub stdin: String,
     pub environment: Option<Environment>,
+    pub source: Option<super::Source>,
 }
 
 impl Request {
@@ -48,6 +49,9 @@ impl Request {
         if let Some(environment) = &self.environment {
             environment.validate()?;
         }
+        if let Some(source) = &self.source {
+            source.validate()?;
+        }
         Ok(())
     }
 }
@@ -64,7 +68,7 @@ struct Reservation {
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
-pub(super) struct Bound<T> {
+pub(crate) struct Bound<T> {
     pub digest: Digest,
     pub value: T,
 }
@@ -92,6 +96,8 @@ pub struct Report {
     pub discarded_bytes: u64,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub budget: Option<Budget>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub capture: Option<super::Capture>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -118,6 +124,15 @@ pub struct Job {
 impl Job {
     /// Retains the original bytes. Existing or incomplete reservations are never replaced.
     pub fn reserve(root: &Path, operation: &OperationId, request: Request) -> io::Result<Self> {
+        Self::reserve_prepared(root, operation, request, |_| Ok(()))
+    }
+
+    pub(crate) fn reserve_prepared(
+        root: &Path,
+        operation: &OperationId,
+        request: Request,
+        prepare: impl FnOnce(&Self) -> io::Result<()>,
+    ) -> io::Result<Self> {
         request.validate()?;
         private_directory(root)?;
         let path = root.join(operation.as_str());
@@ -147,6 +162,7 @@ impl Job {
                         .create(job.path.join(name))?;
                 }
                 job.atomic("request.json", &reservation)?;
+                prepare(&job)?;
                 Ok(job)
             }
             Err(error) if error.kind() == io::ErrorKind::AlreadyExists => {
@@ -220,6 +236,7 @@ impl Job {
             Err(error) if error.kind() == io::ErrorKind::NotFound => {}
             Err(error) => return Err(error),
         }
+        super::source::verify_input(self)?;
         self.cwd(&self.request()?)?;
         if !self.once("dispatch.json", &digest)? {
             self.check_dispatch()?;
@@ -442,7 +459,7 @@ impl Job {
         Ok(true)
     }
 
-    pub(super) fn read<T: DeserializeOwned>(&self, name: &str) -> io::Result<T> {
+    pub(crate) fn read<T: DeserializeOwned>(&self, name: &str) -> io::Result<T> {
         let file = self.open_file(name)?;
         let mut bytes = Vec::new();
         file.take(RECORD_LIMIT + 1).read_to_end(&mut bytes)?;
@@ -452,7 +469,7 @@ impl Job {
         serde_json::from_slice(&bytes).map_err(io::Error::other)
     }
 
-    fn open_file(&self, name: &str) -> io::Result<File> {
+    pub(crate) fn open_file(&self, name: &str) -> io::Result<File> {
         let file = OpenOptions::new()
             .read(true)
             .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK)
@@ -472,7 +489,7 @@ impl Job {
             .open(self.path.join(name))
     }
 
-    pub(super) fn once(&self, name: &str, value: &impl Serialize) -> io::Result<bool> {
+    pub(crate) fn once(&self, name: &str, value: &impl Serialize) -> io::Result<bool> {
         // Publish complete bytes without replacing an existing fence. Creating
         // the final name before serialization lets concurrent readers see EOF.
         let mut temporary = tempfile::NamedTempFile::new_in(&self.path)?;
@@ -488,7 +505,7 @@ impl Job {
         Ok(true)
     }
 
-    pub(super) fn atomic(&self, name: &str, value: &impl Serialize) -> io::Result<()> {
+    pub(crate) fn atomic(&self, name: &str, value: &impl Serialize) -> io::Result<()> {
         let temporary = format!(".{name}.{}", uuid::Uuid::new_v4());
         let mut file = self.create_file(&temporary)?;
         serde_json::to_writer(&mut file, value).map_err(io::Error::other)?;
@@ -547,14 +564,14 @@ fn budget_violation(
     Ok(None)
 }
 
-pub(super) fn fingerprint(request: &impl Serialize) -> io::Result<Digest> {
+pub(crate) fn fingerprint(request: &impl Serialize) -> io::Result<Digest> {
     let json = serde_json::to_string(request).map_err(io::Error::other)?;
     identity::Value::parse(&json)
         .and_then(|value| value.fingerprint())
         .map_err(io::Error::other)
 }
 
-pub(super) fn checked_directory(path: &Path) -> io::Result<()> {
+pub(crate) fn checked_directory(path: &Path) -> io::Result<()> {
     let metadata = fs::symlink_metadata(path)?;
     if !path.is_absolute()
         || !metadata.is_dir()
@@ -573,7 +590,7 @@ pub(super) fn checked_directory(path: &Path) -> io::Result<()> {
     Ok(())
 }
 
-pub(super) fn private_directory(path: &Path) -> io::Result<()> {
+pub(crate) fn private_directory(path: &Path) -> io::Result<()> {
     let parent = path
         .parent()
         .ok_or_else(|| io::Error::other("Missing spool parent"))?;
@@ -592,7 +609,7 @@ pub(super) fn private_directory(path: &Path) -> io::Result<()> {
     checked_directory(path)
 }
 
-pub(super) fn lock_file(path: &Path) -> io::Result<File> {
+pub(crate) fn lock_file(path: &Path) -> io::Result<File> {
     let file = OpenOptions::new()
         .read(true)
         .write(true)
@@ -642,6 +659,7 @@ mod visibility_tests {
                 working_bytes: 128 * 1024 * 1024,
                 stdin: String::new(),
                 environment: None,
+                source: None,
             },
         )
         .unwrap();

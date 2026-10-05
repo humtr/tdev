@@ -6,7 +6,7 @@ use std::os::unix::process::CommandExt;
 use std::process::{Child, Command, ExitStatus, Stdio};
 use std::time::{Duration, Instant};
 
-pub(super) const OUTPUT_LIMIT: usize = 48 * 1024 * 1024;
+pub(super) const OUTPUT_LIMIT: usize = super::capacity::METADATA_BYTES;
 
 pub(crate) struct Output {
     pub status: ExitStatus,
@@ -64,7 +64,7 @@ pub(crate) fn run(
 }
 
 /// File input and a bounded streaming sink keep source bytes out of utility buffers.
-pub(super) fn stream(
+pub(crate) fn stream(
     command: &mut Command,
     input_file: Option<std::fs::File>,
     timeout: Duration,

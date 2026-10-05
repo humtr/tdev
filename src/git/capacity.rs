@@ -5,8 +5,9 @@ pub const SOURCE_BYTES: usize = 512 * 1024 * 1024;
 pub const FILE_BYTES: usize = SOURCE_BYTES;
 pub const SOURCE_FILES: usize = 100000;
 pub const PACK_BYTES: usize = 1024 * 1024 * 1024;
+pub const METADATA_BYTES: usize = 48 * 1024 * 1024;
 
-pub(super) fn check(code: &str, budget: &str, configured: usize, observed: usize) -> Result<()> {
+pub(crate) fn check(code: &str, budget: &str, configured: usize, observed: usize) -> Result<()> {
     if observed > configured {
         return Err(Fault::message(
             code,
@@ -28,5 +29,6 @@ mod tests {
         assert_eq!(budgets["sourceFileLimitBytes"], FILE_BYTES);
         assert_eq!(budgets["sourceFileLimitCount"], SOURCE_FILES);
         assert_eq!(budgets["transferLimitBytes"], PACK_BYTES);
+        assert_eq!(budgets["metadataLimitBytes"], METADATA_BYTES);
     }
 }

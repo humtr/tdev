@@ -1,5 +1,120 @@
 # Local validation evidence — 2026-10-05
 
+## Execution source lifecycle — 2026-10-05
+
+Source base: `05cbee3a944fec07fe2e760edc3584bc03efd59a`; product input revision **0.1.28**.
+This increment qualifies private Rust source execution, not public exec admission or a resident
+cutover. The installed complete controller remains 0.1.27 with its qualified 2 GiB workingBytes.
+SQLite format 3 and public wire definitions are unchanged; private supervisor spool format is 3.
+
+`src/execution.rs` owns preparation, original private Git candidate construction and terminal
+retirement. `src/supervisor/source.rs` owns frozen source metadata and worker-sealed capture;
+`src/git/mod.rs` exports one shallow non-delta pack through existing bounded utilities.
+The reservation binds source checkpoint, manifest and physical pack length/digest. Owned work
+has an exact detached shallow HEAD/index and original bytes; a separate directory holds only
+starting ignore files. Source bodies never enter JSON or a whole-body memory buffer. Ready
+records bind directory identities; incomplete preparations cannot be repaired by replay.
+Worker entry checks original source before child dispatch. Descendant stop/output closure and
+final budgets precede capture. Matching scans copy no-follow descriptor bytes into owned staging,
+then seal the directory and capture evidence before terminal result. Rejected capture retains
+stopped execution proof and a named fault, without constructing a replacement checkpoint.
+Source 512 MiB/100000 files, physical pack 1 GiB, metadata 48 MiB, working allowance and dependency
+capacity remain independent. Capture has a 300-second deadline; native same-UID authority and
+Git algorithm/utility resource boundaries remain those already documented below.
+
+Private Git candidate import requires the original worker/input/stop/capture identities.
+A shared per-job import/retirement lock serializes construction and cleanup; the first candidate
+is retained for concurrent/delayed replay. It is not task pointer or operation receipt truth:
+public admission and atomic SQLite completion remain the next increment. Retirement removes
+work, source pack, ignore/capture bodies and source metadata, retaining request/digest, terminal
+result, controls, bounded logs and the constructed candidate. Unknown jobs cannot be retired.
+
+The first source draft passed 10/11 cases but failed replay identity (**87.61s**): repeating
+capture import created a differently timestamped commit. The original-candidate record fixed
+that case (**1 in 4.41s**). An intermediate 17-case private-source selection passed **1007.54s**;
+review then identified missing shallow Git metadata, so it is not final qualification of the
+single-pack path. Corrected focused checks passed shallow HEAD/index in both object formats
+(**1 in 4.98s**), corrupted-pack refusal (**1 in 1.58s**) and metadata physical/path overflow
+(**2 in 5.00s**). Compile/lint failures during construction are not PASS evidence.
+The initial qualification froze **168** source/test/script/contract inputs, manifest SHA-256
+`6678256bfd62566695b6e8d4cf3a71ef8f46c2072b1276444d861b8ed9ac69a7`.
+On that snapshot, focused/affected qualification passed all-target locked clippy,
+**19 execution source tests in 963.15s**, **30 supervisor tests in 5.39s**, **17 Git tests**
+and **2 source metadata tests in 4.85s**; the five-stage command took **1041.067s**, exit 0.
+The source suite ran serially with the actual corpus selected explicitly. It exercises
+prepare → real supervisor → stopped capture → retained private Git candidate → retirement,
+including rematerialization, original-candidate replay and exact named over-budget faults.
+
+| Initial serial source fixture | Result | Worker seconds | Sampled worker VmHWM KiB |
+|---|---|---:|---:|
+| Actual 190-file corpus, 37724943 bytes | PASS | 25.642 | 10132 |
+| Single file, 181403679 bytes | PASS | 29.423 | 10028 |
+| Same large committed input, unchanged capture/cleanup | PASS | 72.024 | 9668 |
+| 512 MiB aggregate, exact 536870912 bytes | PASS | 158.073 | 10476 |
+| Same aggregate rematerialized, one-byte capture growth | Expected sourceBytes rejection; original source retained | 105.640 | 10092 |
+| 1024 files, followed by unchanged rematerialization | PASS | included in suite | 11888 / 12288 |
+
+These sampled peaks describe the independent worker, not Git child utilities or a hard
+whole-lifecycle memory quota. The source suite also rejects a 536870913-byte file with
+`sourceFileBytes configured=536870912 observed=536870913`, oversized physical/path metadata,
+unsafe symlinks and special files. Incomplete dispatch, changed input, forged capture and
+missing terminal stop proof cannot advance a checkpoint or authorize retirement.
+The first full gate failed, exit **101 after 458.193s**: **18/19** source tests passed,
+but descendant cleanup woke a waiting shell when killing its sleep child, allowing a subsequent
+`late` write before the parent died. Capture correctly sealed the stopped final bytes; the
+termination order still required correction. `src/supervisor/platform.rs` now freezes observed
+parents before killing their wait targets. A new actual-process cancellation case exercises
+eight waiting parents concurrently. The revised supervisor suite passed **31 in 5.91s**, and
+the original stopped-source case passed **10 repetitions**. The combined command took
+**50.075s**, including clippy, compilation and the source repetitions.
+Final review also moved ignore-input metadata admission before each buffer extension.
+Affected metadata and both-format capture cases, fmt and clippy passed, command **41.032s**.
+Final whole-gate qualification freezes the same **168** inputs with revised manifest SHA-256
+`11582d2a736af44352b79c3c1e331a46c39b0f0f6780e9f287e885ba87af5343`.
+The revised `scripts/check.sh` run passed fmt/clippy, **115 Rust tests** (48 library,
+19 source execution in **583.85s**, 17 Git in **64.56s**, 31 supervisor in **6.88s**),
+**10003 identity** comparisons, **136 compiled-contract** cases and the native build.
+Its first five HTTP stages passed **31 cases**; the capacity stage had passed its large-file,
+aggregate and committed-large-source cases when the execution context ended during corpus
+qualification. There is no terminal exit code for this run. The frozen inputs remained identical;
+the interrupted capacity stage and all following script stages are being completed separately.
+Qualified executable input SHA-256 is
+`862bf4075ffa5e645be33babeb571cee49c326aff800571a9f32de9af935bc7a`.
+The continuation passed every remaining stage with exit 0 on the same frozen inputs:
+capacity HTTP (**3 tests**), integration (**10**), cleanup (**5**), predecessor (**5**), native
+HTTP fault/recovery (**54**), reference/common (**447 in 1443.404s**), native capacity
+(**7 in 328.661s**) and final diff check. HTTP coverage totals **108** cases including the
+original 31-case prefix. The eight continuation commands took **3043.841s** in total and
+confirmed source identity at every completed stage. Reference/common emitted **15** SQLite
+unclosed-database warning events (30 ResourceWarning lines including their tracing footers);
+no test failed. This is completed full-script stage coverage across interruption and
+continuation, not a claimed uninterrupted script exit 0. Final source and executable hashes
+still match the witnesses above.
+
+| Final reference native capacity fixture | Result | Journey seconds | Controller / sampled utility peak KiB |
+|---|---|---:|---:|
+| Actual corpus, 190 files / 37724943 bytes | PASS | 24.162 | 40644 / 40644 |
+| Single file, 181403679 bytes | PASS | 16.570 | 43852 / 43852 |
+| Committed single file, same bytes | PASS | 38.684 | 40644 / 40644 |
+| 512 MiB aggregate, including the 12-byte base | PASS | 75.929 | 40644 / 40644 |
+| Committed 512 MiB aggregate, same total | PASS | 85.953 | 40644 / 40644 |
+| 1024 files / 1024 body bytes | PASS | 6.085 | 42356 / 42356 |
+| >=173 MiB artifact source input | PASS | included in stage | not separately measured |
+
+These reference journeys cover admission → capture → checkpoint → integration → workspace
+→ cleanup; the separate Rust source suite proves the new private execution owner. Aggregate
+output records report 536870900 fixture bytes, with the 12-byte base bringing source to the
+exact 536870912-byte boundary. Larger content still does not expand model responses or imply
+hard aggregate memory/PID/disk containment. Source/file 512 MiB, 100000 source files,
+1 GiB pack, 48 MiB metadata, 300-second capture and the existing Git/OS resource boundaries
+remain independent of 2 GiB working and dependency allowances.
+
+Final read-only installed alignment confirms active bundle
+`e502ae7ee8a1b19fc524e761b523e357659a18cf24c8553f976fcc60f53855d3`, package **0.1.27**,
+and workingBytes **2147483648**. No service/config/provider replacement was made for this
+private increment. Public command/process admission, SQLite task/receipt/control joins,
+controller-death recovery and the running/unknown-consumer reset gate remain the next P3 work.
+
 ## Resident maintenance and stopped stdin preservation — 2026-10-05
 
 The source base is `b594de1cfc7fea10e511977a2d357ad22d8b6928`. After the earlier automatic

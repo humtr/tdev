@@ -251,12 +251,16 @@ replay never resends, and EOF closes further admission. Stable per-task lease fi
 directory replacement; task caches/tool paths persist independently of source/private HOME,
 with separate dependency preflight, sampling and final budgets. A released kernel lease after
 worker death does not authorize reset while a consumer remains logically unknown.
-Public execution is not connected by these primitives. Next join command/process admission,
-owned source materialization/capture and SQLite operation/control reconciliation, including the
-no-running/unknown-consumer gate for reset; do not expose the primitive as a completed API or
-close the P3 exit gate yet. The supervisor suite now has 30 actual-process checks; the final
-full gate passed with exit status 0 (85 Rust, 105 native HTTP and 429 reference/common checks,
-plus identity/contract comparisons). See LOCAL_VALIDATION.md for evidence and remaining scope.
+The owned source increment now binds immutable Git inputs to execution, seals stopped capture,
+constructs one original private Git candidate and retires copies. Source and actual-process
+qualification closes this private increment. Public execution is not connected
+by these primitives. Next join command/process admission and SQLite operation/control
+reconciliation, including the no-running/unknown-consumer gate for reset; do not expose the primitive as a completed API or
+close the P3 exit gate yet. The supervisor suite now has 31 actual-process checks. All full-gate
+stages passed on identical frozen inputs: 115 Rust, 108 native HTTP, 447 reference/common and
+7 native capacity checks, plus identity/contract comparisons. This combines the interrupted
+script's completed prefix with its qualified continuation, not an uninterrupted script exit 0.
+See LOCAL_VALIDATION.md for exact evidence and remaining scope.
 
 1. Implement the independent native supervisor process and durable spool protocol: reserve before
    dispatch, PID/start identity, clean environment, task dependency leases, stdin sequencing,

@@ -192,10 +192,11 @@ returns the original acceptance without resending bytes. Initial stdin precedes 
 and a reserved EOF rejects subsequent input. Task dependency directories retain caches/tools
 under shared executor leases, with a separate 2 GiB sampled/final budget. Exclusive reset guards
 alone do not prove that an unknown consumer has stopped. This is an execution primitive,
-not completed public execution admission. Owned source materialization/capture and SQLite
-operation/control reconciliation are the next P3 increment; execution tools remain unadvertised
-by the implemented HTTP surface until those boundaries qualify. The supervisor suite now has
-30 actual-process checks; see [local validation evidence](LOCAL_VALIDATION.md#sequenced-input-and-task-dependency-leases--2026-10-04)
+not completed public execution admission. Owned source materialization, stopped capture,
+private Git candidate import and retirement are now implemented and qualified.
+Command/process admission and SQLite operation/control reconciliation are the next P3 increment;
+execution tools remain unadvertised by the implemented HTTP surface until those boundaries qualify. The supervisor suite now has
+31 actual-process checks; see [local validation evidence](LOCAL_VALIDATION.md#execution-source-lifecycle--2026-10-05)
 for the current gate result and remaining scope.
 Execution, validation/publication, artifacts,
 deployment and operator/service commands retain their later delivery phases.
@@ -212,7 +213,7 @@ remains relevant acceptance scope; it does not compete with the selected impleme
 No resident replacement or provider change is implied. Product naming stays `tdev`; successful
 integration replaces the implementation rather than shipping a language-specific edition.
 
-Latest recorded live qualification is **0.1.25**, bundle
+The earlier **0.1.25** live qualification recorded bundle
 `f1d10cf548ff2cbc1169db2ab239b3c772a0b8264e61ad8b31bffad777877ee7`.
 Qualified source commit `983f4559ac1f79526cd8bd59558ed496d67773e9` is published on
 `refs/heads/tdev`. Both existing connections are healthy/running after the owned recoverable

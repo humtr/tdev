@@ -90,6 +90,15 @@ pub struct Entry {
     pub blob: BlobId,
 }
 
+impl<'de> serde::Deserialize<'de> for FileMode {
+    fn deserialize<D: serde::Deserializer<'de>>(
+        deserializer: D,
+    ) -> std::result::Result<Self, D::Error> {
+        let value = <String as serde::Deserialize>::deserialize(deserializer)?;
+        Self::parse(&value).map_err(serde::de::Error::custom)
+    }
+}
+
 impl serde::Serialize for FileMode {
     fn serialize<S: serde::Serializer>(
         &self,
@@ -843,6 +852,54 @@ impl Git {
             return Err(Fault::new("GIT_OUTPUT"));
         }
         Ok(size)
+    }
+
+    /// One shallow, non-delta pack: checkpoint commit, its trees and blobs, no parents.
+    /// Source admission checks content separately from this physical transport budget.
+    pub fn source_pack_to(&self, checkpoint: &Checkpoint, sink: &mut dyn Write) -> Result<usize> {
+        self.entries(checkpoint)?;
+        let mut objects = BTreeSet::from([
+            checkpoint.as_str().to_owned(),
+            self.tree(checkpoint)?.as_str().to_owned(),
+        ]);
+        let listing = self
+            .call(&["ls-tree", "-r", "-t", "-z", checkpoint.as_str()], &[])?
+            .stdout;
+        for record in listing.split(|b| *b == 0).filter(|r| !r.is_empty()) {
+            let tab = record
+                .iter()
+                .position(|b| *b == b'\t')
+                .ok_or_else(|| Fault::new("GIT_OUTPUT"))?;
+            let fields: Vec<_> = line(&record[..tab])?.split_whitespace().collect();
+            if fields.len() != 3 || !matches!(fields[1], "tree" | "blob") {
+                return Err(Fault::new("GIT_OUTPUT"));
+            }
+            self.format.check(fields[2])?;
+            objects.insert(fields[2].into());
+        }
+        let mut input = tempfile::tempfile().map_err(|_| Fault::new("GIT_STORE"))?;
+        for object in objects {
+            writeln!(&mut input, "{object}").map_err(|_| Fault::new("GIT_STORE"))?;
+        }
+        input
+            .seek(SeekFrom::Start(0))
+            .map_err(|_| Fault::new("GIT_STORE"))?;
+        let mut counted = Counted { sink, bytes: 0 };
+        process::stream(
+            command(Some(&self.root)).args([
+                "pack-objects",
+                "--stdout",
+                "--window=0",
+                "--depth=0",
+                "--no-reuse-delta",
+            ]),
+            Some(input),
+            FETCH_TIMEOUT,
+            capacity::PACK_BYTES,
+            true,
+            &mut counted,
+        )?;
+        Ok(counted.bytes)
     }
 
     pub fn blob(&self, blob: &BlobId) -> Result<Vec<u8>> {

@@ -1,15 +1,19 @@
-//! Independent execution evidence. Admission and source capture belong to the controller.
+//! Independent execution, stop and source capture evidence. The controller owns admission
+//! and checkpoint completion.
 //!
 //! A reserved dispatch is never relaunched. A missing worker or stop proof is uncertainty,
 //! not permission to start another command. This module is not a public wire contract.
 mod environment;
 mod input;
 mod platform;
+pub(crate) mod source;
 mod spool;
 
 pub use environment::{DEPENDENCY_LIMIT, Environment, ExclusiveEnvironment};
 pub use input::{Delivery, Input, InputReceipt};
 pub use platform::ProcessIdentity;
+pub use source::{Capture, Manifest, Pack, Source, SourceFile};
+pub(crate) use spool::{Bound, lock_file};
 pub use spool::{Budget, Job, Observation, Outcome, Report, Request};
 
 use environment::SharedEnvironment;
@@ -40,6 +44,7 @@ fn run_job(job: &Job) -> io::Result<()> {
     };
     platform::initialize()?;
     let request = job.request()?;
+    source::verify_input(job)?;
     let mut log = job.create_log()?;
     if job.cancelled()? {
         return no_child(job, worker, Outcome::Cancelled, &mut log);
@@ -125,6 +130,7 @@ fn no_child(
         retained_bytes: 0,
         discarded_bytes: 0,
         budget: None,
+        capture: None,
     })
 }
 
@@ -230,6 +236,7 @@ impl Session {
             }
         }
         log.sync_all()?;
+        let capture = if stopped { source::capture(job)? } else { None };
         job.complete(Report {
             worker: worker.clone(),
             digest: job.digest()?,
@@ -239,6 +246,7 @@ impl Session {
             retained_bytes: output.retained,
             discarded_bytes: output.discarded,
             budget: None,
+            capture,
         })
     }
 }

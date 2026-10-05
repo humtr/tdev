@@ -284,11 +284,11 @@ fn descendants() -> io::Result<Vec<ProcessIdentity>> {
     Ok(result)
 }
 
-fn kill(expected: &ProcessIdentity) -> io::Result<()> {
+fn signal(expected: &ProcessIdentity, signal: libc::c_int) -> io::Result<()> {
     if live(expected)? {
         // SAFETY: a positive same-UID PID checked against start/boot identity immediately
         // before signalling. The remaining PID race is outside hostile-code containment.
-        if unsafe { libc::kill(expected.pid as i32, libc::SIGKILL) } == -1 {
+        if unsafe { libc::kill(expected.pid as i32, signal) } == -1 {
             let error = io::Error::last_os_error();
             if error.raw_os_error() != Some(libc::ESRCH) {
                 return Err(error);
@@ -306,8 +306,14 @@ pub fn stop_children(child: &mut Child) -> io::Result<bool> {
     let deadline = Instant::now() + Duration::from_secs(5);
     loop {
         let children = descendants()?;
+        // Freeze parents before killing their wait targets. Otherwise killing a nested
+        // child can wake its shell and run subsequent source writes during cleanup.
+        // The scan is parent-first; repeat it until reaping proves no adopted child remains.
+        for identity in &children {
+            signal(identity, libc::SIGSTOP)?;
+        }
         for identity in children.iter().rev() {
-            kill(identity)?;
+            signal(identity, libc::SIGKILL)?;
         }
         // Preserve the direct child's exit status before reaping adopted descendants.
         let mut no_children = false;
