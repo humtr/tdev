@@ -348,6 +348,7 @@ impl Application {
         let outcome = (|| {
             let input = self.surface.input(name, arguments)?;
             match name {
+                "tdev_artifact" => crate::artifact::call(self, context, input),
                 "tdev_find" => crate::source::continuation::call(self, context, input),
                 "tdev_task" => crate::source::task(self, context, input, original),
                 "tdev_edit" => crate::source::edit(self, context, input, original),

@@ -10,7 +10,6 @@ use crate::{
 };
 use base64::{Engine, engine::general_purpose::STANDARD};
 use serde_json::{Value, json};
-mod casefold;
 pub(crate) mod cleanup;
 pub(crate) mod continuation;
 mod integration;

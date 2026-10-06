@@ -34,6 +34,7 @@ pub struct Contract {
     schema: Value,
     tools: BTreeMap<String, Tool>,
     config: Validator,
+    definitions: BTreeMap<String, Validator>,
 }
 
 pub struct Surface {
@@ -120,6 +121,7 @@ impl Surface {
             ),
             ("tdev_project", vec!["list", "inspect", "connect", "create"]),
             ("tdev_find", vec![]),
+            ("tdev_artifact", vec!["inspectRecipe"]),
             ("tdev_read", vec![]),
             ("tdev_edit", vec![]),
             ("tdev_exec", vec![]),
@@ -150,6 +152,8 @@ impl Surface {
                     tool["inputSchema"]["properties"]["request"]["oneOf"][0].clone();
             }
             tool["description"] = json!(match name {
+                "tdev_artifact" =>
+                    "Inspect a package recipe and declared inputs at a successful source validation's immutable candidate under current authority and policies. Does not build, fetch inputs, reconcile effects or deploy.",
                 "tdev_validate" =>
                     "Validate the exact source candidate using the current operator command. Success requires proved stop and unchanged existing source; outputs are never published. Does not publish or deploy.",
                 "tdev_task" =>
@@ -220,10 +224,18 @@ impl Contract {
                 return Err(Fault::new("CONTRACT"));
             }
         }
+        let mut compiled = BTreeMap::new();
+        for name in ["ArtifactRecipe", "ArtifactRecipeInspection"] {
+            compiled.insert(
+                name.to_owned(),
+                compile(&json!({"$defs":definitions,"$ref":format!("#/$defs/{name}")}))?,
+            );
+        }
         Ok(Self {
             schema,
             tools,
             config: compile(config)?,
+            definitions: compiled,
         })
     }
 
@@ -241,6 +253,18 @@ impl Contract {
             return Err(Fault::new("SCHEMA"));
         }
         arguments.get("request").ok_or_else(|| Fault::new("SCHEMA"))
+    }
+
+    /// Internal documents use the same canonical definitions as wire responses.
+    pub(crate) fn definition(&self, name: &str, value: &Value) -> Result<()> {
+        if !self
+            .definitions
+            .get(name)
+            .is_some_and(|v| v.is_valid(value))
+        {
+            return Err(Fault::message("ARTIFACT_SCHEMA", name));
+        }
+        Ok(())
     }
 
     pub fn output(&self, tool: &str, value: &Value) -> Result<()> {

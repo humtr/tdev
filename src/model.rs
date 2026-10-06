@@ -1,4 +1,5 @@
 //! Validated domain values. Wire schema validation remains the transport's responsibility.
+pub(crate) mod casefold;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 

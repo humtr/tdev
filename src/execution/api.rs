@@ -59,6 +59,9 @@ pub(crate) fn validated(receipt: &Receipt) -> Result<Validation> {
         || receipt.operation.effect != Effect::Committed
         || receipt.operation.result.as_ref().is_none_or(|r| {
             r["exitCode"] != 0
+                || r["id"] != json!(receipt.operation.id)
+                || r["terminal"] != true
+                || r.get("captureError").is_some_and(|v| !v.is_null())
                 || r["stopped"] != true
                 || r["cancelled"] != false
                 || r["timedOut"] != false

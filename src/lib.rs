@@ -1,6 +1,7 @@
 //! Domain types and durable mechanisms for tdev.
 pub mod admission;
 pub mod application;
+pub mod artifact;
 pub mod contract;
 pub mod execution;
 pub mod git;

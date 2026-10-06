@@ -1,6 +1,6 @@
 //! Full case-fold overrides to scalar lowercase, generated from Unicode 16.0.0.
-//! Search projection only; never normalize stored identities or accepted intents.
-pub(super) fn fold(value: &str) -> String {
+//! Search/collision projection only; never normalize stored identities or accepted intents.
+pub(crate) fn fold(value: &str) -> String {
     let mut result = String::new();
     for c in value.chars() {
         match c {

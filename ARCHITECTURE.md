@@ -1804,6 +1804,18 @@ may initiate private background import and still expose the original running ide
 subsequent current reads expose the committed checkpoint/receipt and useful forward work;
 no observation repeats execution or guesses a changed authority state.
 
+Artifact recipe inspection uses the existing terminal source-validation join, current enrolled
+repository policy and private immutable Git candidate. `artifact` owns its strict recipe semantics
+and binding projection; `contract` compiles the original ArtifactRecipe/Inspection definitions.
+The identity decoder has an explicit duplicate-key-rejecting mode for recipe documents; ordinary
+request and retained identity decoding keeps its existing last-key semantics. Shared Unicode
+full-fold projection lives in `model/casefold` for lookup and path collision checks; it never
+normalizes stored identities. Raw and canonical recipe bytes are independently bounded to 64 KiB;
+selected source bodies use original blob streaming into a hash sink. Inspection rechecks candidate
+parent/tree identity and creates no operation, writer, reconciliation or acquisition effect.
+Terminal source proof checks operation ID, terminal/stop flags, zero exit and absence of capture
+error through the original validation helper used by publication as well.
+
 ### Identity, storage and compatibility
 
 Separate ordinary JSON serialization from bytes used for request, policy, spool, artifact and

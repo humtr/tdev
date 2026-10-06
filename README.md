@@ -131,8 +131,8 @@ SHA-1/SHA-256 stores and private indices; real fixtures cover atomic batch failu
 opening/editing, unchanged capture and dirty-checkout preservation. Contract checks are compared
 with an independent validator across all thirteen described tool families; this does not
 advertise those families as implemented handlers. The command now serves authenticated loopback
-HTTP with fresh immutable authority snapshots. Discovery exposes ten implemented tool families:
-human-name continuation; workspace composition; task list/open/start/compose/integrate/inspect/close/cleanup; all read/edit actions;
+HTTP with fresh immutable authority snapshots. Discovery exposes eleven implemented tool families:
+human-name continuation; frozen artifact recipe inspection; workspace composition; task list/open/start/compose/integrate/inspect/close/cleanup; all read/edit actions;
 native execution; source validation and publication; operation status/control with bounded JSON/SSE observation; and project list/inspect/local connect/create. Delegated
 enrollment stores resource identity separately from current policy-derived grants and execution
 settings. Local creation records uncertainty before touching the target and reconciles only
@@ -221,7 +221,14 @@ same-turn no-change/completion, fresh resume, current writer replacement during 
 and actual publication/cleanup/name lookup followed by independent predecessor work.
 The native P3 source-development implementation is complete; qualification is recorded in
 [local validation evidence](LOCAL_VALIDATION.md#continuation-and-current-frontier--2026-10-05).
-The next implementation phase is P4 retained artifacts/deployment. P5 operator/install/performance
+Source 0.1.32 begins P4 with `tdev_artifact inspectRecipe`: strict bounded recipe semantics,
+streamed hashes of declared inputs and an immutable candidate/tree/recipe/source-policy/artifact-policy
+binding. Inspection checks current authority and terminal source proof, creates no operation,
+and does not reconcile, fetch, build or require a deployment grant. Later task edits/close do
+not retarget it. Only inspectRecipe is advertised; retained prepare/seal/verify/export/prune and
+deployment remain the next P4 work. See
+[artifact recipe evidence](LOCAL_VALIDATION.md#artifact-recipe-and-source-binding--2026-10-06).
+P5 operator/install/performance
 and P6 final host/installed/canonical integration remain outstanding. Optional remote execution
 and live provider authentication/TLS are separate unqualified boundaries. The installed complete
 controller remains 0.1.27; this source increment does not activate a partial controller.

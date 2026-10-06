@@ -662,9 +662,18 @@
         "tests/test_artifacts.py",
         "tests/test_artifact_build.py",
         "tests/test_artifact_runtime.py",
-        "tests/test_artifact_retention.py"
+        "tests/test_artifact_retention.py",
+        "tests/acceptance/native_artifact_recipe.py"
       ],
-      "externalScenarios": [],
+      "externalScenarios": [
+        "ArtifactRecipeTest.test_frozen_source_binding_survives_edit_close_restart_and_admission_fence",
+        "ArtifactRecipeTest.test_current_authority_identity_and_source_policy_precede_recipe_read",
+        "ArtifactRecipeTest.test_artifact_policy_is_adopted_and_only_changes_binding_identity",
+        "ArtifactRecipeTest.test_missing_symlink_and_unsafe_recipe_input_are_rejected",
+        "ArtifactRecipeTest.test_duplicate_recipe_keys_and_extra_policy_fields_fail_on_original_git_bytes",
+        "ArtifactRecipeTest.test_execution_and_failed_validation_cannot_supply_a_recipe_binding",
+        "ArtifactRecipeTest.test_delegated_artifact_policy_is_reread_and_override_removal_restores_binding"
+      ],
       "delivery": "P4"
     },
     {

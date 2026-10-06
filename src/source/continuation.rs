@@ -33,8 +33,8 @@ fn frontier(context: &Context, store: &Store, task: &Task) -> Result<Value> {
 pub(crate) fn call(app: &Application, context: &Context, input: &Value) -> Result<Value> {
     let limit = wire::bounded(input, "limit", 20, 20)? as usize;
     let after = wire::bounded(input, "after", 0, 9007199254740991)?;
-    let query = super::casefold::fold(input["project"].as_str().unwrap_or(""));
-    let label = super::casefold::fold(input["label"].as_str().unwrap_or(""));
+    let query = crate::model::casefold::fold(input["project"].as_str().unwrap_or(""));
+    let label = crate::model::casefold::fold(input["label"].as_str().unwrap_or(""));
     let mut projects = Vec::new();
     for name in context.repositories() {
         let repo = context.repository(&name, None)?;
@@ -46,7 +46,7 @@ pub(crate) fn call(app: &Application, context: &Context, input: &Value) -> Resul
                 wire::string(&repo.config, "remote")?,
             ]
             .into_iter()
-            .any(|s| super::casefold::fold(s) == query)
+            .any(|s| crate::model::casefold::fold(s) == query)
         {
             projects.push(json!({"project":name,"name":public["name"]}));
         }
@@ -69,7 +69,8 @@ pub(crate) fn call(app: &Application, context: &Context, input: &Value) -> Resul
         let original = &receipt.intent["input"];
         let title = original["label"].as_str();
         let mut eligible = row.repo.as_deref().is_some_and(|r| project_ids.contains(r))
-            && (label.is_empty() || super::casefold::fold(title.unwrap_or("")).contains(&label));
+            && (label.is_empty()
+                || crate::model::casefold::fold(title.unwrap_or("")).contains(&label));
         let mut project_name = None;
         if receipt.operation.kind == OperationKind::Project {
             let name = original["name"].as_str().unwrap_or("");
@@ -79,7 +80,7 @@ pub(crate) fn call(app: &Application, context: &Context, input: &Value) -> Resul
                 && (query.is_empty()
                     || [name, &full]
                         .into_iter()
-                        .any(|s| super::casefold::fold(s) == query));
+                        .any(|s| crate::model::casefold::fold(s) == query));
             project_name = Some(full);
         }
         let mut task = None;

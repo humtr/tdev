@@ -484,7 +484,14 @@ fn concurrent_candidate_imports_return_one_original_checkpoint() {
 fn seal_without_terminal_worker_proof_is_not_a_checkpoint_or_retirement_authority() {
     let fixture = Fixture::new("sha1");
     let job = fixture.prepare("printf after >a");
-    fixture.start(&job);
+    let report = fixture.start(&job);
+    // Terminal child/capture proof can be published before the supervisor exits.
+    // This case removes that proof from a dead worker, not a still-live worker.
+    let until = Instant::now() + Duration::from_secs(360);
+    while report.worker.is_live().unwrap() {
+        assert!(Instant::now() < until, "terminal supervisor did not exit");
+        std::thread::sleep(Duration::from_millis(20));
+    }
     fs::remove_file(job.path().join("result.json")).unwrap();
     assert_eq!(job.observe().unwrap(), Observation::Unknown);
     assert!(job.path().join("capture.json").exists());

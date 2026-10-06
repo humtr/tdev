@@ -1,4 +1,135 @@
-# Local validation evidence — 2026-10-05
+# Local validation evidence — 2026-10-06
+
+## Artifact recipe and source binding — 2026-10-06
+
+Source base: `4bdf64ba6b4bae30795354433f767ee6413d0f49`; product input revision **0.1.32**.
+This first P4 increment implements only read-only `tdev_artifact inspectRecipe`, through the
+original source validation, Git, current repository/admission and contract owners. Eleven
+families are advertised; prepare, retention, artifact validation and deployment remain unconnected.
+SQLite format 3, spool format 4 and the public wire contract are unchanged.
+
+Ownership:
+
+- `src/artifact/mod.rs`: current authority, terminal source proof and source policy, exact candidate
+  parent/tree check, raw recipe digest and declared-input streaming SHA-256 metadata; binding
+  includes current adopted artifact policy and creates no operation/writer or reconciliation.
+- `src/artifact/recipe.rs`: original compiled schema plus strict recipe JSON, raw/canonical 64 KiB
+  budgets, safe paths, full-fold alias/overlap rejection, pinned public HTTPS descriptions,
+  unique tools/dependencies, conditional service/runtime and reserved environment checks.
+- `src/contract.rs`: original ArtifactRecipe/Inspection definitions compiled once, only inspectRecipe
+  advertised; no second handwritten schema or unimplemented prepare/build capability.
+- `src/identity.rs`: explicit duplicate-key rejection mode for recipes, including nested/escaped
+  aliases. Existing request/legacy last-key identity semantics are unchanged.
+- `src/model/casefold.rs`: the existing Unicode full-fold helper moved from source to the common
+  model module for both lookup and collision checks; no stored identity is normalized.
+- `src/execution/api.rs`: the original successful source-validation join additionally checks result
+  operation ID/terminal flags and rejects non-null captureError. Recipe and publication use this
+  same proof helper; no alternative successful-validation authority is introduced.
+
+A lookup cannot run a recipe, fetch public inputs, inspect host executables or create a build.
+Selected candidate/tree/recipe/inputs remain frozen after source edits and close; current source
+policy is required, while changing only artifactValidation changes artifact policy/binding rather
+than source provenance. Delegated policy overrides are read anew and removal restores the adopted
+fallback. Whole source tree remains bound even when declared inputs select only some files.
+Source body capacity stays independent of recipe metadata and working/dependency/model budgets.
+A stopped pending writer is not reconciled by inspection, even when its private worker result exists.
+
+Initial strict recipe invariants: **4 passed in 2.07 s**, with strict all-target clippy and locked
+build. Initial common native HTTP frozen/lifecycle/authority/policy/missing-input/strict-JSON/
+failed-proof cases: **6 passed in 43.198 s**. Additional tampered terminal proof and pure inspection
+of a stopped writer pass after fixture corrections; delegated override/removal/revocation also passes.
+The actual >=173 MiB declared input (**181403679 bytes**) passes in **178.707 s**, with isolated
+controller VmHWM **30988 KiB**, no build and no acquisition of its `.invalid` dependency URL.
+These are bounded streaming/identity observations, not performance or hard-memory quota claims.
+
+Draft failures are not qualifications: the initial five-case native/delegation selection had
+three failures (**46.675 s**) from replacing a repository identity already bound to an existing
+workspace, using a reference spool locator instead of native `jobs`, and leaving revoked fixture
+permissions in effect during owned cleanup. The corrected four-case selection had one fixture
+error (**26.180 s**): it dereferenced an unsuccessful open result. Explicit construction status
+then identified **BARE_REQUIRED** (**5.917 s**) because the selected Git directory is a working
+checkout. A separate repository/workspace, explicit allowWorktree and 2 GiB fixture working budget
+preserve the actual authority/capacity boundaries. Proof/pure-read/delegated cases pass, and the
+final large-input standalone result above uses those corrected settings. Initial compile visibility/
+enum errors were repaired before qualification. No failed draft is a whole-script PASS.
+
+Final strict all-target clippy, locked build and **4 recipe invariants in 1.20 s** pass.
+The final native focused/affected selection passes **23 in 124.594 s**, including all seven
+common recipe cases, shared validation/publication's eleven common scenarios, tampered-proof/
+pure-read native cases, exact Unicode lookup, discovery and inventory. The separately qualified
+large-input fixture above remains included in the forthcoming whole native fault group.
+Reference/common recipe HTTP cases pass **7 in 39.215 s**.
+First whole regression gate exited **101 in 562.471 s** on **296** frozen inputs and the actual
+corpus, all unchanged. The library group passed **53**; execution passed **18** with one failure
+in `seal_without_terminal_worker_proof_is_not_a_checkpoint_or_retirement_authority` (**549.91 s**).
+The exact assertion returned Running instead of Unknown after deleting result.json: terminal
+child/capture proof had been published while the supervisor process was still alive. Native
+observation correctly reports Running for that PID/start/boot identity. The fixture now proves
+the original supervisor has exited, using its identity's read-only liveness check within the
+existing **360-second** fixture completion budget, before removing result evidence. The original
+Unknown assertion, import/retirement denial and no-relaunch fence remain unchanged. No production
+stop-proof/liveness behavior is weakened. All concurrent large/many-file Rust execution fixtures
+passed; later Rust/Git, comparisons, HTTP/reference and capacity stages were not reached.
+Draft witnesses remain under `.artifacts/artifact-recipe-0.1.32/draft-*`.
+
+Corrected stopped-worker fixture passes **1 in 1.45 s** with its original uncertainty/import/
+retirement/no-relaunch assertions. Final whole `scripts/check.sh` exits **0 in 3584.100 s**
+(started **2026-10-06 22:21:52 UTC**, completed approximately **23:21:36 UTC**):
+**801 test executions pass** — **120 Rust** (53 library, 19 execution, 17 Git, 31 supervisor),
+**193 native HTTP/fault** (97 common plus 96 fault in 996.863 s), **481 reference/common**
+in 724.180 s, and **7 reference-controller/native-executor capacity** in 192.157 s.
+Canonical identity **10003** comparisons and compiled contract **136** comparisons across
+13 canonical tools/config pass; formatting, strict all-target clippy and locked build pass.
+The final Rust stopped-worker regression passes under the concurrent capacity load.
+Reference tests emit **15 unclosed SQLite connection ResourceWarning events**; the new native
+fixtures close their read-only inspection connections. These warnings are retained in the log.
+
+All **296** frozen product/test/doc inputs and the actual corpus are unchanged at completion.
+Only this evidence document is excluded; the removed `src/source/casefold.rs` is explicitly
+witnessed absent and its common-module replacement is included. Input manifest SHA-256:
+`7509dd1f594610da1cd81507b3bf24cae52d0620714856790531b3f44157dc33`.
+Qualified executable SHA-256:
+`788b9567253cf909b0ec43aa0e7bf3f47d790eab8a787a3c975595589addd920`.
+Local witnesses: `.artifacts/artifact-recipe-0.1.32/{inputs,corpus,running,result}.json`
+and `check.log`; the earlier failed whole gate remains separately under `draft-*`.
+
+Capacity evidence in this final gate:
+
+| Owner exercised | Fixture / result |
+|---|---|
+| Native controller HTTP source lifecycle | >=173 MiB single file **181403679 bytes / 61.378 s**, committed same size **53.369 s**, eight-file aggregate **536870900 bytes / 241.739 s**, actual corpus **190 files / 37724943 bytes / 29.086 s**: all PASS. Committed single-file isolated controller VmHWM **31252 KiB**. |
+| Native recipe inspection | Declared input **181403679 bytes**: PASS, isolated controller VmHWM **31316 KiB** (~30.6 MiB), no acquisition or build. Strict raw/canonical 64 KiB edge fixtures and tampered terminal-proof/publication refusal pass. |
+| Rust execution/supervisor | Source byte/count edge diagnostics, many-file, 512 MiB aggregate and one-byte growth rejection, committed/dirty 173 MiB, actual corpus capture/cleanup, exact 2 GiB dependency and overflow, independent working budget: PASS. |
+| Reference controller with actual native executor | 512 MiB aggregate **35.512 s**, committed aggregate **48.884 s**, committed 173 MiB **21.374 s**, actual corpus **14.289 s**, large artifact input PASS, **1024 files / 3.368 s**, single 173 MiB **13.260 s**: all PASS. This does not qualify an unimplemented Rust build/seal handler. |
+
+Actual corpus: `/data/data/com.termux/files/home/prj/house-md-distill/corpus/originals`;
+**190 files / 37724943 bytes** (37.7 decimal MB, approximately 35.98 MiB).
+Ordered path/body identity remains
+`d472c85cb1d54046b49b9a325be9596638f987489e8152e9b569370d5b201151`;
+wrapper path/file-hash manifest remains
+`ed814bb6d98f0d3c4daeaef3d31ea422b6a6e011227247d13cbba502228bab1f`.
+The capacity group's process high-water measurements are cumulative, not isolated native
+controller measurements or hard memory quotas. These timings are one regression run on this
+Termux device, not a comparative performance qualification.
+
+This increment changes no source/working/dependency capacity: source/file **512 MiB** and
+**100000 files**, source pack **1 GiB**, metadata **48 MiB**, launch/control **8 MiB**,
+recipe raw and canonical **64 KiB** independently; working default **128 MiB**, supported maximum
+**2 GiB**, dependency **2 GiB / 100000 files / 1000000 nodes**. Model/HTTP ingress remains
+**2 MiB / depth 128**; log/page and utility/capture deadlines remain independently bounded.
+Ordinary Termux UID, sampled working budget, disk space and deadlines remain real boundaries.
+No full-source inline allocation or second source-capacity ceiling is introduced by inspection.
+Read-only installed metadata confirmation at closeout: active bundle
+`e502ae7ee8a1b19fc524e761b523e357659a18cf24c8553f976fcc60f53855d3`,
+product **0.1.27**, configured workingBytes **2147483648**. This readback is not a new live
+HTTP/health qualification. No resident/config/provider change is performed.
+
+Remaining P4: fresh native prepare/acquisition, declared-export capture, atomic content retention,
+current runtime checks, artifact validation, export/prune/pins, packaged and source deployment
+switch/recovery. P5 operator/install/state/performance and P6 installed/client/host/canonical
+integration remain outstanding. Reference artifact tests remain evidence, not Rust build/deployment
+handlers. Installed complete resident remains 0.1.27 with 2 GiB workingBytes; no production
+runtime/provider replacement or activation is performed by this increment.
 
 ## Continuation and current frontier — 2026-10-05
 

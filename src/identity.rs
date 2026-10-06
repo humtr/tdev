@@ -16,7 +16,21 @@ pub enum Value {
 
 impl Value {
     pub fn parse(text: &str) -> Result<Self> {
-        let mut parser = Parser { text, at: 0 };
+        Self::decode(text, false)
+    }
+
+    /// Strict documents such as artifact recipes reject duplicate keys. Ordinary
+    /// request/legacy identity decoding continues to preserve last-key semantics.
+    pub fn parse_unique(text: &str) -> Result<Self> {
+        Self::decode(text, true)
+    }
+
+    fn decode(text: &str, unique: bool) -> Result<Self> {
+        let mut parser = Parser {
+            text,
+            at: 0,
+            unique,
+        };
         let value = parser.value(0)?;
         parser.whitespace();
         if parser.at != text.len() {
@@ -174,6 +188,7 @@ fn float_repr(value: f64) -> Result<String> {
 struct Parser<'a> {
     text: &'a str,
     at: usize,
+    unique: bool,
 }
 
 impl Parser<'_> {
@@ -239,6 +254,9 @@ impl Parser<'_> {
                         self.whitespace();
                         let key = self.string()?;
                         self.take(b':')?;
+                        if self.unique && values.contains_key(&key) {
+                            return Err(Fault::new("JSON_DUPLICATE"));
+                        }
                         values.insert(key, self.value(depth + 1)?);
                         self.whitespace();
                         if self.peek() != Some(b',') {
