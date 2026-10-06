@@ -12,7 +12,7 @@ use crate::{
 use serde_json::{Value, json};
 use std::path::Path;
 
-fn public(repo: &Repository) -> Value {
+pub(crate) fn public(repo: &Repository) -> Value {
     let configured = repo.config["defaultRef"]
         .as_str()
         .filter(|r| repo.refs.iter().any(|allowed| allowed.as_str() == *r));

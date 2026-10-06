@@ -1,5 +1,6 @@
 """Managed admission gaps through actual HTTP and owned Git utility barriers."""
 import http.client
+from contextlib import closing
 import json
 import os
 import shutil
@@ -72,7 +73,7 @@ class NativeStartTest(unittest.TestCase):
 
     def persisted(self, request):
         # Read fixture-owned rows as external durable evidence, not domain behavior.
-        with sqlite3.connect('file:' + str(self.runtime.state / 'state.sqlite') + '?mode=ro', uri=True) as connection:
+        with closing(sqlite3.connect('file:' + str(self.runtime.state / 'state.sqlite') + '?mode=ro', uri=True)) as connection:
             row = connection.execute('SELECT id,repo,ref,intent FROM operation WHERE owner=? AND request=?', ('alice', request)).fetchone()
         return row[:3], json.loads(row[3])
 
@@ -94,6 +95,13 @@ class NativeStartTest(unittest.TestCase):
                              ('test', r.head, 'refs/heads/main', 'refs/heads/work/'))
             self.assertEqual(intent['input'], args)
             self.assertEqual(r.call('task', args)['id'], operation['id'])
+            before_find = self.persisted(args['requestId'])
+            found = r.call('find', {'project':'Human project','label':'Frozen'})
+            self.assertEqual(found['resolution'],'unique',found)
+            self.assertEqual(found['matches'],[])
+            self.assertEqual(found['pending'][0]['operationId'],operation['id'])
+            self.assertEqual(found['pending'][0]['requestId'],args['requestId'])
+            self.assertEqual(self.persisted(args['requestId']),before_find)
             pending = r.call('workspace', {'action': 'inspect', 'workspaceId': space['workspaceId']})
             self.assertEqual(pending['pendingTasks'][0]['operationId'], operation['id'])
             for action in ('close', 'detach'):

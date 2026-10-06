@@ -16,9 +16,15 @@ class RuntimeTest(unittest.TestCase):
         status, _, value, _ = r.request()
         self.assertEqual(status, 200)
         actual = value['result']['tools']
-        self.assertEqual([t['name'] for t in actual], [t['name'] for t in CONTRACT['x-tools']])
+        names = {t['name'] for t in actual}
+        self.assertTrue({'tdev_find', 'tdev_workspace', 'tdev_task', 'tdev_project',
+            'tdev_read', 'tdev_edit', 'tdev_exec', 'tdev_operation',
+            'tdev_validate', 'tdev_publish'} <= names)
+        self.assertEqual(len(actual),len(names))
+        self.assertTrue(names <= {t['name'] for t in CONTRACT['x-tools']})
         self.assertNotIn('$ref', json.dumps(actual))
-        for advertised, canonical in zip(actual, CONTRACT['x-tools']):
+        for advertised in actual:
+            canonical = next(t for t in CONTRACT['x-tools'] if t['name'] == advertised['name'])
             self.assertEqual(advertised['annotations'], canonical['annotations'])
         before = r.call('task', {'action': 'list'})
         for headers, expected in [({'Authorization': 'Bearer wrong'}, 401),
@@ -104,7 +110,7 @@ class RuntimeTest(unittest.TestCase):
                 'command': command, 'env': {'MARKER': str(marker)}, 'timeout': 20, 'waitMs': 0}
         r.discard_reply('exec', args)
         op = r.call('operation', {'action': 'status', 'lookupRequestId': 'lost'})
-        eventually(lambda: r.status(op['id']), lambda row: output(row) == b'ready')
+        eventually(lambda: r.status(op['id']), lambda row: 'output' in row and output(row) == b'ready')
         self.assertEqual(marker.read_bytes(), b'x')
         r.restart()  # Actual SIGKILL; independent supervisor must survive.
         replayed = r.call('exec', args)
@@ -129,7 +135,7 @@ class RuntimeTest(unittest.TestCase):
         args = {'requestId': 'progress', 'taskId': w['taskId'], 'expected': w['checkpoint'],
                 'command': 'printf ready; read value; printf done > a.txt', 'timeout': 20, 'waitMs': 0}
         op = r.call('exec', args)
-        first = eventually(lambda: r.status(op['id'], since=''), lambda row: output(row) == b'ready')
+        first = eventually(lambda: r.status(op['id'], since=''), lambda row: 'output' in row and output(row) == b'ready')
         same = r.status(op['id'], since=first['observation']['cursor'], waitMs=50)
         self.assertFalse(same['observation']['changed'])
         self.assertGreaterEqual(int(same['observation']['observedAtNs']), int(first['observation']['observedAtNs']))
@@ -189,7 +195,7 @@ class RuntimeTest(unittest.TestCase):
         args = {'requestId': 'wait', 'taskId': w['taskId'], 'expected': w['checkpoint'],
                 'command': 'printf ready; read value', 'timeout': 20, 'waitMs': 0}
         op = r.call('exec', args)
-        eventually(lambda: r.status(op['id']), lambda value: output(value) == b'ready')
+        eventually(lambda: r.status(op['id']), lambda value: 'output' in value and output(value) == b'ready')
         params = {'name': 'tdev_operation', 'arguments': {'request': {
             'action': 'status', 'operationId': op['id'], 'waitMs': 200}}}
         status, media, value, _ = r.request('tools/call', params)

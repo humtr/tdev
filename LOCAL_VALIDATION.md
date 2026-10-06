@@ -1,5 +1,153 @@
 # Local validation evidence — 2026-10-05
 
+## Continuation and current frontier — 2026-10-05
+
+Source base: `afa5b5f82676b798587179b03c69352ac9a89e6d`; product input revision **0.1.31**.
+The native P3 source-development handlers are connected through the original owners, with ten
+advertised families. This increment adds human-name continuation and closes the remaining
+current/no-change/resume test boundaries; installed/host qualification remains P6 scope.
+The canonical wire contract, SQLite format 3 and spool format 4 are unchanged.
+
+Ownership:
+
+- `src/source/continuation.rs`: exact human project/old remote locators, full-fold label search,
+  authority-filtered task/pending/receipt summaries and conservative resolution/completeness.
+- `src/storage/continuation.rs`: one 200-row creation-ledger scan plus lookahead; one cursor
+  for pending and created work; 8 recent/40 outstanding receipts plus lookahead per task.
+  SQL selects only locator/authority fields, excluding source manifests, output, environment,
+  stdin and results before Rust decoding. It reuses the original SQLite connection/mutex.
+- `src/admission.rs`: pending owner/name is a display-only projection from configured policy;
+  revoked grants still fail the separate retained-authority check and cannot hide owned work.
+- `src/application.rs`: shared current task/receipt checks can use the same locked ledger view,
+  with no nested Store locking or provider/executor/Git observation in find.
+- `src/source/casefold.rs`: Unicode 16 full-fold overrides to scalar lowercase, including
+  expansions, sigma and Cherokee; stored source/request/project identities are never normalized.
+- `src/source.rs`: task inspection bounds its observation interval and refreshes source/history/
+  active together after provider reads. A changed writer is projected from the same local view.
+- `src/project.rs`, `src/contract.rs`: existing project-name projection reused without a new
+  naming owner; only implemented discovery changes. `scripts/check.sh` now runs all common
+  source runtime, continuation and current-frontier scenarios against the native executable.
+
+Duplicate explicit project locators remain ambiguous even with one retained task. This tightens
+the reference count-based projection, which can return unique in that case. A globally unique
+label can still resolve across multiple different projects. Partial scans/continuation pages
+never resolve unique. Find only reads retained facts; native worker stop/capture proof can precede
+SQLite completion, and does not make an unfinished private import a terminal operation. Bounded
+current task reads initiate/observe original completion and expose useful next work without
+relaunch. Provider/executor observations and the final local view are not an atomic distributed
+snapshot; observation timestamps are excluded from the content cursor.
+
+Focused qualifications:
+
+- Native frontier/lookup boundaries plus discovery: **10 passed in 63.841 s**, including
+  provider-observation writer replacement, unrelated lookup/composition while it waits,
+  worker completion missed by the caller, 201 pending records and 41 unknown receipts with
+  large private intents. An actual managed publish/cleanup/find/predecessor/edit journey passes.
+- Common execution/validation/publication and current identity: **18 passed in 125.328 s**.
+- Reference/common continuation/frontier/runtime: **18 passed in 100.108 s**.
+- Final native Unicode/name/page/delegation/authority/global-label cases: **8 passed in 30.963 s**;
+  final reference global-label case: **1 passed in 3.797 s**.
+- Actual native source pin-gap pending lookup, original identity preservation and read-only
+  fixture connection cleanup: **1 passed in 16.873 s**. Inventory link validation passed.
+- Formatting, strict all-target clippy and locked build passed before the whole regression gate.
+
+Draft runs are not qualifications: the initial 15-case selection had two failures and three
+errors from fixture assumptions about exact .git remote locators, discovery ordering and absent
+output during asynchronous preparation. Corrected fixtures preserve those product boundaries.
+The expanded 21-case selection then had one premature assertion equating worker result existence
+with completed private import/SQLite commit. Its corrected bounded current-read case passes in
+the native frontier qualification above. Initial compile/clippy errors were corrected before
+qualification. No failed draft is recorded as a whole-script PASS.
+
+First whole-script attempt froze **292** inputs and the actual corpus; it exited **1 in
+2883.292 s**, with both unchanged. It passed **116 Rust** tests, identity/compiled-contract
+comparisons and **90 native common HTTP** cases. The 92-case native fault group had one failure
+in `NativeImportTest.test_changed_config_checkout_binding_blocks_pending_and_completed_replay`:
+`release_caller` imposed an extra **8-second** thread join after releasing the scan barrier.
+The traceback reports the caller still alive at that fixture deadline; the earlier checkout
+binding rejection assertions passed. The same qualified binary passed the standalone case in
+**18.421 s** before any change. The fixture now waits its existing **45-second HTTP budget**,
+retaining all identity/receipt/source assertions and production utility/HTTP deadlines. This is
+not a product fix or a performance qualification. Reference/common and final capacity stages
+were not reached by this failed script. Its logs/input witnesses remain as `draft-*` under
+`.artifacts/continuation-0.1.31/`; no whole PASS is claimed for it.
+
+After aligning the fixture wait, all **7 native checkout-import fault cases passed in
+98.494 s**. Added pending/completed localChanges lookup denial passed **1 in 16.407 s**.
+A further negative pending-project fixture exposed a real lookup projection bug: revoking
+policy grants made `Example/Pending` appear `none` instead of `unavailable` (one failure in
+2.033 s). Configured owner/name projection now remains available for identifying an already
+owned intent, while the independent current policy/authority check still denies it. Final
+native continuation/name/revocation/binding cases pass **15 in 72.044 s**, with fmt, strict
+all-target clippy and locked build. No provider call or state mutation is part of this lookup.
+
+Final whole regression gate: `scripts/check.sh` started **2026-10-06 00:00:02 UTC** and
+exited **0 in 4795.747 s** on **292** frozen source/test/contract/documentation inputs.
+Only this evidence document is excluded; every frozen input and the actual corpus remained
+identical before/after. Input manifest SHA-256 is
+`f32ddf37d3c49551281e98f4590bbf36fedd6cb2dc30c3f9ed9d4a310ced8807`;
+qualified executable SHA-256 is
+`ed3eb46ab2d4114a78772f48d76d34ce60c1142f88bc284aa5831a7f9744b976`.
+The uninterrupted run passes formatting, strict all-target clippy, the locked build,
+**116 Rust tests**, **10003 identity comparisons**, **136 compiled-contract cases**, and
+**183 native HTTP cases** (90 common plus 93 native fault cases). The fault group passes in
+**1091.686 s**, including the original failing import case and pending-policy revocation fix.
+It then passes **474 reference/common cases in 1654.582 s** and **7 reference-controller/native-
+executor capacity cases in 280.947 s**: **780 test executions**, plus both comparisons and
+final diff checks. The last capacity suite uses the reference controller with real native
+execution; it does not qualify Rust artifact handlers. Python emitted **15 SQLite unclosed-
+database warning events**, all in the reference/common group; none appeared in native HTTP.
+These warnings did not fail the gate and are not reported as fixed reference connection ownership.
+Logs and before/after witnesses are retained under `.artifacts/continuation-0.1.31/`.
+
+Native HTTP large-source regression passed the >=173 MiB dirty-checkout journey in **67.469 s**,
+512 MiB aggregate plus one-byte overflow refusal in **253.832 s**, committed >=173 MiB source in
+**54.835 s** (isolated controller VmHWM **29168 KiB**) and the actual corpus in **43.645 s**.
+The 93-case native fault group also passes >=173 MiB execution/capture/SQLite completion/retirement,
+large exact validation/publication, 2 GiB dependency edge/overflow and frozen working-budget tests.
+
+The final reference-controller/native-executor capacity journeys pass:
+
+| Fixture | Content | Journey time | Result |
+|---|---|---|---|
+| 512 MiB aggregate | 8 files / 536870900 bytes, plus fixture base files to the exact source edge; one-byte capture overflow rejected | 50.962 s | PASS |
+| Committed 512 MiB aggregate | 8 files / 536870900 bytes | 72.944 s | PASS |
+| Committed >=173 MiB source | 1 file / 181403679 bytes | 30.391 s | PASS |
+| Actual corpus | 190 files / 37724943 bytes | 25.807 s | PASS |
+| Artifact source input | 181403679 bytes | not separately timed | PASS, reference artifact owner |
+| Many files | 1024 files / 1024 bytes | 7.973 s | PASS |
+| >=173 MiB single file | 1 file / 181403679 bytes | 16.728 s | PASS |
+
+The corpus is **37.7 decimal MB / 35.98 MiB**, not a 37.7 MiB corpus. The separate generated
+190-file fixture remains **39690240 bytes / 37.85 MiB**. The actual ordered path/NUL/body journey
+digest is `d472c85cb1d54046b49b9a325be9596638f987489e8152e9b569370d5b201151`;
+the wrapper's path/NUL/file-hash manifest uses a different encoding and has SHA-256
+`ed814bb6d98f0d3c4daeaef3d31ea422b6a6e011227247d13cbba502228bab1f`.
+No original corpus bytes are changed or added to the repository. Final capacity high-watermarks
+are **40564–43972 KiB** for the controller/utility fields; these are cumulative getrusage witnesses
+within that suite, not isolated per-journey Rust measurements or hard RAM/PID/disk quotas.
+Large fixture times are observed timings, not an equivalent-load performance comparison.
+P5 workload/device/concurrency and small-workload performance qualification remains outstanding.
+
+This evidence closes the **native P3 default exit gate**; continue with P4. No Python controller
+or worker is used by the Rust source-development slice. Source/file 512 MiB, source pack 1 GiB,
+source metadata 48 MiB, launch metadata 8 MiB, working default 128 MiB / maximum 2 GiB,
+dependency 2 GiB and the bounded read/model/wire budgets remain independent and unchanged.
+Read-only installed bundle/config inspection confirms active bundle
+`e502ae7ee8a1b19fc524e761b523e357659a18cf24c8553f976fcc60f53855d3`, version **0.1.27**,
+and workingBytes **2147483648**. No resident or provider activation is performed.
+
+Remaining boundaries: P4 artifact acquisition/retention/build validation/deployment; P5 operator/
+CLI/install/state/performance; P6 installed/client/host journeys and canonical integration/removal
+of superseded runtime. The source validation alternative alone is implemented; the inventory's
+shared default action does not qualify its P4 artifact alternative. Explicit remote execution
+is unsupported in this native executable; the retained dormant reference adapter/fixtures do
+not qualify a Rust remote handler. Live provider authentication/TLS and ChatGPT user-visible
+continuity are separate qualifications. Ordinary Termux UID authority and independent source/
+metadata/working/dependency/response budgets remain unchanged. The installed complete resident
+remains 0.1.27 with 2 GiB workingBytes; no activation is performed by this increment.
+
+
 ## Source validation and publication — 2026-10-05
 
 Source base: `6899bd10849ecc3bfb25cf5a563035f3ecdf1dd4`; product input revision **0.1.30**.

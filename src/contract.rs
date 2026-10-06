@@ -119,6 +119,7 @@ impl Surface {
                 ],
             ),
             ("tdev_project", vec!["list", "inspect", "connect", "create"]),
+            ("tdev_find", vec![]),
             ("tdev_read", vec![]),
             ("tdev_edit", vec![]),
             ("tdev_exec", vec![]),

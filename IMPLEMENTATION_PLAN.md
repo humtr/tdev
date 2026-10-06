@@ -263,9 +263,14 @@ storage. Process completion never changes source/writer/closed state. No dispatc
 replay or recovery. See LOCAL_VALIDATION.md for this increment's complete qualification evidence.
 Source-validation candidate/policy admission and exact non-force publication now join the same
 stop/completion owners: readonly integrity, frozen deadline origin, exact original candidate,
-unique publication identity and observation-only ref recovery. Next finish P3's remaining
-recovery/frontier and executable acceptance inventory, then assess its exit gate before P4.
-Do not infer P3 exit or installed activation from this increment alone. The earlier private
+unique publication identity and observation-only ref recovery. Source 0.1.31 connects bounded
+human-name continuation, coherent local lookup authority/projections and fresh task/history/active
+observation intervals. Common executable source lifecycle, no-change, missed completion and actual
+publication-backed continuation scenarios now run against the native executable in check.sh;
+P3 actions have dedicated common links in the acceptance inventory. Close the native P3 exit
+only with this increment's full regression evidence in LOCAL_VALIDATION, then proceed to P4.
+Optional remote execution/provider live authentication and P6 installed/host acceptance remain
+separate qualification boundaries. No installed activation is implied by P3 exit. The earlier private
 increment qualified 115 Rust, 108 native HTTP,
 447 reference/common and 7 native capacity checks on identical frozen inputs; its interrupted
 script prefix plus qualified continuation remains historical evidence, not a script exit 0.

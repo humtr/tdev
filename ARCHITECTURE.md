@@ -1781,6 +1781,29 @@ refusals may instead retain a failed/effect=none receipt. Both rejection shapes 
 common acceptance; accepted publications retain one effect under all request aliases.
 Historical receipts with unrelated construction tags remain unconnected and preserve their fences.
 
+Human-name continuation is a source feature over the original SQLite ledger. It scans at most
+200 creation admissions plus one lookahead, with one row cursor for created tasks and pending
+project/task effects; returned entries are capped at 20. Task-local recent/outstanding pages
+read 8/40 plus one lookahead independently of the caller's task history page. The original
+Store mutex keeps task pointers, receipt summaries and completeness evidence in one local view.
+Authority checks accept that locked view and perform no reconciliation or utility calls.
+Pending project owner/name projection reads naming fields from current configured policy even
+when its grant is revoked; a separate retained-authority check then reports unavailable, so
+revocation cannot make already owned work look absent or confer new policy authority. SQL
+projects only locator/authority fields, excluding execution environment/stdin, source manifests,
+log bodies and results before Rust decoding. Unicode full-fold search changes neither stored
+names nor mutation identities. Duplicate matching project names remain ambiguous even when
+only one currently has work; the reference's older count-based projection can report unique
+in that case. No partial scan or continuation page claims unique resolution.
+
+Task inspection records its complete observation interval and rereads task/history/active under
+one Store lock after provider observation. A concurrently changed writer is projected from that
+same local state. Provider/executor observations remain separate facts, not an atomic distributed
+snapshot. Worker stop/capture proof alone is not SQLite completion: a first bounded observation
+may initiate private background import and still expose the original running identity. Bounded
+subsequent current reads expose the committed checkpoint/receipt and useful forward work;
+no observation repeats execution or guesses a changed authority state.
+
 ### Identity, storage and compatibility
 
 Separate ordinary JSON serialization from bytes used for request, policy, spool, artifact and

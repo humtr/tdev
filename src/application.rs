@@ -115,6 +115,10 @@ impl Application {
     }
     pub(crate) fn task(&self, context: &Context, id: &str) -> Result<(Task, Repository)> {
         let task = self.store()?.task(&context.principal, id)?;
+        let repo = Self::authorize_task(context, &task)?;
+        Ok((task, repo))
+    }
+    pub(crate) fn authorize_task(context: &Context, task: &Task) -> Result<Repository> {
         let repo = context.repository(&task.repo, Some(&task.identity))?;
         let permitted = if task.managed == 0 {
             repo.refs.contains(&task.branch)
@@ -129,9 +133,20 @@ impl Application {
         if !permitted {
             return Err(Fault::new("PERMISSION_DENIED"));
         }
-        Ok((task, repo))
+        Ok(repo)
     }
     pub(crate) fn authorize_receipt(&self, context: &Context, receipt: &Receipt) -> Result<()> {
+        let store = self.store()?;
+        Self::authorize_retained(context, receipt, &store)
+    }
+    /// Local authority checks against an already locked, coherent ledger view.
+    pub(crate) fn authorize_retained(
+        context: &Context,
+        receipt: &Receipt,
+        store: &Store,
+    ) -> Result<()> {
+        let task_authority =
+            |id: &str| Self::authorize_task(context, &store.task(&context.principal, id)?);
         if receipt.operation.kind == OperationKind::Project {
             context.policy(
                 wire::string(&receipt.intent["input"], "policy")?,
@@ -167,21 +182,21 @@ impl Application {
             return Err(Fault::new("UNSUPPORTED_OPERATION"));
         }
         if let Some(task) = &receipt.operation.task {
-            self.task(context, task.as_str())?;
+            task_authority(task.as_str())?;
         }
         if receipt.operation.kind == OperationKind::Task {
             if receipt.intent["input"]["action"] == "integrate" {
-                self.task(
-                    context,
-                    wire::string(&receipt.intent["integrationSource"], "taskId")?,
-                )?;
+                task_authority(wire::string(
+                    &receipt.intent["integrationSource"],
+                    "taskId",
+                )?)?;
             }
             if receipt.intent["input"]["action"] == "compose" {
                 for source in receipt.intent["input"]["sources"]
                     .as_array()
                     .ok_or_else(|| Fault::new("STATE_FORMAT"))?
                 {
-                    self.task(context, wire::string(source, "taskId")?)?;
+                    task_authority(wire::string(source, "taskId")?)?;
                 }
             }
         }
@@ -189,7 +204,7 @@ impl Application {
             && receipt.intent["input"]["action"] == "start"
         {
             if let Some(id) = receipt.intent["input"]["fromTaskId"].as_str() {
-                self.task(context, id)?;
+                task_authority(id)?;
             }
             let resolved = &receipt.intent["resolved"];
             let repo = context.repository(
@@ -227,7 +242,7 @@ impl Application {
             .as_str()
             .or_else(|| receipt.intent["input"]["workspaceId"].as_str())
         {
-            self.store()?.workspace(&context.principal, id, false)?;
+            store.workspace(&context.principal, id, false)?;
         }
         Ok(())
     }
@@ -333,6 +348,7 @@ impl Application {
         let outcome = (|| {
             let input = self.surface.input(name, arguments)?;
             match name {
+                "tdev_find" => crate::source::continuation::call(self, context, input),
                 "tdev_task" => crate::source::task(self, context, input, original),
                 "tdev_edit" => crate::source::edit(self, context, input, original),
                 "tdev_read" => crate::source::read(self, context, input),

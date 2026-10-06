@@ -131,8 +131,8 @@ SHA-1/SHA-256 stores and private indices; real fixtures cover atomic batch failu
 opening/editing, unchanged capture and dirty-checkout preservation. Contract checks are compared
 with an independent validator across all thirteen described tool families; this does not
 advertise those families as implemented handlers. The command now serves authenticated loopback
-HTTP with fresh immutable authority snapshots. Discovery exposes nine implemented tool families:
-workspace composition; task list/open/start/compose/integrate/inspect/close/cleanup; all read/edit actions;
+HTTP with fresh immutable authority snapshots. Discovery exposes ten implemented tool families:
+human-name continuation; workspace composition; task list/open/start/compose/integrate/inspect/close/cleanup; all read/edit actions;
 native execution; source validation and publication; operation status/control with bounded JSON/SSE observation; and project list/inspect/local connect/create. Delegated
 enrollment stores resource identity separately from current policy-derived grants and execution
 settings. Local creation records uncertainty before touching the target and reconciles only
@@ -179,8 +179,8 @@ Authenticated Git transport supports source work and exact-OID managed-ref delet
 and provider diagnostics stay out of private plumbing, receipts and retained Git configuration.
 Provider API/transport fixtures exercise actual HTTP, SQLite and disposable Git, including
 controller death, permission loss, same-name replacement and remote deletion races. These are
-isolated provider boundary qualifications; live GitHub authentication/TLS and P3 publication
-remain separate qualification scope. No real GitHub project was created by these checks.
+isolated provider boundary qualifications; live GitHub authentication/TLS remains separate
+qualification scope. Source publication fixtures are recorded in the later P3 evidence below. No real GitHub project was created by these checks.
 No SQLite state format revision or resident cutover has been performed. P2's local/provider slice
 has passed its regression gate. P3 has begun with the independent supervisor and durable spool:
 frozen command/cwd/budget/tool location, one durable launch fence, PID/start/boot identity,
@@ -211,10 +211,20 @@ Lost replies and controller death only observe the original ref; exact candidate
 descendant can finish it, while old/unrelated heads retain unknown. Duplicate publication requests
 resolve to the original effect. Source validation includes ordered controls, paged logs and opt-in
 progress SSE; artifact validation is not exposed in this increment.
-See [local validation evidence](LOCAL_VALIDATION.md#source-validation-and-publication--2026-10-05)
-for qualification results and remaining scope. Remaining P3 recovery/frontier qualification, artifacts,
-deployment and operator/service commands retain their delivery phases. This is not the P3
-exit gate or resident cutover; the complete installed controller remains 0.1.27.
+Source 0.1.31 adds human-name continuation through coherent bounded local ledger reads. Exact
+project keys/display names/old remote locators and case-insensitive label substrings resolve
+retained work without executor/provider reconciliation. Duplicate names and incomplete pages
+never choose a task. Recent/outstanding receipts remain independently bounded, with no inline
+source, environment, stdin or logs. Task inspection reports its observation interval and refreshes
+checkpoint/history/active together after provider observation. Executable scenarios cover
+same-turn no-change/completion, fresh resume, current writer replacement during provider reads,
+and actual publication/cleanup/name lookup followed by independent predecessor work.
+The native P3 source-development implementation is complete; qualification is recorded in
+[local validation evidence](LOCAL_VALIDATION.md#continuation-and-current-frontier--2026-10-05).
+The next implementation phase is P4 retained artifacts/deployment. P5 operator/install/performance
+and P6 final host/installed/canonical integration remain outstanding. Optional remote execution
+and live provider authentication/TLS are separate unqualified boundaries. The installed complete
+controller remains 0.1.27; this source increment does not activate a partial controller.
 The HTTP edge explicitly materializes finite floats before Schema validation, preserves raw
 request identity and unbounded integer offsets, and separates RPC ID types from integer-valued
 tool fields. New ingress requires scalar Unicode and bounded depth; the legacy identity codec

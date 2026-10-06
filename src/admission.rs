@@ -283,6 +283,15 @@ impl Context {
         })
     }
 
+    /// Display only for an already owned pending intent. A revoked grant must
+    /// not turn retained work into apparent absence; policy() still owns authority.
+    pub(crate) fn pending_project_name(&self, policy: &str, name: &str) -> String {
+        self.config["projectPolicies"][policy]["owner"]
+            .as_str()
+            .map(|owner| format!("{}/{name}", owner.trim_end_matches('/')))
+            .unwrap_or_else(|| name.to_owned())
+    }
+
     pub fn policy(&self, name: &str, expected: Option<&str>) -> Result<&Value> {
         let granted =
             self.config["principals"][self.principal.as_str()]["projectPolicies"].as_array();

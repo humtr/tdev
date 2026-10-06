@@ -10,7 +10,9 @@ use crate::{
 };
 use base64::{Engine, engine::general_purpose::STANDARD};
 use serde_json::{Value, json};
+mod casefold;
 pub(crate) mod cleanup;
+pub(crate) mod continuation;
 mod integration;
 pub(crate) mod publication;
 mod start;
@@ -279,6 +281,11 @@ fn list(app: &Application, context: &Context, input: &Value) -> Result<Value> {
     )
 }
 fn inspect(app: &Application, context: &Context, input: &Value) -> Result<Value> {
+    let started = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_err(|_| Fault::new("CLOCK"))?
+        .as_nanos()
+        .to_string();
     let (task, repo) = app.ready_task(context, wire::string(input, "taskId")?)?;
     let outstanding = app
         .store()?
@@ -293,29 +300,33 @@ fn inspect(app: &Application, context: &Context, input: &Value) -> Result<Value>
         Ok(head) => json!({"head":head}),
         Err(error) => json!({"error":error}),
     };
-    // Provider observation may have blocked while a predecessor completed.
-    // Refresh owned source state afterwards so that completion is actionable.
-    let (task, _) = app.task(context, wire::string(input, "taskId")?)?;
+    // Refresh source/history/active in one local view after provider observation.
+    // The provider and executor interval is deliberately not an atomic snapshot.
     let before = wire::bounded(input, "before", 9007199254740991, 9007199254740991)?;
     let limit = wire::bounded(input, "limit", 20, 50)?;
-    let operations =
-        app.store()?
-            .task_operations(&context.principal, &task.id, before, limit + 1)?;
-    let next = if operations.len() > limit as usize {
-        operations.get(limit as usize - 1).map(|r| r.0)
-    } else {
-        None
-    };
-    let active = if let Some(id) = &task.busy {
-        let receipt = app
-            .store()?
-            .receipt(&context.principal, Some(id.as_str()), None)?;
-        receipt
-            .map(|r| {
-                let operation = r.operation.clone();
-                crate::execution::api::summary(&r, operation)
+    let (task, operations, active) = {
+        let store = app.store()?;
+        let task = store.task(&context.principal, wire::string(input, "taskId")?)?;
+        Application::authorize_task(context, &task)?;
+        let operations = store.task_operations(&context.principal, &task.id, before, limit + 1)?;
+        let active = task
+            .busy
+            .as_ref()
+            .map(|id| {
+                store
+                    .receipt(&context.principal, Some(id.as_str()), None)?
+                    .map(|r| {
+                        let operation = r.operation.clone();
+                        crate::execution::api::summary(&r, operation)
+                    })
+                    .transpose()
             })
             .transpose()?
+            .flatten();
+        (task, operations, active)
+    };
+    let next = if operations.len() > limit as usize {
+        operations.get(limit as usize - 1).map(|r| r.0)
     } else {
         None
     };
@@ -336,6 +347,7 @@ fn inspect(app: &Application, context: &Context, input: &Value) -> Result<Value>
         input["since"].as_str(),
         &["task", "operations", "remote"],
     )?;
+    value["observation"]["startedAtNs"] = json!(started);
     Ok(value)
 }
 pub fn read(app: &Application, context: &Context, input: &Value) -> Result<Value> {

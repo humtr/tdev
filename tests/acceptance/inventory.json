@@ -7,10 +7,18 @@
       "action": "default",
       "existingEvidence": [
         "tests/test_continuation.py",
-        "tests/test_surface.py"
+        "tests/test_surface.py",
+        "tests/acceptance/native_continuation.py"
       ],
       "externalScenarios": [
-        "RuntimeTest.test_find_names_preserves_ambiguity_and_closed_predecessors"
+        "RuntimeTest.test_find_names_preserves_ambiguity_and_closed_predecessors",
+        "ContinuationTest.test_exact_project_locators_full_unicode_labels_and_no_change",
+        "ContinuationTest.test_paged_ambiguity_never_selects_latest_or_final_page",
+        "ContinuationTest.test_closed_work_authority_and_replaced_identity_are_distinct",
+        "ContinuationTest.test_project_page_and_duplicate_empty_names_remain_incomplete_or_ambiguous",
+        "ContinuationTest.test_recent_receipts_are_bounded_and_do_not_inline_results_or_secrets",
+        "ContinuationTest.test_delegated_project_current_display_and_old_remote_locator",
+        "ContinuationTest.test_unique_global_label_is_not_ambiguous_merely_because_other_projects_exist"
       ],
       "delivery": "P3"
     },
@@ -105,7 +113,8 @@
         "CleanupTest.test_cleanup_after_workspace_detach_close_keeps_current_authority",
         "CleanupTest.test_unmanaged_foreign_and_other_principal_refs_are_preserved",
         "CleanupTest.test_duplicate_cleanup_has_one_receipt_and_fresh_tasks_never_reuse_names",
-        "CleanupTest.test_sha256_cleanup_keeps_source_and_exact_replay_identity"
+        "CleanupTest.test_sha256_cleanup_keeps_source_and_exact_replay_identity",
+        "FrontierTest.test_real_managed_publication_cleanup_find_and_independent_predecessor_work"
       ],
       "delivery": "P2"
     },
@@ -152,7 +161,9 @@
       ],
       "externalScenarios": [
         "RuntimeTest.test_no_change_then_completion_is_visible_to_fresh_client",
-        "SourceTest.test_project_projection_task_and_workspace_paging_freshness"
+        "SourceTest.test_project_projection_task_and_workspace_paging_freshness",
+        "FrontierTest.test_same_turn_no_change_then_missed_completion_exposes_useful_forward_work",
+        "FrontierTest.test_process_frontier_remains_independent_of_closed_task_and_history_page"
       ],
       "delivery": "P2"
     },
@@ -217,8 +228,10 @@
         "tests/test_projects.py",
         "tests/test_environments.py"
       ],
-      "externalScenarios": [],
-      "delivery": "P2"
+      "externalScenarios": [
+        "ExecutionTest.test_dependency_reset_retains_source_and_completed_replay_preserves_rebuilt_environment"
+      ],
+      "delivery": "P3"
     },
     {
       "tool": "tdev_task",
@@ -249,7 +262,8 @@
         "PredecessorTest.test_unpublished_unmanaged_wrong_owner_and_incompatible_inputs_are_not_admitted",
         "PredecessorTest.test_duplicate_and_distinct_requests_preserve_frozen_receipt_and_current_authority",
         "PredecessorTest.test_explicit_predecessor_selects_project_but_requires_destination_membership",
-        "PredecessorTest.test_sha256_retained_predecessor_is_independent_new_source"
+        "PredecessorTest.test_sha256_retained_predecessor_is_independent_new_source",
+        "FrontierTest.test_real_managed_publication_cleanup_find_and_independent_predecessor_work"
       ],
       "delivery": "P2"
     },
@@ -391,7 +405,10 @@
         "tests/test_environments.py",
         "tests/test_boundaries.py"
       ],
-      "externalScenarios": [],
+      "externalScenarios": [
+        "ExecutionTest.test_process_completion_preserves_a_concurrent_writer_and_closed_task",
+        "FrontierTest.test_process_frontier_remains_independent_of_closed_task_and_history_page"
+      ],
       "delivery": "P3"
     },
     {
@@ -402,7 +419,9 @@
         "tests/test_process_crash.py",
         "tests/test_progress.py"
       ],
-      "externalScenarios": [],
+      "externalScenarios": [
+        "ExecutionTest.test_process_completion_preserves_a_concurrent_writer_and_closed_task"
+      ],
       "delivery": "P3"
     },
     {
@@ -414,7 +433,8 @@
         "tests/test_progress.py"
       ],
       "externalScenarios": [
-        "RuntimeTest.test_source_edit_exec_validate_publish_and_closed_cleanup"
+        "RuntimeTest.test_source_edit_exec_validate_publish_and_closed_cleanup",
+        "FrontierTest.test_process_frontier_remains_independent_of_closed_task_and_history_page"
       ],
       "delivery": "P3"
     },
@@ -428,7 +448,8 @@
       ],
       "externalScenarios": [
         "RuntimeTest.test_bounded_wait_json_and_opted_in_progress_sse",
-        "SourceTest.test_lost_open_and_edit_reply_replay_after_restart_and_close"
+        "SourceTest.test_lost_open_and_edit_reply_replay_after_restart_and_close",
+        "FrontierTest.test_same_turn_no_change_then_missed_completion_exposes_useful_forward_work"
       ],
       "delivery": "P3"
     },
@@ -487,7 +508,8 @@
         "ValidationTest.test_concurrent_new_publication_requests_share_one_original_effect",
         "ValidationTest.test_managed_publication_cleanup_and_real_published_predecessor",
         "ValidationTest.test_changed_checkpoint_and_wrong_expected_head_cannot_publish",
-        "ValidationTest.test_current_authority_required_for_validation_and_publication_replay"
+        "ValidationTest.test_current_authority_required_for_validation_and_publication_replay",
+        "FrontierTest.test_real_managed_publication_cleanup_find_and_independent_predecessor_work"
       ],
       "delivery": "P3"
     },

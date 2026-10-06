@@ -65,7 +65,9 @@ class NativeImportTest(unittest.TestCase):
 
     def release_caller(self, caller):
         self.release.touch()
-        caller.join(timeout=8)
+        # Releasing the scan barrier still leaves the original import pipeline.
+        # Await its configured HTTP budget, rather than imposing another 8-second SLA.
+        caller.join(timeout=self.runtime.request_timeout_seconds)
         if self.marker.exists():
             eventually(lambda: self.done.exists(), bool, seconds=5)
         self.assertFalse(caller.is_alive())
@@ -183,6 +185,9 @@ class NativeImportTest(unittest.TestCase):
             for tool, request in [('task', args), ('operation', {'action': 'status', 'operationId': pending['id']})]:
                 response = r.request('tools/call', {'name': 'tdev_' + tool, 'arguments': {'request': request}})[2]['result']['structuredContent']
                 self.assertEqual(response['error']['code'], 'CHECKOUT_IDENTITY')
+            found = r.call('find', {'project':'test'})
+            self.assertEqual((found['resolution'],found['unavailableMatches']),('unavailable',1))
+            self.assertEqual((found['matches'],found['pending']),([],[]))
         finally: self.release_caller(caller)
         original = self.replies[0]
         self.assertEqual(original['status'], 'succeeded', original)
@@ -190,6 +195,9 @@ class NativeImportTest(unittest.TestCase):
         r.save_config()
         response = r.request('tools/call', {'name': 'tdev_task', 'arguments': {'request': args}})[2]['result']['structuredContent']
         self.assertEqual(response['error']['code'], 'CHECKOUT_IDENTITY')
+        found = r.call('find', {'project':'test'})
+        self.assertEqual((found['resolution'],found['unavailableMatches']),('unavailable',1))
+        self.assertEqual(found['matches'],[])
         config['checkoutIdentity'] = f'local:{st.st_dev}:{st.st_ino}'
         r.save_config()
         self.assertEqual(r.call('task', args), original)
