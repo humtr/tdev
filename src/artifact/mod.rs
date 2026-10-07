@@ -1,4 +1,5 @@
 //! Artifact admission/provenance over the original source, Git and receipt owners.
+pub mod acquisition;
 mod recipe;
 use crate::{
     admission::{Context, Repository},

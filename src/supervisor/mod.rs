@@ -12,6 +12,7 @@ mod spool;
 pub use environment::{DEPENDENCY_LIMIT, Environment, ExclusiveEnvironment};
 pub use input::{Delivery, Input, InputReceipt};
 pub use platform::ProcessIdentity;
+pub(crate) use platform::shell as native_shell;
 pub use source::{Capture, Manifest, Pack, Source, SourceFile};
 pub(crate) use spool::validate_env;
 pub(crate) use spool::{Bound, lock_file};

@@ -1816,6 +1816,19 @@ parent/tree identity and creates no operation, writer, reconciliation or acquisi
 Terminal source proof checks operation ID, terminal/stop flags, zero exit and absence of capture
 error through the original validation helper used by publication as well.
 
+`artifact/acquisition` owns selected public-distribution bytes independently of source copying.
+It decodes the original strict recipe, uses the native tool directory's curl with cleared
+ambient configuration/auth/proxy/CA environment and verified native HTTPS, and streams response
+bodies into descriptor-relative exclusive files while hashing and enforcing aggregate acquired
+bytes. Response headers have their own 64 KiB budget; redirects and non-200 responses fail before
+accepting a body. Each transfer is bounded to 20 seconds and the supplied original deadline.
+Only a fresh input directory is accepted; failures retain partial files without resume, overwrite,
+cleanup or a second fetch. Reverification requires exactly the declared names, regular single-link
+files, unchanged metadata and pinned hashes, without repair. Directory replacement cannot redirect
+writes or qualify another input root. Admission, cancellation, dispatch, stop proof and replay
+remain the original operation/supervisor owners; this helper has no new receipt or execution role.
+Its build admission/supervisor connection is still a later P4 increment.
+
 ### Identity, storage and compatibility
 
 Separate ordinary JSON serialization from bytes used for request, policy, spool, artifact and

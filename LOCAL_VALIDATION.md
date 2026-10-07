@@ -1,4 +1,106 @@
-# Local validation evidence — 2026-10-06
+# Local validation evidence — 2026-10-07
+
+## Public input acquisition — 2026-10-07
+
+Source base: `a372d512a754bee2ce92a754426804f407ecdbe6`; product input revision **0.1.33**.
+This P4 private increment implements selected public-distribution acquisition and post-execution
+input integrity checks. Eleven families still advertise only the implemented actions; artifact
+prepare/build is not connected. SQLite format 3, spool format 4 and the wire contracts are unchanged.
+
+`src/artifact/acquisition.rs` owns strict-recipe-derived dependency names/URLs/digests, fresh
+private storage, bounded native curl and streaming SHA-256, descriptor-relative exclusive files,
+readonly completed inputs and verification without repair. It reuses the original bounded native
+utility process-group/deadline owner and supervisor native tool-directory selection. No new
+operation table, dispatch, worker, stop proof, task cache or automatic recovery policy is created.
+A body is accepted only after HTTP 200 over verified HTTPS; informational headers are handled,
+redirects/non-200 responses fail, and transfer errors or digest mismatches never return inputs.
+Existing/partial destinations are preserved and never overwritten, removed, resumed or fetched
+again by acquisition. Reverification checks exactly the declared names, regular single-link files,
+metadata stability and pinned hashes; root replacement cannot redirect descriptor-relative writes.
+
+Independent boundaries: selected acquired distributions **64 MiB maximum**, configurable downward,
+with `ARTIFACT_INPUT_LIMIT budget=artifactInputBytes configured=... observed=...`; response headers
+**64 KiB** including informational responses, with their own `artifactResponseHeaderBytes` diagnostic;
+each transfer **20 seconds maximum** and the supplied original overall deadline. Source/file remains
+**512 MiB / 100000 files**, source pack **1 GiB**, metadata **48 MiB**, launch/control **8 MiB**,
+recipe raw/canonical **64 KiB**, working default **128 MiB / maximum 2 GiB**, dependencies
+**2 GiB / 100000 files / 1000000 nodes**, model ingress **2 MiB / depth 128**. These budgets are not
+merged. Same-UID/native network and TLS host/tool assumptions remain; acquisition is not hermetic.
+
+`src/artifact/acquisition_tests.rs` uses a real owned loopback TLS server with per-fixture CA and
+routing supplied only in cfg(test), through `tests/fixtures/artifact_https.py`. No TLS bypass,
+transport override or test runner is reachable through a distributed product action. Installed
+curl **8.21.0**, OpenSSL **3.6.3** are the qualified local utility versions. Native curl clears
+ambient environment, disables curlrc as its first argument, proxy/netrc/redirect/retry and URL
+globbing; poisoned HOME/curlrc/netrc/proxy settings send no authorization/cookie, and an untrusted
+self-signed certificate fails without the test CA. Fixture Python/OpenSSL are test dependencies,
+not runtime helpers. The production helper invokes only native curl.
+
+Focused acquisition plus affected recipe invariants: **11 pass in 21.13 s** after the final
+HTTP header correction (the preceding selection also passed 11 in 41.85 s). These cover exact
+**67108864-byte aggregate** in two HTTPS/chunked streams plus rehash, opaque non-UTF-8 HTTP field values, one-byte budget rejection,
+cumulative lower-limit edge/overflow, redirect/HTTP/truncation/digest/header failures, absolute
+deadline, input changes/foreign files/symlinks, destination replacement, empty inputs and budget
+admission before storage/network. No recipe command runs; no acquisition receipt is fabricated.
+
+Draft failures are not qualifications: initial compilation required explicit u64 cumulative
+byte counters; strict lint then required collapsing a fixture readiness check. First six-case
+selection passed five and failed one in **44.54 s** at fixture hardlink creation. A second
+seven-case selection passed six and failed one in **40.37 s** at the same link(2) call even after
+making the source writable. The actual ordinary Android app domain refuses link(2) with
+PermissionDenied; the corrected fixture requires this exact refusal on Android, confirms no link
+was created and preserves the original file. Actual multi-link inode verification remains a
+portable-host qualification boundary; the helper enforces nlink==1 but this device cannot create
+that adversarial inode. No failed draft is a whole-script PASS.
+
+Strict all-target clippy and locked build pass. Affected native HTTP recipe/discovery selection:
+**8 pass in 44.885 s**, using the source 0.1.33 executable and disposable roots.
+Final whole `scripts/check.sh` exits **0 in 4491.996 monotonic seconds**. Recorded UTC start
+**2026-10-07 05:48:50**, finish **2026-10-07 07:06:49**. **808 test executions pass**:
+**127 Rust** (60 library, 19 execution, 17 Git, 31 supervisor), **193 native HTTP/fault**
+(97 common plus 96 fault in 1200.394 s), **481 reference/common** in 1596.747 s,
+**7 reference-controller/native-executor capacity** in 196.222 s. Canonical identity **10003**
+and compiled contract **136** comparisons pass. Formatting, strict all-target clippy, locked
+build and diff checks pass. No whole-script failure or qualified-input change occurred.
+Reference emits **15 unclosed SQLite connection ResourceWarning events**, retained in the log.
+
+All **299** frozen product/test/doc inputs and the actual corpus are unchanged at completion.
+This evidence document alone is excluded. Input-manifest SHA-256:
+`58e73a56e23f1aeb180318e0c2a95e7d51c8d69457c7a1ed5331b480b897a295`.
+Qualified executable SHA-256:
+`8df35fb6f0a11f4d0250b537ba7e1fc469738f55d5f6c335fb976fd23e42f4aa`.
+Local witnesses: `.artifacts/artifact-acquisition-0.1.33/{inputs,corpus,running,result}.json`,
+`check.log` and `affected.log`.
+
+| Owner exercised in the final gate | Capacity result |
+|---|---|
+| Native acquisition mechanism (Rust library) | Exact **67108864-byte aggregate** HTTPS/chunked input plus rehash, configured-limit edge/one-byte rejection, redirect/status/truncation/digest/header/deadline rejection, no ambient auth/proxy/config, no partial-directory reuse, descriptor-relative replacement protection: PASS. No build/operation handler is implied. |
+| Native controller HTTP source lifecycle | >=173 MiB single **181403679 bytes / 54.265 s**, committed single **52.187 s**, eight-file **536870900-byte aggregate / 268.149 s**, actual **190-file / 37724943-byte corpus / 33.927 s**: all PASS. Committed source isolated controller peak **31208 KiB**. |
+| Native controller recipe inspection | **181403679-byte declared source input**: PASS, isolated controller peak **30968 KiB**, no acquisition/build. Source bodies remain independent of acquired distribution budgets. |
+| Rust source/execution/supervisor | Exact source byte/count edge rejection, many-file, 512 MiB aggregate/one-byte growth rejection, 173 MiB/corpus capture→checkpoint→cleanup, independent working/dependency and exact 2 GiB/overflow: PASS. |
+| Reference controller with actual native executor | 512 MiB aggregate **42.766 s**, committed aggregate **47.690 s**, committed 173 MiB **18.868 s**, actual corpus **20.567 s**, large artifact source input PASS, **1024 files / 4.016 s**, single 173 MiB **13.204 s**: all PASS. This does not qualify an unconnected Rust build/seal handler. |
+
+Actual corpus remains `/data/data/com.termux/files/home/prj/house-md-distill/corpus/originals`:
+**190 files / 37724943 bytes**, 37.7 decimal MB (approximately 35.98 MiB). Ordered path/body digest
+`d472c85cb1d54046b49b9a325be9596638f987489e8152e9b569370d5b201151`;
+path/file-hash manifest
+`ed814bb6d98f0d3c4daeaef3d31ea422b6a6e011227247d13cbba502228bab1f`.
+Capacity-journey peak measurements are cumulative and distinct from isolated native controller
+peaks. These single-run timings are regression evidence, not controlled comparative performance
+qualification; historical runs have different measured costs. P5's repeated/comparable performance
+budget remains outstanding. No new acquisition function is called by the existing HTTP hot paths.
+
+Read-only resident metadata at closeout: active bundle
+`e502ae7ee8a1b19fc524e761b523e357659a18cf24c8553f976fcc60f53855d3`,
+product **0.1.27**, workingBytes **2147483648**. No new live HTTP/health qualification is inferred
+from this metadata readback.
+
+Remaining P4: native build-tool preflight and original operation/supervisor build acquisition,
+stop/export capture, atomic retained objects/pins and receipt completion, artifact runtime and
+validation/export/prune, source/packaged deployment and switch/recovery. P5 operator/state/
+performance and P6 installed/client/host/canonical integration remain outstanding. Installed
+complete resident remains **0.1.27 / workingBytes 2147483648**; no runtime/config/provider change
+or activation is performed by this private increment.
 
 ## Artifact recipe and source binding — 2026-10-06
 

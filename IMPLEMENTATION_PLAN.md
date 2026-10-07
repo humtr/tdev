@@ -293,9 +293,11 @@ unavailable remote infrastructure is a separately reported qualification gap, no
 ### P4 — implement retained artifacts and deployment as one ownership path
 
 The first native increment connects read-only recipe inspection and frozen source/policy binding.
-Its executable common/proof/large-input boundaries are recorded in LOCAL_VALIDATION. Continue
-with prepare/acquisition, declared-export capture and atomic retention before validation/release;
-recipe inspection alone does not meet the P4 exit below.
+Its executable common/proof/large-input boundaries are recorded in LOCAL_VALIDATION. The next
+private increment adds bounded native HTTPS acquisition and revalidation of selected distributions,
+with no public prepare/build admission yet. Continue with native tool preflight and the original
+supervisor build/acquisition/capture connection, then declared-export capture and atomic retention
+before validation/release; recipe inspection and an acquisition helper alone do not meet P4 exit.
 
 1. Implement frozen recipe/policy binding, pinned public input acquisition, fresh builds,
    declared-export capture, atomic sealing and runtime checks using the existing packaging

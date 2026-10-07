@@ -228,6 +228,14 @@ and does not reconcile, fetch, build or require a deployment grant. Later task e
 not retarget it. Only inspectRecipe is advertised; retained prepare/seal/verify/export/prune and
 deployment remain the next P4 work. See
 [artifact recipe evidence](LOCAL_VALIDATION.md#artifact-recipe-and-source-binding--2026-10-06).
+Source 0.1.33 adds the internal public-distribution acquisition boundary: fresh private inputs,
+native TLS with no ambient proxy/auth/config, bounded streaming hashes, exact acquired-byte
+budget, descriptor-relative writes and post-execution verification without repair. Existing or
+partial destinations cannot be redownloaded through this helper. This is a private mechanism,
+not a connected prepare/build handler; discovery still advertises only inspectRecipe. Native
+build-tool preflight, original supervisor build/capture, atomic retention and their operation
+admission/recovery remain the next P4 work. See
+[acquisition evidence](LOCAL_VALIDATION.md#public-input-acquisition--2026-10-07).
 P5 operator/install/performance
 and P6 final host/installed/canonical integration remain outstanding. Optional remote execution
 and live provider authentication/TLS are separate unqualified boundaries. The installed complete
