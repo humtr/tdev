@@ -12,6 +12,7 @@ mod spool;
 pub use environment::{DEPENDENCY_LIMIT, Environment, ExclusiveEnvironment};
 pub use input::{Delivery, Input, InputReceipt};
 pub use platform::ProcessIdentity;
+pub(crate) use platform::environment as native_environment;
 pub(crate) use platform::shell as native_shell;
 pub use source::{Capture, Manifest, Pack, Source, SourceFile};
 pub(crate) use spool::validate_env;
@@ -46,6 +47,7 @@ fn run_job(job: &Job) -> io::Result<()> {
     };
     platform::initialize()?;
     let request = job.request()?;
+    let preparation_started = Instant::now();
     source::verify_input(job)?;
     let mut log = job.create_log()?;
     if job.cancelled()? {
@@ -80,6 +82,54 @@ fn run_job(job: &Job) -> io::Result<()> {
     let stderr = stdout.try_clone()?;
     let shell = job.shell()?;
     let mut env = platform::environment(job.path(), &shell, None)?;
+    if let Some(plan) = &request.artifact {
+        let until = preparation_started
+            + Duration::from_secs(request.timeout_seconds.expect("Finite build deadline"));
+        let mut sampled = Instant::now();
+        let mut control = || -> crate::model::Result<()> {
+            if job
+                .cancelled()
+                .map_err(|_| crate::model::Fault::new("EXECUTION_EVIDENCE"))?
+            {
+                return Err(crate::model::Fault::new("CANCELLED"));
+            }
+            if Instant::now() >= until {
+                return Err(crate::model::Fault::new("TIMEOUT"));
+            }
+            if sampled.elapsed() >= Duration::from_millis(250) {
+                sampled = Instant::now();
+                if !job
+                    .within_build_budget(request.working_bytes)
+                    .map_err(|_| crate::model::Fault::new("EXECUTION_EVIDENCE"))?
+                {
+                    return Err(crate::model::Fault::new("EXECUTION_LIMIT"));
+                }
+            }
+            Ok(())
+        };
+        match plan
+            .prepare(job, &mut env, &mut control, until)
+            .and_then(|_| control())
+        {
+            Ok(()) => (),
+            Err(error) if error.code == "EXECUTION_EVIDENCE" => {
+                return Err(io::Error::other(error));
+            }
+            Err(error) => {
+                let outcome = match error.code.as_str() {
+                    "CANCELLED" => Outcome::Cancelled,
+                    "TIMEOUT" => Outcome::Deadline,
+                    "ARTIFACT_DEPENDENCY_TIMEOUT" if Instant::now() >= until => Outcome::Deadline,
+                    "EXECUTION_LIMIT" => Outcome::WorkingBudget,
+                    _ => Outcome::PreparationRejected,
+                };
+                return no_build_child(job, worker, outcome, error, &mut log);
+            }
+        }
+        if !job.within_build_budget(request.working_bytes)? {
+            return no_child(job, worker, Outcome::WorkingBudget, &mut log);
+        }
+    }
     env.extend(request.env.clone());
     if let Some(dependencies) = dependencies.as_ref() {
         let selected = platform::environment(job.path(), &shell, Some(dependencies.path()))?;
@@ -119,7 +169,11 @@ fn run_job(job: &Job) -> io::Result<()> {
     platform::child_limits(&mut command, request.working_bytes, request.timeout_seconds);
     // Once this record exists, even an exec failure cannot justify another dispatch.
     job.record_child_dispatch()?;
-    let started = Instant::now();
+    let started = if request.artifact.is_some() {
+        preparation_started
+    } else {
+        Instant::now()
+    };
     let child = command.spawn()?;
     // Command retains its Stdio handles; release these before waiting for pipe EOF.
     drop(command);
@@ -157,6 +211,34 @@ fn no_child(
         discarded_bytes: 0,
         budget: None,
         capture: None,
+        artifact_error: None,
+    })
+}
+
+fn no_build_child(
+    job: &Job,
+    worker: ProcessIdentity,
+    outcome: Outcome,
+    error: crate::model::Fault,
+    log: &mut File,
+) -> io::Result<()> {
+    log.sync_all()?;
+    let artifact_error = if outcome == Outcome::PreparationRejected {
+        Some(Box::new(error))
+    } else {
+        None
+    };
+    job.complete(Report {
+        worker,
+        digest: job.digest()?,
+        outcome,
+        exit_code: None,
+        stopped: true,
+        retained_bytes: 0,
+        discarded_bytes: 0,
+        budget: None,
+        capture: None,
+        artifact_error,
     })
 }
 
@@ -210,7 +292,7 @@ impl Session {
             }
             if sampled.elapsed() >= Duration::from_millis(250) {
                 sampled = Instant::now();
-                if !job.within_budget(request.working_bytes)? {
+                if !working_budget(job, request)? {
                     break (Outcome::WorkingBudget, child.try_wait()?);
                 }
             }
@@ -248,7 +330,7 @@ impl Session {
             }
             std::thread::sleep(Duration::from_millis(10));
         }
-        let working_ok = job.within_budget(request.working_bytes)?;
+        let working_ok = working_budget(job, request)?;
         let dependencies_ok = dependencies
             .map(|environment| environment.within_budget(job))
             .transpose()?
@@ -267,6 +349,11 @@ impl Session {
         } else {
             None
         };
+        let artifact_error = if let Some(plan) = &request.artifact {
+            plan.verify_inputs(job).err().map(Box::new)
+        } else {
+            None
+        };
         job.complete(Report {
             worker: worker.clone(),
             digest: job.digest()?,
@@ -277,7 +364,16 @@ impl Session {
             discarded_bytes: output.discarded,
             budget: None,
             capture,
+            artifact_error,
         })
+    }
+}
+
+fn working_budget(job: &Job, request: &Request) -> io::Result<bool> {
+    if request.artifact.is_some() {
+        job.within_build_budget(request.working_bytes)
+    } else {
+        job.within_budget(request.working_bytes)
     }
 }
 

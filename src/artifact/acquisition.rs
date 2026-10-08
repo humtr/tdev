@@ -120,17 +120,53 @@ impl Inputs {
         input_bytes: u64,
         deadline: Instant,
     ) -> Result<BTreeMap<String, InputFile>> {
-        self.acquire_with(destination, input_bytes, deadline, https_command)
+        self.acquire_run(
+            destination,
+            input_bytes,
+            deadline,
+            https_command,
+            &mut || Ok(()),
+        )
     }
 
+    pub(crate) fn acquire_controlled(
+        &self,
+        destination: &Path,
+        input_bytes: u64,
+        deadline: Instant,
+        shell: &Path,
+        control: &mut impl FnMut() -> Result<()>,
+    ) -> Result<BTreeMap<String, InputFile>> {
+        self.acquire_run(
+            destination,
+            input_bytes,
+            deadline,
+            |url, timeout| https_command_at(shell, url, timeout),
+            control,
+        )
+    }
+
+    #[cfg(test)]
     fn acquire_with(
         &self,
         destination: &Path,
         input_bytes: u64,
         deadline: Instant,
+        command: impl FnMut(&str, Duration) -> Result<Command>,
+    ) -> Result<BTreeMap<String, InputFile>> {
+        self.acquire_run(destination, input_bytes, deadline, command, &mut || Ok(()))
+    }
+
+    fn acquire_run(
+        &self,
+        destination: &Path,
+        input_bytes: u64,
+        deadline: Instant,
         mut command: impl FnMut(&str, Duration) -> Result<Command>,
+        control: &mut impl FnMut() -> Result<()>,
     ) -> Result<BTreeMap<String, InputFile>> {
         configured(input_bytes)?;
+        control()?;
         remaining(deadline)?;
         fs::DirBuilder::new()
             .mode(0o700)
@@ -154,16 +190,26 @@ impl Inputs {
         let mut files = BTreeMap::new();
         let mut total: u64 = 0;
         for (name, dependency) in &self.selected {
+            control()?;
             let timeout = remaining(deadline)?.min(TRANSFER_TIMEOUT);
             let mut command = command(&dependency.url, timeout)?;
             let file = open_file(&root, name, true)?;
             let mut sink = Response::new(file, input_bytes, total);
-            let result = process::stream(&mut command, None, timeout, usize::MAX, false, &mut sink);
+            let result = process::stream_controlled(
+                &mut command,
+                None,
+                timeout,
+                usize::MAX,
+                false,
+                &mut sink,
+                control,
+            );
             if let Some(error) = sink.failure.take() {
                 return Err(error);
             }
             let output = result.map_err(|error| {
                 Fault::new(match error.code.as_str() {
+                    "CANCELLED" | "TIMEOUT" | "EXECUTION_LIMIT" => return error,
                     "EXECUTABLE_UNAVAILABLE" => "ARTIFACT_ACQUISITION_TOOL_MISSING",
                     "TRANSPORT_TIMEOUT" => "ARTIFACT_DEPENDENCY_TIMEOUT",
                     _ => "ARTIFACT_DEPENDENCY_UNAVAILABLE",
@@ -290,6 +336,10 @@ fn remaining(deadline: Instant) -> Result<Duration> {
 fn https_command(url: &str, timeout: Duration) -> Result<Command> {
     let shell =
         supervisor::native_shell().map_err(|_| Fault::new("ARTIFACT_ACQUISITION_TOOL_MISSING"))?;
+    https_command_at(&shell, url, timeout)
+}
+
+fn https_command_at(shell: &Path, url: &str, timeout: Duration) -> Result<Command> {
     let mut command = Command::new(shell.with_file_name("curl"));
     // --disable MUST be curl's first argument. No controller HOME, proxies, CA overrides,
     // tokens, cookies, .netrc or authentication handlers are inherited. Native TLS trust only.

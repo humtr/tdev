@@ -236,6 +236,14 @@ not a connected prepare/build handler; discovery still advertises only inspectRe
 build-tool preflight, original supervisor build/capture, atomic retention and their operation
 admission/recovery remain the next P4 work. See
 [acquisition evidence](LOCAL_VALIDATION.md#public-input-acquisition--2026-10-07).
+Source 0.1.34 connects a frozen private build plan to the original independent supervisor:
+native platform/tool/shell pins, fresh selected inputs and build scratch, controlled HTTPS
+acquisition, acquisition-plus-command deadline/cancellation, additive working budget and
+post-stop distribution/source integrity. Existing source jobs retain format 4 and their identity;
+private build jobs use format 5. Build process completion is not sealed artifact success.
+Source checkpoint/import and source retirement refuse build jobs. Public prepare remains
+unadvertised until declared-export capture, atomic retention and operation/pin completion are
+connected. See [build-phase evidence](LOCAL_VALIDATION.md#supervised-build-phase--2026-10-08).
 P5 operator/install/performance
 and P6 final host/installed/canonical integration remain outstanding. Optional remote execution
 and live provider authentication/TLS are separate unqualified boundaries. The installed complete

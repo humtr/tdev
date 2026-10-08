@@ -1,16 +1,393 @@
 //! Real Rust supervisor, immutable Git inputs, sealed stopped capture and retirement.
+use serde_json::json;
+use sha2::{Digest as _, Sha256};
 use std::collections::BTreeSet;
 use std::fs;
 use std::os::unix::fs::MetadataExt;
+use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Child, Command, Stdio};
 use std::time::{Duration, Instant};
+use tdev::artifact::build::{Plan, platform};
+use tdev::contract::Contract;
 use tdev::execution;
 use tdev::git::{FileMode, Git, LocalRepository};
 use tdev::model::{BranchRef, Checkpoint, OperationId, SourcePath};
 use tdev::supervisor::{Capture, Job, Observation, Report, Request};
 
 const EXECUTABLE: &str = env!("CARGO_BIN_EXE_tdev");
+
+fn build_plan(command: &str) -> Plan {
+    let shell = if let Some(prefix) = std::env::var_os("PREFIX") {
+        PathBuf::from(prefix).join("bin/sh")
+    } else {
+        PathBuf::from("/bin/sh")
+    };
+    let hash = format!(
+        "{:x}",
+        Sha256::digest(fs::read(fs::canonicalize(shell).unwrap()).unwrap())
+    );
+    Plan::new(
+        &Contract::embedded().unwrap(),
+        &json!({"format":1,"kind":"files","inputs":["a"],"dependencies":[],
+        "build":{"command":command,"platform":platform(),"tools":[{"name":"sh","sha256":hash}]},
+        "exports":["dist"],"target":platform()}),
+        64 * 1024 * 1024,
+    )
+    .unwrap()
+}
+
+fn private_build(f: &Fixture, plan: Plan, timeout: u64, budget: u64) -> Job {
+    let mut request = f.request(plan.command());
+    request.artifact = Some(plan);
+    request.timeout_seconds = Some(timeout);
+    request.working_bytes = budget;
+    execution::prepare(
+        &f.store,
+        &f.base,
+        &f.spool,
+        &f.operation,
+        request,
+        vec![],
+        true,
+    )
+    .unwrap()
+}
+
+#[test]
+fn private_build_uses_frozen_tools_fresh_inputs_and_scratch_without_source_import() {
+    let f = Fixture::new("sha1");
+    let job = private_build(
+        &f,
+        build_plan(
+            "test -d \"$TDEV_INPUT_DIR\"; test -d \"$TDEV_BUILD_DIR\"; test -z \"$TDEV_ENV_DIR\"; printf intermediate >\"$TDEV_BUILD_DIR/temporary\"; mkdir dist; printf built >dist/out; printf done",
+        ),
+        10,
+        128 * 1024 * 1024,
+    );
+    let record: serde_json::Value =
+        serde_json::from_slice(&fs::read(job.path().join("request.json")).unwrap()).unwrap();
+    assert_eq!(record["format"], 5);
+    let before = job.digest().unwrap();
+    let report = f.start(&job);
+    assert_eq!(report.outcome, tdev::supervisor::Outcome::Exited);
+    assert_eq!(report.exit_code, Some(0));
+    assert!(report.stopped && report.artifact_error.is_none());
+    assert!(matches!(report.capture, Some(Capture::Sealed { .. })));
+    assert_eq!(fs::read(job.work().join("dist/out")).unwrap(), b"built");
+    assert_eq!(
+        fs::read(job.path().join("build/temporary")).unwrap(),
+        b"intermediate"
+    );
+    assert!(job.path().join("inputs").is_dir());
+    assert_eq!(job.digest().unwrap(), before);
+    assert!(!job.launch(Path::new(EXECUTABLE)).unwrap());
+    assert_eq!(
+        execution::checkpoint(&f.store, &job, &f.operation)
+            .unwrap_err()
+            .code,
+        "ARTIFACT_EXECUTION"
+    );
+    assert_eq!(
+        execution::retire(&job).unwrap_err().code,
+        "ARTIFACT_EXECUTION"
+    );
+}
+
+#[test]
+fn private_build_tool_rejection_never_dispatches_a_recipe_child_and_cannot_relaunch() {
+    let f = Fixture::new("sha1");
+    let plan = build_plan("touch MUST-NOT-BUILD");
+    let mut value = serde_json::to_value(&plan).unwrap();
+    value["recipe"]["build"]["tools"][0]["sha256"] = json!("a".repeat(64));
+    let plan = serde_json::from_value(value).unwrap();
+    let job = private_build(&f, plan, 10, 128 * 1024 * 1024);
+    let report = f.start(&job);
+    assert_eq!(
+        report.outcome,
+        tdev::supervisor::Outcome::PreparationRejected
+    );
+    assert!(report.stopped);
+    assert_eq!(report.artifact_error.unwrap().code, "ARTIFACT_TOOL_CHANGED");
+    assert!(!job.path().join("child-dispatch.json").exists());
+    assert!(!job.work().join("MUST-NOT-BUILD").exists());
+    assert!(!job.launch(Path::new(EXECUTABLE)).unwrap());
+}
+
+#[test]
+fn private_build_cancel_deadline_source_integrity_and_final_scratch_budget_use_original_proof() {
+    for case in 0..4 {
+        let f = Fixture::new("sha1");
+        let (command, timeout, budget) = match case {
+            0 => ("touch MUST-NOT-BUILD", 10, 128 * 1024 * 1024),
+            1 => ("exec sleep 60", 1, 128 * 1024 * 1024),
+            2 => ("printf changed >a", 10, 128 * 1024 * 1024),
+            _ => (
+                "dd if=/dev/zero of=\"$TDEV_BUILD_DIR/full\" bs=65536 count=8 2>/dev/null",
+                10,
+                256 * 1024,
+            ),
+        };
+        let job = private_build(&f, build_plan(command), timeout, budget);
+        if case == 0 {
+            job.cancel().unwrap();
+        }
+        let report = f.start(&job);
+        assert!(report.stopped);
+        match case {
+            0 => {
+                assert_eq!(report.outcome, tdev::supervisor::Outcome::Cancelled);
+                assert!(!job.path().join("child-dispatch.json").exists());
+            }
+            1 => assert_eq!(report.outcome, tdev::supervisor::Outcome::Deadline),
+            2 => assert!(matches!(report.capture, Some(Capture::Rejected { .. }))),
+            _ => {
+                assert_eq!(report.outcome, tdev::supervisor::Outcome::WorkingBudget);
+                assert_eq!(report.budget.unwrap().budget, "workingBytes");
+            }
+        }
+        assert!(!job.launch(Path::new(EXECUTABLE)).unwrap());
+    }
+}
+
+#[test]
+fn private_build_plan_cannot_be_relabelled_as_legacy_execution_or_override_environment() {
+    let f = Fixture::new("sha1");
+    let plan = build_plan("true");
+    let job = private_build(&f, plan.clone(), 10, 128 * 1024 * 1024);
+    let file = job.path().join("request.json");
+    let raw = fs::read(&file).unwrap();
+    let mut record: serde_json::Value = serde_json::from_slice(&raw).unwrap();
+    record["format"] = json!(4);
+    fs::write(&file, record.to_string()).unwrap();
+    assert!(Job::open(job.path()).is_err());
+    fs::write(&file, &raw).unwrap();
+    let mut request = f.request("true");
+    request.artifact = Some(plan);
+    request.env.insert("PATH".into(), "/foreign".into());
+    assert!(Job::reserve(&f.spool, &OperationId::new("bad-build").unwrap(), request).is_err());
+    let ordinary = f.request("true");
+    let ordinary =
+        Job::reserve(&f.spool, &OperationId::new("ordinary").unwrap(), ordinary).unwrap();
+    let value: serde_json::Value =
+        serde_json::from_slice(&fs::read(ordinary.path().join("request.json")).unwrap()).unwrap();
+    assert_eq!(value["format"], 4);
+    assert!(value["request"].get("artifact").is_none());
+    assert!(Job::open(ordinary.path()).is_ok());
+}
+
+struct BuildHttps {
+    root: tempfile::TempDir,
+    child: Child,
+    port: u16,
+}
+impl BuildHttps {
+    fn new() -> Self {
+        let root = tempfile::tempdir().unwrap();
+        assert!(
+            Command::new("openssl")
+                .args([
+                    "req",
+                    "-x509",
+                    "-newkey",
+                    "rsa:2048",
+                    "-nodes",
+                    "-days",
+                    "1",
+                    "-subj",
+                    "/CN=fixture.invalid",
+                    "-addext",
+                    "subjectAltName=DNS:fixture.invalid",
+                    "-keyout",
+                    "key.pem",
+                    "-out",
+                    "cert.pem"
+                ])
+                .current_dir(root.path())
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .status()
+                .unwrap()
+                .success()
+        );
+        let child = Command::new("python")
+            .arg(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/tests/fixtures/artifact_https.py"
+            ))
+            .arg(root.path())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+            .unwrap();
+        let mut fixture = Self {
+            root,
+            child,
+            port: 0,
+        };
+        let until = Instant::now() + Duration::from_secs(10);
+        fixture.port = loop {
+            if let Ok(port) = fs::read_to_string(fixture.root.path().join("port"))
+                && let Ok(port) = port.parse()
+            {
+                break port;
+            }
+            assert!(Instant::now() < until && fixture.child.try_wait().unwrap().is_none());
+            std::thread::sleep(Duration::from_millis(20));
+        };
+        fixture
+    }
+    fn selected(&self, command: &str, path: &str, size: usize) -> Plan {
+        let mut value = serde_json::to_value(build_plan(command)).unwrap();
+        value["recipe"]["dependencies"] = json!([{"name":"pkg","url":format!("https://fixture.invalid{path}"),
+            "sha256":format!("{:x}",Sha256::digest(vec![b'x';size]))}]);
+        serde_json::from_value(value).unwrap()
+    }
+    fn requests(&self) -> usize {
+        fs::read_to_string(self.root.path().join("requests.jsonl"))
+            .unwrap_or_default()
+            .lines()
+            .count()
+    }
+    fn route_owned_job(&self, job: &Job) {
+        // Own-file fixture routing, not a production option. Bind a private native tool
+        // directory using the actual identity codec, including its original ready envelope.
+        // curl remains the real native client, with only test CA/loopback routing appended.
+        let file = job.path().join("request.json");
+        let mut record: serde_json::Value =
+            serde_json::from_slice(&fs::read(&file).unwrap()).unwrap();
+        let original = PathBuf::from(record["shell"].as_str().unwrap());
+        let tools = job.path().join("tools");
+        fs::create_dir(&tools).unwrap();
+        fs::copy(fs::canonicalize(&original).unwrap(), tools.join("sh")).unwrap();
+        std::os::unix::fs::symlink(original.with_file_name("git"), tools.join("git")).unwrap();
+        let quote = |p: &Path| format!("'{}'", p.to_str().unwrap().replace('\'', "'\\''"));
+        fs::write(
+            tools.join("curl"),
+            format!(
+                "#!{}\nexec {} \"$@\" --cacert {} --connect-to fixture.invalid:443:127.0.0.1:{}\n",
+                original.display(),
+                quote(&original.with_file_name("curl")),
+                quote(&self.root.path().join("cert.pem")),
+                self.port
+            ),
+        )
+        .unwrap();
+        fs::set_permissions(tools.join("curl"), fs::Permissions::from_mode(0o700)).unwrap();
+        record["shell"] = json!(tools.join("sh"));
+        let digest =
+            tdev::identity::Value::parse(&json!([record["request"], record["shell"]]).to_string())
+                .unwrap()
+                .fingerprint()
+                .unwrap();
+        record["digest"] = json!(digest);
+        fs::write(&file, record.to_string()).unwrap();
+        let ready = job.path().join("source-ready.json");
+        let mut value: serde_json::Value =
+            serde_json::from_slice(&fs::read(&ready).unwrap()).unwrap();
+        value["digest"] = json!(digest);
+        fs::write(ready, value.to_string()).unwrap();
+        assert_eq!(Job::open(job.path()).unwrap().digest().unwrap(), digest);
+    }
+}
+impl Drop for BuildHttps {
+    fn drop(&mut self) {
+        let _ = self.child.kill();
+        let _ = self.child.wait();
+    }
+}
+
+#[test]
+fn private_build_acquires_real_https_with_frozen_native_tools_after_parent_environment_is_cleared()
+{
+    let tls = BuildHttps::new();
+    let f = Fixture::new("sha1");
+    let plan = tls.selected(
+        "test -s \"$TDEV_INPUT_DIR/pkg\"; printf used >out",
+        "/chunked/2097152",
+        2097152,
+    );
+    let job = private_build(&f, plan, 15, 128 * 1024 * 1024);
+    tls.route_owned_job(&job);
+    let report = f.start(&job);
+    assert_eq!(report.exit_code, Some(0));
+    assert!(report.stopped && report.artifact_error.is_none());
+    assert_eq!(
+        fs::metadata(job.path().join("inputs/pkg")).unwrap().len(),
+        2097152
+    );
+    assert_eq!(tls.requests(), 1);
+    assert_eq!(fs::read(job.work().join("out")).unwrap(), b"used");
+    assert!(!job.launch(Path::new(EXECUTABLE)).unwrap());
+    assert_eq!(tls.requests(), 1);
+}
+
+#[test]
+fn private_build_inflight_https_cancel_stops_without_recipe_dispatch_or_refetch() {
+    let tls = BuildHttps::new();
+    let f = Fixture::new("sha1");
+    let job = private_build(
+        &f,
+        tls.selected("touch MUST-NOT-BUILD", "/slow", 1),
+        15,
+        128 * 1024 * 1024,
+    );
+    tls.route_owned_job(&job);
+    assert!(job.launch(Path::new(EXECUTABLE)).unwrap());
+    let until = Instant::now() + Duration::from_secs(10);
+    while tls.requests() == 0 {
+        assert!(Instant::now() < until);
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    let stopped = Instant::now();
+    job.cancel().unwrap();
+    let report = f.complete(&job);
+    assert_eq!(report.outcome, tdev::supervisor::Outcome::Cancelled);
+    assert!(report.stopped);
+    assert!(stopped.elapsed() < Duration::from_secs(3));
+    assert!(!job.path().join("child-dispatch.json").exists());
+    assert!(!job.work().join("MUST-NOT-BUILD").exists());
+    assert!(!job.launch(Path::new(EXECUTABLE)).unwrap());
+    assert_eq!(tls.requests(), 1);
+}
+
+#[test]
+fn private_build_https_deadline_covers_acquisition_before_recipe_child() {
+    let tls = BuildHttps::new();
+    let f = Fixture::new("sha1");
+    let job = private_build(
+        &f,
+        tls.selected("touch MUST-NOT-BUILD", "/slow", 1),
+        1,
+        128 * 1024 * 1024,
+    );
+    tls.route_owned_job(&job);
+    let report = f.start(&job);
+    assert_eq!(report.outcome, tdev::supervisor::Outcome::Deadline);
+    assert!(report.stopped);
+    assert!(!job.path().join("child-dispatch.json").exists());
+    assert!(!job.work().join("MUST-NOT-BUILD").exists());
+    assert!(!job.launch(Path::new(EXECUTABLE)).unwrap());
+    assert!(tls.requests() <= 1);
+}
+
+#[test]
+fn private_build_zero_exit_cannot_hide_changed_acquired_inputs() {
+    let tls = BuildHttps::new();
+    let f = Fixture::new("sha1");
+    let job=private_build(&f,tls.selected("chmod u+w \"$TDEV_INPUT_DIR/pkg\"; printf altered >\"$TDEV_INPUT_DIR/pkg\"; printf PASS","/data/3",3),15,128*1024*1024);
+    tls.route_owned_job(&job);
+    let report = f.start(&job);
+    assert_eq!(report.exit_code, Some(0));
+    assert!(report.stopped);
+    assert_eq!(
+        report.artifact_error.unwrap().code,
+        "ARTIFACT_DEPENDENCY_CHANGED"
+    );
+    assert_eq!(job.log(0, 65536).unwrap(), b"PASS");
+    assert!(!job.launch(Path::new(EXECUTABLE)).unwrap());
+    assert_eq!(tls.requests(), 1);
+}
 
 fn git(directory: Option<&Path>, args: &[&str]) -> String {
     let mut command = Command::new("git");
@@ -109,6 +486,7 @@ impl Fixture {
             stdin: String::new(),
             environment: None,
             source: None,
+            artifact: None,
             capture: true,
             env: Default::default(),
         }

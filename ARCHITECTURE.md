@@ -1827,7 +1827,29 @@ cleanup or a second fetch. Reverification requires exactly the declared names, r
 files, unchanged metadata and pinned hashes, without repair. Directory replacement cannot redirect
 writes or qualify another input root. Admission, cancellation, dispatch, stop proof and replay
 remain the original operation/supervisor owners; this helper has no new receipt or execution role.
-Its build admission/supervisor connection is still a later P4 increment.
+Its public build admission remains a later P4 boundary; the private supervisor connection follows.
+
+`artifact/build` binds a strict recipe and acquired-input budget in an immutable private plan.
+Its persisted decoder uses the original schema/recipe owner and an immutable compiled-contract
+cache; no alternate schema or authority registry is introduced. It observes native
+OS/architecture/ABI and pins executable bytes (256 MiB per declared tool), with descriptor and
+path metadata checks. Native tool symlinks may resolve; the selected sh must be the actual frozen
+supervisor shell. Checks run before and after acquisition; inspection still does not check tools.
+The plan excludes task environments, adopted toolingEnvironment, stdin and caller environment.
+
+The original supervisor request/dispatch/worker/stop owner now accepts private build plans.
+Build requests use spool format 5; ordinary execution/source-validation retain format 4, omitted
+optional fields and their original fingerprints. A plan cannot be relabelled as format 4.
+The overall build deadline starts before source verification/acquisition and carries into the
+recipe child. The bounded utility owner gains an interruption callback: cancellation/deadline/
+working refusal kills and reaps the original owned utility group without reader threads or retries.
+Acquisition uses the frozen shell's sibling curl, independently of the worker's cleared environment.
+Inputs/build scratch join the existing sampled/final working budget. Preparation rejection records
+an original stopped terminal report before any recipe-child dispatch; unproved execution retains
+uncertainty. Post-stop acquired-input errors are distinct artifact_error facts, including when
+the command exits zero. Source stop/capture still proves unchanged original source; exported output
+capture and retained-artifact success remain a subsequent boundary. Source import, validation
+proof and retirement reject build jobs rather than interpreting their process result as source work.
 
 ### Identity, storage and compatibility
 

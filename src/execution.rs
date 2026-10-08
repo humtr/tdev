@@ -152,6 +152,9 @@ pub fn prepare(
 
 /// Validation consumes sealed unchanged-source proof without importing test outputs.
 pub(crate) fn validation_proof(job: &Job, report: &crate::supervisor::Report) -> Result<()> {
+    if job.request().map_err(evidence)?.artifact.is_some() {
+        return Err(Fault::new("SOURCE_VALIDATION_REQUIRED"));
+    }
     let capture = report
         .capture
         .as_ref()
@@ -178,6 +181,9 @@ pub(crate) fn validation_proof(job: &Job, report: &crate::supervisor::Report) ->
 /// Require original worker/stop/source proof before importing any blob into private Git.
 /// The caller subsequently commits this checkpoint with its operation receipt using SQLite CAS.
 pub fn checkpoint(git: &Git, job: &Job, operation: &OperationId) -> Result<Checkpoint> {
+    if job.request().map_err(evidence)?.artifact.is_some() {
+        return Err(Fault::new("ARTIFACT_EXECUTION"));
+    }
     if job.path().file_name().and_then(|n| n.to_str()) != Some(operation.as_str()) {
         return Err(Fault::new("EXECUTION_IDENTITY"));
     }
@@ -257,6 +263,9 @@ pub fn checkpoint(git: &Git, job: &Job, operation: &OperationId) -> Result<Check
 
 /// Only explicitly stopped jobs may lose payload copies. Results, controls and output survive.
 pub fn retire(job: &Job) -> Result<()> {
+    if job.request().map_err(evidence)?.artifact.is_some() {
+        return Err(Fault::new("ARTIFACT_EXECUTION"));
+    }
     let gate = lock_file(&job.path().join("capture-import.lock")).map_err(evidence)?;
     gate.lock().map_err(evidence)?;
     if !matches!(job.observe().map_err(evidence)?, Observation::Complete(_)) {

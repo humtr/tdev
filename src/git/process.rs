@@ -58,7 +58,16 @@ pub(crate) fn run(
     check: bool,
 ) -> Result<Output> {
     let mut stdout = Vec::new();
-    let mut output = run_io(command, input, None, timeout, limit, check, &mut stdout)?;
+    let mut output = run_io(
+        command,
+        input,
+        None,
+        timeout,
+        limit,
+        check,
+        &mut stdout,
+        &mut || Ok(()),
+    )?;
     output.stdout = stdout;
     Ok(output)
 }
@@ -72,9 +81,41 @@ pub(crate) fn stream(
     check: bool,
     sink: &mut dyn Write,
 ) -> Result<Output> {
-    run_io(command, &[], input_file, timeout, limit, check, sink)
+    stream_controlled(
+        command,
+        input_file,
+        timeout,
+        limit,
+        check,
+        sink,
+        &mut || Ok(()),
+    )
 }
 
+pub(crate) fn stream_controlled(
+    command: &mut Command,
+    input_file: Option<std::fs::File>,
+    timeout: Duration,
+    limit: usize,
+    check: bool,
+    sink: &mut dyn Write,
+    control: &mut dyn FnMut() -> Result<()>,
+) -> Result<Output> {
+    run_io(
+        command,
+        &[],
+        input_file,
+        timeout,
+        limit,
+        check,
+        sink,
+        control,
+    )
+}
+
+// One extra interruption callback extends the existing I/O owner; keep its pipe/deadline
+// parameters explicit instead of introducing a second utility lifecycle.
+#[allow(clippy::too_many_arguments)]
 fn run_io(
     command: &mut Command,
     input: &[u8],
@@ -83,6 +124,7 @@ fn run_io(
     limit: usize,
     check: bool,
     sink: &mut dyn Write,
+    control: &mut dyn FnMut() -> Result<()>,
 ) -> Result<Output> {
     let streamed = input_file.is_some() || limit > OUTPUT_LIMIT;
     let child = command
@@ -112,6 +154,7 @@ fn run_io(
     let mut err = Vec::new();
     let mut written = 0;
     let status = loop {
+        control()?;
         if Instant::now() >= deadline {
             return Err(uncertain("TRANSPORT_TIMEOUT"));
         }

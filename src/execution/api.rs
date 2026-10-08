@@ -117,6 +117,7 @@ fn frozen(receipt: &Receipt) -> Result<Frozen> {
         })
         || !["command", "process"].contains(&frozen.mode.as_str())
         || frozen.request.source.is_some()
+        || frozen.request.artifact.is_some()
         || frozen.request.capture != (frozen.mode == "command")
     {
         return Err(Fault::new("STATE_FORMAT"));
@@ -224,6 +225,7 @@ fn submit(
         stdin: input["stdin"].as_str().unwrap_or("").into(),
         environment,
         source: None,
+        artifact: None,
         capture: mode == "command",
         env,
     };
@@ -564,6 +566,7 @@ fn complete(app: &Application, context: &Context, receipt: &Receipt) -> Result<O
         Outcome::Cancelled => Some(Fault::new("CANCELLED")),
         Outcome::Deadline => Some(Fault::new("TIMEOUT")),
         Outcome::EnvironmentBusy => Some(Fault::new("ENVIRONMENT_BUSY")),
+        Outcome::PreparationRejected => Some(Fault::new("EXECUTION_EVIDENCE")),
         Outcome::WorkingBudget | Outcome::DependencyBudget => Some(Fault::message(
             "EXECUTION_LIMIT",
             report.budget.as_ref().map_or_else(

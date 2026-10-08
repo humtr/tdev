@@ -1,4 +1,166 @@
-# Local validation evidence — 2026-10-07
+# Local validation evidence — 2026-10-08
+
+## Supervised build phase — 2026-10-08
+
+Source base: `ffe78ddf5dfebceb7599af0b638d29f3f671ae28`; product input revision **0.1.34**.
+This private P4 increment connects a frozen strict recipe and acquired-input budget to the
+original independent native supervisor. It does not connect public prepare, export capture,
+retained objects/pins, artifact verification or deployment. Eleven implemented families remain
+advertised; artifact only advertises inspectRecipe. SQLite format **3** and wire contracts are
+unchanged. Ordinary source/execution spool remains **4**; private build requests use **5**.
+Existing optional fields are omitted when absent, preserving format-4 request/report encoding
+and fingerprints. A new build request cannot be relabelled as an ordinary format-4 job.
+
+Ownership:
+
+- `src/artifact/build.rs`: original strict recipe/schema decoding, validated persisted plan,
+  immutable compiled-contract cache, native platform and pinned declared executables. Tools
+  resolve through fresh native PATH; symlinks may resolve, but sh must be the actual frozen
+  supervisor shell. No recipe command runs during preflight. Descriptor/metadata/hash and path
+  replacement checks bound each tool to **256 MiB** independently of source/acquired input.
+- `src/artifact/acquisition.rs`: controlled acquisition through the frozen shell's sibling curl;
+  worker environment clearing cannot select another tool directory. Public helper semantics
+  remain fresh-only, native verified HTTPS, selected input hashes and no ambient credentials.
+- `src/git/process.rs`: original owned bounded utility I/O gains an interruption callback, with
+  the same pipe/deadline and owned-group kill/reap discipline. Normal Git/provider calls use a
+  no-op callback. There is no second utility or long-lived execution lifecycle.
+- `src/supervisor/{spool,mod}.rs`: original request digest, dispatch/claim/worker, clean environment,
+  stopped terminal result, cancellation/deadline and sampled/final working budget. The build
+  deadline covers source verification, acquisition and the recipe command. Inputs/build scratch
+  join ordinary working roots, while acquired-input/source/dependency capacities remain separate.
+  Preparation rejection has no recipe-child dispatch. Post-stop acquired-input errors use boxed
+  artifact_error facts; exit 0/stdout PASS cannot conceal them or become retained-artifact success.
+- `src/execution.rs`, `src/execution/api.rs`: source import/checkpoint, source validation proof and
+  source retirement refuse build jobs. Ordinary frozen execution/validation rejects artifact plans;
+  existing receipts remain readable without changing task/source authority.
+
+Declared export validation/capture and retention are not implemented by a successful process
+report. Private builds preserve their source stop/capture proof and outputs; ordinary source
+retirement cannot delete them before their artifact owner is connected. Source policy, successful
+source validation/current admission, build slots, operation receipt and retained-object pin joins
+still belong to the next public prepare connection. No supplied manifest or stdout is accepted as
+an artifact result. Runtime/deployment compatibility remains separate from build-host attestation.
+Executable digests do not attest shared libraries, SDK contents, every subprocess or host/network
+hermeticity. Native execution remains ordinary Termux UID authority.
+
+Focused native tool/platform/shell/path replacement/tool-budget invariants: **4 pass in 0.80 s**.
+Acquisition/tool/recipe selection: **16 pass in 25.72 s**, including exact **64 MiB** HTTPS/chunked
+aggregate, lower-limit one-byte overflow, in-flight utility cancellation and no retry of partial
+storage. Existing Android link(2) refusal and actual multi-link-inode portable-host qualification
+boundary remain explicitly recorded in acquisition evidence below.
+Final source 0.1.34 private supervisor selection: **8 pass in 18.35 s**. It runs the actual
+independent executable, Git source, immutable requests, native shell/curl and owned TLS fixtures:
+
+- Fresh inputs/build scratch and frozen command/tool plan, unchanged original source, no source
+  checkpoint/import or ordinary retirement, no second launch.
+- Tool digest refusal before recipe-child dispatch; known stopped preparation rejection.
+- Cancel, command deadline, source mutation and final scratch working budget; no replay dispatch.
+- Real **2097152-byte chunked HTTPS input** after the worker environment is cleared; pinned bytes
+  consumed by the recipe, selected distribution retained in private inputs and one HTTP request.
+- In-flight TLS cancellation stops without recipe dispatch/refetch; acquisition consumes the same
+  overall build deadline as the command; a zero-exit recipe that alters input reports the original
+  ARTIFACT_DEPENDENCY_CHANGED error despite stdout PASS.
+- Wrong format and caller/task environment override refusals; ordinary format-4 omission/readback.
+
+The owned TLS fixture binds a private native tool directory through the actual identity codec and
+original source-ready envelope. Its curl wrapper delegates to the real native client with only
+fixture CA/loopback routing; this is test-only own-file setup, not a distributed transport mode,
+TLS bypass, production trust change or caller-selectable tool directory. Fixture Python/OpenSSL
+are development dependencies. Preparation/recipe execution uses the Rust supervisor and native
+utilities; no reference worker is called.
+
+Draft strict lint identified a large Observation enum after the optional error was added inline.
+Boxing only the sparse error fact repairs that storage cost and preserves ordinary reports; final
+strict all-target clippy passes. Earlier intermediate private selections also passed **4 / 11.99 s**,
+**6 / 10.42 s**, **8 / 14.16 s**; they precede the final field representation/version and do not
+qualify the final whole gate. No failed whole-script result is claimed as passing.
+
+Affected ordinary supervisor selection initially passes **30** and fails **1 in 5.68 s**:
+`input_admission_rejects_gaps_bounds_eof_and_control_identity_reuse` receives explicit
+WouldBlock at EOF enqueue. It is a reserved-only fixture, and standalone **1 / 0.06 s** passes;
+no live candidate pump is required for the transient lock refusal. The original enqueue owner
+returns WouldBlock before reading/persisting admission. The corrected fixture waits only for
+this explicit refusal using the same request/sequence within the existing bounded wait; other
+errors remain observable. Original gaps/bounds/identity/EOF/corrupt-prefix assertions remain.
+No product input-admission or automatic-retry behavior changes. Corrected whole affected
+supervisor selection: **31 pass in 5.42 s**. No failed selection is a whole-script PASS.
+
+Final affected public HTTP selection: **27 pass in 123.928 s**, using the source 0.1.34
+executable and disposable fixtures. The initial whole run started
+at 2026-10-08T00:01:55Z and its log stops during native GitHub acceptance; resumption finds
+no running gate and no completion record. Rust 140 tests and identity/contract comparisons
+had passed, but this interrupted run is not a whole-script PASS. The fresh full run starts
+at 2026-10-08T02:30:09Z under `.artifacts/build-phase-0.1.34/retry-1`; its original log and
+input witnesses are preserved. Whole regression froze all 300 product/test/doc inputs
+except this evidence document and the actual corpus.
+
+Final whole `sh scripts/check.sh`: **PASS, exit 0**, **5130.475 s**, completed
+**2026-10-08T04:02:23Z**. Both the check and its witness wrapper exit 0. Results:
+
+| Gate | Passed | Recorded duration |
+|---|---:|---:|
+| Rust library / execution / Git / supervisor | 65 / 27 / 17 / 31 = **140** | 22.40 / 413.71 / 73.62 / 8.51 s |
+| Native common HTTP | **97** | 1109.720 s across 15 selections |
+| Native failure/recovery/large-input HTTP | **96** | 1623.706 s |
+| Reference whole regression | **481** | 1610.476 s |
+| Capacity journey | **7** | 244.008 s |
+| Total automated tests | **821** | Whole script above |
+| Identity / compiled contract comparisons | **10003 / 136** | Separate from test total |
+
+Formatting, strict all-target locked clippy, locked build and diff checks pass. The original
+stdin admission fixture passes in the whole 31-case supervisor selection. Reference regression
+prints **15 unclosed SQLite database ResourceWarnings**; these are recorded warnings, not failed
+tests, and no warning cleanup or reference implementation change is included in this increment.
+These fixture durations are not a controlled implementation-performance comparison or a P5
+performance qualification.
+
+The 300 frozen product/test/doc inputs and the corpus are unchanged before/after the whole run.
+Witnesses: `.artifacts/build-phase-0.1.34/retry-1/{inputs,corpus,result}.json` and `check.log`.
+
+- Input manifest SHA-256: `9fae1d73f0ff7bce956a43e712de3eaa6c8eaae9f212c5687b58d35ccc118913`.
+- Actual exercised executable SHA-256: `f434b3eca0b33c0c83093acb74e3f5fce5eac04bfee92d13955796a995b4e040`.
+- Actual corpus: **190 files / 37724943 bytes** (**35.98 MiB**, approximately 37.7 decimal MB),
+  at house-md-distill/corpus/originals; ordered path/body digest
+  `d472c85cb1d54046b49b9a325be9596638f987489e8152e9b569370d5b201151`;
+  wrapper path/file-hash manifest
+  `ed814bb6d98f0d3c4daeaef3d31ea422b6a6e011227247d13cbba502228bab1f`.
+
+Current capacity qualification in this run:
+
+| Fixture | Actual admitted bytes/files | Result |
+|---|---|---|
+| Native HTTP single file / committed source | 181403679 bytes, 1 file each | PASS; 69.894 / 83.749 s |
+| Native HTTP aggregate | 536870900 bytes, 8 files; subsequent overflow rejection | PASS; 259.598 s |
+| Native HTTP actual corpus | 37724943 bytes, 190 files | PASS; 40.050 s |
+| Native committed-source controller / recipe-input controller | Same 181403679-byte source | PASS; VmHWM 29564 / 31384 KiB |
+| Capacity journey aggregate / committed aggregate | 536870900 bytes, 8 files each | PASS; 55.932 / 63.279 s |
+| Capacity journey committed single / actual corpus | 181403679 / 37724943 bytes | PASS; 23.093 / 20.960 s |
+| Capacity journey large artifact source input | 181403679 bytes | PASS; inspection only, no build/seal |
+| Capacity journey many files / single file | 1024 one-byte files / 181403679-byte file | PASS; 5.363 / 13.514 s |
+
+Rust execution also passes its many-file, >=173 MiB and 512 MiB roundtrips and one-byte source
+overflow; native HTTP passes exact **2 GiB** task-dependency/overflow and separate working-budget
+invariants. Source admission/import, capture, checkpoint, integration, workspace and cleanup
+qualification is included. The final seven capacity cases use the reference controller and
+actual native executor; they do not qualify new Rust retained-artifact handlers.
+
+Existing source limits are unchanged by this build connection: source/single-file **512 MiB**,
+source files **100000**, pack **1 GiB**, metadata **48 MiB**, launch control **8 MiB**. Native
+workingBytes remains **128 MiB default / 2 GiB maximum** and task dependency capacity remains
+**2 GiB**; model wire **2 MiB / depth 128** is independent. Acquired inputs remain **64 MiB**,
+headers **64 KiB**, individual transfers **20 s**, finite build deadline **1..3600 s**. Newly
+implemented tool attestation has its own **256 MiB per-tool** boundary and configured/observed
+`artifactToolBytes` diagnostic. Working refusal retains the original budget record. Source
+capacity does not become 2 GiB merely because working/dependency budgets permit that size.
+
+No production config, resident/provider/observer replacement or activation is performed.
+Read-only installed metadata confirms product **0.1.27 / workingBytes 2147483648**, active bundle
+`e502ae7ee8a1b19fc524e761b523e357659a18cf24c8553f976fcc60f53855d3`.
+Executable attestation does not attest libraries/SDKs, native working limits are sampled rather
+than hard RAM/disk isolation, and the Android hardlink/portable-host boundary recorded below
+remains. Installed format-5 qualification, P4 export capture/retention/public prepare and
+validation/deployment, P5 operator/state/performance and P6 installed/client/host/main integration
+remain outstanding.
 
 ## Public input acquisition — 2026-10-07
 

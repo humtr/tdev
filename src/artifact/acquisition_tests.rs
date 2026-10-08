@@ -419,3 +419,36 @@ fn validated_descriptions_and_budget_admission_precede_any_storage_or_network() 
     );
     assert!(crate::git::capacity::SOURCE_BYTES as u64 > INPUT_MAX);
 }
+
+#[test]
+fn in_flight_acquisition_cancellation_stops_owned_utility_and_never_retries_partial_storage() {
+    let f = Fixture::new();
+    let selected = inputs(&[("a", "/slow", 1)]);
+    let started = Instant::now();
+    let error = selected
+        .acquire_run(
+            &f.path("partial"),
+            32,
+            Instant::now() + Duration::from_secs(10),
+            |url, timeout| f.command(url, timeout),
+            &mut || {
+                if !f.requests().is_empty() {
+                    Err(Fault::new("CANCELLED"))
+                } else {
+                    Ok(())
+                }
+            },
+        )
+        .unwrap_err();
+    assert_eq!(error.code, "CANCELLED");
+    assert!(started.elapsed() < Duration::from_secs(2));
+    assert_eq!(f.requests().len(), 1);
+    assert!(f.path("partial").is_dir());
+    assert_eq!(
+        f.acquire(&selected, "partial", 32, Duration::from_secs(10))
+            .unwrap_err()
+            .code,
+        "ARTIFACT_INPUT_EXISTS"
+    );
+    assert_eq!(f.requests().len(), 1);
+}

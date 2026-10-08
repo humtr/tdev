@@ -10,6 +10,7 @@ use std::path::{Component, Path, PathBuf};
 use std::process::{Command, Stdio};
 
 const FORMAT: u32 = 4;
+const BUILD_FORMAT: u32 = 5;
 const RECORD_LIMIT: u64 = 8 * 1024 * 1024;
 const WORKING_MAX: u64 = 2 * 1024 * 1024 * 1024;
 
@@ -55,6 +56,8 @@ pub struct Request {
     pub source: Option<super::Source>,
     pub capture: bool,
     pub env: std::collections::BTreeMap<String, String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub artifact: Option<crate::artifact::build::Plan>,
 }
 
 impl Request {
@@ -82,6 +85,23 @@ impl Request {
         }
         if let Some(source) = &self.source {
             source.validate()?;
+        }
+        if let Some(plan) = &self.artifact {
+            plan.validate().map_err(io::Error::other)?;
+            if self.command != plan.command()
+                || self.cwd != "."
+                || self.timeout_seconds.is_none()
+                || !self.stdin.is_empty()
+                || self.environment.is_some()
+                || !self.env.is_empty()
+                || !self.capture
+                || self
+                    .source
+                    .as_ref()
+                    .is_some_and(|s| !s.readonly || !s.capture_paths.is_empty())
+            {
+                return Err(io::Error::other("Invalid frozen build execution input"));
+            }
         }
         validate_env(&self.env)?;
         Ok(())
@@ -114,6 +134,7 @@ pub enum Outcome {
     WorkingBudget,
     DependencyBudget,
     EnvironmentBusy,
+    PreparationRejected,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -130,6 +151,8 @@ pub struct Report {
     pub budget: Option<Budget>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub capture: Option<super::Capture>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub artifact_error: Option<Box<crate::model::Fault>>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -166,6 +189,11 @@ impl Job {
         prepare: impl FnOnce(&Self) -> io::Result<()>,
     ) -> io::Result<Self> {
         request.validate()?;
+        if request.artifact.is_some() && request.source.is_none() {
+            return Err(io::Error::other(
+                "Build requires original materialized source",
+            ));
+        }
         private_directory(root)?;
         let path = root.join(operation.as_str());
         if request.environment.as_ref().is_some_and(|environment| {
@@ -181,7 +209,11 @@ impl Job {
                 File::open(root)?.sync_all()?;
                 let shell = platform::shell()?;
                 let reservation = Reservation {
-                    format: FORMAT,
+                    format: if request.artifact.is_some() {
+                        BUILD_FORMAT
+                    } else {
+                        FORMAT
+                    },
                     operation: operation.clone(),
                     digest: fingerprint(&(&request, &shell))?,
                     request,
@@ -239,7 +271,13 @@ impl Job {
     fn reservation(&self) -> io::Result<Reservation> {
         let record: Reservation = self.read("request.json")?;
         record.request.validate()?;
-        if record.format != FORMAT
+        if record.format
+            != if record.request.artifact.is_some() {
+                BUILD_FORMAT
+            } else {
+                FORMAT
+            }
+            || (record.request.artifact.is_some() && record.request.source.is_none())
             || self.path.file_name().and_then(|s| s.to_str()) != Some(record.operation.as_str())
             || !record.shell.is_absolute()
             || record.shell.file_name().is_none_or(|name| name != "sh")
@@ -382,6 +420,15 @@ impl Job {
                     && report.worker == worker.value
                     && report.stopped
                     && report.retained_bytes <= OUTPUT_LIMIT
+                    && (self.request()?.artifact.is_some()
+                        || (report.artifact_error.is_none()
+                            && report.outcome != Outcome::PreparationRejected))
+                    && (report.outcome != Outcome::PreparationRejected
+                        || (report.artifact_error.is_some()
+                            && report.exit_code.is_none()
+                            && report.capture.is_none()
+                            && report.retained_bytes == 0
+                            && !self.path.join("child-dispatch.json").try_exists()?))
                     && self.log_length()? == report.retained_bytes =>
             {
                 Ok(Observation::Complete(report))
@@ -465,6 +512,16 @@ impl Job {
     pub(crate) fn within_budget(&self, budget: u64) -> io::Result<bool> {
         self.check_budget(
             ["work", "home", "tmp", "config", "cache"].map(|name| self.path.join(name)),
+            budget,
+            250000,
+            "working",
+        )
+    }
+
+    pub(crate) fn within_build_budget(&self, budget: u64) -> io::Result<bool> {
+        self.check_budget(
+            ["work", "home", "tmp", "config", "cache", "inputs", "build"]
+                .map(|name| self.path.join(name)),
             budget,
             250000,
             "working",
@@ -694,6 +751,7 @@ mod visibility_tests {
                 stdin: String::new(),
                 environment: None,
                 source: None,
+                artifact: None,
             },
         )
         .unwrap();

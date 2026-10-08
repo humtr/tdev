@@ -29,6 +29,7 @@ impl Fixture {
             stdin: String::new(),
             environment: None,
             source: None,
+            artifact: None,
             capture: true,
             env: Default::default(),
         })
@@ -218,44 +219,24 @@ fn partial_input_supervisor_death_retains_unknown_without_resend() {
 #[test]
 fn input_admission_rejects_gaps_bounds_eof_and_control_identity_reuse() {
     let fixture = Fixture::new("cat", Some(5), 128 * 1024 * 1024);
-    assert!(fixture.job.enqueue(input("gap", 1, "gap", false)).is_err());
-    assert!(
-        fixture
-            .job
-            .enqueue(input("too-many", 1024, "x", false))
-            .is_err()
-    );
-    assert!(
-        fixture
-            .job
-            .enqueue(input("too-long", 0, &"x".repeat(65537), false))
-            .is_err()
-    );
-    fixture
-        .job
-        .enqueue(input("first", 0, "first", false))
-        .unwrap();
-    assert!(
-        fixture
-            .job
-            .enqueue(input("first", 1, "first", false))
-            .is_err()
-    );
-    fixture.job.enqueue(input("eof", 1, "", true)).unwrap();
-    assert!(
-        fixture
-            .job
-            .enqueue(input("closed", 2, "closed", false))
-            .is_err()
-    );
+    // WouldBlock is an explicit refusal before reading or persisting an admission.
+    // Keep the same request/sequence while waiting; any other error remains observable.
+    let enqueue = |control: Input| {
+        wait(|| match fixture.job.enqueue(control.clone()) {
+            Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => None,
+            result => Some(result),
+        })
+    };
+    assert!(enqueue(input("gap", 1, "gap", false)).is_err());
+    assert!(enqueue(input("too-many", 1024, "x", false)).is_err());
+    assert!(enqueue(input("too-long", 0, &"x".repeat(65537), false)).is_err());
+    enqueue(input("first", 0, "first", false)).unwrap();
+    assert!(enqueue(input("first", 1, "first", false)).is_err());
+    enqueue(input("eof", 1, "", true)).unwrap();
+    assert!(enqueue(input("closed", 2, "closed", false)).is_err());
     // A persistence gap is not repaired into another delivery opportunity.
     fs::remove_file(fixture.job.path().join("stdin-0.json")).unwrap();
-    assert!(
-        fixture
-            .job
-            .enqueue(input("replace", 0, "replace", false))
-            .is_err()
-    );
+    assert!(enqueue(input("replace", 0, "replace", false)).is_err());
     assert!(!fixture.job.path().join("stdin-0.json").exists());
 }
 
@@ -781,6 +762,7 @@ fn fixture_request() -> Request {
         stdin: String::new(),
         environment: None,
         source: None,
+        artifact: None,
         capture: true,
         env: Default::default(),
     }
