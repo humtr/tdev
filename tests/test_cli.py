@@ -103,7 +103,7 @@ class CLITest(unittest.TestCase):
         factory.return_value.change.assert_called_once_with('mode','personal',mode='tunnel')
 
     def test_link_is_explicit_and_preserves_unrelated_command(self):
-        with patch('tdev.cli.Path.home',return_value=self.root), patch.dict(os.environ,{'PREFIX':str(self.root/'prefix')}):
+        with patch('tdev.cli.Path.home',return_value=self.root), patch('tdev.admin.verify'), patch.dict(os.environ,{'PREFIX':str(self.root/'prefix')}):
             self.run_cli('link')
             file=self.root/'.local/bin/tdev'; self.assertEqual(file.stat().st_mode&0o777,0o700)
             self.assertIn(' -m tdev.cli ',file.read_text())

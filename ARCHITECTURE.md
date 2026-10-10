@@ -1225,7 +1225,10 @@ writes and other application effects cannot be rolled back by switching source d
 
 Release updates retain the previous release for explicit rollback. Start/rollback verify the
 retained source and current validation policy before activation; stop/remove can still manage
-owned resources after policy or source changes. Remove stops the service and moves only its owned service
+owned resources after policy or source changes. Only stop/remove and observation/replay of
+those operations omit retired repository/ref capabilities. They still require the actual
+deployment owner, current delegated target and its pinned identity, and exact service markers.
+Inspect/list/start/rollback/release retain current source authorization. Remove stops the service and moves only its owned service
 directory outside the live graph. Releases, data, logs and receipts are preserved; it is not a
 purge. The additive deployment table uses the existing development state schema; older bundles
 cannot manage this new surface and must not be chosen as a runtime downgrade while it is needed.
@@ -1922,3 +1925,15 @@ another roadmap. Changes to product authority/trust, removal of supported behavi
 contracts or state compatibility are not routine refactors: identify their concrete impact and
 resolve them against current user instructions before implementation. User-approved improvements
 replace the relevant design, rather than accumulating permanent alternative modes.
+
+### Stable installation and CLI ownership (2026-10-09)
+
+The default operating root is ~/.local/share/tdev. Operator credentials, config, resident
+metadata, state, retained bundles and tunnel inputs belong to that installation. Scratch
+source checkouts are never operating roots. The installed tdev launcher resolves the verified
+active bundle of its installation on each invocation, so updates and rollback also switch
+CLI behavior. Linking requires an installed resident and verified active bundle; a development
+checkout is accessed explicitly and must not become the installed CLI authority. A relocated
+installation retains its installation ID, database rows, credentials and immutable bundle
+bytes; mutable paths, tunnel profile digests and owned runit markers are transitioned under
+maintenance with the exact former desired state and a bounded rollback snapshot.

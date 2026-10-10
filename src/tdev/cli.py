@@ -225,7 +225,11 @@ def main(argv=None):
         if not directory.is_dir() or str(directory) not in os.environ.get('PATH','').split(os.pathsep):
             directory = Path.home()/'.local/bin'
         target = directory/'tdev'
-        source = source_root()
+        from .admin import verify
+        require((root/'resident.json').is_file(), 'INSTALLATION_REQUIRED',
+                'Install tdev before linking the installed command')
+        verify(root/'active')
+        source = root/'active'
         content = '#!'+(shutil_shell())+'\nexport PYTHONPATH='+shlex.quote(str(source/'src')+':'+str(source/'.tdev-deps'))+'\nexec '+shlex.quote(sys.executable)+' -m tdev.cli "$@"\n'
         if target.exists():
             require(target.is_file() and not target.is_symlink() and ' -m tdev.cli ' in target.read_text(), 'CLI_PATH_OCCUPIED')

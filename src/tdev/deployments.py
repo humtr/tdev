@@ -214,12 +214,13 @@ class Deployments:
         require(expected is None or digest(target) == expected, 'DEPLOYMENT_TARGET_CHANGED')
         return name, target
 
-    def get(self, principal, ident):
+    def get(self, principal, ident, *, cleanup=False):
         row = self.store.one('SELECT * FROM deployment WHERE id=? AND owner=?', (ident, principal))
         require(row, 'DEPLOYMENT_NOT_FOUND')
         self.target(principal, row['target'], row['target_digest'])
-        self.c.authorize(principal, row['repo'], row['ref'])
-        require(self.c.config['repositories'][row['repo']]['identity'] == row['identity'], 'REPOSITORY_IDENTITY')
+        if not cleanup:
+            self.c.authorize(principal, row['repo'], row['ref'])
+            require(self.c.config['repositories'][row['repo']]['identity'] == row['identity'], 'REPOSITORY_IDENTITY')
         return row
 
     @staticmethod
@@ -306,7 +307,7 @@ class Deployments:
             record = {**old_record, 'previous': old_record['release'], 'release': digest(manifest), 'desired': 'up'}
             repo, ref, repository_identity = validation['repo'], validation['ref'], cfg['identity']
         else:
-            row = self.get(principal, args['deploymentId'])
+            row = self.get(principal, args['deploymentId'], cleanup=args['action'] in ('stop', 'remove'))
             ident, target_name = row['id'], row['target']
             _, target = self.target(principal, target_name, row['target_digest'])
             repo, ref, repository_identity = row['repo'], row['ref'], row['identity']

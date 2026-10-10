@@ -859,3 +859,26 @@ A redacted current-host metadata experiment, if later selected, records field pr
 length and principal-scoped digest only. Compare repeated calls and a second actual conversation;
 record transport identity separately. Do not read credentials, log raw requests or treat a
 scripted `openai/session` value as host evidence. It does not block note-only delivery.
+
+## Authorized Termux restoration normalization — 2026-10-09
+
+Primary-only device maintenance: preserve existing Rust development changes.
+1. CLI slice: baseline 25 tests passed; installed launcher must use verified active bundle,
+   with changed-pointer, missing/corrupt bundle and occupied-path regressions.
+2. Root slice: source Python equals installed 0.1.27; no running/unknown operations or busy
+   task/deployment. Preserve DB/config/credentials/version hashes and service states, stop
+   owned services, merge validated parent inputs, rewrite mutable paths and ownership hashes,
+   restore through rollback snapshot on failure, verify local MCP and tunnel control poll.
+3. Preserve and remove experimental checkouts only after the installed CLI is independent.
+Protected: immutable bundles and release bytes, auth hashes, project enrollments, operations,
+source dirty state, shared supervisor and unrelated services. No resolver edits.
+
+4. User-approved owned stop/remove: deployment owner, current target identity and exact
+   service markers remain required. Retired source-ref grants gate launch, not cleanup.
+   Focused regression covers revoked source, revoked target, replay and retained receipts.
+
+Acceptance: installed CLI4, ordinary CLI25 and deployments17 passed on the current
+source. Earlier scripts/check.sh native151 (one explicit ignore), native acceptance
+96 and other public acceptance gates passed; interrupted Python discovery was
+resumed with486 plus capacity7 passing. No new Rust behavior was implemented by
+this maintenance slice. Keep the separate Rust artifact development uncommitted.

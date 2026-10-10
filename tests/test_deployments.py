@@ -180,6 +180,27 @@ class DeploymentTest(Base):
         denied = self.c.call('alice', 'tdev_deploy', {'action': 'inspect', 'deploymentId': ident})
         self.assertEqual(denied['error']['code'], 'PERMISSION_DENIED')
 
+    def test_owned_cleanup_survives_retired_source_authority_but_launch_does_not(self):
+        _, validation, _ = self.validated()
+        good = self.release(validation)
+        ident = good['result']['deploymentId']
+        self.repo.config['principals']['alice']['repos'] = {}
+        denied = self.c.call('alice', 'tdev_deploy', {'action':'start','requestId':'start','deploymentId':ident,'expectedRevision':1})
+        self.assertEqual(denied['error']['code'], 'PERMISSION_DENIED')
+        self.repo.config['principals']['alice']['deploymentTargets'] = []
+        denied = self.c.call('alice', 'tdev_deploy', {'action':'stop','requestId':'no-target','deploymentId':ident,'expectedRevision':1})
+        self.assertEqual(denied['error']['code'], 'DEPLOYMENT_TARGET_REQUIRED')
+        self.repo.config['principals']['alice']['deploymentTargets'] = ['phone']
+        stopped = self.control(ident, 'stop', 1)
+        self.assertEqual(stopped['status'], 'succeeded', stopped)
+        self.assertEqual(stopped['result']['desired'], 'down')
+        before = list(self.runit.events)
+        self.assertEqual(self.control(ident, 'stop', 1), stopped)
+        self.assertEqual(self.call('operation', {'action': 'status', 'operationId': stopped['id']}), stopped)
+        self.assertEqual(before, self.runit.events)
+        removed = self.control(ident, 'remove', 2)
+        self.assertEqual(removed['result']['desired'], 'removed', removed)
+
     def test_validation_policy_change_rejected_before_service_creation(self):
         _, validation, _ = self.validated()
         self.repo.config['repositories']['test']['validation'] = 'changed-policy'

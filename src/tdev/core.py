@@ -117,7 +117,10 @@ class Controller:
         row = self.store.one("SELECT * FROM operation WHERE id=?", (ident,))
         require(row and row["owner"] == principal, "OPERATION_NOT_FOUND")
         if row['kind'] == 'deploy':
-            self.deployments.get(principal, json.loads(row['intent'])['deploymentId'])
+            intent = json.loads(row['intent'])
+            self.deployments.get(principal, intent['deploymentId'],
+                                 cleanup=intent['input']['action'] in ('stop', 'remove'))
+            return row
         if row['kind'] == 'workspace':
             self.workspaces.get(principal, json.loads(row['intent'])['workspaceId'])
             return row

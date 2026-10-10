@@ -1,6 +1,7 @@
 #!/data/data/com.termux/files/usr/bin/sh
 set -eu
 cd "$(dirname "$0")/.."
+export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/tdev/build}"
 export PYTHONPATH="$PWD/src:$PWD/.tdev-deps${PYTHONPATH:+:$PYTHONPATH}"
 cargo fmt --all -- --check
 cargo clippy --all-targets --locked -- -D warnings
@@ -10,37 +11,37 @@ python scripts/check_contract.py
 # Build and exercise the actual native HTTP process. Selection belongs only to
 # the acceptance harness; product code has no runtime variant switch.
 cargo build --locked
-TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.abspath("target/debug/tdev"), "serve"]))') \
+TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.join(os.path.abspath(os.environ["CARGO_TARGET_DIR"]), "debug", "tdev"), "serve"]))') \
     python -m unittest discover -s tests/acceptance -t tests -p 'test_source.py' -v
-TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.abspath("target/debug/tdev"), "serve"]))') \
+TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.join(os.path.abspath(os.environ["CARGO_TARGET_DIR"]), "debug", "tdev"), "serve"]))') \
     python -m unittest discover -s tests/acceptance -t tests -p 'test_project.py' -v
-TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.abspath("target/debug/tdev"), "serve"]))') \
+TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.join(os.path.abspath(os.environ["CARGO_TARGET_DIR"]), "debug", "tdev"), "serve"]))') \
     python -m unittest discover -s tests/acceptance -t tests -p 'test_github.py' -v
-TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.abspath("target/debug/tdev"), "serve"]))') \
+TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.join(os.path.abspath(os.environ["CARGO_TARGET_DIR"]), "debug", "tdev"), "serve"]))') \
     python -m unittest discover -s tests/acceptance -t tests -p 'test_start.py' -v
-TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.abspath("target/debug/tdev"), "serve"]))') \
+TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.join(os.path.abspath(os.environ["CARGO_TARGET_DIR"]), "debug", "tdev"), "serve"]))') \
     python -m unittest discover -s tests/acceptance -t tests -p 'test_import.py' -v
-TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.abspath("target/debug/tdev"), "serve"]))') \
+TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.join(os.path.abspath(os.environ["CARGO_TARGET_DIR"]), "debug", "tdev"), "serve"]))') \
     python -m unittest discover -s tests/acceptance -t tests -p 'test_capacity.py' -v
-TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.abspath("target/debug/tdev"), "serve"]))') \
+TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.join(os.path.abspath(os.environ["CARGO_TARGET_DIR"]), "debug", "tdev"), "serve"]))') \
     python -m unittest discover -s tests/acceptance -t tests -p 'test_integration.py' -v
-TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.abspath("target/debug/tdev"), "serve"]))') \
+TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.join(os.path.abspath(os.environ["CARGO_TARGET_DIR"]), "debug", "tdev"), "serve"]))') \
     python -m unittest discover -s tests/acceptance -t tests -p 'test_cleanup.py' -v
-TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.abspath("target/debug/tdev"), "serve"]))') \
+TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.join(os.path.abspath(os.environ["CARGO_TARGET_DIR"]), "debug", "tdev"), "serve"]))') \
     python -m unittest discover -s tests/acceptance -t tests -p 'test_predecessor.py' -v
-TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.abspath("target/debug/tdev"), "serve"]))') \
+TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.join(os.path.abspath(os.environ["CARGO_TARGET_DIR"]), "debug", "tdev"), "serve"]))') \
     python -m unittest discover -s tests/acceptance -t tests -p 'test_execution.py' -v
-TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.abspath("target/debug/tdev"), "serve"]))') \
+TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.join(os.path.abspath(os.environ["CARGO_TARGET_DIR"]), "debug", "tdev"), "serve"]))') \
     python -m unittest discover -s tests/acceptance -t tests -p 'test_validation.py' -v
-TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.abspath("target/debug/tdev"), "serve"]))') \
+TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.join(os.path.abspath(os.environ["CARGO_TARGET_DIR"]), "debug", "tdev"), "serve"]))') \
     python -m unittest discover -s tests/acceptance -t tests -p 'test_continuation.py' -v
-TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.abspath("target/debug/tdev"), "serve"]))') \
+TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.join(os.path.abspath(os.environ["CARGO_TARGET_DIR"]), "debug", "tdev"), "serve"]))') \
     python -m unittest discover -s tests/acceptance -t tests -p 'test_frontier.py' -v
-TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.abspath("target/debug/tdev"), "serve"]))') \
+TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.join(os.path.abspath(os.environ["CARGO_TARGET_DIR"]), "debug", "tdev"), "serve"]))') \
     python -m unittest discover -s tests/acceptance -t tests -p 'test_runtime.py' -v
-TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.abspath("target/debug/tdev"), "serve"]))') \
+TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.join(os.path.abspath(os.environ["CARGO_TARGET_DIR"]), "debug", "tdev"), "serve"]))') \
     python -m unittest discover -s tests/acceptance -t tests -p 'test_artifact_recipe.py' -v
-TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.abspath("target/debug/tdev"), "serve"]))') \
+TDEV_ACCEPTANCE_COMMAND=$(python -c 'import json, os; print(json.dumps([os.path.join(os.path.abspath(os.environ["CARGO_TARGET_DIR"]), "debug", "tdev"), "serve"]))') \
     python -m unittest discover -s tests/acceptance -t tests -p 'native_*.py' -v
 # tests/acceptance is a package: this discovery includes its executable scenarios.
 test -f tests/acceptance/__init__.py

@@ -21,7 +21,7 @@ from support import Repository, git
 
 def main():
     source = Path(__file__).resolve().parents[1]
-    with tempfile.TemporaryDirectory(prefix=".tdev-rehearsal-", dir=source) as temporary:
+    with tempfile.TemporaryDirectory(prefix="tdev-rehearsal-") as temporary:
         root = Path(temporary)
         (root / "bin").mkdir()
         native_tunnel = root / "bin/tunnel-client"
